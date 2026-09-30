@@ -1,5 +1,6 @@
 import { Box } from "@mui/material";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { setBodyPublicRoute } from "../../theme/bodyRouteClass";
 import Slide from "@mui/material/Slide";
 import { useNavigate } from "react-router-dom";
 import EmailBox from "./Components/EmailBox";
@@ -8,6 +9,10 @@ import NuevaContraseña from "./Components/NuevaContraseña";
 
 const RecuperarCuenta = () => {
     const navigate = useNavigate();
+    useEffect(() => {
+        setBodyPublicRoute(true);
+        return () => setBodyPublicRoute(false);
+    }, []);
     const [step, setStep] = useState<"email" | "codigo" | "contraseña">("email");
     const [email, setEmail] = useState("");
     const [code, setCode] = useState("");

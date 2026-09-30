@@ -1,9 +1,16 @@
 import { GLASS_COLORS } from "./GlassStyles";
 import { FONT_FAMILY_UI } from "../theme/typography";
+import { CSS_VAR_NAMES } from "../theme/applyCssVariables";
+
+const analyticsCardBg = `var(${CSS_VAR_NAMES.surfaceAnalyticsCard})`;
+const dashboardGlassBg = `var(${CSS_VAR_NAMES.surfaceDashboardGlassCard})`;
+const dashboardSectionBg = `var(${CSS_VAR_NAMES.surfaceDashboardSection})`;
+const dashboardSectionHeaderBg = `var(${CSS_VAR_NAMES.surfaceDashboardSectionHeader})`;
+const chartGridStroke = `var(${CSS_VAR_NAMES.chartGrid})`;
 
 /** Superficie glass compartida para KPI y ChartCard del dashboard (D1b). */
 export const dashboardGlassCardSx = {
-  backgroundColor: "rgba(255, 255, 255, 0.035)",
+  backgroundColor: dashboardGlassBg,
   backdropFilter: "blur(10px)",
   WebkitBackdropFilter: "blur(10px)",
   border: `1px solid ${GLASS_COLORS.borderLight}`,
@@ -15,7 +22,7 @@ export const dashboardGlassCardSx = {
 
 /** Card analytics dark (D1d.11-hotfix) — inspirada en MUI Dashboard Template. */
 export const dashboardAnalyticsCardSx = {
-  backgroundColor: "rgba(12, 18, 32, 0.72)",
+  backgroundColor: analyticsCardBg,
   backdropFilter: "blur(12px)",
   WebkitBackdropFilter: "blur(12px)",
   border: `1px solid ${GLASS_COLORS.borderLight}`,
@@ -46,7 +53,7 @@ export const dashboardPeriodTabsSx = {
 
 /** Sección del dashboard: bloque integrado (título + contenido). */
 export const dashboardSectionSurfaceSx = {
-  backgroundColor: "rgba(255, 255, 255, 0.028)",
+  backgroundColor: dashboardSectionBg,
   backdropFilter: "blur(10px)",
   WebkitBackdropFilter: "blur(10px)",
   border: `1px solid ${GLASS_COLORS.borderLight}`,
@@ -60,7 +67,7 @@ export const dashboardSectionHeaderSx = {
   pt: 1.25,
   pb: 1,
   borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
-  backgroundColor: "rgba(255,255,255,0.02)",
+  backgroundColor: dashboardSectionHeaderBg,
 } as const;
 
 export const dashboardSectionBodySx = {
@@ -176,7 +183,7 @@ export const ChartStyle = {
     fontWeight: 700,
   },
   "&& .MuiChartsGrid-line": {
-    stroke: "rgba(255,255,255,0.06)",
+    stroke: chartGridStroke,
     strokeDasharray: "4 4",
   },
   "&& .MuiChartsLegend-root": {
@@ -203,6 +210,6 @@ export const dashboardGlassTableSx = {
   "& .MuiTableCell-head": {
     fontWeight: 700,
     color: GLASS_COLORS.textPrimary,
-    backgroundColor: "rgba(255,255,255,0.03)",
+    backgroundColor: `var(${CSS_VAR_NAMES.surfacePanelSubtle})`,
   },
 } as const;

@@ -150,13 +150,13 @@ export function CompletarEmptyView({ initialFecha, onVerTrabajos }: CompletarTra
                   return {
                     bgcolor: surface.bgcolor,
                     border: surface.border,
-                    color: "#FFFFFF",
+                    color: surface.color,
                     minHeight: COMPLETAR_CALENDAR_CELL_MIN_HEIGHT,
                     "&:hover": {
                       bgcolor:
                         tono === "neutral"
-                          ? "rgba(255,255,255,0.05)"
-                          : "rgba(255,255,255,0.07)",
+                          ? "var(--d-calendar-day-hover)"
+                          : surface.bgcolor,
                     },
                   };
                 }}

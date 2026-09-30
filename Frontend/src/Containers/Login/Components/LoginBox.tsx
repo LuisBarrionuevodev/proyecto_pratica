@@ -2,7 +2,6 @@ import { Alert, Box, Typography } from "@mui/material";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
 import { AppButton, AppTextField } from "../../../ui";
 import { ButtonStyle, InputStyles, LoginBoxGlobalStyle, LoginBoxInputStyles, LoginBoxStyle, LoginLogoStyle } from "../../../styles/LoginStyles";
-import LogoSMT from "../../../assets/LogoSMT.svg"
 import TextDigitaliza from "../../../assets/TextDigitaliza.svg"
 import type { JSX } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -52,9 +51,8 @@ const LoginBox = (): JSX.Element => {
     return (
         <Box sx={LoginBoxGlobalStyle}>
             <Box sx={LoginBoxStyle}>
-                <Box sx={LoginLogoStyle}>
-                    <img src={LogoSMT} alt="" style={{width:"120px"}} />
-                    <img src={TextDigitaliza} alt="" style={{ width: "200px" }} />
+                <Box sx={{ ...LoginLogoStyle, alignItems: "center", width: "100%" }}>
+                    <img src={TextDigitaliza} alt="Digitaliza" style={{ width: "200px", display: "block", margin: "0 auto" }} />
                 </Box>
 
                 <Box sx={LoginLogoStyle}>

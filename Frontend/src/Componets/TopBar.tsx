@@ -27,8 +27,6 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 import TextDigitaliza from "../assets/TextDigitaliza.svg"
 
-import LogoSMT from "../assets/LogoSMT.svg"
-
 import { useAppSession, notifyAuthSessionRefresh } from "../auth/AppSessionProvider";
 
 import {
@@ -134,65 +132,31 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth = 72 }) => {
 
         <Box sx={TopBarContainerStyles}>
 
-            <Box 
-
-                display="flex" 
-
-                alignItems="center"
-
-                onClick={handleInicio} 
-
-                sx={{ 
-
-                    cursor: "pointer",
-
-                    width: sidebarWidth,
-
-                    justifyContent: "start",
-
-                    flexShrink: 0,
-
-                    ml:{xs:"-5px", sm:"15px"}
-
-                }}
-
-            >
-
-                <Box
-
-                    component="img"
-
-                    src={LogoSMT}
-
-                    sx={{ width: "60px" }}
-
-                />
-
-            </Box>
-
-            
-
-            <Box 
-
-                component="img"
-
-                src={TextDigitaliza}
-
+            <Box
                 onClick={handleInicio}
-
-                sx={{ 
-
-                    width: {lg:"200px", xl:"230px"}, 
-
+                sx={{
                     cursor: "pointer",
-
-                    ml:{xs:-3, sm:-2.5},
-
-                    mt:1
-
-                }} 
-
-            />
+                    width: sidebarWidth,
+                    flexShrink: 0,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "flex-start",
+                    pl: { xs: 0.75, sm: 1.25 },
+                    mt: 1,
+                }}
+            >
+                <Box
+                    component="img"
+                    src={TextDigitaliza}
+                    alt="Digitaliza"
+                    sx={{
+                        width: { xs: 130, sm: 160, lg: 190, xl: 210 },
+                        maxWidth: "100%",
+                        objectFit: "contain",
+                        objectPosition: "left center",
+                    }}
+                />
+            </Box>
 
             
 

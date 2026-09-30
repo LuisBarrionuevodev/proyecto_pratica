@@ -2,7 +2,12 @@ import { useState } from "react";
 import { Box, Typography } from "@mui/material";
 import { AppButton, AppTextField } from "../../../ui";
 import LockOutlinedIcon from "@mui/icons-material/LockOutlined";
-import { buttonStyle, inputDarkStyle } from "../../../styles/PerfilStyles";
+import {
+  buttonStyle,
+  profileFieldLabelSx,
+  profileInputStyle,
+  profilePasswordCardSx,
+} from "../../../styles/PerfilStyles";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 interface Props {
@@ -47,19 +52,7 @@ const BoxCambiarInfo = ({ onPasswordChange }: Props) => {
   };
 
   return (
-    <Box
-      sx={{
-        backgroundColor: "#2B2E34",
-        borderRadius: "16px",
-        border: "1px solid #3a3d44",
-        boxShadow: "0 8px 32px rgba(0, 0, 0, 0.3)",
-        display: "flex",
-        flexDirection: "column",
-        width: { xs: "230px", sm: "450px", md: "550px" },
-        gap: 3,
-        p: { xs: 3, sm: 4 },
-      }}
-    >
+    <Box sx={profilePasswordCardSx}>
       
       <Box sx={{ display: "flex", alignItems: "center", gap: 1.5 }}>
         <LockOutlinedIcon sx={{ color: "#0166FF", fontSize: 24 }} />
@@ -68,7 +61,7 @@ const BoxCambiarInfo = ({ onPasswordChange }: Props) => {
             fontFamily: FONT_FAMILY_UI,
             fontSize: { xs: 18, sm: 20 },
             fontWeight: 700,
-            color: "#FFFFFF",
+            color: "var(--d-text-primary)",
           }}
         >
           Cambiar contraseña
@@ -77,18 +70,7 @@ const BoxCambiarInfo = ({ onPasswordChange }: Props) => {
 
 
       <Box>
-        <Typography
-          sx={{
-            fontFamily: FONT_FAMILY_UI,
-            ml: 1,
-            mb: 1,
-            fontSize: 13,
-            fontWeight: 500,
-            color: "rgba(255, 255, 255, 0.7)",
-          }}
-        >
-          Contraseña actual
-        </Typography>
+        <Typography sx={profileFieldLabelSx}>Contraseña actual</Typography>
         <AppTextField
           appearance="default"
           value={currentPassword}
@@ -97,23 +79,12 @@ const BoxCambiarInfo = ({ onPasswordChange }: Props) => {
           size="small"
           type="password"
           fullWidth
-          sx={inputDarkStyle}
+          sx={profileInputStyle}
         />
       </Box>
 
       <Box>
-        <Typography
-          sx={{
-            fontFamily: FONT_FAMILY_UI,
-            ml: 1,
-            mb: 1,
-            fontSize: 13,
-            fontWeight: 500,
-            color: "rgba(255, 255, 255, 0.7)",
-          }}
-        >
-          Nueva contraseña
-        </Typography>
+        <Typography sx={profileFieldLabelSx}>Nueva contraseña</Typography>
         <AppTextField
           appearance="default"
           value={newPassword}
@@ -122,23 +93,12 @@ const BoxCambiarInfo = ({ onPasswordChange }: Props) => {
           type="password"
           size="small"
           fullWidth
-          sx={inputDarkStyle}
+          sx={profileInputStyle}
         />
       </Box>
 
       <Box>
-        <Typography
-          sx={{
-            fontFamily: FONT_FAMILY_UI,
-            ml: 1,
-            mb: 1,
-            fontSize: 13,
-            fontWeight: 500,
-            color: "rgba(255, 255, 255, 0.7)",
-          }}
-        >
-          Confirmar contraseña
-        </Typography>
+        <Typography sx={profileFieldLabelSx}>Confirmar contraseña</Typography>
         <AppTextField
           appearance="default"
           value={confirmPassword}
@@ -149,7 +109,7 @@ const BoxCambiarInfo = ({ onPasswordChange }: Props) => {
           fullWidth
           error={!!error}
           helperText={error}
-          sx={inputDarkStyle}
+          sx={profileInputStyle}
         />
       </Box>
 

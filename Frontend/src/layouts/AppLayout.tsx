@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { setBodyAuthenticatedRoute } from "../theme/bodyRouteClass";
 import { Outlet, useLocation } from "react-router-dom";
 import { resolveBreadcrumbLabel } from "../utils/breadcrumbLabel";
 import { Box } from "@mui/material";
@@ -28,6 +29,11 @@ const AppLayout = () => {
 
     const currentSidebarWidth = sidebarOpen ? SIDEBAR_EXPANDED : SIDEBAR_COLLAPSED;
     const currentLabel = resolveBreadcrumbLabel(location.pathname);
+
+    useEffect(() => {
+        setBodyAuthenticatedRoute(true);
+        return () => setBodyAuthenticatedRoute(false);
+    }, []);
 
     return (
         <Box

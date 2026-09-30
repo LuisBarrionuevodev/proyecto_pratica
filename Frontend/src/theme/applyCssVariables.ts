@@ -51,6 +51,29 @@ export const CSS_VAR_NAMES = {
   shadowSidebar: "--d-shadow-sidebar",
   shadowContent: "--d-shadow-content",
   shadowPanel: "--d-shadow-panel",
+  surfaceAnalyticsCard: "--d-surface-analytics-card",
+  surfaceDashboardGlassCard: "--d-surface-dashboard-glass-card",
+  surfaceDashboardSection: "--d-surface-dashboard-section",
+  surfaceDashboardSectionHeader: "--d-surface-dashboard-section-header",
+  calendarDayBg: "--d-calendar-day-bg",
+  calendarDayHover: "--d-calendar-day-hover",
+  calendarDaySelected: "--d-calendar-day-selected",
+  calendarDaySelectedText: "--d-calendar-day-selected-text",
+  calendarDayBorder: "--d-calendar-day-border",
+  calendarCompletarVerdeBg: "--d-calendar-completar-verde-bg",
+  calendarCompletarVerdeText: "--d-calendar-completar-verde-text",
+  calendarCompletarAmarilloBg: "--d-calendar-completar-amarillo-bg",
+  calendarCompletarAmarilloText: "--d-calendar-completar-amarillo-text",
+  calendarCompletarRojoBg: "--d-calendar-completar-rojo-bg",
+  calendarCompletarRojoText: "--d-calendar-completar-rojo-text",
+  calendarCompletarNeutralBg: "--d-calendar-completar-neutral-bg",
+  calendarCompletarNeutralText: "--d-calendar-completar-neutral-text",
+  calendarCompletarFooterText: "--d-calendar-completar-footer-text",
+  chartGrid: "--d-chart-grid",
+  profileHeroBackground: "--d-profile-hero-bg",
+  statusSuccessSurface: "--d-status-success-surface",
+  statusWarningSurface: "--d-status-warning-surface",
+  statusErrorSurface: "--d-status-error-surface",
 } as const;
 
 /**
@@ -112,4 +135,27 @@ export function applyDigitalizaCssVariables(
   set(CSS_VAR_NAMES.shadowSidebar, c.shadow.sidebar);
   set(CSS_VAR_NAMES.shadowContent, c.shadow.content);
   set(CSS_VAR_NAMES.shadowPanel, c.shadow.panel);
+  set(CSS_VAR_NAMES.surfaceAnalyticsCard, c.surface.analyticsCard);
+  set(CSS_VAR_NAMES.surfaceDashboardGlassCard, c.surface.dashboardGlassCard);
+  set(CSS_VAR_NAMES.surfaceDashboardSection, c.surface.dashboardSection);
+  set(CSS_VAR_NAMES.surfaceDashboardSectionHeader, c.surface.dashboardSectionHeader);
+  set(CSS_VAR_NAMES.calendarDayBg, c.calendar.dayBg);
+  set(CSS_VAR_NAMES.calendarDayHover, c.calendar.dayHover);
+  set(CSS_VAR_NAMES.calendarDaySelected, c.calendar.daySelected);
+  set(CSS_VAR_NAMES.calendarDaySelectedText, c.calendar.daySelectedText);
+  set(CSS_VAR_NAMES.calendarDayBorder, c.calendar.dayBorder);
+  set(CSS_VAR_NAMES.calendarCompletarVerdeBg, c.calendar.completarVerdeBg);
+  set(CSS_VAR_NAMES.calendarCompletarVerdeText, c.calendar.completarVerdeText);
+  set(CSS_VAR_NAMES.calendarCompletarAmarilloBg, c.calendar.completarAmarilloBg);
+  set(CSS_VAR_NAMES.calendarCompletarAmarilloText, c.calendar.completarAmarilloText);
+  set(CSS_VAR_NAMES.calendarCompletarRojoBg, c.calendar.completarRojoBg);
+  set(CSS_VAR_NAMES.calendarCompletarRojoText, c.calendar.completarRojoText);
+  set(CSS_VAR_NAMES.calendarCompletarNeutralBg, c.calendar.completarNeutralBg);
+  set(CSS_VAR_NAMES.calendarCompletarNeutralText, c.calendar.completarNeutralText);
+  set(CSS_VAR_NAMES.calendarCompletarFooterText, c.calendar.completarFooterText);
+  set(CSS_VAR_NAMES.chartGrid, c.chart.grid);
+  set(CSS_VAR_NAMES.profileHeroBackground, c.profile.heroBackground);
+  set(CSS_VAR_NAMES.statusSuccessSurface, c.status.successSurface);
+  set(CSS_VAR_NAMES.statusWarningSurface, c.status.warningSurface);
+  set(CSS_VAR_NAMES.statusErrorSurface, c.status.errorSurface);
 }

@@ -24,6 +24,32 @@ export type SemanticColors = {
     scrollbarTrack: string;
     scrollbarThumb: string;
     scrollbarThumbHover: string;
+    analyticsCard: string;
+    dashboardGlassCard: string;
+    dashboardSection: string;
+    dashboardSectionHeader: string;
+  };
+  calendar: {
+    dayBg: string;
+    dayHover: string;
+    daySelected: string;
+    daySelectedText: string;
+    dayBorder: string;
+    completarVerdeBg: string;
+    completarVerdeText: string;
+    completarAmarilloBg: string;
+    completarAmarilloText: string;
+    completarRojoBg: string;
+    completarRojoText: string;
+    completarNeutralBg: string;
+    completarNeutralText: string;
+    completarFooterText: string;
+  };
+  chart: {
+    grid: string;
+  };
+  profile: {
+    heroBackground: string;
   };
   text: {
     primary: string;

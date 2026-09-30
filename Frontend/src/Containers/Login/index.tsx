@@ -1,8 +1,15 @@
 import type { JSX } from "react";
+import { useEffect } from "react";
 import LoginBox from "./Components/LoginBox";
 import { Box, Slide } from "@mui/material";
+import { setBodyPublicRoute } from "../../theme/bodyRouteClass";
 
 const Login = (): JSX.Element => {
+    useEffect(() => {
+        setBodyPublicRoute(true);
+        return () => setBodyPublicRoute(false);
+    }, []);
+
     return (
         <Box
             display="flex"

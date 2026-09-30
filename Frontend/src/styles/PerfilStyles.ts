@@ -1,7 +1,11 @@
 import { FONT_FAMILY_UI } from "../theme/typography";
+import { CSS_VAR_NAMES } from "../theme/applyCssVariables";
+import { GLASS_COLORS } from "./GlassStyles";
+
+const profileHeroBg = `var(${CSS_VAR_NAMES.profileHeroBackground})`;
+
 export const BoxPerfilStyle = {
-    background:
-        "linear-gradient(180deg, #3a3d44 0%, #2B2E34 50%, #1A1C20 100%)",
+    background: profileHeroBg,
     minHeight: { xs: "180px", sm: "200px", md: "220px" },
     widht:"100vw",
     padding: { xs: 3, sm: 4, md: 5 },
@@ -47,33 +51,58 @@ export const InputCambiarInfoStyle = {
     },
 }
 
-export const inputDarkStyle = {
+/** Inputs de perfil (dark/light vía tokens). */
+export const profileInputStyle = {
     width: "100%",
     "& .MuiInputBase-input": {
         fontFamily: FONT_FAMILY_UI,
         fontWeight: 500,
-        color: "#FFFFFF",
+        color: GLASS_COLORS.textPrimary,
         fontSize: "14px",
     },
     "& .MuiOutlinedInput-root": {
-        backgroundColor: "#2B2E34",
+        backgroundColor: `var(${CSS_VAR_NAMES.surfaceInput})`,
         borderRadius: "8px",
         "& fieldset": {
-            borderColor: "#3a3d44",
+            borderColor: GLASS_COLORS.borderMedium,
         },
         "&:hover fieldset": {
-            borderColor: "#535353",
+            borderColor: `var(${CSS_VAR_NAMES.borderStrong})`,
         },
         "&.Mui-focused fieldset": {
-            borderColor: "#0166FF",
+            borderColor: GLASS_COLORS.primary,
             borderWidth: "2px",
         },
     },
     "& .MuiInputBase-input::placeholder": {
-        color: "rgba(255, 255, 255, 0.5)",
+        color: GLASS_COLORS.textMuted,
         opacity: 1,
     },
 };
+
+/** @deprecated Usar `profileInputStyle`. */
+export const inputDarkStyle = profileInputStyle;
+
+export const profilePasswordCardSx = {
+    backgroundColor: GLASS_COLORS.cardBg,
+    borderRadius: "16px",
+    border: `1px solid ${GLASS_COLORS.borderMedium}`,
+    boxShadow: `var(${CSS_VAR_NAMES.shadowPanel})`,
+    display: "flex",
+    flexDirection: "column",
+    width: { xs: "230px", sm: "450px", md: "550px" },
+    gap: 3,
+    p: { xs: 3, sm: 4 },
+} as const;
+
+export const profileFieldLabelSx = {
+    fontFamily: FONT_FAMILY_UI,
+    ml: 1,
+    mb: 1,
+    fontSize: 13,
+    fontWeight: 500,
+    color: GLASS_COLORS.textSecondary,
+} as const;
 
 export const EditNombreStyle = {
 
@@ -87,22 +116,22 @@ export const EditNombreStyle = {
             md: "56px",
             lg: "64px",
         },
-        color: "#fff",
+        color: GLASS_COLORS.textPrimary,
     }
 }
 
 export const InfoPerfilStyle = {
     fontFamily: FONT_FAMILY_UI,
     fontSize: "12px",
-    color: "#fff",
+    color: GLASS_COLORS.textSecondary,
     textTransform: "uppercase",
 }
 
 export const AvatarPerfilStye = {
     width: { xs: 100, sm: 140, md: 180 },
     height: { xs: 100, sm: 140, md: 180 },
-    border: "4px solid #1A1C20",
-    boxShadow: "0 8px 24px rgba(0, 0, 0, 0.5)",
+    border: `4px solid var(${CSS_VAR_NAMES.borderStrong})`,
+    boxShadow: `var(${CSS_VAR_NAMES.shadowPanel})`,
     cursor: "pointer",
     transition: "0.2s",
     "&:hover": {
@@ -119,7 +148,7 @@ export const NombrePerfilStyle = {
         md: "56px",
         lg: "64px",
     },
-    color: "#FFFFFF",
+    color: GLASS_COLORS.textPrimary,
     lineHeight: 1,
     textAlign:""
 }
@@ -127,7 +156,7 @@ export const NombrePerfilStyle = {
 export const RolPerfilStyle = {
     fontFamily: FONT_FAMILY_UI,
     fontSize: {xs:"10px",sm:"14px"},
-    color: "rgba(255,255,255,0.7)",
+    color: GLASS_COLORS.textSecondary,
 }
 
 export const buttonStyle = {

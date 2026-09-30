@@ -16,7 +16,7 @@ export function createGridTheme(colors: SemanticColors): Partial<Theme> {
     accentLight: "#4D94FF",
 
     textDark: c.text.primary,
-    textMedium: c.text.secondary,
+    textMedium: c.text.primary,
     textLight: c.text.muted,
     textBubble: c.text.primary,
     textHeader: c.text.primary,

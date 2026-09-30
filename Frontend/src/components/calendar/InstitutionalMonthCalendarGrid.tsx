@@ -6,7 +6,15 @@ import type { SxProps, Theme } from "@mui/material/styles";
 import type { ReactNode } from "react";
 
 import { GLASS_COLORS } from "../../styles/GlassStyles";
-import { toIsoDateLocal } from "../../utils/dateRange";export const CALENDAR_WEEKDAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
+import { CSS_VAR_NAMES } from "../../theme/applyCssVariables";
+
+const CAL_DAY_BG = `var(${CSS_VAR_NAMES.calendarDayBg})`;
+const CAL_DAY_HOVER = `var(${CSS_VAR_NAMES.calendarDayHover})`;
+const CAL_DAY_SELECTED = `var(${CSS_VAR_NAMES.calendarDaySelected})`;
+const CAL_DAY_SELECTED_TEXT = `var(${CSS_VAR_NAMES.calendarDaySelectedText})`;
+const CAL_DAY_BORDER = `var(${CSS_VAR_NAMES.calendarDayBorder})`;
+import { toIsoDateLocal } from "../../utils/dateRange";
+export const CALENDAR_WEEKDAY_LABELS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"] as const;
 
 export function calendarDaysInMonth(year: number, monthIndex: number): number {
   return new Date(year, monthIndex + 1, 0).getDate();
@@ -88,7 +96,7 @@ export function InstitutionalMonthCalendarGrid({
   return (
     <Stack spacing={1.25}>
       <Stack direction="row" alignItems="center" justifyContent="space-between" gap={1}>
-        <IconButton size="small" onClick={prev} aria-label="Mes anterior" sx={{ color: "rgba(255,255,255,0.85)" }}>
+        <IconButton size="small" onClick={prev} aria-label="Mes anterior" sx={{ color: GLASS_COLORS.textSecondary }}>
           <ChevronLeft />
         </IconButton>
         <Typography
@@ -96,7 +104,7 @@ export function InstitutionalMonthCalendarGrid({
             fontFamily: FONT_FAMILY_UI,
             fontWeight: 700,
             fontSize: "0.88rem",
-            color: "#FFFFFF",
+            color: GLASS_COLORS.textPrimary,
             textTransform: "capitalize",
             flex: 1,
             textAlign: "center",
@@ -104,7 +112,7 @@ export function InstitutionalMonthCalendarGrid({
         >
           {tituloMes}
         </Typography>
-        <IconButton size="small" onClick={next} aria-label="Mes siguiente" sx={{ color: "rgba(255,255,255,0.85)" }}>
+        <IconButton size="small" onClick={next} aria-label="Mes siguiente" sx={{ color: GLASS_COLORS.textSecondary }}>
           <ChevronRight />
         </IconButton>
       </Stack>
@@ -123,7 +131,7 @@ export function InstitutionalMonthCalendarGrid({
           <Typography
             key={c}
             variant="caption"
-            sx={{ fontFamily: FONT_FAMILY_UI, color: "#FFFFFF", fontSize: "0.64rem", fontWeight: 600 }}
+            sx={{ fontFamily: FONT_FAMILY_UI, color: GLASS_COLORS.textSecondary, fontSize: "0.64rem", fontWeight: 600 }}
           >
             {c}
           </Typography>
@@ -156,12 +164,12 @@ export function InstitutionalMonthCalendarGrid({
                 fontFamily: FONT_FAMILY_UI,
                 fontWeight: ctx.esHoy ? 800 : 700,
                 fontSize: cellMinHeight >= 68 ? "1.05rem" : cellMinHeight >= 52 ? "0.9rem" : "0.8rem",
-                color: "#FFFFFF",
-                bgcolor: "rgba(255,255,255,0.025)",
-                border: `1px solid ${GLASS_COLORS.borderLight}`,
+                color: ctx.selected ? CAL_DAY_SELECTED_TEXT : GLASS_COLORS.textPrimary,
+                bgcolor: ctx.selected ? CAL_DAY_SELECTED : CAL_DAY_BG,
+                border: `1px solid ${ctx.selected ? GLASS_COLORS.primary : CAL_DAY_BORDER}`,
                 boxShadow: ctx.selected ? `0 0 0 2px ${GLASS_COLORS.primary}` : "none",
                 transition: "background-color 0.12s ease, border-color 0.12s ease",
-                "&:hover": { bgcolor: "rgba(255,255,255,0.06)" },
+                "&:hover": { bgcolor: ctx.selected ? CAL_DAY_SELECTED : CAL_DAY_HOVER },
                 "&.Mui-focusVisible": {
                   outline: `2px solid ${GLASS_COLORS.primary}`,
                   outlineOffset: 2,

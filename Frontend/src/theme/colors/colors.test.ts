@@ -22,6 +22,9 @@ describe("FRONT-PROD.2/3 — tokens semánticos", () => {
     expect(semanticKeys(darkColors.surface)).toEqual(semanticKeys(lightColors.surface));
     expect(semanticKeys(darkColors.text)).toEqual(semanticKeys(lightColors.text));
     expect(semanticKeys(darkColors.action)).toEqual(semanticKeys(lightColors.action));
+    expect(semanticKeys(darkColors.calendar)).toEqual(semanticKeys(lightColors.calendar));
+    expect(semanticKeys(darkColors.chart)).toEqual(semanticKeys(lightColors.chart));
+    expect(semanticKeys(darkColors.profile)).toEqual(semanticKeys(lightColors.profile));
   });
 
   it("getSemanticColors resuelve paletas sin mutar", () => {

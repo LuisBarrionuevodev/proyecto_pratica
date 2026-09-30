@@ -26,6 +26,33 @@ export const darkColors = {
     scrollbarTrack: "#1E2127",
     scrollbarThumb: "#3a3d44",
     scrollbarThumbHover: "#4a4d54",
+    analyticsCard: "rgba(12, 18, 32, 0.72)",
+    dashboardGlassCard: "rgba(255, 255, 255, 0.035)",
+    dashboardSection: "rgba(255, 255, 255, 0.028)",
+    dashboardSectionHeader: "rgba(255,255,255,0.02)",
+  },
+  calendar: {
+    dayBg: "rgba(255,255,255,0.025)",
+    dayHover: "rgba(255,255,255,0.06)",
+    daySelected: "rgba(255,255,255,0.08)",
+    daySelectedText: "#FFFFFF",
+    dayBorder: "rgba(255, 255, 255, 0.10)",
+    completarVerdeBg: "rgba(56, 142, 60, 0.14)",
+    completarVerdeText: "#FFFFFF",
+    completarAmarilloBg: "rgba(255, 152, 0, 0.13)",
+    completarAmarilloText: "#FFFFFF",
+    completarRojoBg: "rgba(211, 47, 47, 0.15)",
+    completarRojoText: "#FFFFFF",
+    completarNeutralBg: "rgba(255,255,255,0.025)",
+    completarNeutralText: "#FFFFFF",
+    completarFooterText: "rgba(255,255,255,0.55)",
+  },
+  chart: {
+    grid: "rgba(255,255,255,0.06)",
+  },
+  profile: {
+    heroBackground:
+      "linear-gradient(180deg, #3a3d44 0%, #2B2E34 50%, #1A1C20 100%)",
   },
   text: {
     primary: "#FFFFFF",

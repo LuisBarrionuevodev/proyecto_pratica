@@ -118,8 +118,8 @@ const countChipSx = {
   fontFamily: FONT_FAMILY_UI,
   fontWeight: 700,
   borderColor: GLASS_COLORS.borderActive,
-  color: "#FFFFFF",
-  bgcolor: "rgba(1, 102, 255, 0.16)",
+  color: GLASS_COLORS.textPrimary,
+  bgcolor: GLASS_COLORS.primaryGlow,
 } as const;
 
 /**
@@ -251,12 +251,11 @@ export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewP
                 if (n > 0) {
                   return {
                     border: `1px solid ${GLASS_COLORS.borderActive}`,
-                    bgcolor: "rgba(1, 102, 255, 0.1)",
+                    bgcolor: GLASS_COLORS.primaryGlow,
                     minHeight: 40,
-                    color: "#FFFFFF",
                   };
                 }
-                return { minHeight: 40, color: "#FFFFFF" };
+                return { minHeight: 40 };
               }}
               renderDayFooter={(ctx) => {
                 const n = countPorDia.get(ctx.iso) ?? 0;

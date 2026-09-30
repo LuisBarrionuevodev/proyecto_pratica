@@ -3,8 +3,12 @@ import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 import type { ICompletarTrabajoPendienteDiaResumen } from "../../../api/completarTrabajoApi";
 import { calendarDaysInMonth } from "../../../components/calendar/InstitutionalMonthCalendarGrid";
-import { GLASS_COLORS } from "../../../styles/GlassStyles";
-import { toIsoDateLocal } from "../../../utils/dateRange";/** Tono semántico de celda según cantidad de pendientes (0 / 1–5 / 6+). */
+import { CSS_VAR_NAMES } from "../../../theme/applyCssVariables";
+import { toIsoDateLocal } from "../../../utils/dateRange";
+
+const V = CSS_VAR_NAMES;
+
+/** Tono semántico de celda según cantidad de pendientes (0 / 1–5 / 6+). */
 export type CompletarPendienteCeldaTono = "verde" | "amarillo" | "rojo" | "neutral";
 
 /**
@@ -55,31 +59,36 @@ export function resolvePendienteCeldaTono(
   return "rojo";
 }
 
-/** Superficie institucional por tono (fondo/borde suaves, legibles en dark mode). */
+/** Superficie institucional por tono (tokens dark/light vía CSS variables). */
 export function completarCeldaSurfaceSx(tono: CompletarPendienteCeldaTono): {
   bgcolor: string;
   border: string;
+  color: string;
 } {
   switch (tono) {
     case "verde":
       return {
-        bgcolor: "rgba(56, 142, 60, 0.14)",
-        border: "1px solid rgba(129, 199, 132, 0.4)",
+        bgcolor: `var(${V.calendarCompletarVerdeBg})`,
+        border: `1px solid var(${V.calendarCompletarVerdeBg})`,
+        color: `var(${V.calendarCompletarVerdeText})`,
       };
     case "amarillo":
       return {
-        bgcolor: "rgba(255, 152, 0, 0.13)",
-        border: "1px solid rgba(255, 183, 77, 0.42)",
+        bgcolor: `var(${V.calendarCompletarAmarilloBg})`,
+        border: `1px solid var(${V.calendarCompletarAmarilloBg})`,
+        color: `var(${V.calendarCompletarAmarilloText})`,
       };
     case "rojo":
       return {
-        bgcolor: "rgba(211, 47, 47, 0.15)",
-        border: "1px solid rgba(255, 138, 128, 0.48)",
+        bgcolor: `var(${V.calendarCompletarRojoBg})`,
+        border: `1px solid var(${V.calendarCompletarRojoBg})`,
+        color: `var(${V.calendarCompletarRojoText})`,
       };
     default:
       return {
-        bgcolor: "rgba(255,255,255,0.025)",
-        border: `1px solid ${GLASS_COLORS.borderLight}`,
+        bgcolor: `var(${V.calendarCompletarNeutralBg})`,
+        border: `1px solid var(${V.calendarDayBorder})`,
+        color: `var(${V.calendarCompletarNeutralText})`,
       };
   }
 }
@@ -100,13 +109,13 @@ export function completarCeldaTitle(
   return pendientesLabel ? `${base} — ${pendientesLabel}` : base;
 }
 
-/** Footer gris secundario bajo el número del día. */
+/** Footer secundario bajo el número del día. */
 export const completarPendingFooterSx: SxProps<Theme> = {
   fontFamily: FONT_FAMILY_UI,
   fontSize: "0.62rem",
   fontWeight: 500,
   lineHeight: 1.2,
-  color: "rgba(255,255,255,0.55)",
+  color: `var(${V.calendarCompletarFooterText})`,
   textAlign: "center",
   px: 0.25,
 };

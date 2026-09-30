@@ -73,7 +73,7 @@ describe("completarTrabajoCalendarDisplay", () => {
       const r = julioFixture.get("2026-07-05");
       expect(resolvePendienteCeldaTono(r)).toBe("verde");
       expect(pendientesFooterLabel(r)).toBeUndefined();
-      expect(completarCeldaSurfaceSx("verde").bgcolor).toContain("56, 142, 60");
+      expect(completarCeldaSurfaceSx("verde").bgcolor).toContain("--d-calendar-completar-verde-bg");
     });
 
     it("11/07 amarillo con 1 pendiente", () => {
@@ -92,7 +92,7 @@ describe("completarTrabajoCalendarDisplay", () => {
       const r = julioFixture.get("2026-07-21");
       expect(resolvePendienteCeldaTono(r)).toBe("rojo");
       expect(pendientesFooterLabel(r)).toBe("6 pendientes");
-      expect(completarCeldaSurfaceSx("rojo").bgcolor).toContain("211, 47, 47");
+      expect(completarCeldaSurfaceSx("rojo").bgcolor).toContain("--d-calendar-completar-rojo-bg");
     });
   });
 });

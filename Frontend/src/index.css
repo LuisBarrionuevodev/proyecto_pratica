@@ -82,7 +82,8 @@ body {
   transition: background-color 0.18s ease, background-image 0.18s ease;
 }
 
-[data-theme="dark"] body {
+[data-theme="dark"] body.authenticated-route,
+[data-theme="dark"] body.public-route {
   background-image: url("./assets/BackgroundInicio2.png");
   background-size: cover;
   background-position: center;
@@ -91,7 +92,18 @@ body {
   background-color: transparent;
 }
 
-[data-theme="light"] body {
+[data-theme="light"] body.authenticated-route {
+  background-color: var(--d-surface-app);
+  background-image:
+    linear-gradient(rgba(245, 248, 252, 0.72), rgba(245, 248, 252, 0.72)),
+    url("./assets/BackgroundInicioLight.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+[data-theme="light"] body.public-route {
   background-color: var(--d-surface-app);
   background-image:
     radial-gradient(ellipse 120% 70% at 50% -15%, rgba(1, 102, 255, 0.07), transparent 58%),
@@ -101,7 +113,7 @@ body {
   background-repeat: no-repeat;
 }
 
-/* Para rutas públicas que necesitan scroll (login, inicio, etc.) */
+/* Para rutas públicas que necesitan scroll (login, recuperar, etc.) */
 body.public-route {
   overflow: auto;
 }
