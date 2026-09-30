@@ -1,18 +1,22 @@
 import { FONT_FAMILY_UI } from "../theme/typography";
+import { darkColors } from "../theme/colors";
+
+const auth = darkColors.auth;
+const shadow = darkColors.shadow;
 export const InputRecuperarStyles = {
     position: "relative",
-    backgroundColor: "#D9D9D9",
+    backgroundColor: auth.input,
     width: "450px",
     fontSize: "22px",
     borderRadius: "10px",
     "& .MuiInputBase-input": {
         fontFamily: FONT_FAMILY_UI,
         fontWeight: 500,
-        color: "#111111",
+        color: auth.inputText,
         zIndex: 1,
     },
     "& .MuiInputBase-input::placeholder": {
-        color: "#111111",
+        color: auth.inputText,
         opacity: 1,
     },
 
@@ -25,7 +29,7 @@ export const InputRecuperarStyles = {
             left: 0,
             width: "100%",
             height: "100%",
-            boxShadow: " 6px 6px 2px #000000",
+            boxShadow: ` 6px 6px 2px ${auth.shadow}`,
             borderRadius: "10px",
             opacity: 0,
             transition: "opacity 0.3s ease-in-out",
@@ -49,9 +53,9 @@ export const BoxRecuperarContenidoStyles = {
     width: "600px",
     height: "300px",
     borderRadius: "10px",
-    background: "#FFFFFF",
-    border: "1px solid #353535",
-    boxShadow: "10px 10px 0px #000000",
+    background: auth.card,
+    border: `1px solid ${auth.cardBorder}`,
+    boxShadow: shadow.authCard,
     gap: 3,
     mt: "50px",
 }
@@ -64,9 +68,9 @@ export const BoxNuevaContraseñaStyles = {
     width: "600px",
     height: "300px",
     borderRadius: "10px",
-    background: "#FFFFFF",
-    border: "1px solid #353535",
-    boxShadow: "10px 10px 0px #000000",
+    background: auth.card,
+    border: `1px solid ${auth.cardBorder}`,
+    boxShadow: shadow.authCard,
     gap: 3,
     p: 2,
     mt: "40px",
@@ -80,7 +84,7 @@ export const ErrorTextRecuperarStyles = {
 }
 
 export const ButtonRecuperarStyles = {
-    backgroundColor: "#0166FF",
+    backgroundColor: auth.button,
     color: "white",
     height: "40px",
     width: "500px",
@@ -91,7 +95,7 @@ export const ButtonRecuperarStyles = {
         position: "absolute",
         width: "100%",
         height: "100%",
-        boxShadow: "6px 6px 3px #000000",
+        boxShadow: `6px 6px 3px ${auth.shadow}`,
         opacity: 0,
         transition: "opacity 0.3s",
         borderRadius: "5px",

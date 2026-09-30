@@ -1,0 +1,85 @@
+/**
+ * Paleta semántica modo oscuro (FRONT-PROD.2).
+ * Valores actuales de producto — no rediseño; FRONT-PROD.3 podrá duplicar estructura en light.
+ */
+export const darkColors = {
+  surface: {
+    app: "rgba(18, 18, 22, 0.94)",
+    sidebar: "rgba(18, 18, 22, 0.94)",
+    content: "rgba(18, 18, 22, 0.94)",
+    panel: "rgba(30, 32, 38, 0.85)",
+    panelSubtle: "rgba(255, 255, 255, 0.035)",
+    panelElevated: "#2B2E34",
+    input: "#1A1C20",
+    overlay: "rgba(4, 6, 12, 0.72)",
+    dialogTitle: "rgba(0, 0, 0, 0.22)",
+    dialogContent: "rgba(14, 16, 22, 0.35)",
+    dialogActions: "rgba(0, 0, 0, 0.15)",
+    tableRowEven: "#2B2E34",
+    tableRowOdd: "#1E2127",
+    alertInfo: "#2B2E34",
+    scrollbarTrack: "#1E2127",
+    scrollbarThumb: "#3a3d44",
+    scrollbarThumbHover: "#4a4d54",
+  },
+  text: {
+    primary: "#FFFFFF",
+    secondary: "rgba(255, 255, 255, 0.7)",
+    muted: "rgba(255, 255, 255, 0.45)",
+    inverse: "#111111",
+    disabled: "rgba(255, 255, 255, 0.38)",
+  },
+  border: {
+    subtle: "rgba(255, 255, 255, 0.06)",
+    default: "rgba(255, 255, 255, 0.10)",
+    strong: "#3a3d44",
+    active: "rgba(1, 102, 255, 0.5)",
+    neo: "#000000",
+  },
+  action: {
+    primary: "#0166FF",
+    primaryHover: "#0055DD",
+    primaryMuted: "rgba(1, 102, 255, 0.15)",
+    primaryGlow: "rgba(1, 102, 255, 0.3)",
+    hover: "rgba(255, 255, 255, 0.06)",
+    selected: "rgba(255, 255, 255, 0.10)",
+    tabSelected: "rgba(1, 102, 255, 0.12)",
+    tabSelectedHover: "rgba(1, 102, 255, 0.2)",
+    tabPrimarySelected: "rgba(1, 102, 255, 0.16)",
+    tabPrimarySelectedHover: "rgba(1, 102, 255, 0.24)",
+  },
+  status: {
+    success: "#2D9F4B",
+    successSurface: "#1E3D2F",
+    warning: "#FF9800",
+    warningSurface: "#3D2E1E",
+    error: "#E53935",
+    errorSurface: "#5C2323",
+    info: "#0166FF",
+  },
+  shadow: {
+    sidebar: "0 8px 32px rgba(0, 0, 0, 0.4)",
+    content: "0 10px 40px rgba(0, 0, 0, 0.5)",
+    panel: "0 4px 24px rgba(0, 0, 0, 0.3)",
+    neoOffset: "6px 6px 0px #000000",
+    authCard: "10px 10px 0px #000000",
+  },
+  /** Superficies de rutas públicas (login/recuperar) — no forzar dark shell. */
+  auth: {
+    card: "#FFFFFF",
+    cardBorder: "#353535",
+    input: "#D9D9D9",
+    inputText: "#111111",
+    shadow: "#000000",
+    button: "#0166FF",
+  },
+  primitive: {
+    black: "#000000",
+    white: "#FFFFFF",
+    grayMedium: "#353535",
+    grayLight: "#D9D9D9",
+    grayLighter: "#F5F5F5",
+  },
+} as const;
+
+export type DarkSemanticColors = typeof darkColors;

@@ -45,6 +45,24 @@
 
 :root {
   font-family: "Lato", "Roboto", Arial, sans-serif;
+  /*
+   * Variables semánticas Digitaliza (FRONT-PROD.2).
+   * Valores canónicos en theme/colors/dark.ts; main.tsx llama applyDigitalizaCssVariables().
+   * Fallbacks aquí solo para primer paint / CSS sin JS.
+   */
+  --d-surface-panel-elevated: #2b2e34;
+  --d-surface-input: #1a1c20;
+  --d-text-primary: #ffffff;
+  --d-border-strong: #3a3d44;
+  --d-border-neo: #000000;
+  --d-action-primary: #0166ff;
+  --d-action-primary-hover: #0055dd;
+  --d-action-primary-muted: rgba(1, 102, 255, 0.15);
+  --d-table-row-odd: #1e2127;
+  --d-scrollbar-track: #1e2127;
+  --d-scrollbar-thumb: #3a3d44;
+  --d-scrollbar-thumb-hover: #4a4d54;
+  --d-surface-alert-info: #2b2e34;
 }
 
 /* Reset para layout Spotify - el body NO scrollea */
@@ -79,61 +97,61 @@ a{
 
 /* Estilos para el Date Picker de Glide Data Grid */
 .gdg-date-picker-overlay {
-    background-color: #2B2E34 !important;
-    border: 2px solid #000000 !important;
-    box-shadow: 6px 6px 0px #000000 !important;
-    color: #FFFFFF !important;
+    background-color: var(--d-surface-panel-elevated) !important;
+    border: 2px solid var(--d-border-neo) !important;
+    box-shadow: 6px 6px 0px var(--d-border-neo) !important;
+    color: var(--d-text-primary) !important;
 }
 
 .gdg-date-picker-overlay input {
-    background-color: #1A1C20 !important;
-    color: #FFFFFF !important;
-    border: 1px solid #3a3d44 !important;
+    background-color: var(--d-surface-input) !important;
+    color: var(--d-text-primary) !important;
+    border: 1px solid var(--d-border-strong) !important;
 }
 
 .gdg-date-picker-overlay button {
-    background-color: #0166FF !important;
-    color: #FFFFFF !important;
-    border: 1px solid #000000 !important;
+    background-color: var(--d-action-primary) !important;
+    color: var(--d-text-primary) !important;
+    border: 1px solid var(--d-border-neo) !important;
 }
 
 .gdg-date-picker-overlay button:hover {
-    background-color: #0055DD !important;
+    background-color: var(--d-action-primary-hover) !important;
 }
 
 /* Botón del calendario dentro de la celda */
 .gdg-date-picker-cell-button {
     background-color: transparent !important;
-    border: 1px solid #3a3d44 !important;
-    color: #FFFFFF !important;
+    border: 1px solid var(--d-border-strong) !important;
+    color: var(--d-text-primary) !important;
     box-shadow: none !important;
 }
 
 /* Estilos para el Dropdown de Glide Data Grid */
 .gdg-dropdown-overlay {
-    background-color: #2B2E34 !important;
-    border: 2px solid #000000 !important;
-    box-shadow: 6px 6px 0px #000000 !important;
-    color: #FFFFFF !important;
+    background-color: var(--d-surface-panel-elevated) !important;
+    border: 2px solid var(--d-border-neo) !important;
+    box-shadow: 6px 6px 0px var(--d-border-neo) !important;
+    color: var(--d-text-primary) !important;
 }
 
 .gdg-dropdown-overlay .gdg-dropdown-item {
-    color: #FFFFFF !important;
+    color: var(--d-text-primary) !important;
 }
 
 .gdg-dropdown-overlay .gdg-dropdown-item:hover {
-    background-color: #3a3d44 !important;
+    background-color: var(--d-border-strong) !important;
 }
 
 .gdg-dropdown-overlay .gdg-dropdown-item.selected {
-    background-color: #0166FF !important;
+    background-color: var(--d-action-primary) !important;
 }
 
 /* Estilos para el input de edición de celda */
 .gdg-input {
-    background-color: #1A1C20 !important;
-    color: #FFFFFF !important;
-    border: 1px solid #3a3d44 !important;
+    background-color: var(--d-surface-input) !important;
+    color: var(--d-text-primary) !important;
+    border: 1px solid var(--d-border-strong) !important;
 }
 
 /* Estilos para el scrollbar de Glide */
@@ -143,57 +161,57 @@ a{
 }
 
 .dvn-scroller::-webkit-scrollbar-track {
-    background: #1E2127;
+    background: var(--d-scrollbar-track);
 }
 
 .dvn-scroller::-webkit-scrollbar-thumb {
-    background-color: #3a3d44;
+    background-color: var(--d-scrollbar-thumb);
     border-radius: 6px;
-    border: 2px solid #1E2127;
+    border: 2px solid var(--d-scrollbar-track);
 }
 
 .dvn-scroller::-webkit-scrollbar-thumb:hover {
-    background-color: #4a4d54;
+    background-color: var(--d-scrollbar-thumb-hover);
 }
 
 /* Estilos para iconos de Glide Data Grid (CargarActuaciones) */
 .gdg-header-icon,
 .gdg-row-marker-icon,
 .gdg-column-menu-button {
-    color: #FFFFFF !important;
+    color: var(--d-text-primary) !important;
     transition: color 0.2s ease, background-color 0.2s ease;
 }
 
 .gdg-header-icon:hover,
 .gdg-column-menu-button:hover {
-    color: #0166FF !important;
-    background-color: rgba(1, 102, 255, 0.15) !important;
+    color: var(--d-action-primary) !important;
+    background-color: var(--d-action-primary-muted) !important;
 }
 
 /* Icono de la fila trailing (agregar fila) siempre azul */
 .gdg-trailing-row-indicator {
-    color: #0166FF !important;
+    color: var(--d-action-primary) !important;
 }
 
 /* Iconos de grupos de columnas - color blanco */
 .gdg-group-header-icon,
 .dvn-group-header svg,
 [data-testid="group-header"] svg {
-    color: #FFFFFF !important;
-    fill: #FFFFFF !important;
+    color: var(--d-text-primary) !important;
+    fill: var(--d-text-primary) !important;
 }
 
 /* Texto de hints en trailing row */
 .gdg-trailing-hint,
 .gdg-trailing-row .gdg-cell {
-    color: #0166FF !important;
+    color: var(--d-action-primary) !important;
 }
 
 /* Botón de agregar (+) en trailing row - azul */
 .dvn-trailing-row svg,
 .gdg-add-row-icon {
-    color: #0166FF !important;
-    fill: #0166FF !important;
+    color: var(--d-action-primary) !important;
+    fill: var(--d-action-primary) !important;
 }
 
 /* Fix para el padding extra en el scroll */
@@ -220,12 +238,12 @@ a{
 
 /* Banner de alerta - Fondo oscuro sin azul */
 .MuiAlert-root.MuiAlert-standardInfo {
-    background-color: #2B2E34 !important;
-    color: #FFFFFF !important;
+    background-color: var(--d-surface-alert-info) !important;
+    color: var(--d-text-primary) !important;
 }
 
 .MuiAlert-root.MuiAlert-standardInfo .MuiAlert-icon {
-    color: #FFFFFF !important;
+    color: var(--d-text-primary) !important;
 }
 
 .custom-popup .leaflet-popup-content-wrapper {
@@ -239,6 +257,6 @@ a{
 }
 
 .custom-popup .leaflet-popup-tip {
-  background: #2B2E34 !important;
+  background: var(--d-surface-panel-elevated) !important;
   box-shadow: none !important;
 }

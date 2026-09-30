@@ -3,7 +3,10 @@ import { createRoot } from 'react-dom/client'
 import '@fontsource/lato/400.css'
 import '@fontsource/lato/700.css'
 import './index.css'
+import { applyDigitalizaCssVariables } from './theme/applyCssVariables'
 import App from './App.tsx'
+
+applyDigitalizaCssVariables()
 import { GlobalFeedbackProvider } from './components/feedback/GlobalFeedbackProvider'
 import { ThemeProvider } from '@mui/material/styles'
 import { appTheme } from './configs/theme.ts'

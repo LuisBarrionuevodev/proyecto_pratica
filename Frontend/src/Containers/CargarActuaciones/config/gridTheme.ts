@@ -3,7 +3,10 @@
  */
 import type { Theme } from "@glideapps/glide-data-grid";
 import { COLORS } from "../styles/cargarActuacionesStyles";
+import { darkColors } from "../../../theme/colors";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
+
+const c = darkColors;
 
 // =============================================================================
 // TEMA DE LA GRILLA
@@ -15,8 +18,8 @@ export const gridTheme: Partial<Theme> = {
     
     // Colores de texto
     textDark: COLORS.white,
-    textMedium: "#CCCCCC",
-    textLight: "#999999",
+    textMedium: "rgba(255, 255, 255, 0.8)",
+    textLight: "rgba(255, 255, 255, 0.6)",
     textBubble: COLORS.white,
     textHeader: COLORS.white,
     textGroupHeader: COLORS.white,
@@ -30,8 +33,8 @@ export const gridTheme: Partial<Theme> = {
     bgCell: COLORS.grayDark,
     bgCellMedium: COLORS.rowOdd,
     bgHeader: COLORS.grayDark,
-    bgHeaderHasFocus: "#3a3d44",
-    bgHeaderHovered: "#3a3d44",
+    bgHeaderHasFocus: c.border.strong,
+    bgHeaderHovered: c.border.strong,
     bgBubble: COLORS.grayDark,
     bgBubbleSelected: COLORS.primary,
     bgSearchResult: COLORS.warningLight,

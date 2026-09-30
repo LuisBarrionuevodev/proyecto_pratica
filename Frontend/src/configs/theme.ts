@@ -1,17 +1,40 @@
 import { createTheme } from "@mui/material/styles";
 import { FONT_FAMILY_UI } from "../theme/typography";
+import { darkColors } from "../theme/colors";
 
-import { color as tokenColor } from "../theme/tokens";
+const c = darkColors;
 
 /**
- * Tema único de la aplicación (modo oscuro + tipografía + primary desde tokens).
+ * Tema único de la aplicación (modo oscuro + tipografía + tokens semánticos).
  * El ThemeProvider en main.tsx debe usar este tema.
  */
 export const appTheme = createTheme({
   palette: {
     mode: "dark",
     primary: {
-      main: tokenColor.primary,
+      main: c.action.primary,
+    },
+    background: {
+      default: c.surface.app,
+      paper: c.surface.panel,
+    },
+    text: {
+      primary: c.text.primary,
+      secondary: c.text.secondary,
+      disabled: c.text.disabled,
+    },
+    divider: c.border.subtle,
+    success: {
+      main: c.status.success,
+    },
+    warning: {
+      main: c.status.warning,
+    },
+    error: {
+      main: c.status.error,
+    },
+    info: {
+      main: c.status.info,
     },
   },
   typography: {

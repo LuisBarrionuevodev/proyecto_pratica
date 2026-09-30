@@ -2,30 +2,38 @@ import type { SxProps, Theme } from "@mui/material";
 import type { MRT_TableOptions } from "material-react-table";
 
 import { GLASS_COLORS } from "./GlassStyles";
+import { darkColors } from "../theme/colors";
 import { FONT_FAMILY_UI } from "../theme/typography";
+
+const c = darkColors;
 
 /**
  * Paleta compartida para tablas MRT estilo glass / institucional (F3.7b).
- * Alias histórico en pantallas: `COLORS` vía `actuacionesTableStyles.ts`.
+ * Derivada de tokens semánticos dark; alias histórico: `COLORS` vía `actuacionesTableStyles.ts`.
  */
 export const DATA_TABLE_MRT_GLASS_COLORS = {
-  primary: "#0166FF",
-  black: "#000000",
-  white: "#FFFFFF",
-  grayDark: "#2B2E34",
-  grayMedium: "#353535",
-  grayLight: "#D9D9D9",
-  grayLighter: "#F5F5F5",
-  success: "#2D9F4B",
-  successLight: "#1E3D2F",
-  error: "#E53935",
-  errorLight: "#5C2323",
-  warning: "#FF9800",
-  warningLight: "#3D2E1E",
-  rowEven: "#2B2E34",
-  rowOdd: "#1E2127",
-  border: "#3a3d44",
-} as const;
+  primary: c.action.primary,
+  black: c.primitive.black,
+  white: c.primitive.white,
+  grayDark: c.surface.tableRowEven,
+  grayMedium: c.primitive.grayMedium,
+  grayLight: c.primitive.grayLight,
+  grayLighter: c.primitive.grayLighter,
+  success: c.status.success,
+  successLight: c.status.successSurface,
+  error: c.status.error,
+  errorLight: c.status.errorSurface,
+  warning: c.status.warning,
+  warningLight: c.status.warningSurface,
+  rowEven: c.surface.tableRowEven,
+  rowOdd: c.surface.tableRowOdd,
+  border: c.border.strong,
+};
+
+/** Valores string (evita literales `as const` de dark al asignar fondos de celda Glide). */
+export type DataTableMrtGlassColors = {
+  [K in keyof typeof DATA_TABLE_MRT_GLASS_COLORS]: string;
+};
 
 const C = DATA_TABLE_MRT_GLASS_COLORS;
 

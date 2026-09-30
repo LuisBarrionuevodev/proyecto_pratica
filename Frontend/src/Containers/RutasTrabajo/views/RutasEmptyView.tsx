@@ -28,7 +28,8 @@ import {
   rutasInstitutionalDividerSx,
   rutasInstitutionalResumenPaperSx,
   rutasResumenTitleSx,
-} from "../styles/institutionalVisual";/** Misma columna centrada que Completar trabajo (max 1400 px). */
+} from "../styles/institutionalVisual";
+/** Misma columna centrada que Completar trabajo (max 1400 px). */
 const MODULE_CONTENT_MAX_PX = 1400;
 
 const shellStackSx = {

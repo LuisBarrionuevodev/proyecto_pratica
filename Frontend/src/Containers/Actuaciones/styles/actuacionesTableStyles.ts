@@ -30,7 +30,7 @@ export const COLORS = DATA_TABLE_MRT_GLASS_COLORS;
  * Defaults preset glass compartidos; `TablaActuaciones` fuerza localmente sin selección (G1c-hotfix).
  * Otras pantallas suelen hacer `...MRT_DATA_TABLE_GLASS_PRESET` y sobrescriben solo lo necesario.
  */
-export const DARK_TABLE_CONFIG: Partial<MRT_TableOptions<any>> = {
+export const DATA_TABLE_CONFIG: Partial<MRT_TableOptions<any>> = {
   ...MRT_DATA_TABLE_GLASS_PRESET,
   enableEditing: true,
   editDisplayMode: "cell" as const,
@@ -41,6 +41,9 @@ export const DARK_TABLE_CONFIG: Partial<MRT_TableOptions<any>> = {
   enablePagination: true,
   enableSorting: true,
 };
+
+/** @deprecated Usar `DATA_TABLE_CONFIG` (mismo preset; nombre histórico “dark”). */
+export const DARK_TABLE_CONFIG = DATA_TABLE_CONFIG;
 
 // =============================================================================
 // ESTILOS ADICIONALES

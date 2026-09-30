@@ -4,32 +4,26 @@
  */
 
 import { dataViewportFrameSx } from "../../../styles/dataViewportFrame";
+import {
+  DATA_TABLE_MRT_GLASS_COLORS,
+  type DataTableMrtGlassColors,
+} from "../../../styles/mrtGlassDataTablePreset";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 // =============================================================================
-// PALETA DE COLORES (mantiene compatibilidad + glass)
+// PALETA DE COLORES (derivada de tokens semánticos + acentos grid neo-brutal)
 // =============================================================================
-export const COLORS = {
-    primary: "#0166FF",
-    black: "#000000",
-    white: "#FFFFFF",
-    grayDark: "#2B2E34",
-    grayMedium: "#353535",
-    grayLight: "#D9D9D9",
-    grayLighter: "#F5F5F5",
-    success: "#2D9F4B",
-    successLight: "#1E3D2F",
+export const COLORS: DataTableMrtGlassColors & {
+    successText: string;
+    errorText: string;
+    warningText: string;
+} = {
+    ...DATA_TABLE_MRT_GLASS_COLORS,
+    /** Acentos de celda Glide (más vivos que status de UI). */
     successText: "#6BFF6B",
-    error: "#E53935",
-    errorLight: "#5C2323",
     errorText: "#FF6B6B",
-    warning: "#FF9800",
-    warningLight: "#3D2E1E",
     warningText: "#FFD700",
-    rowEven: "#2B2E34",
-    rowOdd: "#1E2127",
-    border: "#3a3d44",
 };
 
 // =============================================================================

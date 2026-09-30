@@ -1,4 +1,8 @@
 import { FONT_FAMILY_UI } from "../theme/typography";
+import { darkColors } from "../theme/colors";
+
+const auth = darkColors.auth;
+const shadow = darkColors.shadow;
 export const LoginBoxGlobalStyle = {
     display: "flex",
     justifyContent: "center",
@@ -11,9 +15,9 @@ export const LoginBoxStyle = {
     width: "450px",
     height: "520px",
     borderRadius: "10px",
-    background: "#FFFFFF",
-    border: "1px solid #353535",
-    boxShadow: "10px 10px 0px #000000",
+    background: auth.card,
+    border: `1px solid ${auth.cardBorder}`,
+    boxShadow: shadow.authCard,
     gap: "20px"
 }
 
@@ -35,18 +39,18 @@ export const LoginBoxInputStyles = {
 }
 export const InputStyles = {
     position: "relative",
-    backgroundColor: "#D9D9D9",
+    backgroundColor: auth.input,
     width: "350px",
     fontSize: "22px",
     borderRadius: "10px",
     "& .MuiInputBase-input": {
         fontFamily: FONT_FAMILY_UI,
         fontWeight: 500,
-        color: "#111111",
+        color: auth.inputText,
         zIndex: 1,
     },
     "& .MuiInputBase-input::placeholder": {
-        color: "#111111",
+        color: auth.inputText,
         opacity: 1,
     },
 
@@ -59,7 +63,7 @@ export const InputStyles = {
             left: 0,
             width: "100%",
             height: "100%",
-            boxShadow: " 6px 6px 2px #000000",
+            boxShadow: ` 6px 6px 2px ${auth.shadow}`,
             borderRadius: "10px",
             opacity: 0,
             transition: "opacity 0.3s ease-in-out",
@@ -77,7 +81,7 @@ export const InputStyles = {
 
 
 export const ButtonStyle = {
-    backgroundColor: "#0166FF",
+    backgroundColor: auth.button,
     width: "350px",
     height: "25px",
     fontFamily: FONT_FAMILY_UI,
@@ -91,7 +95,7 @@ export const ButtonStyle = {
         position: "absolute",
         width: "100%",
         height: "100%",
-        boxShadow: "6px 6px 3px #000000",
+        boxShadow: `6px 6px 3px ${auth.shadow}`,
         opacity: 0,
         transition: "opacity 0.4s ease-in-out",
         zIndex: -1,
