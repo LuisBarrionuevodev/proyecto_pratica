@@ -50,14 +50,14 @@ describe("FRONT-PROD.3.2 — light visual polish guards", () => {
   it("Glide light usa texto primario oscuro en celdas principales", () => {
     const theme = createGridTheme(lightColors);
     expect(theme.textHeader).toBe("#18202C");
-    expect(theme.textMedium).toBe("#18202C");
+    expect(theme.textMedium).toBe("#465160");
     expect(theme.textDark).toBe("#18202C");
   });
 
   it("calendario y chart exponen variables CSS", () => {
     expect(CSS_VAR_NAMES.calendarDayBg).toBe("--d-calendar-day-bg");
     expect(CSS_VAR_NAMES.chartGrid).toBe("--d-chart-grid");
-    expect(lightColors.calendar.dayBorder).toBe("#D4DAE3");
+    expect(lightColors.calendar.dayBorder).toBe("#D2DAE5");
   });
 
   it("fondo light solo en shell autenticado (CSS)", () => {

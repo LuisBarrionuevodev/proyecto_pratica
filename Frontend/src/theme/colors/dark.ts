@@ -17,6 +17,7 @@ export const darkColors = {
     dialogTitle: "rgba(0, 0, 0, 0.22)",
     dialogContent: "rgba(14, 16, 22, 0.35)",
     dialogActions: "rgba(0, 0, 0, 0.15)",
+    tableHeader: "#2B2E34",
     tableRowEven: "#2B2E34",
     tableRowOdd: "#1E2127",
     tableRowHover: "#3a3d44",

@@ -36,6 +36,7 @@ export const CSS_VAR_NAMES = {
   statusWarning: "--d-status-warning",
   statusError: "--d-status-error",
   statusInfo: "--d-status-info",
+  surfaceTableHeader: "--d-surface-table-header",
   tableRowEven: "--d-table-row-even",
   tableRowOdd: "--d-table-row-odd",
   tableRowHover: "--d-table-row-hover",
@@ -120,6 +121,7 @@ export function applyDigitalizaCssVariables(
   set(CSS_VAR_NAMES.statusWarning, c.status.warning);
   set(CSS_VAR_NAMES.statusError, c.status.error);
   set(CSS_VAR_NAMES.statusInfo, c.status.info);
+  set(CSS_VAR_NAMES.surfaceTableHeader, c.surface.tableHeader);
   set(CSS_VAR_NAMES.tableRowEven, c.surface.tableRowEven);
   set(CSS_VAR_NAMES.tableRowOdd, c.surface.tableRowOdd);
   set(CSS_VAR_NAMES.tableRowHover, c.surface.tableRowHover);

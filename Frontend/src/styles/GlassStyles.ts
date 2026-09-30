@@ -30,15 +30,15 @@ export const glassSidebar: SxProps<Theme> = {
 // Estilo glass base para content shell
 export const glassContent: SxProps<Theme> = {
     backgroundColor: GLASS_COLORS.contentBg,
-    backdropFilter: "blur(16px)",
-    WebkitBackdropFilter: "blur(16px)",
+    backdropFilter: "blur(18px)",
+    WebkitBackdropFilter: "blur(18px)",
     border: `1px solid ${GLASS_COLORS.borderLight}`,
     boxShadow: `var(${V.shadowContent})`,
 };
 
 // Estilo glass para cards/boxes auxiliares
 export const glassCard: SxProps<Theme> = {
-    backgroundColor: GLASS_COLORS.cardBg,
+    backgroundColor: `var(${V.surfacePanelElevated})`,
     backdropFilter: "blur(14px)",
     WebkitBackdropFilter: "blur(14px)",
     border: `1px solid ${GLASS_COLORS.borderMedium}`,
@@ -60,12 +60,12 @@ export const glassTabsHeaderPanelSx: SxProps<Theme> = {
  * alineado visualmente con sub-secciones dentro de una misma vista.
  */
 export const glassTabsSecondaryPanelSx: SxProps<Theme> = {
-    backgroundColor: `var(${V.surfacePanelSubtle})`,
-    backdropFilter: "blur(10px)",
-    WebkitBackdropFilter: "blur(10px)",
+    backgroundColor: `var(${V.surfacePanel})`,
+    backdropFilter: "blur(14px)",
+    WebkitBackdropFilter: "blur(14px)",
     border: `1px solid ${GLASS_COLORS.borderLight}`,
     borderRadius: "12px",
-    boxShadow: "none",
+    boxShadow: `var(${V.shadowPanel})`,
     p: 1.25,
     overflow: "hidden",
 };

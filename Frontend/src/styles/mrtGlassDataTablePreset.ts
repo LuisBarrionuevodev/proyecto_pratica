@@ -201,7 +201,7 @@ export const MRT_DATA_TABLE_GLASS_PRESET: Partial<MRT_TableOptions<any>> = {
 
   muiTableHeadCellProps: {
     sx: {
-      backgroundColor: GLASS_COLORS.cardBg,
+      backgroundColor: `var(${V.surfaceTableHeader})`,
       color: C.white,
       ...mrtActuacionesHeadCellTypographySx,
       borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
@@ -256,7 +256,7 @@ export const MRT_DATA_TABLE_GLASS_PRESET: Partial<MRT_TableOptions<any>> = {
       maxWidth: "100%",
       overflowX: "auto",
       overflowY: "auto",
-      backgroundColor: GLASS_COLORS.cardBg,
+      backgroundColor: C.rowEven,
       border: `1px solid ${GLASS_COLORS.borderLight}`,
       borderRadius: "8px",
       "&::-webkit-scrollbar": { width: "8px", height: "8px" },

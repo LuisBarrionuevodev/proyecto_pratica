@@ -23,13 +23,17 @@ function rgbaAlpha(value: string): number | null {
 
 describe("FRONT-PROD.3.3 — glass hierarchy & shell", () => {
   it("light: jerarquía shell < panel < elevated < input", () => {
-    const content = rgbaAlpha(lightColors.surface.content)!;
+    const shell = Math.max(
+      rgbaAlpha(lightColors.surface.sidebar)!,
+      rgbaAlpha(lightColors.surface.content)!
+    );
     const panel = rgbaAlpha(lightColors.surface.panel)!;
     const elevated = rgbaAlpha(lightColors.surface.panelElevated)!;
     const input = rgbaAlpha(lightColors.surface.input)!;
-    expect(content).toBeLessThan(panel);
+    expect(shell).toBeLessThanOrEqual(0.65);
+    expect(shell).toBeLessThan(panel);
     expect(panel).toBeLessThan(elevated);
-    expect(elevated).toBeLessThanOrEqual(input);
+    expect(elevated).toBeLessThan(input);
   });
 
   it("dark shell tokens sin cambios estructurales de referencia", () => {

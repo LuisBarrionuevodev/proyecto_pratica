@@ -3,7 +3,7 @@ import type { SemanticColors } from "../../../theme/colors";
 /** Override de header de grupo/columna Glide (colores concretos; no CSS vars). */
 export function glideColumnHeaderThemeOverride(colors: SemanticColors) {
   return {
-    bgHeader: colors.surface.panelElevated,
+    bgHeader: colors.surface.tableHeader,
     bgHeaderHovered: colors.surface.tableRowHover,
     textHeader: colors.text.primary,
     fgIconHeader: colors.text.primary,
@@ -13,7 +13,7 @@ export function glideColumnHeaderThemeOverride(colors: SemanticColors) {
 
 export function glideGroupHeaderThemeOverride(colors: SemanticColors) {
   return {
-    bgHeader: colors.surface.panelElevated,
+    bgHeader: colors.surface.tableHeader,
     textGroupHeader: colors.text.primary,
     fgIconHeader: colors.text.primary,
   };

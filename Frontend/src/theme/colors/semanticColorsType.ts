@@ -15,6 +15,7 @@ export type SemanticColors = {
     dialogTitle: string;
     dialogContent: string;
     dialogActions: string;
+    tableHeader: string;
     tableRowEven: string;
     tableRowOdd: string;
     tableRowHover: string;

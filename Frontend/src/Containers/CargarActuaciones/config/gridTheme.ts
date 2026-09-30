@@ -3,7 +3,7 @@
  */
 import type { Theme } from "@glideapps/glide-data-grid";
 import type { SemanticColors } from "../../../theme/colors";
-import { darkColors } from "../../../theme/colors";
+import { darkColors, lightColors } from "../../../theme/colors";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 /**
@@ -13,10 +13,11 @@ export function createGridTheme(colors: SemanticColors): Partial<Theme> {
   const c = colors;
   return {
     accentColor: c.action.primary,
-    accentLight: "#4D94FF",
+    accentLight: c.action.primaryMuted,
 
     textDark: c.text.primary,
-    textMedium: c.text.primary,
+    textMedium:
+      c.surface.app === lightColors.surface.app ? c.text.secondary : c.text.primary,
     textLight: c.text.muted,
     textBubble: c.text.primary,
     textHeader: c.text.primary,
@@ -28,15 +29,15 @@ export function createGridTheme(colors: SemanticColors): Partial<Theme> {
 
     bgCell: c.surface.tableRowEven,
     bgCellMedium: c.surface.tableRowOdd,
-    bgHeader: c.surface.panelElevated,
+    bgHeader: c.surface.tableHeader,
     bgHeaderHasFocus: c.surface.tableRowHover,
     bgHeaderHovered: c.surface.tableRowHover,
     bgBubble: c.surface.tableRowEven,
     bgBubbleSelected: c.action.primary,
     bgSearchResult: c.status.warningSurface,
 
-    borderColor: c.border.strong,
-    horizontalBorderColor: c.border.strong,
+    borderColor: c.border.default,
+    horizontalBorderColor: c.border.default,
     drilldownBorder: c.action.primary,
 
     linkColor: c.action.primary,
