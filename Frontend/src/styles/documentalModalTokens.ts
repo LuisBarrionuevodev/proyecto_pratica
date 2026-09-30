@@ -4,9 +4,9 @@ import { GLASS_COLORS, glassCard } from "./GlassStyles";
 
 /**
  * Tokens compartidos para modales documentales (Recorrido, Notificación, Actuación).
- * Jerarquía por peso / tamaño / spacing — texto principal en blanco, sin gris de lectura.
+ * Jerarquía por peso / tamaño / spacing — texto vía tokens semánticos (dark/light).
  */
-export const DOC_MODAL_TEXT = "#ffffff";
+export const DOC_MODAL_TEXT = GLASS_COLORS.textPrimary;
 
 /** `spacing` del Stack entre intro y bloques / entre bloques sucesivos. */
 export const DOC_MODAL_BLOCK_STACK_SPACING = 2;

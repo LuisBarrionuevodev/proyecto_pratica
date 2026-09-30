@@ -166,7 +166,13 @@ export function AppDialog({
                         color: "rgba(255,255,255,0.85)",
                         "&:hover": { color: "#ffffff", backgroundColor: "rgba(255,255,255,0.12)" },
                       }
-                    : { color: "rgba(255,255,255,0.75)", "&:hover": { color: theme.palette.primary.main } }
+                    : {
+                        color: GLASS_COLORS.textSecondary,
+                        "&:hover": {
+                          color: GLASS_COLORS.textPrimary,
+                          backgroundColor: GLASS_COLORS.hoverBg,
+                        },
+                      }
                   : undefined
               }
             >

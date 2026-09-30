@@ -40,12 +40,12 @@ describe("FRONT-PROD.5 — modales light, calendario, Glide, submit", () => {
   });
 
   it("Glide: fuente base mayor y celdas pintadas con contraste por tema", () => {
-    expect(createGridTheme(lightColors).baseFontStyle).toBe("12px");
+    expect(createGridTheme(lightColors).baseFontStyle).toBe("13px");
     const lightErr = resolveGlideCellTheme(lightColors, "error");
     const darkErr = resolveGlideCellTheme(darkColors, "error");
     expect(lightErr.textDark).toBe(lightColors.text.primary);
-    expect(darkErr.textDark).toBe(darkColors.text.inverse);
-    expect(lightErr.baseFontStyle).toContain("600");
+    expect(darkErr.textDark).toBe(darkColors.text.primary);
+    expect(lightErr.baseFontStyle).toBe("700 13px");
   });
 
   it("formulario denuncia hace flush del foco antes de guardar", () => {

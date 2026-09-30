@@ -23,6 +23,7 @@ import {
 } from "../../Actuaciones/styles/actuacionesTableStyles";
 import { tipoIniciadorDesdeCodigoApi } from "../../RutasTrabajo/planificacion/utils/iniciadorDisplay";
 import { DataTableMrtShell } from "../../../components/dataTable/DataTableMrtShell";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 function domicilioLinea(row: ICompletarTrabajoPendienteRow): string {
@@ -240,7 +241,7 @@ export function CompletarTrabajosMRT({
           variant="caption"
           sx={{
             fontFamily: FONT_FAMILY_UI,
-            color: "rgba(255,255,255,0.55)",
+            color: GLASS_COLORS.textMuted,
             display: "block",
           }}
         >

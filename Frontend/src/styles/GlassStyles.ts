@@ -273,7 +273,7 @@ export const glassDialogBackdropSx: SxProps<Theme> = {
 /** Paper del Dialog alineado al glass institucional. */
 export const glassDialogPaperSx: SxProps<Theme> = {
     ...glassCard,
-    backgroundColor: GLASS_COLORS.cardBg,
+    backgroundColor: `var(${V.surfacePanelElevated})`,
     color: GLASS_COLORS.textPrimary,
     maxHeight: "min(92vh, 920px)",
     display: "flex",

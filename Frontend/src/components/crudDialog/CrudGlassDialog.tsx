@@ -71,7 +71,6 @@ export function CrudGlassDialog({
         appearance="glass"
         title={title}
         titleSx={crudDialogHeaderSx}
-        closeButtonOnPrimary
         actions={actions}
         actionsSx={crudDialogActionsSx}
         paperSx={crudDialogPaperSx}

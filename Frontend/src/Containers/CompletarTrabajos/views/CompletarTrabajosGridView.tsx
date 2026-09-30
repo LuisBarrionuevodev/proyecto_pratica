@@ -4,7 +4,7 @@ import { Alert, Box, Typography } from "@mui/material";
 import type { ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
 import { alertBaseStyles } from "../../Actuaciones/styles/filtroStyles";
 import { AppButton } from "../../../ui";
-import { moduleContentPanelPaperSx } from "../../../styles/GlassStyles";
+import { GLASS_COLORS, moduleContentPanelPaperSx } from "../../../styles/GlassStyles";
 import { CompletarTrabajoModal } from "../components/CompletarTrabajoModal";
 import { CompletarTrabajosMRT } from "../components/CompletarTrabajosMRT";
 import { useCompletarTrabajoCatalogs, useTrabajosDelDia } from "../hooks";
@@ -82,7 +82,7 @@ export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajos
       {!error && total === 0 && !loading && (
         <Typography
           variant="body2"
-          sx={{ color: "rgba(255,255,255,0.5)", fontFamily: FONT_FAMILY_UI }}
+          sx={{ color: GLASS_COLORS.textMuted, fontFamily: FONT_FAMILY_UI }}
         >
           No hay trabajos pendientes para el día operativo elegido. Revisá que sea la misma fecha de la ruta (no el día del
           borrador), que la ruta esté publicada y que queden ítems EN_PROCESO.

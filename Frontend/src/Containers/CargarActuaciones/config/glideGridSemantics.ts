@@ -1,16 +1,6 @@
 import type { SemanticColors } from "../../../theme/colors";
-import { lightColors } from "../../../theme/colors";
 
-const GLIDE_PAINTED_CELL_FONT = "600 12px";
-
-function isLightPalette(colors: SemanticColors): boolean {
-  return colors.surface.app === lightColors.surface.app;
-}
-
-/** Texto de celdas con fondo de estado (error/ok/pendiente): alto contraste por tema. */
-function paintedCellText(colors: SemanticColors): string {
-  return isLightPalette(colors) ? colors.text.primary : colors.text.inverse;
-}
+const GLIDE_PAINTED_CELL_FONT = "700 13px";
 
 /** Override de header de grupo/columna Glide (colores concretos; no CSS vars). */
 export function glideColumnHeaderThemeOverride(colors: SemanticColors) {
@@ -52,19 +42,19 @@ export function resolveGlideCellTheme(
     case "error":
       return {
         bgCell: colors.status.errorSurface,
-        textDark: paintedCellText(colors),
+        textDark: colors.text.primary,
         baseFontStyle: GLIDE_PAINTED_CELL_FONT,
       };
     case "ok":
       return {
         bgCell: colors.status.successSurface,
-        textDark: paintedCellText(colors),
+        textDark: colors.text.primary,
         baseFontStyle: GLIDE_PAINTED_CELL_FONT,
       };
     case "pending":
       return {
         bgCell: colors.status.warningSurface,
-        textDark: paintedCellText(colors),
+        textDark: colors.text.primary,
         baseFontStyle: GLIDE_PAINTED_CELL_FONT,
       };
     case "validating":

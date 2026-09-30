@@ -26,10 +26,9 @@ import {
   CrudGlassDialog,
   useCrudDialogScrollContainer,
 } from "../../../components/crudDialog";
-import {
-  DOC_MODAL_BLOCK_STACK_SPACING,
-  DOC_MODAL_TEXT,
-} from "../../../styles/documentalModalTokens";
+import { DOC_MODAL_BLOCK_STACK_SPACING } from "../../../styles/documentalModalTokens";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { CSS_VAR_NAMES as V } from "../../../theme/applyCssVariables";
 import { AppSelect, AppTextField } from "../../../ui";
 import { useAppFeedback } from "../../../components/feedback";
 import { ActaNumFieldLazy } from "../../Actuaciones/Components/ActaNumFieldLazy";
@@ -108,10 +107,51 @@ import { usaInspeccionNormalReinspeccionOficio } from "../../../shared/reinspecc
 import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 const modalAuxInputSx = {
-  "& .MuiInputBase-input": { color: DOC_MODAL_TEXT },
-  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.92)" },
-  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.38)" },
-  "& .MuiFormHelperText-root": { color: "rgba(255,255,255,0.88)" },
+  "& .MuiInputBase-input": { color: GLASS_COLORS.textPrimary },
+  "& .MuiInputLabel-root": { color: GLASS_COLORS.textSecondary },
+  "& .MuiOutlinedInput-notchedOutline": { borderColor: GLASS_COLORS.borderMedium },
+  "& .MuiFormHelperText-root": { color: GLASS_COLORS.textMuted },
+} as const;
+
+const detalleLabelSx = {
+  color: GLASS_COLORS.textPrimary,
+  fontWeight: 700,
+  fontFamily: FONT_FAMILY_UI,
+} as const;
+
+const detalleValueSx = {
+  color: GLASS_COLORS.textSecondary,
+  fontWeight: 500,
+  fontFamily: FONT_FAMILY_UI,
+} as const;
+
+const labelMutedSx = {
+  color: GLASS_COLORS.textMuted,
+  fontFamily: FONT_FAMILY_UI,
+} as const;
+
+const modalChipSx = {
+  bgcolor: `var(${V.actionSelected})`,
+  color: GLASS_COLORS.textPrimary,
+} as const;
+
+const modalInsetPanelSx = {
+  bgcolor: `var(${V.surfacePanelSubtle})`,
+} as const;
+
+const modalToggleGroupSx = {
+  "& .MuiToggleButton-root": {
+    flex: 1,
+    textTransform: "none" as const,
+    fontFamily: FONT_FAMILY_UI,
+    fontSize: "0.8125rem",
+    color: GLASS_COLORS.textSecondary,
+    borderColor: GLASS_COLORS.borderMedium,
+  },
+  "& .Mui-selected": {
+    bgcolor: `var(${V.actionSelected}) !important`,
+    color: `${GLASS_COLORS.textPrimary} !important`,
+  },
 } as const;
 
 const edicionGrid2ColSx = {
@@ -726,9 +766,6 @@ export function CompletarTrabajoModal({
   const tipoIniciadorLabel = completarTrabajoHeaderTitulo(displayRow?.tipo_iniciador);
   const headerSubtitulo = completarTrabajoHeaderSubtitulo(displayRow?.fecha_actuacion);
   const showDomicilioEnDetalle = completarTrabajoShowDomicilioEnDetalle(displayRow?.tipo_iniciador);
-  const detalleLabelSx = { color: "rgba(255,255,255,0.95)", fontWeight: 700 } as const;
-  const detalleValueSx = { color: "rgba(255,255,255,0.85)", fontWeight: 500 } as const;
-
   useEffect(() => {
     if (!open || !resolvedRow) return;
     if (!esReinspeccionOficioGenerico(resolvedRow.tipo_iniciador)) return;
@@ -1118,8 +1155,6 @@ export function CompletarTrabajoModal({
   };
 
   const col = { display: "flex", flexDirection: "column" as const, gap: 1.5 };
-  const labelMuted = { color: "rgba(255,255,255,0.5)", fontFamily: FONT_FAMILY_UI } as const;
-
   return (
     <CrudGlassDialog
       open={open && row != null}
@@ -1149,8 +1184,8 @@ export function CompletarTrabajoModal({
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2 }}>
           <LinearProgress sx={{ borderRadius: 1 }} />
           <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5, py: 2 }}>
-            <CircularProgress size={32} sx={{ color: "rgba(255,255,255,0.7)" }} />
-            <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", textAlign: "center" }}>
+            <CircularProgress size={32} sx={{ color: GLASS_COLORS.textSecondary }} />
+            <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, textAlign: "center" }}>
               Cargando detalle del trabajo…
             </Typography>
           </Box>
@@ -1179,7 +1214,7 @@ export function CompletarTrabajoModal({
             ...col,
             p: 1.5,
             borderRadius: 2,
-            bgcolor: "rgba(255,255,255,0.06)",
+            ...modalInsetPanelSx,
             fontFamily: FONT_FAMILY_UI,
           }}
         >
@@ -1213,12 +1248,12 @@ export function CompletarTrabajoModal({
       {displayRow && !detalleLoading && (
         <CompletarBloque title="Datos generales">
         <Box sx={{ ...col, width: "100%" }}>
-          <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
+          <Typography variant="caption" sx={{ ...labelMutedSx, display: "block" }}>
             Inspectores
           </Typography>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
             {inspectoresList.length === 0 ? (
-              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.45)" }}>
+              <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted }}>
                 —
               </Typography>
             ) : (
@@ -1232,7 +1267,7 @@ export function CompletarTrabajoModal({
                     setInspectoresDirty(true);
                     clearFe("inspectores");
                   }}
-                  sx={{ bgcolor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.92)" }}
+                  sx={modalChipSx}
                 />
               ))
             )}
@@ -1567,7 +1602,7 @@ export function CompletarTrabajoModal({
         <CompletarBloque title="Contribuyente / titular">
         <Box sx={{ ...col, width: "100%" }}>
         {showIdentityVerificarInformar && !identityFieldsEditable && (
-          <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.8)", mb: 1 }}>
+          <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, mb: 1 }}>
             Identidad del origen (solo lectura).
           </Typography>
         )}
@@ -1587,7 +1622,7 @@ export function CompletarTrabajoModal({
           helperText={fe("rubro_nombre") || undefined}
         />
         )}
-        <Typography variant="caption" sx={labelMuted}>
+        <Typography variant="caption" sx={labelMutedSx}>
           Titular
         </Typography>
         <ToggleButtonGroup
@@ -1597,20 +1632,7 @@ export function CompletarTrabajoModal({
           size="small"
           fullWidth
           disabled={showIdentityVerificarInformar && !identityFieldsEditable}
-          sx={{
-            "& .MuiToggleButton-root": {
-              flex: 1,
-              textTransform: "none",
-              fontFamily: FONT_FAMILY_UI,
-              fontSize: "0.8125rem",
-              color: "rgba(255,255,255,0.75)",
-              borderColor: "rgba(255,255,255,0.2)",
-            },
-            "& .Mui-selected": {
-              bgcolor: "rgba(255,255,255,0.12) !important",
-              color: "rgba(255,255,255,0.95) !important",
-            },
-          }}
+          sx={modalToggleGroupSx}
         >
           <ToggleButton value="persona">Contribuyente</ToggleButton>
           <ToggleButton value="razon_social">Razón social</ToggleButton>
@@ -1701,7 +1723,7 @@ export function CompletarTrabajoModal({
         <CompletarBloque title="Actas labradas">
         <Box sx={{ ...col, width: "100%" }}>
           {esNoPermiteInspeccion && !visitaRealizada && (
-            <Typography variant="subtitle2" sx={{ color: "rgba(255,255,255,0.85)", letterSpacing: 0.2 }}>
+            <Typography variant="subtitle2" sx={{ color: GLASS_COLORS.textSecondary, letterSpacing: 0.2 }}>
               Actas para este cierre
             </Typography>
           )}
@@ -1738,14 +1760,17 @@ export function CompletarTrabajoModal({
                     sx={{
                       p: 1.5,
                       borderRadius: 2,
-                      bgcolor: "rgba(255,255,255,0.06)",
+                      ...modalInsetPanelSx,
                       fontFamily: FONT_FAMILY_UI,
                     }}
                   >
-                    <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.5)", textTransform: "uppercase" }}>
+                    <Typography
+                      variant="caption"
+                      sx={{ color: GLASS_COLORS.textMuted, textTransform: "uppercase" }}
+                    >
                       Notificación origen (solo lectura)
                     </Typography>
-                    <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.85)", mt: 0.5 }}>
+                    <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, mt: 0.5 }}>
                       {notificacionOrigenTexto ? `Notif. ${notificacionOrigenTexto}` : "—"}
                     </Typography>
                   </Box>
@@ -1765,12 +1790,12 @@ export function CompletarTrabajoModal({
               </Box>
               {!esReinspeccionNotificacion ? (
                 <>
-                  <Typography variant="caption" sx={labelMuted}>
+                  <Typography variant="caption" sx={labelMutedSx}>
                     Motivos de notificación (máx. {MOTIVOS_NOTIFICACION_MAX})
                   </Typography>
                   <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
                     {notifMotivosSeleccion.length === 0 ? (
-                      <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.45)" }}>
+                      <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted }}>
                         —
                       </Typography>
                     ) : (
@@ -1785,7 +1810,7 @@ export function CompletarTrabajoModal({
                             clearFe("notificacion_motivo_2");
                             clearFe("notificacion_motivo_3");
                           }}
-                          sx={{ bgcolor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.92)" }}
+                          sx={modalChipSx}
                         />
                       ))
                     )}
