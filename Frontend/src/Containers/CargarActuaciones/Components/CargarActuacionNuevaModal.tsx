@@ -38,8 +38,9 @@ import {
   CrudGlassDialog,
   crudDialogActionsRowSx,
 } from "../../../components/crudDialog";
-import { DOC_MODAL_BLOCK_STACK_SPACING, DOC_MODAL_TEXT } from "../../../styles/documentalModalTokens";
+import { DOC_MODAL_BLOCK_STACK_SPACING } from "../../../styles/documentalModalTokens";
 import { GLASS_COLORS, moduleHeroCardSx } from "../../../styles/GlassStyles";
+import { CSS_VAR_NAMES as V } from "../../../theme/applyCssVariables";
 import { AppButton, AppSelect, AppTextField, CardGlass, type AppSelectOption } from "../../../ui";
 import {
   InspeccionChecklistFields,
@@ -55,7 +56,8 @@ import {
   sortCatalogItems,
 } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
 import type { ChecklistUxValue } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
-import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";/** Keys Glide (contrato `COLUMN_MAP_ACTUACIONES` / grilla). */
+import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";
+/** Keys Glide (contrato `COLUMN_MAP_ACTUACIONES` / grilla). */
 const GLIDE_KEYS = [
   "Fecha actuación",
   "Orden de trabajo",
@@ -85,13 +87,55 @@ function emptyTextFields(): Record<GlideTextKey, string> {
 
 /** Misma columna flexible y labels que `CompletarTrabajoModal`. */
 const col = { display: "flex", flexDirection: "column" as const, gap: 1.5 };
-const labelMuted = { color: "rgba(255,255,255,0.5)", fontFamily: FONT_FAMILY_UI } as const;
+const labelMutedSx = { color: GLASS_COLORS.textMuted, fontFamily: FONT_FAMILY_UI } as const;
 
 const modalAuxInputSx = {
-  "& .MuiInputBase-input": { color: DOC_MODAL_TEXT },
-  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.92)" },
-  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.38)" },
-  "& .MuiFormHelperText-root": { color: "rgba(255,255,255,0.88)" },
+  "& .MuiInputBase-input": { color: GLASS_COLORS.textPrimary },
+  "& .MuiInputLabel-root": { color: GLASS_COLORS.textSecondary },
+  "& .MuiOutlinedInput-notchedOutline": { borderColor: GLASS_COLORS.borderMedium },
+  "& .MuiFormHelperText-root": { color: GLASS_COLORS.textSecondary },
+} as const;
+
+const modalChipSx = {
+  bgcolor: `var(${V.surfacePanelSubtle})`,
+  color: GLASS_COLORS.textPrimary,
+  border: `1px solid ${GLASS_COLORS.borderLight}`,
+  "& .MuiChip-deleteIcon": { color: GLASS_COLORS.textSecondary },
+} as const;
+
+const modalToggleGroupSx = {
+  "& .MuiToggleButton-root": {
+    flex: 1,
+    textTransform: "none" as const,
+    fontFamily: FONT_FAMILY_UI,
+    fontSize: "0.8125rem",
+    color: GLASS_COLORS.textSecondary,
+    borderColor: GLASS_COLORS.borderMedium,
+    "&:hover": { backgroundColor: GLASS_COLORS.hoverBg },
+  },
+  "& .Mui-selected": {
+    bgcolor: `var(${V.actionTabPrimarySelected}) !important`,
+    color: `${GLASS_COLORS.textPrimary} !important`,
+    borderColor: `${GLASS_COLORS.borderActive} !important`,
+  },
+} as const;
+
+const modalCheckboxSx = {
+  color: GLASS_COLORS.textSecondary,
+  "&.Mui-checked": { color: GLASS_COLORS.primary },
+  "&.Mui-disabled": { color: GLASS_COLORS.textMuted },
+} as const;
+
+const formControlLabelSx = {
+  alignItems: "flex-start",
+  mx: 0,
+  color: GLASS_COLORS.textPrimary,
+  "& .MuiFormControlLabel-label": {
+    fontFamily: FONT_FAMILY_UI,
+    fontSize: "0.875rem",
+    lineHeight: 1.45,
+  },
+  "& .MuiFormControlLabel-label.Mui-disabled": { color: GLASS_COLORS.textMuted },
 } as const;
 
 const edicionGrid2ColSx = {
@@ -541,8 +585,8 @@ export function CargarActuacionNuevaModal() {
           <Box sx={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2 }}>
             <LinearProgress sx={{ borderRadius: 1 }} />
             <Box sx={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 1.5, py: 2 }}>
-              <CircularProgress size={32} sx={{ color: "rgba(255,255,255,0.7)" }} />
-              <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", textAlign: "center" }}>
+              <CircularProgress size={32} sx={{ color: GLASS_COLORS.primary }} />
+              <Typography variant="caption" sx={{ color: GLASS_COLORS.textSecondary, textAlign: "center" }}>
                 Cargando catálogos…
               </Typography>
             </Box>
@@ -559,16 +603,11 @@ export function CargarActuacionNuevaModal() {
               checked={cargaSoloComprobacion}
               onChange={(e) => handleCargaSoloComprobacionChange(e.target.checked)}
               disabled={loading || catalogsBootstrapping}
-              sx={{ color: "rgba(255,255,255,0.7)", "&.Mui-checked": { color: "rgba(255,255,255,0.92)" } }}
+              sx={modalCheckboxSx}
             />
           }
           label="Cargar solo acta de comprobación como actuación"
-          sx={{
-            alignItems: "flex-start",
-            mx: 0,
-            color: "rgba(255,255,255,0.88)",
-            "& .MuiFormControlLabel-label": { fontFamily: FONT_FAMILY_UI, fontSize: "0.875rem", lineHeight: 1.45 },
-          }}
+          sx={formControlLabelSx}
         />
 
         <CargarActuacionBloque title="Datos generales">
@@ -607,12 +646,12 @@ export function CargarActuacionNuevaModal() {
           ) : null}
           </Box>
 
-          <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
+          <Typography variant="caption" sx={{ ...labelMutedSx, display: "block" }}>
             Inspectores
           </Typography>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
             {inspectoresList.length === 0 ? (
-              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.45)" }}>
+              <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted }}>
                 —
               </Typography>
             ) : (
@@ -625,7 +664,7 @@ export function CargarActuacionNuevaModal() {
                     setInspectoresList((prev) => prev.filter((_, i) => i !== idx));
                     clearFe("Inspectores");
                   }}
-                  sx={{ bgcolor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.92)" }}
+                  sx={modalChipSx}
                 />
               ))
             )}
@@ -721,7 +760,7 @@ export function CargarActuacionNuevaModal() {
 
         <CargarActuacionBloque title={cargaSoloComprobacion ? "Titular" : "Contribuyente / titular"}>
         <Box sx={{ ...col, width: "100%" }}>
-          <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
+          <Typography variant="caption" sx={{ ...labelMutedSx, display: "block" }}>
             Titular
           </Typography>
           <ToggleButtonGroup
@@ -730,20 +769,7 @@ export function CargarActuacionNuevaModal() {
             onChange={handleTitularModoChange}
             size="small"
             fullWidth
-            sx={{
-              "& .MuiToggleButton-root": {
-                flex: 1,
-                textTransform: "none",
-                fontFamily: FONT_FAMILY_UI,
-                fontSize: "0.8125rem",
-                color: "rgba(255,255,255,0.75)",
-                borderColor: "rgba(255,255,255,0.2)",
-              },
-              "& .Mui-selected": {
-                bgcolor: "rgba(255,255,255,0.12) !important",
-                color: "rgba(255,255,255,0.95) !important",
-              },
-            }}
+            sx={modalToggleGroupSx}
           >
             <ToggleButton value="persona">Contribuyente</ToggleButton>
             <ToggleButton value="razon_social">Razón social</ToggleButton>
@@ -856,12 +882,12 @@ export function CargarActuacionNuevaModal() {
             helperText={errorFor("Acta notificación") || undefined}
           />
           </Box>
-          <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
+          <Typography variant="caption" sx={{ ...labelMutedSx, display: "block" }}>
             Motivos de notificación (máx. {MOTIVOS_NOTIFICACION_MAX})
           </Typography>
           <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
             {notifMotivosSel.length === 0 ? (
-              <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.45)" }}>
+              <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted }}>
                 —
               </Typography>
             ) : (
@@ -876,7 +902,7 @@ export function CargarActuacionNuevaModal() {
                     clearFe("Motivo notif 2");
                     clearFe("Motivo notif 3");
                   }}
-                  sx={{ bgcolor: "rgba(255,255,255,0.12)", color: "rgba(255,255,255,0.92)" }}
+                  sx={modalChipSx}
                 />
               ))
             )}

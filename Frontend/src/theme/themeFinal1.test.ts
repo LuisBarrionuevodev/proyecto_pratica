@@ -56,4 +56,11 @@ describe("THEME-FINAL.1 — modales y Glide", () => {
     const crud = readSrc("components/crudDialog/CrudGlassDialog.tsx");
     expect(crud).not.toContain("closeButtonOnPrimary");
   });
+
+  it("CargarActuacionNuevaModal — sin paleta dark local en chrome UI", () => {
+    const modal = readSrc("Containers/CargarActuaciones/Components/CargarActuacionNuevaModal.tsx");
+    expect(modal).toContain("GLASS_COLORS.textMuted");
+    expect(modal).toContain("modalToggleGroupSx");
+    expect(modal).not.toMatch(/color:\s*"rgba\(255,255,255/);
+  });
 });
