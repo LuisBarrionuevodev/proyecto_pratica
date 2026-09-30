@@ -41,7 +41,7 @@ export type CrudGlassDialogProps = Omit<DialogProps, "title"> & {
 };
 
 /**
- * Wrapper CRUD sobre `AppDialog`: paper glass oscuro, header azul dashboard, contenido scrolleable y pie sticky.
+ * Wrapper CRUD sobre `AppDialog`: paper/header/footer glass semánticos, contenido scrolleable y pie sticky.
  */
 export function CrudGlassDialog({
   open,
@@ -109,7 +109,7 @@ export function CrudGlassDialog({
               gap: 0.5,
               width: "100%",
               boxSizing: "border-box",
-              color: "#FFFFFF",
+              color: GLASS_COLORS.textPrimary,
             }
           )}
         >

@@ -19,6 +19,7 @@ import { denunciaRowParaEdicion } from "../utils/denunciaCamposForm";
 import { applyDenunciaDomicilioSubmitGuard } from "../utils/submitDenunciaRow";
 import { shouldRefreshDenunciasAfterSaveFailure } from "../utils/refreshOnSavePolicy";
 import { DenunciaCrudDialog } from "./DenunciaCrudDialog";
+import { flushActiveElementBeforeAction } from "../../../utils/flushActiveElementBeforeAction";
 import {
   BandejaEllipsisCell,
   BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
@@ -126,6 +127,7 @@ const TablaDenuncias = ({
     setCrudGlobalError(null);
     setCrudSaving(true);
     try {
+      await flushActiveElementBeforeAction();
       setRowErrors((prev) => ({ ...prev, [id]: {} }));
       const payload = applyDenunciaDomicilioSubmitGuard(fullRow, crudBaseline);
       await updateDenunciaGestion(id, payload);

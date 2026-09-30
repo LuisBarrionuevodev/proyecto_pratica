@@ -112,9 +112,9 @@ export function completarCeldaTitle(
 /** Footer secundario bajo el número del día. */
 export const completarPendingFooterSx: SxProps<Theme> = {
   fontFamily: FONT_FAMILY_UI,
-  fontSize: "0.62rem",
-  fontWeight: 500,
-  lineHeight: 1.2,
+  fontSize: "0.76rem",
+  fontWeight: 600,
+  lineHeight: 1.25,
   color: `var(${V.calendarCompletarFooterText})`,
   textAlign: "center",
   px: 0.25,

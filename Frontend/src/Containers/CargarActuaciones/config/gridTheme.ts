@@ -42,8 +42,8 @@ export function createGridTheme(colors: SemanticColors): Partial<Theme> {
 
     linkColor: c.action.primary,
 
-    headerFontStyle: "600 12px",
-    baseFontStyle: "11px",
+    headerFontStyle: "700 13px",
+    baseFontStyle: "12px",
     fontFamily: FONT_FAMILY_UI,
   };
 }

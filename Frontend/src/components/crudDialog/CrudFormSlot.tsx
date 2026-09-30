@@ -21,6 +21,8 @@ export type CrudFormSlotProps = {
   helperText?: string;
   emptyFallback?: string;
   fullWidth?: boolean;
+  /** En edición: muestra el label del slot y el control sin `label` MUI (evita doble label). */
+  slotLabelInEdit?: boolean;
   sx?: SxProps<Theme>;
   children?: ReactNode;
 };
@@ -51,6 +53,7 @@ export function CrudFormSlot({
   helperText,
   emptyFallback = CRUD_FIELD_EMPTY,
   fullWidth = true,
+  slotLabelInEdit = false,
   sx,
   children,
 }: CrudFormSlotProps) {
@@ -58,7 +61,15 @@ export function CrudFormSlot({
 
   if (mode === "edit" && children != null) {
     return (
-      <Box sx={mergeSx(crudFormSlotRootSx, widthSx, crudDialogFormFieldsSx, sx)}>{children}</Box>
+      <Box sx={mergeSx(crudFormSlotRootSx, widthSx, crudDialogFormFieldsSx, sx)}>
+        {slotLabelInEdit ? (
+          <Typography component="label" sx={crudFieldSlotLabelSx}>
+            {label}
+            {required ? " *" : ""}
+          </Typography>
+        ) : null}
+        {children}
+      </Box>
     );
   }
 

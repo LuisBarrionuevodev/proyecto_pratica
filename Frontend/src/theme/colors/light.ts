@@ -46,7 +46,7 @@ export const lightColors = {
     completarRojoText: "#D32F2F",
     completarNeutralBg: "rgba(255, 255, 255, 0.78)",
     completarNeutralText: "#18202C",
-    completarFooterText: "#465160",
+    completarFooterText: "#18202C",
   },
   chart: {
     grid: "rgba(24,32,44,0.08)",

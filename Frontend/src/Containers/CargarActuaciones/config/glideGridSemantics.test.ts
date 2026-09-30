@@ -9,6 +9,7 @@ describe("glideGridSemantics", () => {
     const lightOk = resolveGlideCellTheme(lightColors, "ok");
     expect(darkOk.bgCell).toBe(darkColors.status.successSurface);
     expect(lightOk.bgCell).toBe(lightColors.status.successSurface);
-    expect(darkOk.textDark).not.toBe(lightOk.textDark);
+    expect(lightOk.textDark).toBe(lightColors.text.primary);
+    expect(darkOk.textDark).toBe(darkColors.text.inverse);
   });
 });

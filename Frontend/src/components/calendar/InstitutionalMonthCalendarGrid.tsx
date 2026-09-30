@@ -131,7 +131,7 @@ export function InstitutionalMonthCalendarGrid({
           <Typography
             key={c}
             variant="caption"
-            sx={{ fontFamily: FONT_FAMILY_UI, color: GLASS_COLORS.textSecondary, fontSize: "0.64rem", fontWeight: 600 }}
+            sx={{ fontFamily: FONT_FAMILY_UI, color: GLASS_COLORS.textPrimary, fontSize: "0.68rem", fontWeight: 600 }}
           >
             {c}
           </Typography>

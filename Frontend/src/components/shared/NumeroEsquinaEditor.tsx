@@ -63,6 +63,8 @@ const NumeroEsquinaEditor = ({
     return hasLetters(value) ? "ESQUINA" : "NUMERO";
   }, [value, initialModeProp]);
 
+  const fieldLabelProps = label ? { label } : {};
+
   const [mode, setMode] = useState<EditorMode>(initialMode);
   const [inputValue, setInputValue] = useState(value ?? "");
   const [options, setOptions] = useState<string[]>([]);
@@ -170,7 +172,7 @@ const NumeroEsquinaEditor = ({
 
       {mode === "NUMERO" ? (
         <TextField
-          label={label}
+          {...fieldLabelProps}
           size="small"
           value={value ?? ""}
           error={error}
@@ -218,7 +220,7 @@ const NumeroEsquinaEditor = ({
           renderInput={(params) => (
             <TextField
               {...params}
-              label={label}
+              {...fieldLabelProps}
               error={error}
               helperText={helperText}
               InputProps={{
@@ -236,7 +238,7 @@ const NumeroEsquinaEditor = ({
         />
       ) : (
         <TextField
-          label={label}
+          {...fieldLabelProps}
           size="small"
           value={value ?? ""}
           error={error}

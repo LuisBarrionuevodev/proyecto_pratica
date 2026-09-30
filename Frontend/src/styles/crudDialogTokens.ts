@@ -1,40 +1,37 @@
 import type { SxProps, Theme } from "@mui/material";
 
 import { formDialogContentStackSx } from "./formDialogStyles";
-import { dashboardAnalyticsCardSx } from "./DashboardStyles";
 import { GLASS_COLORS, glassDialogBackdropSx } from "./GlassStyles";
+import { CSS_VAR_NAMES as V } from "../theme/applyCssVariables";
 import { FONT_FAMILY_UI } from "../theme/typography";
 
 /** Radio y borde estándar de modales CRUD glass. */
 export const CRUD_DIALOG_BORDER_RADIUS = "18px";
 
-/** Texto del modal CRUD: blanco con opacidades controladas (nunca oscuro). */
+/** @deprecated Usar `crudDialogHeaderSx` / `--d-surface-dialog-title`. */
+export const CRUD_DIALOG_HEADER_BLUE = `var(${V.surfaceDialogTitle})`;
+
+/** @deprecated Usar `crudDialogPaperSx` / `--d-surface-panel-elevated`. */
+export const CRUD_DIALOG_PAPER_BG = `var(${V.surfacePanelElevated})`;
+
+/** Texto del modal CRUD — tokens semánticos (dark y light). */
 export const CRUD_DIALOG_TEXT = {
-  primary: "#ffffff",
-  secondary: "rgba(255,255,255,0.86)",
-  muted: "rgba(255,255,255,0.72)",
+  primary: GLASS_COLORS.textPrimary,
+  secondary: GLASS_COLORS.textSecondary,
+  muted: GLASS_COLORS.textMuted,
 } as const;
 
 /**
- * Azul oscuro del header CRUD — misma familia que `dashboardAnalyticsCardSx`
- * (Overview Operativo), no el primary brillante `#0166FF`.
- */
-export const CRUD_DIALOG_HEADER_BLUE = dashboardAnalyticsCardSx.backgroundColor;
-
-/** Fondo glass del paper del modal CRUD. */
-export const CRUD_DIALOG_PAPER_BG = "rgba(12, 18, 32, 0.88)";
-
-/**
- * Paper del modal CRUD: glass oscuro liviano + borde suave + radio 18px.
+ * Paper del modal CRUD: alineado a diálogos glass institucionales.
  * Componer sobre `AppDialog` vía `paperSx`.
  */
 export const crudDialogPaperSx: SxProps<Theme> = {
-  backgroundColor: CRUD_DIALOG_PAPER_BG,
+  backgroundColor: `var(${V.surfacePanelElevated})`,
   backdropFilter: "blur(14px)",
   WebkitBackdropFilter: "blur(14px)",
   borderRadius: CRUD_DIALOG_BORDER_RADIUS,
   border: `1px solid ${GLASS_COLORS.borderLight}`,
-  boxShadow: "0 1px 2px rgba(0,0,0,0.24), 0 12px 40px rgba(0,0,0,0.42)",
+  boxShadow: `var(${V.shadowPanel})`,
   color: CRUD_DIALOG_TEXT.primary,
   maxHeight: "min(92vh, 920px)",
   display: "flex",
@@ -46,12 +43,11 @@ export const crudDialogPaperSx: SxProps<Theme> = {
 export const crudDialogBackdropSx = glassDialogBackdropSx;
 
 /**
- * Header azul oscuro tipo cards de indicadores; texto blanco, compacto.
- * Aplicar en `DialogTitle` vía `titleSx` de `AppDialog`.
+ * Header del modal CRUD — misma superficie que `glassDialogTitleSx`.
  */
 export const crudDialogHeaderSx: SxProps<Theme> = {
   fontFamily: FONT_FAMILY_UI,
-  backgroundColor: CRUD_DIALOG_HEADER_BLUE,
+  backgroundColor: `var(${V.surfaceDialogTitle})`,
   color: CRUD_DIALOG_TEXT.primary,
   borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
   py: 1.25,
@@ -74,12 +70,12 @@ export const crudDialogContentSx: SxProps<Theme> = {
   borderBottom: "none",
 };
 
-/** Pie sticky con acciones visibles — glass oscuro liviano. */
+/** Pie sticky con acciones visibles. */
 export const crudDialogActionsSx: SxProps<Theme> = {
   position: "sticky",
   bottom: 0,
   zIndex: 1,
-  backgroundColor: "rgba(12, 18, 32, 0.78)",
+  backgroundColor: `var(${V.surfaceDialogActions})`,
   backdropFilter: "blur(10px)",
   WebkitBackdropFilter: "blur(10px)",
   borderTop: `1px solid ${GLASS_COLORS.borderLight}`,
@@ -129,7 +125,7 @@ export const crudDialogSectionTitleSx: SxProps<Theme> = {
   fontSize: "0.7rem",
   letterSpacing: "0.04em",
   textTransform: "uppercase",
-  color: CRUD_DIALOG_TEXT.primary,
+  color: CRUD_DIALOG_TEXT.secondary,
   mb: 1.25,
   display: "block",
   lineHeight: 1.35,
@@ -154,7 +150,7 @@ export const crudDialogSectionPlainSx: SxProps<Theme> = {
 /** Sección soft: contenedor apenas marcado (opt-in). */
 export const crudDialogSectionSoftSx: SxProps<Theme> = {
   ...crudDialogSectionPlainSx,
-  backgroundColor: "rgba(255, 255, 255, 0.028)",
+  backgroundColor: `var(${V.surfacePanelSubtle})`,
   borderRadius: "10px",
   border: `1px solid ${GLASS_COLORS.borderLight}`,
   borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
@@ -177,7 +173,7 @@ export const crudFieldGridSx: SxProps<Theme> = {
   width: "100%",
 };
 
-/** Altura fija del control (shell readonly = input editable). */
+/** Altura fija del control (shell readonly = input editable de una línea). */
 export const CRUD_FIELD_INPUT_HEIGHT_PX = 40;
 
 /** Reserva vertical del helper para no saltar layout entre vista/edición. */
@@ -204,8 +200,8 @@ export const crudReadonlyFieldShellSx: SxProps<Theme> = {
   px: 1.5,
   py: 0,
   borderRadius: "8px",
-  border: "1px solid rgba(255,255,255,0.12)",
-  backgroundColor: "rgba(255, 255, 255, 0.04)",
+  border: `1px solid ${GLASS_COLORS.borderMedium}`,
+  backgroundColor: `var(${V.surfaceInput})`,
   boxSizing: "border-box",
   width: "100%",
 };
@@ -230,7 +226,14 @@ export const crudFieldLabelSx: SxProps<Theme> = crudFieldSlotLabelSx;
 /** @deprecated Usar `crudReadonlyFieldValueSx` dentro del shell. */
 export const crudFieldValueSx: SxProps<Theme> = crudReadonlyFieldValueSx;
 
-/** Estilos de campos dentro del modal CRUD (labels, inputs, helpers en blanco). */
+const crudSingleLineInputRootSx = {
+  height: CRUD_FIELD_INPUT_HEIGHT_PX,
+  minHeight: CRUD_FIELD_INPUT_HEIGHT_PX,
+  maxHeight: CRUD_FIELD_INPUT_HEIGHT_PX,
+  boxSizing: "border-box",
+} as const;
+
+/** Estilos de campos dentro del modal CRUD (labels, inputs, helpers). */
 export const crudDialogFormFieldsSx: SxProps<Theme> = {
   color: CRUD_DIALOG_TEXT.primary,
   "& .MuiFormControl-root": {
@@ -252,25 +255,37 @@ export const crudDialogFormFieldsSx: SxProps<Theme> = {
   "& .MuiInputLabel-shrink": {
     transform: "none",
   },
-  "& .MuiOutlinedInput-root": {
+  "& .MuiOutlinedInput-root:not(.MuiInputBase-multiline)": {
     color: CRUD_DIALOG_TEXT.primary,
-    backgroundColor: "rgba(255, 255, 255, 0.04) !important",
-    height: CRUD_FIELD_INPUT_HEIGHT_PX,
-    minHeight: CRUD_FIELD_INPUT_HEIGHT_PX,
-    maxHeight: CRUD_FIELD_INPUT_HEIGHT_PX,
-    boxSizing: "border-box",
+    backgroundColor: `var(${V.surfaceInput}) !important`,
+    ...crudSingleLineInputRootSx,
+  },
+  "& .MuiOutlinedInput-root.MuiInputBase-multiline": {
+    color: CRUD_DIALOG_TEXT.primary,
+    backgroundColor: `var(${V.surfaceInput}) !important`,
+    height: "auto",
+    minHeight: "unset",
+    maxHeight: "none",
+    alignItems: "flex-start",
+    py: 1,
   },
   "& .MuiOutlinedInput-notchedOutline": {
-    borderColor: "rgba(255,255,255,0.12) !important",
+    borderColor: `${GLASS_COLORS.borderMedium} !important`,
   },
   "& .MuiOutlinedInput-root:hover .MuiOutlinedInput-notchedOutline": {
-    borderColor: "rgba(255,255,255,0.18)",
+    borderColor: `${GLASS_COLORS.borderLight}`,
   },
   "& .MuiOutlinedInput-input": {
     color: CRUD_DIALOG_TEXT.primary,
     fontSize: "0.875rem",
-    py: 0,
     boxSizing: "border-box",
+  },
+  "& .MuiOutlinedInput-root:not(.MuiInputBase-multiline) .MuiOutlinedInput-input": {
+    py: 0,
+  },
+  "& .MuiOutlinedInput-root.MuiInputBase-multiline .MuiOutlinedInput-input": {
+    py: 0.5,
+    lineHeight: 1.45,
   },
   "& .MuiSelect-select": {
     color: CRUD_DIALOG_TEXT.primary,
@@ -289,7 +304,7 @@ export const crudDialogFormFieldsSx: SxProps<Theme> = {
     lineHeight: 1.25,
   },
   "& .MuiFormHelperText-root.Mui-error": {
-    color: "#ff8a80",
+    color: "var(--d-status-error)",
   },
   "& .MuiChip-label": {
     color: CRUD_DIALOG_TEXT.primary,
@@ -299,29 +314,29 @@ export const crudDialogFormFieldsSx: SxProps<Theme> = {
 /** Alias de estilos para controles editables glass dentro del modal CRUD. */
 export const crudEditableFieldSx: SxProps<Theme> = crudDialogFormFieldsSx;
 
-/** Chips integrados al header CRUD oscuro. */
+/** Chips integrados al header CRUD. */
 export const crudDialogHeaderChipSx = {
   domain: {
     height: 22,
     fontWeight: 600,
     fontSize: "0.6875rem",
-    borderColor: "rgba(255,255,255,0.28)",
+    borderColor: GLASS_COLORS.borderMedium,
     color: CRUD_DIALOG_TEXT.primary,
-    backgroundColor: "rgba(255,255,255,0.06)",
+    backgroundColor: `var(${V.actionPrimaryMuted})`,
   },
   mode: {
     height: 22,
     fontWeight: 600,
     fontSize: "0.6875rem",
     color: CRUD_DIALOG_TEXT.primary,
-    backgroundColor: "rgba(255,255,255,0.08)",
-    border: "1px solid rgba(255,255,255,0.14)",
+    backgroundColor: `var(${V.surfacePanelSubtle})`,
+    border: `1px solid ${GLASS_COLORS.borderLight}`,
   },
   status: {
     height: 22,
     fontWeight: 600,
     fontSize: "0.6875rem",
-    borderColor: "rgba(255,255,255,0.28)",
+    borderColor: GLASS_COLORS.borderMedium,
     color: CRUD_DIALOG_TEXT.primary,
     backgroundColor: "transparent",
   },

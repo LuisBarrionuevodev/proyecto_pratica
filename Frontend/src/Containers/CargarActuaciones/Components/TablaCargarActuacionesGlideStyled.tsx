@@ -44,6 +44,7 @@ import {
 import { GROUP_CONFIG, getVisibleColumnDefinitions, type ActaCargaFocus } from "../config/columnDefinitions";
 import { getDropdownOptions } from "../config/dropdownOptions";
 import { createGridTheme, calculateTableHeight, GRID_DIMENSIONS } from "../config/gridTheme";
+import { commitGlideGridBeforeSubmit } from "../utils/commitGlideGridBeforeSubmit";
 import {
     glideColumnHeaderThemeOverride,
     glideGroupHeaderThemeOverride,
@@ -109,6 +110,7 @@ const TablaCargarActuacionesGlideStyled = ({
 
     // Referencias
     const gridRef = useRef<any>(null);
+    const commitBatchInFlightRef = useRef(false);
     const debounceRef = useRef<Record<string, number>>({});
     const dataRef = useRef<GridRow[]>(initialRows);
     const batchValidateRef = useRef<number | undefined>(undefined);
@@ -318,10 +320,18 @@ const TablaCargarActuacionesGlideStyled = ({
 
     const handleCommitBatch = useCallback(async () => {
         // Botón único: valida batch y luego confirma (commit batch)
+        if (commitBatchInFlightRef.current) return;
+        commitBatchInFlightRef.current = true;
+
         const startedBatchId = await ensureBatchStarted();
-        if (!startedBatchId) return;
+        if (!startedBatchId) {
+            commitBatchInFlightRef.current = false;
+            return;
+        }
 
         try {
+            await commitGlideGridBeforeSubmit(gridRef);
+
             setIsValidatingAll(true);
             setGlobalError(null);
 
@@ -379,6 +389,7 @@ const TablaCargarActuacionesGlideStyled = ({
         } finally {
             setIsValidatingAll(false);
             setIsCommitting(false);
+            commitBatchInFlightRef.current = false;
         }
     }, [ensureBatchStarted, validateBatchRows]);
 
@@ -478,6 +489,7 @@ const TablaCargarActuacionesGlideStyled = ({
             setData((prev) => {
                 const newData = [...prev];
                 newData[row] = updatedRow;
+                dataRef.current = newData;
                 return newData;
             });
 

@@ -38,6 +38,7 @@ import {
   gridContainerStyles,
   calculateRelevamientoTableHeight,
 } from "../styles/cargarRelevamientosStyles";
+import { commitGlideGridBeforeSubmit } from "../../CargarActuaciones/utils/commitGlideGridBeforeSubmit";
 import {
   COLUMN_DEFINITIONS,
   GROUP_CONFIG,
@@ -147,6 +148,7 @@ const TablaCargarRelevamientosGlideStyled = ({
   const [gridSelection, setGridSelection] = useState<GridSelection | undefined>(undefined);
 
   const gridRef = useRef<any>(null);
+  const commitBatchInFlightRef = useRef(false);
   const gridSelectionRef = useRef<GridSelection | undefined>(undefined);
   const dataRef = useRef<GridRow[]>(initialRows);
   const startingBatchRef = useRef<boolean>(false);
@@ -329,10 +331,18 @@ const TablaCargarRelevamientosGlideStyled = ({
   );
 
   const handleCommitBatch = useCallback(async () => {
+    if (commitBatchInFlightRef.current) return;
+    commitBatchInFlightRef.current = true;
+
     const startedBatchId = await ensureBatchStarted();
-    if (!startedBatchId) return;
+    if (!startedBatchId) {
+      commitBatchInFlightRef.current = false;
+      return;
+    }
 
     try {
+      await commitGlideGridBeforeSubmit(gridRef);
+
       setIsValidatingAll(true);
       setGlobalError(null);
 
@@ -418,6 +428,7 @@ const TablaCargarRelevamientosGlideStyled = ({
     } finally {
       setIsValidatingAll(false);
       setIsCommitting(false);
+      commitBatchInFlightRef.current = false;
     }
   }, [ensureBatchStarted, session.username, validateBatchRows]);
 
@@ -492,6 +503,7 @@ const TablaCargarRelevamientosGlideStyled = ({
       setData((prev) => {
         const newData = [...prev];
         newData[row] = updatedRow;
+        dataRef.current = newData;
         return newData;
       });
 

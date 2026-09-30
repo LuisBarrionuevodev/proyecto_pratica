@@ -117,6 +117,7 @@ export function DenunciaCrudDialog({
           <CrudFormSlot
             label="Fecha"
             mode={mode}
+            slotLabelInEdit
             value={draft.fecha}
             required
             error={!!e("fecha")}
@@ -124,11 +125,9 @@ export function DenunciaCrudDialog({
           >
             <AppTextField
               appearance="glass"
-              label="Fecha"
               type="date"
               value={draft.fecha ?? ""}
               onChange={(ev) => onDraftChange({ fecha: ev.target.value })}
-              InputLabelProps={{ shrink: true }}
               error={!!e("fecha")}
               helperText={e("fecha") || undefined}
               fullWidth
@@ -138,13 +137,13 @@ export function DenunciaCrudDialog({
           <CrudFormSlot
             label="Estado"
             mode={mode}
+            slotLabelInEdit
             value={draft.estado}
             error={!!e("estado")}
             helperText={e("estado")}
           >
             <AppSelect
               appearance="glass"
-              label="Estado"
               value={draft.estado ?? ""}
               onChange={(ev) => onDraftChange({ estado: ev.target.value as string })}
               options={[{ value: "", label: "—" }, ...ESTADO_OPTIONS.map((v) => ({ value: v, label: v }))]}
@@ -156,6 +155,7 @@ export function DenunciaCrudDialog({
           <CrudFormSlot
             label="Motivo"
             mode={mode}
+            slotLabelInEdit
             value={draft.motivo}
             required
             error={!!e("motivo")}
@@ -164,9 +164,10 @@ export function DenunciaCrudDialog({
           >
             <AppTextField
               appearance="glass"
-              label="Motivo"
               value={draft.motivo ?? ""}
               onChange={(ev) => onDraftChange({ motivo: ev.target.value })}
+              multiline
+              minRows={3}
               error={!!e("motivo")}
               helperText={e("motivo") || undefined}
               fullWidth
@@ -181,6 +182,7 @@ export function DenunciaCrudDialog({
           <CrudFormSlot
             label="Calle"
             mode={mode}
+            slotLabelInEdit
             value={denunciaCalleDisplay(draft)}
             required
             error={!!e("calle")}
@@ -188,7 +190,6 @@ export function DenunciaCrudDialog({
           >
             <AppTextField
               appearance="glass"
-              label="Calle"
               value={domicilioCalleValorEdicion(draft)}
               onChange={(ev) => onDraftChange({ calle: ev.target.value })}
               error={!!e("calle")}
@@ -200,6 +201,7 @@ export function DenunciaCrudDialog({
           <CrudFormSlot
             label="Número/Esquina"
             mode={mode}
+            slotLabelInEdit
             value={denunciaNumeroDisplay(draft)}
             error={!!e("numero")}
             helperText={e("numero")}
@@ -210,7 +212,7 @@ export function DenunciaCrudDialog({
               onModeChange={(editorMode) =>
                 onDraftChange(buildDenunciaNumeroTipoDraftPatch(editorMode, draft))
               }
-              label="Número/Esquina"
+              label=""
               error={!!e("numero")}
               helperText={e("numero")}
               allowFreeSolo

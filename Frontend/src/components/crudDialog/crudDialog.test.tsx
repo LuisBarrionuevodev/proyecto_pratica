@@ -69,7 +69,7 @@ describe("CrudFormSlot", () => {
     const html = render(<CrudFormSlot label="Inspector" mode="view" value="García" />);
     expect(html).toContain("Inspector");
     expect(html).toContain("García");
-    expect(html).toContain("rgba(255,255,255,0.12)");
+    expect(html).toContain("--d-surface-input");
     expect(html).toContain(`height:${CRUD_FIELD_INPUT_HEIGHT_PX}px`);
   });
 });
@@ -83,7 +83,7 @@ describe("CrudFieldView", () => {
     const html = render(<CrudFieldView label="Calle" value="San Martín" />);
     expect(html).toContain("Calle");
     expect(html).toContain("San Martín");
-    expect(html).toContain("rgba(255,255,255,0.12)");
+    expect(html).toContain("--d-surface-input");
   });
 });
 

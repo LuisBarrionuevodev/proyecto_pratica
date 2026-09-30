@@ -19,7 +19,9 @@ import { DOC_MODAL_BLOCK_STACK_SPACING } from "../../../styles/documentalModalTo
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton, AppTextField, CardGlass } from "../../../ui";
 import { alertBaseStyles, errorAlertStyles } from "../../Actuaciones/styles/filtroStyles";
-import { DENUNCIA_MODAL_LABELS } from "../../Relevamientos/utils/denunciaModalLabels";const denunciaDialogFormGridSx = {
+import { DENUNCIA_MODAL_LABELS } from "../../Relevamientos/utils/denunciaModalLabels";
+import { flushActiveElementBeforeAction } from "../../../utils/flushActiveElementBeforeAction";
+const denunciaDialogFormGridSx = {
   display: "grid",
   gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
   gap: 2,
@@ -82,6 +84,8 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
   const handleSubmit = async () => {
     setErrorMsg(null);
     setSuccessMsg(null);
+
+    await flushActiveElementBeforeAction();
 
     if (!validate()) return;
 
@@ -251,26 +255,37 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
           <CrudFormErrorSummary message={errorMsg} />
           <CrudDialogSection title="Datos de la denuncia" variant="plain">
             <Box sx={denunciaDialogFormGridSx}>
-              <CrudFormSlot label="Fecha" mode="edit" required error={!!errors.fecha} helperText={errors.fecha}>
+              <CrudFormSlot
+                label="Fecha"
+                mode="edit"
+                slotLabelInEdit
+                required
+                error={!!errors.fecha}
+                helperText={errors.fecha}
+              >
                 <AppTextField
                   appearance="glass"
                   fullWidth
                   required
                   type="date"
-                  label="Fecha"
                   value={fecha}
                   onChange={(e) => setFecha(e.target.value)}
-                  InputLabelProps={{ shrink: true }}
                   error={!!errors.fecha}
                   helperText={errors.fecha || undefined}
                 />
               </CrudFormSlot>
-              <CrudFormSlot label="Calle" mode="edit" required error={!!errors.calle} helperText={errors.calle}>
+              <CrudFormSlot
+                label="Calle"
+                mode="edit"
+                slotLabelInEdit
+                required
+                error={!!errors.calle}
+                helperText={errors.calle}
+              >
                 <AppTextField
                   appearance="glass"
                   fullWidth
                   required
-                  label="Calle"
                   value={calle}
                   onChange={(e) => setCalle(e.target.value)}
                   error={!!errors.calle}
@@ -280,6 +295,7 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
               <CrudFormSlot
                 label="Número o esquina"
                 mode="edit"
+                slotLabelInEdit
                 required
                 error={!!errors.numeroOEsquina}
                 helperText={errors.numeroOEsquina}
@@ -288,7 +304,6 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
                   appearance="glass"
                   fullWidth
                   required
-                  label="Número o esquina"
                   value={numeroOEsquina}
                   onChange={(e) => setNumeroOEsquina(e.target.value)}
                   error={!!errors.numeroOEsquina}
@@ -298,6 +313,7 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
               <CrudFormSlot
                 label="Motivo"
                 mode="edit"
+                slotLabelInEdit
                 required
                 error={!!errors.motivo}
                 helperText={errors.motivo}
@@ -307,7 +323,6 @@ const DenunciaForm = ({ showTitle = true }: DenunciaFormProps) => {
                   appearance="glass"
                   fullWidth
                   required
-                  label="Motivo"
                   value={motivo}
                   onChange={(e) => setMotivo(e.target.value)}
                   multiline
