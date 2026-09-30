@@ -1,23 +1,23 @@
-import { darkColors } from "./dark";
+import { CSS_VAR_NAMES as V } from "../applyCssVariables";
 
 /**
- * Mapa retrocompatible con claves históricas de `GLASS_COLORS` / `token.color`.
- * Una sola fuente de verdad: `darkColors`.
+ * Claves históricas de `GLASS_COLORS` → referencias CSS dinámicas (FRONT-PROD.3).
+ * Los valores concretos se inyectan con `applyDigitalizaCssVariables(colors)`.
  */
 export const legacyGlassColorMap = {
-  sidebarBg: darkColors.surface.sidebar,
-  contentBg: darkColors.surface.content,
-  cardBg: darkColors.surface.panel,
-  hoverBg: darkColors.action.hover,
-  activeBg: darkColors.action.selected,
-  borderLight: darkColors.border.subtle,
-  borderMedium: darkColors.border.default,
-  borderActive: darkColors.border.active,
-  textPrimary: darkColors.text.primary,
-  textSecondary: darkColors.text.secondary,
-  textMuted: darkColors.text.muted,
-  primary: darkColors.action.primary,
-  primaryGlow: darkColors.action.primaryGlow,
+  sidebarBg: `var(${V.surfaceSidebar})`,
+  contentBg: `var(${V.surfaceContent})`,
+  cardBg: `var(${V.surfacePanel})`,
+  hoverBg: `var(${V.actionHover})`,
+  activeBg: `var(${V.actionSelected})`,
+  borderLight: `var(${V.borderSubtle})`,
+  borderMedium: `var(${V.borderDefault})`,
+  borderActive: `var(${V.borderActive})`,
+  textPrimary: `var(${V.textPrimary})`,
+  textSecondary: `var(${V.textSecondary})`,
+  textMuted: `var(${V.textMuted})`,
+  primary: `var(${V.actionPrimary})`,
+  primaryGlow: `var(${V.actionPrimaryGlow})`,
 } as const;
 
 export type LegacyGlassColorKey = keyof typeof legacyGlassColorMap;

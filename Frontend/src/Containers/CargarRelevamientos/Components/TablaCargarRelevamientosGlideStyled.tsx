@@ -54,7 +54,8 @@ import {
   createEmptyRows,
 } from "../../CargarActuaciones/utils/gridHelpers";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
-import { gridTheme, GRID_DIMENSIONS } from "../../CargarActuaciones/config/gridTheme";
+import { createGridTheme, GRID_DIMENSIONS } from "../../CargarActuaciones/config/gridTheme";
+import { useDigitalizaTheme } from "../../../theme/DigitalizaThemeProvider";
 import {
   formatRelevamientoRailCellLine,
   translateRelevamientoValidationMessage,
@@ -126,6 +127,8 @@ function buildValidationRailEntries(rows: GridRow[]): ValidationRailEntry[] {
 const TablaCargarRelevamientosGlideStyled = ({
   showTitle = true,
 }: TablaCargarRelevamientosGlideStyledProps) => {
+  const { colors: themeColors } = useDigitalizaTheme();
+  const glideTheme = useMemo(() => createGridTheme(themeColors), [themeColors]);
   const session = useAppSession();
   const initialRows = useMemo(() => createEmptyRows(5), []);
   const [batchId, setBatchId] = useState<string | null>(null);
@@ -887,7 +890,7 @@ const TablaCargarRelevamientosGlideStyled = ({
             onKeyDown={handleGridKeyDown}
             onRowAppended={onRowAppended}
             customRenderers={allCells}
-            theme={gridTheme}
+            theme={glideTheme}
             smoothScrollX={true}
             smoothScrollY={true}
             trapFocus={true}

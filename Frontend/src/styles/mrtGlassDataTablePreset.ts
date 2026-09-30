@@ -2,32 +2,30 @@ import type { SxProps, Theme } from "@mui/material";
 import type { MRT_TableOptions } from "material-react-table";
 
 import { GLASS_COLORS } from "./GlassStyles";
-import { darkColors } from "../theme/colors";
+import { CSS_VAR_NAMES as V } from "../theme/applyCssVariables";
 import { FONT_FAMILY_UI } from "../theme/typography";
 
-const c = darkColors;
-
 /**
- * Paleta compartida para tablas MRT estilo glass / institucional (F3.7b).
- * Derivada de tokens semánticos dark; alias histórico: `COLORS` vía `actuacionesTableStyles.ts`.
+ * Paleta compartida para tablas MRT — referencias CSS dinámicas (FRONT-PROD.3).
+ * Claves históricas (`white`, `black`) conservadas por compatibilidad de imports.
  */
 export const DATA_TABLE_MRT_GLASS_COLORS = {
-  primary: c.action.primary,
-  black: c.primitive.black,
-  white: c.primitive.white,
-  grayDark: c.surface.tableRowEven,
-  grayMedium: c.primitive.grayMedium,
-  grayLight: c.primitive.grayLight,
-  grayLighter: c.primitive.grayLighter,
-  success: c.status.success,
-  successLight: c.status.successSurface,
-  error: c.status.error,
-  errorLight: c.status.errorSurface,
-  warning: c.status.warning,
-  warningLight: c.status.warningSurface,
-  rowEven: c.surface.tableRowEven,
-  rowOdd: c.surface.tableRowOdd,
-  border: c.border.strong,
+  primary: `var(${V.actionPrimary})`,
+  black: `var(${V.primitiveBlack})`,
+  white: `var(${V.textPrimary})`,
+  grayDark: `var(${V.tableRowEven})`,
+  grayMedium: `var(${V.borderStrong})`,
+  grayLight: `var(${V.surfaceInput})`,
+  grayLighter: `var(${V.surfacePanelElevated})`,
+  success: `var(${V.statusSuccess})`,
+  successLight: `var(${V.statusSuccess})`,
+  error: `var(${V.statusError})`,
+  errorLight: `var(${V.statusError})`,
+  warning: `var(${V.statusWarning})`,
+  warningLight: `var(${V.statusWarning})`,
+  rowEven: `var(${V.tableRowEven})`,
+  rowOdd: `var(${V.tableRowOdd})`,
+  border: `var(${V.borderStrong})`,
 };
 
 /** Valores string (evita literales `as const` de dark al asignar fondos de celda Glide). */
@@ -169,7 +167,7 @@ export const MRT_DATA_TABLE_GLASS_PRESET: Partial<MRT_TableOptions<any>> = {
       "& .MuiIconButton-root": {
         color: C.white,
         transition: "color 0.2s ease",
-        "&:hover": { color: C.primary, backgroundColor: "rgba(1, 102, 255, 0.1)" },
+        "&:hover": { color: C.primary, backgroundColor: `var(${V.actionPrimaryMuted})` },
       },
       "& .MuiInputBase-root": {
         backgroundColor: C.rowOdd,
@@ -193,7 +191,7 @@ export const MRT_DATA_TABLE_GLASS_PRESET: Partial<MRT_TableOptions<any>> = {
       "& .MuiIconButton-root": {
         color: C.white,
         transition: "color 0.2s ease, background-color 0.2s ease",
-        "&:hover": { color: C.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
+        "&:hover": { color: C.primary, backgroundColor: `var(${V.actionPrimaryMuted})` },
         "&.Mui-disabled": { color: GLASS_COLORS.textMuted },
       },
       "& .MuiSelect-select": { color: C.white },
@@ -217,7 +215,7 @@ export const MRT_DATA_TABLE_GLASS_PRESET: Partial<MRT_TableOptions<any>> = {
       "& .MuiIconButton-root": {
         color: C.white,
         transition: "color 0.2s ease, background-color 0.2s ease",
-        "&:hover": { color: C.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
+        "&:hover": { color: C.primary, backgroundColor: `var(${V.actionPrimaryMuted})` },
       },
     },
   },
@@ -233,7 +231,7 @@ export const MRT_DATA_TABLE_GLASS_PRESET: Partial<MRT_TableOptions<any>> = {
       "& .MuiIconButton-root": {
         color: C.white,
         transition: "color 0.2s ease, background-color 0.2s ease",
-        "&:hover": { color: C.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
+        "&:hover": { color: C.primary, backgroundColor: `var(${V.actionPrimaryMuted})` },
       },
     },
   }),
@@ -241,10 +239,10 @@ export const MRT_DATA_TABLE_GLASS_PRESET: Partial<MRT_TableOptions<any>> = {
   muiTableBodyRowProps: ({ row }: { row: any }) => ({
     sx: {
       backgroundColor: row.index % 2 === 0 ? C.rowEven : C.rowOdd,
-      "&:hover": { backgroundColor: "#3a3d44" },
+      "&:hover": { backgroundColor: `var(${V.tableRowHover})` },
       "&.Mui-selected": {
-        backgroundColor: "#1a3a5c",
-        "&:hover": { backgroundColor: "#1a4a6c" },
+        backgroundColor: `var(${V.tableRowSelected})`,
+        "&:hover": { backgroundColor: `var(${V.tableRowSelectedHover})` },
       },
       transition: "none",
     },
@@ -295,7 +293,7 @@ export const dataTableMrtLoadingOverlaySx: SxProps<Theme> = {
   position: "absolute",
   inset: 0,
   zIndex: 2,
-  bgcolor: "rgba(0, 0, 0, 0.45)",
+  bgcolor: `var(${V.surfaceOverlay})`,
   display: "flex",
   flexDirection: "column",
   justifyContent: "center",
@@ -309,7 +307,7 @@ export const dataTableMrtLoadingOverlaySx: SxProps<Theme> = {
 export const dataTableMrtLoadingOverlayMessageSx: SxProps<Theme> = {
   fontFamily: FONT_FAMILY_UI,
   fontSize: "0.8125rem",
-  color: "rgba(255,255,255,0.75)",
+  color: `var(${V.textSecondary})`,
 };
 
 /** Opacidad suave de la tabla mientras carga (prerender sin desmontar). */

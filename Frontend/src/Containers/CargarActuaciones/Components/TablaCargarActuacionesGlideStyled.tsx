@@ -43,7 +43,8 @@ import {
 } from "../styles/cargarActuacionesStyles";
 import { GROUP_CONFIG, getVisibleColumnDefinitions, type ActaCargaFocus } from "../config/columnDefinitions";
 import { getDropdownOptions } from "../config/dropdownOptions";
-import { gridTheme, calculateTableHeight, GRID_DIMENSIONS } from "../config/gridTheme";
+import { createGridTheme, calculateTableHeight, GRID_DIMENSIONS } from "../config/gridTheme";
+import { useDigitalizaTheme } from "../../../theme/DigitalizaThemeProvider";
 import {
     extractDataColumns,
     rowHasData,
@@ -80,6 +81,8 @@ const TablaCargarActuacionesGlideStyled = ({
     actaFocus = "todas",
     showHowTo = true,
 }: TablaCargarActuacionesGlideStyledProps) => {
+    const { colors: themeColors } = useDigitalizaTheme();
+    const glideTheme = useMemo(() => createGridTheme(themeColors), [themeColors]);
     const visibleColumnDefs = useMemo(() => getVisibleColumnDefinitions(actaFocus), [actaFocus]);
     // Estado inicial con 5 filas vacías
     const initialRows = useMemo(() => createEmptyRows(5), []);
@@ -987,7 +990,7 @@ const TablaCargarActuacionesGlideStyled = ({
                         onFinishedEditing={handleFinishedEditing}
                         onRowAppended={onRowAppended}
                         customRenderers={allCells}
-                        theme={gridTheme}
+                        theme={glideTheme}
                         smoothScrollX={true}
                         smoothScrollY={true}
                         rowMarkers="both"

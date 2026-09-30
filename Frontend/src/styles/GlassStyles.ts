@@ -1,10 +1,8 @@
 import type { SxProps, Theme } from "@mui/material";
 
 import { color as tokenColor, motion } from "../theme/tokens";
-import { darkColors } from "../theme/colors";
+import { CSS_VAR_NAMES as V } from "../theme/applyCssVariables";
 import { FONT_FAMILY_UI } from "../theme/typography";
-
-const semantic = darkColors;
 
 // =============================================================================
 // ESTILOS GLASSMORPHISM REUTILIZABLES (optimizado para rendimiento)
@@ -26,7 +24,7 @@ export const glassSidebar: SxProps<Theme> = {
     backdropFilter: "blur(20px)",
     WebkitBackdropFilter: "blur(20px)",
     border: `1px solid ${GLASS_COLORS.borderLight}`,
-    boxShadow: semantic.shadow.sidebar,
+    boxShadow: `var(${V.shadowSidebar})`,
 };
 
 // Estilo glass base para content shell
@@ -35,7 +33,7 @@ export const glassContent: SxProps<Theme> = {
     backdropFilter: "blur(16px)",
     WebkitBackdropFilter: "blur(16px)",
     border: `1px solid ${GLASS_COLORS.borderLight}`,
-    boxShadow: semantic.shadow.content,
+    boxShadow: `var(${V.shadowContent})`,
 };
 
 // Estilo glass para cards/boxes auxiliares
@@ -44,7 +42,7 @@ export const glassCard: SxProps<Theme> = {
     backdropFilter: "blur(14px)",
     WebkitBackdropFilter: "blur(14px)",
     border: `1px solid ${GLASS_COLORS.borderMedium}`,
-    boxShadow: semantic.shadow.panel,
+    boxShadow: `var(${V.shadowPanel})`,
     borderRadius: "16px",
 };
 
@@ -62,7 +60,7 @@ export const glassTabsHeaderPanelSx: SxProps<Theme> = {
  * alineado visualmente con sub-secciones dentro de una misma vista.
  */
 export const glassTabsSecondaryPanelSx: SxProps<Theme> = {
-    backgroundColor: semantic.surface.panelSubtle,
+    backgroundColor: `var(${V.surfacePanelSubtle})`,
     backdropFilter: "blur(10px)",
     WebkitBackdropFilter: "blur(10px)",
     border: `1px solid ${GLASS_COLORS.borderLight}`,
@@ -85,8 +83,8 @@ export const glassTabsSecondaryPanelBarSx: SxProps<Theme> = {
 };
 
 /** Fondo activo tab — más liviano que chip (`rgba(1,102,255,0.28)`) por coexistencia con indicador. */
-const GLASS_TAB_SELECTED_BG = semantic.action.tabSelected;
-const GLASS_TAB_SELECTED_BG_HOVER = semantic.action.tabSelectedHover;
+const GLASS_TAB_SELECTED_BG = `var(${V.actionTabSelected})`;
+const GLASS_TAB_SELECTED_BG_HOVER = `var(${V.actionTabSelectedHover})`;
 
 /**
  * MUI `Tabs` dentro de `glassTabsSecondaryPanelSx`: tipografía y colores alineados a Relevamientos (blueprint tabs secundarios).
@@ -165,7 +163,7 @@ export const moduleContentPanelPaperSx: SxProps<Theme> = {
  * Usar en `CardGlass` con `sx` para sobreescribir `glassCard`.
  */
 export const moduleHeroCardSx: SxProps<Theme> = {
-    backgroundColor: semantic.surface.panelSubtle,
+    backgroundColor: `var(${V.surfacePanelSubtle})`,
     backdropFilter: "blur(10px)",
     WebkitBackdropFilter: "blur(10px)",
     border: `1px solid ${GLASS_COLORS.borderLight}`,
@@ -175,8 +173,8 @@ export const moduleHeroCardSx: SxProps<Theme> = {
 };
 
 /** Tabs principales: superficie activa un poco más marcada que secundarios, aún por debajo del chip (~0.28). */
-const GLASS_TAB_PRIMARY_SELECTED_BG = semantic.action.tabPrimarySelected;
-const GLASS_TAB_PRIMARY_SELECTED_BG_HOVER = semantic.action.tabPrimarySelectedHover;
+const GLASS_TAB_PRIMARY_SELECTED_BG = `var(${V.actionTabPrimarySelected})`;
+const GLASS_TAB_PRIMARY_SELECTED_BG_HOVER = `var(${V.actionTabPrimarySelectedHover})`;
 
 /**
  * MUI `Tabs` en cabeceras principales (`glassTabsHeaderPanelSx`): misma familia que secundarios,
@@ -267,7 +265,7 @@ export const glassContentHeader: SxProps<Theme> = {
 
 /** Backdrop de diálogos: oscurece el shell y aplica blur ligero. */
 export const glassDialogBackdropSx: SxProps<Theme> = {
-    backgroundColor: semantic.surface.overlay,
+    backgroundColor: `var(${V.surfaceOverlay})`,
     backdropFilter: "blur(8px)",
     WebkitBackdropFilter: "blur(8px)",
 };
@@ -289,18 +287,18 @@ export const glassDialogTitleSx: SxProps<Theme> = {
     letterSpacing: "0.06em",
     color: GLASS_COLORS.textPrimary,
     borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
-    backgroundColor: semantic.surface.dialogTitle,
+    backgroundColor: `var(${V.surfaceDialogTitle})`,
     py: 1.5,
 };
 
 export const glassDialogContentSx: SxProps<Theme> = {
-    backgroundColor: semantic.surface.dialogContent,
+    backgroundColor: `var(${V.surfaceDialogContent})`,
     color: GLASS_COLORS.textPrimary,
 };
 
 export const glassDialogActionsSx: SxProps<Theme> = {
     borderTop: `1px solid ${GLASS_COLORS.borderLight}`,
-    backgroundColor: semantic.surface.dialogActions,
+    backgroundColor: `var(${V.surfaceDialogActions})`,
     color: GLASS_COLORS.textPrimary,
     px: 2,
     py: 1.5,

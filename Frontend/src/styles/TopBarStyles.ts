@@ -46,7 +46,7 @@ export const AvatarButtonStyles: SxProps<Theme> = {
     cursor: "pointer",
     transition: "all 0.15s ease",
     "&:hover": {
-        backgroundColor: "rgba(255, 255, 255, 0.05)",
+        backgroundColor: "var(--d-action-hover)",
     },
 };
 

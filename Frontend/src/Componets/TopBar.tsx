@@ -1,26 +1,23 @@
 import { useState } from "react";
 
 import {
-
     Box,
-
     Avatar,
-
     Typography,
-
     Menu,
-
     MenuItem,
-
     Divider,
-
     Skeleton,
-
+    IconButton,
+    Tooltip,
 } from "@mui/material";
 
 import { getAvatarUrl } from "../utils/avatarUrl";
 
 import KeyboardArrowDownIcon from "@mui/icons-material/KeyboardArrowDown";
+import LightModeOutlinedIcon from "@mui/icons-material/LightModeOutlined";
+import DarkModeOutlinedIcon from "@mui/icons-material/DarkModeOutlined";
+import { useDigitalizaTheme } from "../theme/DigitalizaThemeProvider";
 
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 
@@ -73,6 +70,7 @@ interface TopBarProps {
 
 
 const TopBar: React.FC<TopBarProps> = ({ sidebarWidth = 72 }) => {
+    const { mode, toggleMode } = useDigitalizaTheme();
 
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
 
@@ -199,6 +197,25 @@ const TopBar: React.FC<TopBarProps> = ({ sidebarWidth = 72 }) => {
             
 
             <Box sx={{ flex: 1 }} />
+
+            <Tooltip title={mode === "dark" ? "Usar modo claro" : "Usar modo oscuro"}>
+                <IconButton
+                    onClick={toggleMode}
+                    size="small"
+                    aria-label={mode === "dark" ? "Usar modo claro" : "Usar modo oscuro"}
+                    sx={{
+                        color: "var(--d-text-secondary)",
+                        mr: 0.5,
+                        "&:hover": { color: "var(--d-text-primary)", backgroundColor: "var(--d-action-hover)" },
+                    }}
+                >
+                    {mode === "dark" ? (
+                        <LightModeOutlinedIcon fontSize="small" />
+                    ) : (
+                        <DarkModeOutlinedIcon fontSize="small" />
+                    )}
+                </IconButton>
+            </Tooltip>
 
             <Box
 

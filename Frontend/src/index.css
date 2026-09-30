@@ -74,12 +74,27 @@ html, body, #root {
   overflow: hidden;
 }
 
+html {
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
 body {
+  transition: background-color 0.18s ease, background-image 0.18s ease;
+}
+
+[data-theme="dark"] body {
   background-image: url("./assets/BackgroundInicio2.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
   background-attachment: fixed;
+  background-color: transparent;
+}
+
+[data-theme="light"] body {
+  background-color: var(--d-surface-app);
+  background-image: none;
+  background-attachment: scroll;
 }
 
 /* Para rutas públicas que necesitan scroll (login, inicio, etc.) */

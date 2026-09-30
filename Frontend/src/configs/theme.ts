@@ -1,52 +1,53 @@
 import { createTheme } from "@mui/material/styles";
 import { FONT_FAMILY_UI } from "../theme/typography";
-import { darkColors } from "../theme/colors";
-
-const c = darkColors;
+import { getSemanticColors, type DigitalizaThemeMode } from "../theme/colors";
 
 /**
- * Tema único de la aplicación (modo oscuro + tipografía + tokens semánticos).
- * El ThemeProvider en main.tsx debe usar este tema.
+ * Crea el tema MUI para el modo Digitaliza indicado.
  */
-export const appTheme = createTheme({
-  palette: {
-    mode: "dark",
-    primary: {
-      main: c.action.primary,
-    },
-    background: {
-      default: c.surface.app,
-      paper: c.surface.panel,
-    },
-    text: {
-      primary: c.text.primary,
-      secondary: c.text.secondary,
-      disabled: c.text.disabled,
-    },
-    divider: c.border.subtle,
-    success: {
-      main: c.status.success,
-    },
-    warning: {
-      main: c.status.warning,
-    },
-    error: {
-      main: c.status.error,
-    },
-    info: {
-      main: c.status.info,
-    },
-  },
-  typography: {
-    fontFamily: FONT_FAMILY_UI,
-  },
-});
+export function createAppTheme(mode: DigitalizaThemeMode) {
+  const c = getSemanticColors(mode);
 
-/**
- * Alias retrocompatible: antes las pantallas anidaban ThemeProvider con darkTheme.
- * Mantener hasta confirmar que no queda ningún import externo.
- */
+  return createTheme({
+    palette: {
+      mode,
+      primary: {
+        main: c.action.primary,
+      },
+      background: {
+        default: c.surface.app,
+        paper: c.surface.panel,
+      },
+      text: {
+        primary: c.text.primary,
+        secondary: c.text.secondary,
+        disabled: c.text.disabled,
+      },
+      divider: c.border.subtle,
+      success: {
+        main: c.status.success,
+      },
+      warning: {
+        main: c.status.warning,
+      },
+      error: {
+        main: c.status.error,
+      },
+      info: {
+        main: c.status.info,
+      },
+    },
+    typography: {
+      fontFamily: FONT_FAMILY_UI,
+    },
+  });
+}
+
+/** @deprecated Usar `createAppTheme("dark")` o `DigitalizaThemeProvider`. */
+export const appTheme = createAppTheme("dark");
+
+/** Alias retrocompatible. */
 export const darkTheme = appTheme;
 
-/** Alias retrocompatible: usado históricamente por main.tsx. */
+/** Alias retrocompatible. */
 export const theme = appTheme;

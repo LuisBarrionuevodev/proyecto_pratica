@@ -1,6 +1,8 @@
+import type { SemanticColors } from "./semanticColorsType";
+
 /**
- * Paleta semántica modo oscuro (FRONT-PROD.2).
- * Valores actuales de producto — no rediseño; FRONT-PROD.3 podrá duplicar estructura en light.
+ * Paleta semántica modo oscuro (FRONT-PROD.2/3).
+ * Valores actuales de producto — paridad visual con pre-light.
  */
 export const darkColors = {
   surface: {
@@ -17,6 +19,9 @@ export const darkColors = {
     dialogActions: "rgba(0, 0, 0, 0.15)",
     tableRowEven: "#2B2E34",
     tableRowOdd: "#1E2127",
+    tableRowHover: "#3a3d44",
+    tableRowSelected: "#1a3a5c",
+    tableRowSelectedHover: "#1a4a6c",
     alertInfo: "#2B2E34",
     scrollbarTrack: "#1E2127",
     scrollbarThumb: "#3a3d44",
@@ -80,6 +85,4 @@ export const darkColors = {
     grayLight: "#D9D9D9",
     grayLighter: "#F5F5F5",
   },
-} as const;
-
-export type DarkSemanticColors = typeof darkColors;
+} satisfies SemanticColors;

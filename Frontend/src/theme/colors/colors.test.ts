@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
-import { appTheme } from "../../configs/theme";
-import { darkColors, semanticColors } from "./index";
+import { createAppTheme } from "../../configs/theme";
+import { darkColors, getSemanticColors, lightColors, semanticColors } from "./index";
 import { legacyGlassColorMap } from "./legacyGlass";
 import { color as tokenColor } from "../tokens";
 import { GLASS_COLORS } from "../../styles/GlassStyles";
@@ -10,41 +10,49 @@ import {
   DATA_TABLE_CONFIG,
   DARK_TABLE_CONFIG,
 } from "../../Containers/Actuaciones/styles/actuacionesTableStyles";
+import { CSS_VAR_NAMES } from "../applyCssVariables";
 
-describe("FRONT-PROD.2 — tokens semánticos dark", () => {
-  it("darkColors define superficies, texto, borde, acción y status", () => {
-    expect(darkColors.surface.panel).toMatch(/^rgba|#/);
-    expect(darkColors.text.primary).toBeTruthy();
-    expect(darkColors.border.subtle).toBeTruthy();
+function semanticKeys(obj: Record<string, unknown>): string[] {
+  return Object.keys(obj).sort();
+}
+
+describe("FRONT-PROD.2/3 — tokens semánticos", () => {
+  it("dark y light comparten la misma estructura semántica", () => {
+    expect(semanticKeys(darkColors)).toEqual(semanticKeys(lightColors));
+    expect(semanticKeys(darkColors.surface)).toEqual(semanticKeys(lightColors.surface));
+    expect(semanticKeys(darkColors.text)).toEqual(semanticKeys(lightColors.text));
+    expect(semanticKeys(darkColors.action)).toEqual(semanticKeys(lightColors.action));
+  });
+
+  it("getSemanticColors resuelve paletas sin mutar", () => {
+    expect(getSemanticColors("dark")).toBe(darkColors);
+    expect(getSemanticColors("light")).toBe(lightColors);
     expect(darkColors.action.primary).toBe("#0166FF");
-    expect(darkColors.status.error).toBeTruthy();
-    expect(semanticColors).toBe(darkColors);
+    expect(lightColors.action.primary).toBe("#0166FF");
   });
 
-  it("legacy glass map y token.color coinciden con dark", () => {
-    expect(legacyGlassColorMap.textPrimary).toBe(darkColors.text.primary);
-    expect(tokenColor.primary).toBe(darkColors.action.primary);
-    expect(GLASS_COLORS.cardBg).toBe(darkColors.surface.panel);
+  it("legacy GLASS_COLORS usa CSS variables dinámicas", () => {
+    expect(legacyGlassColorMap.textPrimary).toContain("var(--d-text-primary)");
+    expect(tokenColor.textPrimary).toBe(legacyGlassColorMap.textPrimary);
+    expect(GLASS_COLORS.cardBg).toContain("var(--d-surface-panel)");
   });
 
-  it("tablas MRT derivan primary y filas del mismo darkColors", () => {
-    expect(DATA_TABLE_MRT_GLASS_COLORS.primary).toBe(darkColors.action.primary);
-    expect(DATA_TABLE_MRT_GLASS_COLORS.rowOdd).toBe(darkColors.surface.tableRowOdd);
+  it("MRT preset usa variables CSS para filas y texto", () => {
+    expect(DATA_TABLE_MRT_GLASS_COLORS.rowOdd).toBe(`var(${CSS_VAR_NAMES.tableRowOdd})`);
+    expect(DATA_TABLE_MRT_GLASS_COLORS.white).toBe(`var(${CSS_VAR_NAMES.textPrimary})`);
   });
 
   it("DATA_TABLE_CONFIG es alias canónico de DARK_TABLE_CONFIG", () => {
     expect(DATA_TABLE_CONFIG).toBe(DARK_TABLE_CONFIG);
   });
 
-  it("appTheme permanece dark y palette alimentada por semántica", () => {
-    expect(appTheme.palette.mode).toBe("dark");
-    expect(appTheme.palette.primary.main).toBe(darkColors.action.primary);
-    expect(appTheme.palette.background.default).toBe(darkColors.surface.app);
-    expect(appTheme.palette.background.paper).toBe(darkColors.surface.panel);
-    expect(appTheme.palette.text.primary).toBe(darkColors.text.primary);
-    expect(appTheme.palette.text.secondary).toBe(darkColors.text.secondary);
-    expect(appTheme.palette.divider).toBe(darkColors.border.subtle);
-    expect(appTheme.palette.success?.main).toBe(darkColors.status.success);
-    expect(appTheme.palette.error?.main).toBe(darkColors.status.error);
+  it("createAppTheme respeta modo y semántica", () => {
+    const darkTheme = createAppTheme("dark");
+    const lightTheme = createAppTheme("light");
+    expect(darkTheme.palette.mode).toBe("dark");
+    expect(lightTheme.palette.mode).toBe("light");
+    expect(darkTheme.palette.text.primary).toBe(darkColors.text.primary);
+    expect(lightTheme.palette.text.primary).toBe(lightColors.text.primary);
+    expect(semanticColors).toBe(darkColors);
   });
 });
