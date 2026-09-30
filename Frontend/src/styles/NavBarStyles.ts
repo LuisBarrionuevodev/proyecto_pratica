@@ -52,18 +52,28 @@ export const StyleListItems = (open: boolean): SxProps<Theme> => ({
           }),
 });
 
-/** Drawer temporal móvil (overlay, menú expandido). */
+/**
+ * Paper del NavLeft: `glassSidebar` + layout interno (mismo tratamiento desktop y móvil).
+ * Sin colores, blur, borde ni sombra adicionales fuera de `glassSidebar`.
+ */
+const styleNavDrawerPaper = (width: number): SxProps<Theme> => ({
+    ...(glassSidebar as object),
+    width,
+    transition: TRANSITION.css,
+    overflow: "hidden",
+    overflowX: "hidden",
+    color: GLASS_COLORS.textPrimary,
+    borderRadius: "16px",
+    alignItems: "center",
+    display: "flex",
+    flexDirection: "column",
+    minHeight: 0,
+});
+
+/** Drawer temporal móvil: misma superficie glass que el sidebar desktop expandido. */
 export const StyleDrawerTemporary: SxProps<Theme> = {
     "& .MuiDrawer-paper": {
-        ...(glassSidebar as object),
-        width: layoutShell.sidebarExpandedPx,
-        color: GLASS_COLORS.textPrimary,
-        borderRadius: "0 16px 16px 0",
-        display: "flex",
-        flexDirection: "column",
-        minHeight: 0,
-        overflow: "hidden",
-        boxSizing: "border-box",
+        ...(styleNavDrawerPaper(layoutShell.sidebarExpandedPx) as object),
     },
 };
 
@@ -83,21 +93,13 @@ export const StyleDrawer = (open: boolean): SxProps<Theme> => ({
     width: open ? layoutShell.sidebarExpandedPx : layoutShell.sidebarCollapsedPx,
     flexShrink: 0,
     "& .MuiDrawer-paper": {
-        ...(glassSidebar as object),
-        width: open ? layoutShell.sidebarExpandedPx : layoutShell.sidebarCollapsedPx,
-        transition: TRANSITION.css,
-        overflow: "hidden",
-        overflowX: "hidden",
-        color: GLASS_COLORS.textPrimary,
-        borderRadius: "16px",
+        ...(styleNavDrawerPaper(
+            open ? layoutShell.sidebarExpandedPx : layoutShell.sidebarCollapsedPx
+        ) as object),
         position: "fixed",
-        mt:7,
-        ml:1,
-        height: {xs:"92%" ,md:"92%",lg:"89%", xl: "92.5%"},
-        alignItems:"center",
-        display: "flex",
-        flexDirection: "column",
-        minHeight: 0,
+        mt: 7,
+        ml: 1,
+        height: { xs: "92%", md: "92%", lg: "89%", xl: "92.5%" },
     },
 });
 

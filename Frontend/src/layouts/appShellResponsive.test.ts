@@ -66,4 +66,14 @@ describe("V1.1-RESP.1 — shell responsive mobile-first", () => {
         expect(layout).toContain('maxWidth: "100%"');
         expect(layout).toMatch(/overflowX:\s*"hidden"/);
     });
+
+    it("drawer móvil reutiliza glassSidebar sin superficie glass paralela", () => {
+        const navStyles = readSrc("styles/NavBarStyles.ts");
+        expect(navStyles).toContain("styleNavDrawerPaper");
+        expect(navStyles).toContain("StyleDrawerTemporary");
+        expect(navStyles).toMatch(/StyleDrawerTemporary[\s\S]*styleNavDrawerPaper/);
+        expect(navStyles).not.toContain('"0 16px 16px 0"');
+        const layout = readSrc("layouts/AppLayout.tsx");
+        expect(layout).toContain("...glassContent");
+    });
 });
