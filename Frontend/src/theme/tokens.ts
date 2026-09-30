@@ -20,6 +20,14 @@ export const layoutShell = {
   outerMarginPx: 12,
 } as const;
 
+/** Márgenes y layout responsive compartidos (sin colores ni glass). */
+export const responsiveLayout = {
+  /** Mismo corte que el shell (`md` = 900px). */
+  desktopMinBreakpoint: layoutShell.desktopMinBreakpoint,
+  /** Breakpoint opcional fullscreen en diálogos (`sm` = 600px). */
+  dialogFullscreenMaxBreakpoint: "sm" as const,
+} as const;
+
 /** Transición sincronizada (sidebar ↔ content) */
 export const motion = {
   durationMs: 200,

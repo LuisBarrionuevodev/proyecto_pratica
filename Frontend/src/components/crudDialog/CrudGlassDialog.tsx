@@ -38,6 +38,8 @@ export type CrudGlassDialogProps = Omit<DialogProps, "title"> & {
   fullWidth?: boolean;
   contentSx?: SxProps<Theme>;
   showCloseButton?: boolean;
+  mobileFullScreen?: boolean;
+  responsiveLayout?: boolean;
 };
 
 /**
@@ -54,6 +56,8 @@ export function CrudGlassDialog({
   fullWidth = true,
   contentSx,
   showCloseButton = true,
+  mobileFullScreen = false,
+  responsiveLayout = true,
   ...rest
 }: CrudGlassDialogProps) {
   const contentRef = useRef<HTMLDivElement | null>(null);
@@ -90,6 +94,8 @@ export function CrudGlassDialog({
           },
           contentSx
         )}
+        responsiveLayout={responsiveLayout}
+        mobileFullScreen={mobileFullScreen}
         {...rest}
       >
         <Box

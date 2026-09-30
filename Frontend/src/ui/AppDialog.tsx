@@ -6,6 +6,7 @@ import DialogActions from "@mui/material/DialogActions";
 import DialogContent from "@mui/material/DialogContent";
 import DialogTitle from "@mui/material/DialogTitle";
 import IconButton from "@mui/material/IconButton";
+import useMediaQuery from "@mui/material/useMediaQuery";
 import type { SxProps, Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
 import CloseIcon from "@mui/icons-material/Close";
@@ -19,6 +20,12 @@ import {
   glassDialogPaperSx,
   glassDialogTitleSx,
 } from "../styles/GlassStyles";
+import {
+  responsiveDialogActionsLayoutSx,
+  responsiveDialogFullscreenPaperLayoutSx,
+  responsiveDialogPaperLayoutSx,
+} from "../styles/responsivePatterns";
+import { responsiveLayout } from "../theme/tokens";
 import { mergeSx } from "../utils/muiSx";
 
 export type AppDialogTone = "default" | "danger";
@@ -47,6 +54,10 @@ export type AppDialogProps = Omit<DialogProps, "title"> & {
    * (evita usar `onClose` con razones que no aplican al click del botón).
    */
   onCloseButtonClick?: (event: MouseEvent<HTMLButtonElement>) => void;
+  /** Aplica márgenes/altura responsive en &lt; md (solo `appearance="glass"`). Default true. */
+  responsiveLayout?: boolean;
+  /** En &lt; sm usa `fullScreen` del Dialog (formularios largos). */
+  mobileFullScreen?: boolean;
 };
 
 /**
@@ -74,10 +85,15 @@ export function AppDialog({
   contentDividers,
   paperSx,
   onCloseButtonClick,
+  responsiveLayout: enableResponsiveLayout = true,
+  mobileFullScreen = false,
   slotProps,
   ...rest
 }: AppDialogProps) {
   const theme = useTheme();
+  const isSmDown = useMediaQuery(theme.breakpoints.down(responsiveLayout.dialogFullscreenMaxBreakpoint));
+  const useMobileFullScreen =
+    appearance === "glass" && enableResponsiveLayout && mobileFullScreen && isSmDown;
 
   const showHeaderClose = Boolean(showCloseButton && onCloseButtonClick);
   const showTitleRow = title != null || showHeaderClose;
@@ -85,9 +101,13 @@ export function AppDialog({
   const userPaper = slotProps?.paper as PaperProps | undefined;
   const userBackdrop = slotProps?.backdrop as { sx?: SxProps<Theme> } | undefined;
   const glassPaperSx = appearance === "glass" ? glassDialogPaperSx : undefined;
+  const responsivePaperSx =
+    appearance === "glass" && enableResponsiveLayout
+      ? mergeSx(responsiveDialogPaperLayoutSx, useMobileFullScreen ? responsiveDialogFullscreenPaperLayoutSx : undefined)
+      : undefined;
   const mergedPaperSlotProps: PaperProps = {
     ...userPaper,
-    sx: mergeSx(glassPaperSx, paperSx, userPaper?.sx),
+    sx: mergeSx(glassPaperSx, responsivePaperSx, paperSx, userPaper?.sx),
   };
 
   const mergedBackdrop = {
@@ -131,6 +151,7 @@ export function AppDialog({
 
   const mergedActionsSx: SxProps<Theme> = mergeSx(
     appearance === "glass" ? glassDialogActionsSx : undefined,
+    appearance === "glass" && enableResponsiveLayout ? responsiveDialogActionsLayoutSx : undefined,
     actionsSxProp
   );
 
@@ -140,6 +161,7 @@ export function AppDialog({
       onClose={onClose}
       maxWidth={maxWidth}
       fullWidth={fullWidth}
+      fullScreen={useMobileFullScreen}
       scroll={scroll}
       slotProps={{
         ...slotProps,

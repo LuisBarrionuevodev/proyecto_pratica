@@ -31,6 +31,7 @@ import {
 import { AppButton } from "./AppButton";
 import { AppDialog } from "./AppDialog";
 import { AppTextField } from "./AppTextField";
+import { ResponsiveFormGrid } from "./ResponsiveFormGrid";
 import { FONT_FAMILY_UI } from "../theme/typography";
 import type {
   ExportDataDialogProps,
@@ -315,15 +316,7 @@ export function ExportDataDialog({
             ) : null}
 
             {periodMode === "custom" ? (
-              <Box
-                sx={{
-                  display: "grid",
-                  gridTemplateColumns: { xs: "minmax(0, 1fr)", sm: "repeat(2, minmax(0, 1fr))" },
-                  gap: 2,
-                  mt: 1.5,
-                  ml: { xs: 0, sm: 2 },
-                }}
-              >
+              <ResponsiveFormGrid sx={{ mt: 1.5, ml: { xs: 0, sm: 2 }, gridTemplateColumns: { md: "repeat(2, minmax(0, 1fr))" } }}>
                 <AppTextField
                   appearance="glass"
                   label="Desde"
@@ -362,7 +355,7 @@ export function ExportDataDialog({
                   inputProps={{ min: minDate, max: maxDate }}
                   fullWidth
                 />
-              </Box>
+              </ResponsiveFormGrid>
             ) : null}
             {periodMode === "custom" && customDesde.trim() && customHasta.trim() && customValidation.ok ? (
               <Typography
