@@ -63,9 +63,13 @@ describe("FRONT-PROD.3.2 — light visual polish guards", () => {
   it("fondo light solo en shell autenticado (CSS)", () => {
     const css = readSrc("index.css");
     expect(css).toContain("body.authenticated-route");
-    expect(css).toMatch(
-      /\[data-theme="light"\] body\.authenticated-route[\s\S]*BackgroundInicioLight\.png/
-    );
-    expect(css).toMatch(/body\.public-route[\s\S]*BackgroundInicio2\.png/);
+    const lightAuth = css.match(
+      /\[data-theme="light"\] body\.authenticated-route\s*\{[\s\S]*?\}/
+    )?.[0];
+    expect(lightAuth).toContain("BackgroundInicioLight.png");
+    expect(lightAuth).not.toContain("linear-gradient");
+    const publicBlock = css.match(/body\.public-route\s*\{[\s\S]*?\}/)?.[0];
+    expect(publicBlock).toContain("BackgroundInicio2.png");
+    expect(publicBlock).not.toContain("BackgroundInicioLight");
   });
 });

@@ -93,9 +93,7 @@ body {
 
 [data-theme="light"] body.authenticated-route {
   background-color: var(--d-surface-app);
-  background-image:
-    linear-gradient(rgba(245, 248, 252, 0.38), rgba(245, 248, 252, 0.38)),
-    url("./assets/BackgroundInicioLight.png");
+  background-image: url("./assets/BackgroundInicioLight.png");
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;

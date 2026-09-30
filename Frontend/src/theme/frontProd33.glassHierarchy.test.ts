@@ -57,11 +57,25 @@ describe("FRONT-PROD.3.3 — glass hierarchy & shell", () => {
     expect(topBar).not.toContain('maxWidth: "100%"');
   });
 
-  it("public-route usa BackgroundInicio2 sin bifurcar light", () => {
+  it("light authenticated: BackgroundInicioLight puro, sin overlay global", () => {
     const css = readSrc("index.css");
-    expect(css).toMatch(/body\.public-route[\s\S]*BackgroundInicio2\.png/);
+    const lightAuth = css.match(
+      /\[data-theme="light"\] body\.authenticated-route\s*\{[\s\S]*?\}/
+    )?.[0];
+    expect(lightAuth).toBeDefined();
+    expect(lightAuth).toContain("BackgroundInicioLight.png");
+    expect(lightAuth).not.toContain("linear-gradient");
+    expect(lightAuth).not.toContain("radial-gradient");
+  });
+
+  it("public-route usa BackgroundInicio2 sin theme ni BackgroundInicioLight", () => {
+    const css = readSrc("index.css");
+    const publicBlock = css.match(/body\.public-route\s*\{[\s\S]*?\}/)?.[0];
+    expect(publicBlock).toBeDefined();
+    expect(publicBlock).toContain("BackgroundInicio2.png");
+    expect(publicBlock).not.toContain("BackgroundInicioLight");
     expect(css).not.toMatch(/\[data-theme="light"\] body\.public-route/);
-    expect(css).toContain("0.38");
+    expect(css).not.toMatch(/\[data-theme="dark"\] body\.public-route/);
   });
 
   it("NavLeft drawer aplica glassSidebar", () => {
