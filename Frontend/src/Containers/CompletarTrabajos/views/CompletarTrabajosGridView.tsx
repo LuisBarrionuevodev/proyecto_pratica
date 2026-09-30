@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Alert, Box, Typography } from "@mui/material";
 
 import type { ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
-import { alertBaseStyles, COLORS } from "../../Actuaciones/styles/filtroStyles";
+import { alertBaseStyles } from "../../Actuaciones/styles/filtroStyles";
 import { AppButton } from "../../../ui";
 import { moduleContentPanelPaperSx } from "../../../styles/GlassStyles";
 import { CompletarTrabajoModal } from "../components/CompletarTrabajoModal";
@@ -56,7 +56,7 @@ export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajos
             variant="body1"
             sx={{
               fontFamily: FONT_FAMILY_UI,
-              color: COLORS.white,
+              color: "text.primary",
               fontWeight: 600,
               letterSpacing: "0.02em",
             }}

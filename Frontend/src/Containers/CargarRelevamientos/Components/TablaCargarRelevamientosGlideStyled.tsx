@@ -29,7 +29,7 @@ import {
 } from "../../../utils/rubrosCatalogCache";
 import { ValidationErrorsRail, type ValidationRailEntry } from "./ValidationErrorsRail";
 
-import { COLORS, titleStyles } from "../../CargarActuaciones/styles/cargarActuacionesStyles";
+import { titleStyles } from "../../CargarActuaciones/styles/cargarActuacionesStyles";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { AppButton } from "../../../ui/AppButton";
 import {
@@ -55,6 +55,12 @@ import {
 } from "../../CargarActuaciones/utils/gridHelpers";
 import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
 import { createGridTheme, GRID_DIMENSIONS } from "../../CargarActuaciones/config/gridTheme";
+import {
+  glideColumnHeaderThemeOverride,
+  glideGroupHeaderThemeOverride,
+  resolveGlideCellTheme,
+  type GlideCellVisualState,
+} from "../../CargarActuaciones/config/glideGridSemantics";
 import { useDigitalizaTheme } from "../../../theme/DigitalizaThemeProvider";
 import {
   formatRelevamientoRailCellLine,
@@ -584,6 +590,9 @@ const TablaCargarRelevamientosGlideStyled = ({
     [focusGridCell]
   );
 
+  const headerTheme = useMemo(() => glideColumnHeaderThemeOverride(themeColors), [themeColors]);
+  const groupHeaderTheme = useMemo(() => glideGroupHeaderThemeOverride(themeColors), [themeColors]);
+
   const columns = useMemo<GridColumn[]>(
     () =>
       COLUMN_DEFINITIONS.map((col) => {
@@ -595,18 +604,10 @@ const TablaCargarRelevamientosGlideStyled = ({
           /** Solo Calle crece: reduce presión de scroll horizontal en notebooks. */
           grow: col.id === "Calle" ? 1 : 0,
           group: col.group,
-          themeOverride: groupConfig
-            ? {
-                bgHeader: groupConfig.color,
-                bgHeaderHovered: "#3a3d44",
-                textHeader: COLORS.white,
-                fgIconHeader: COLORS.white,
-                bgIconHeader: "transparent",
-              }
-            : undefined,
+          themeOverride: groupConfig ? headerTheme : undefined,
         };
       }),
-    []
+    [headerTheme]
   );
 
   const getCellContent = useCallback(
@@ -628,32 +629,15 @@ const TablaCargarRelevamientosGlideStyled = ({
       const cellShowsBackendError = Boolean(cellErrors[columnId]) || backendWideError;
       const localMinimumOk = hasData && relevamientoRowMinimumCompleteForVisual(rowData);
 
-      let bgColor = COLORS.grayDark;
-      let textColor = COLORS.white;
-
+      let visualState: GlideCellVisualState = "empty";
       if (hasData) {
-        if (cellShowsBackendError) {
-          bgColor = COLORS.errorLight;
-          textColor = COLORS.errorText;
-        } else if (rowState === "VALIDANDO") {
-          bgColor = COLORS.grayMedium;
-          textColor = COLORS.white;
-        } else if (rowState === "OK") {
-          bgColor = COLORS.successLight;
-          textColor = COLORS.successText;
-        } else if (localMinimumOk) {
-          bgColor = COLORS.successLight;
-          textColor = COLORS.successText;
-        } else if (rowState === "PENDIENTE" || rowState === undefined) {
-          bgColor = COLORS.warningLight;
-          textColor = COLORS.warningText;
-        } else {
-          bgColor = COLORS.warningLight;
-          textColor = COLORS.warningText;
-        }
+        if (cellShowsBackendError) visualState = "error";
+        else if (rowState === "VALIDANDO") visualState = "validating";
+        else if (rowState === "OK" || localMinimumOk) visualState = "ok";
+        else visualState = "pending";
       }
 
-      const themeOverride = { bgCell: bgColor, textDark: textColor };
+      const themeOverride = resolveGlideCellTheme(themeColors, visualState);
 
       if (columnId === "_rowError") {
         const rowErrorRaw = hasData ? (rowData._rowError || "") : "";
@@ -665,8 +649,8 @@ const TablaCargarRelevamientosGlideStyled = ({
           allowOverlay: false,
           readonly: true,
           themeOverride: rowError
-            ? { bgCell: COLORS.errorLight, textDark: COLORS.errorText }
-            : { bgCell: "#1A1C20", textDark: "#666666" },
+            ? resolveGlideCellTheme(themeColors, "error")
+            : resolveGlideCellTheme(themeColors, "readonly"),
         };
       }
 
@@ -693,7 +677,7 @@ const TablaCargarRelevamientosGlideStyled = ({
             displayData: "—",
             allowOverlay: false,
             readonly: true,
-            themeOverride: { bgCell: bgColor, textDark: "#666666" },
+            themeOverride: resolveGlideCellTheme(themeColors, "readonly"),
           };
         }
         const options = getDropdownOptions(columnId, catalogs);
@@ -731,7 +715,7 @@ const TablaCargarRelevamientosGlideStyled = ({
         themeOverride,
       };
     },
-    [data, catalogs]
+    [data, catalogs, themeColors]
   );
 
   const handleCellClicked = useCallback(() => {
@@ -916,8 +900,7 @@ const TablaCargarRelevamientosGlideStyled = ({
                     icon: config.icon,
                     overrideTheme: {
                       bgIconHeader: "transparent",
-                      fgIconHeader: COLORS.white,
-                      textGroupHeader: COLORS.white,
+                      ...groupHeaderTheme,
                     },
                   }
                 : { name: groupName };

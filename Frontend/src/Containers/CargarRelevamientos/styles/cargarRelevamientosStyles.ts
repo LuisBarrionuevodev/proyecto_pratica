@@ -7,6 +7,7 @@ import type { SxProps, Theme } from "@mui/material";
 
 import { glassCard, GLASS_COLORS } from "../../../styles/GlassStyles";
 import { GRID_DIMENSIONS } from "../../CargarActuaciones/config/gridTheme";
+import { CSS_VAR_NAMES as V } from "../../../theme/applyCssVariables";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 /**
@@ -24,11 +25,10 @@ export function calculateRelevamientoTableHeight(rowCount: number): number {
 // =============================================================================
 // PALETA DE COLORES
 // =============================================================================
+
+/** @deprecated Usar GLASS_COLORS / tokens semánticos. */
 export const COLORS = {
-    primary: "#0166FF",
-    white: "#FFFFFF",
-    grayDark: "#2B2E34",
-    border: "#3a3d44",
+    primary: GLASS_COLORS.primary,
 };
 
 // =============================================================================
@@ -98,14 +98,14 @@ export const buttonMandarTodoStyles = {
     padding: "10px 24px",
     transition: "all 0.2s ease",
     backgroundColor: COLORS.primary,
-    color: COLORS.white,
+    color: `var(${V.textInverse})`,
     border: `1px solid ${COLORS.primary}`,
     "&:hover": {
-        backgroundColor: "#0155DD",
+        backgroundColor: `var(${V.actionPrimaryHover})`,
     },
     "&.Mui-disabled": {
-        backgroundColor: "rgba(255, 255, 255, 0.08)",
-        color: "rgba(255, 255, 255, 0.3)",
-        border: "1px solid rgba(255, 255, 255, 0.1)",
+        backgroundColor: `var(${V.actionSelected})`,
+        color: `var(${V.textDisabled})`,
+        border: `1px solid ${GLASS_COLORS.borderLight}`,
     },
 };

@@ -93,8 +93,12 @@ body {
 
 [data-theme="light"] body {
   background-color: var(--d-surface-app);
-  background-image: none;
-  background-attachment: scroll;
+  background-image:
+    radial-gradient(ellipse 120% 70% at 50% -15%, rgba(1, 102, 255, 0.07), transparent 58%),
+    linear-gradient(180deg, #f3f6fb 0%, var(--d-surface-app) 42%, #e3eaf3 100%);
+  background-attachment: fixed;
+  background-size: cover;
+  background-repeat: no-repeat;
 }
 
 /* Para rutas públicas que necesitan scroll (login, inicio, etc.) */

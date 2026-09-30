@@ -2,16 +2,15 @@
  * Definición de columnas para la grilla de CargarActuaciones
  */
 import { GridColumnIcon } from "@glideapps/glide-data-grid";
-import { COLORS } from "../styles/cargarActuacionesStyles";
 
 // =============================================================================
 // CONFIGURACIÓN DE GRUPOS DE COLUMNAS
 // =============================================================================
 export const GROUP_CONFIG = {
-    "Actuación": { icon: GridColumnIcon.HeaderArray, color: COLORS.grayDark },
-    "Inspectores": { icon: GridColumnIcon.HeaderCode, color: COLORS.grayDark },
-    "Establecimiento": { icon: GridColumnIcon.HeaderUri, color: COLORS.grayDark },
-    "Actas": { icon: GridColumnIcon.HeaderString, color: COLORS.grayDark },
+    "Actuación": { icon: GridColumnIcon.HeaderArray },
+    "Inspectores": { icon: GridColumnIcon.HeaderCode },
+    "Establecimiento": { icon: GridColumnIcon.HeaderUri },
+    "Actas": { icon: GridColumnIcon.HeaderString },
 };
 
 // =============================================================================

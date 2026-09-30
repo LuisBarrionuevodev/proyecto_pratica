@@ -28,9 +28,9 @@ export function createGridTheme(colors: SemanticColors): Partial<Theme> {
 
     bgCell: c.surface.tableRowEven,
     bgCellMedium: c.surface.tableRowOdd,
-    bgHeader: c.surface.tableRowEven,
-    bgHeaderHasFocus: c.border.strong,
-    bgHeaderHovered: c.border.strong,
+    bgHeader: c.surface.panelElevated,
+    bgHeaderHasFocus: c.surface.tableRowHover,
+    bgHeaderHovered: c.surface.tableRowHover,
     bgBubble: c.surface.tableRowEven,
     bgBubbleSelected: c.action.primary,
     bgSearchResult: c.status.warningSurface,

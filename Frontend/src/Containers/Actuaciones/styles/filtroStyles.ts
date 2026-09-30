@@ -1,22 +1,16 @@
 import type { SxProps, Theme } from "@mui/material";
 import { FUNCTIONAL_VIEW_TOP_TO_CONTENT_SPACING } from "../../../styles/functionalPageShell";
 import { GLASS_COLORS, moduleFiltersSurfaceSx } from "../../../styles/GlassStyles";
+import { CSS_VAR_NAMES as V } from "../../../theme/applyCssVariables";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 // =============================================================================
 // ESTILOS GLASSMORPHISM PARA FILTROS DE ACTUACIONES
 // =============================================================================
 
+/** @deprecated Usar GLASS_COLORS / tokens. Solo primary para enlaces legacy. */
 export const COLORS = {
-    primary: "#0166FF",
-    black: "#000000",
-    white: "#FFFFFF",
-    grayDark: "#2B2E34",
-    grayMedium: "#353535",
-    rowOdd: "#1E2127",
-    border: "#3a3d44",
-    success: "#2D9F4B",
-    error: "#E53935",
+    primary: GLASS_COLORS.primary,
 };
 
 // =============================================================================
@@ -79,7 +73,7 @@ export const filtroTitleStyles: SxProps<Theme> = {
   fontFamily: FONT_FAMILY_UI,
   fontWeight: 700,
   fontSize: "18px",
-  color: COLORS.white,
+  color: GLASS_COLORS.textPrimary,
   mb: 2,
 };
 
@@ -87,12 +81,12 @@ export const filtroSectionTitleStyles: SxProps<Theme> = {
   fontFamily: FONT_FAMILY_UI,
   fontWeight: 600,
   fontSize: "15px",
-  color: COLORS.white,
+  color: "text.primary",
   mb: 0.75,
 };
 
 export const filtroHintStyles: SxProps<Theme> = {
-  color: "rgba(255,255,255,0.75)",
+  color: GLASS_COLORS.textSecondary,
   fontSize: "0.85rem",
   mb: 1.5,
   lineHeight: 1.45,
@@ -107,30 +101,30 @@ export const filtroGridStyles: SxProps<Theme> = {
 
 export const filtroItemStyles: SxProps<Theme> = {
   "& .MuiInputLabel-root": {
-    color: COLORS.white,
+    color: GLASS_COLORS.textSecondary,
     fontFamily: FONT_FAMILY_UI,
-    "&.Mui-focused": { color: COLORS.primary },
+    "&.Mui-focused": { color: GLASS_COLORS.primary },
   },
   "& .MuiInputBase-root": {
-    backgroundColor: COLORS.rowOdd,
-    color: COLORS.white,
+    backgroundColor: `var(${V.surfaceInput})`,
+    color: `var(${V.textPrimary})`,
     fontFamily: FONT_FAMILY_UI,
     borderRadius: 3,
     "& input": {
-      color: COLORS.white,
-      "&::placeholder": { color: GLASS_COLORS.textMuted, opacity: 1 },
+      color: `var(${V.textPrimary})`,
+      "&::placeholder": { color: `var(${V.textMuted})`, opacity: 1 },
     },
-    "& .MuiSvgIcon-root": { color: COLORS.white },
+    "& .MuiSvgIcon-root": { color: `var(${V.textSecondary})` },
     "&:hover": {
-      backgroundColor: COLORS.grayMedium,
+      backgroundColor: `var(${V.actionHover})`,
       "& .MuiOutlinedInput-notchedOutline": {
         borderColor: GLASS_COLORS.borderMedium,
       },
     },
     "&.Mui-focused": {
-      backgroundColor: COLORS.grayMedium,
+      backgroundColor: `var(${V.surfaceInput})`,
       "& .MuiOutlinedInput-notchedOutline": {
-        borderColor: COLORS.primary,
+        borderColor: GLASS_COLORS.primary,
       },
     },
   },
@@ -138,13 +132,13 @@ export const filtroItemStyles: SxProps<Theme> = {
     borderColor: GLASS_COLORS.borderLight,
   },
   "& .MuiMenuItem-root": {
-    backgroundColor: COLORS.rowOdd,
-    color: COLORS.white,
+    backgroundColor: `var(${V.surfacePanelElevated})`,
+    color: `var(${V.textPrimary})`,
     "&:hover": {
-      backgroundColor: COLORS.grayMedium,
+      backgroundColor: `var(${V.actionHover})`,
     },
     "&.Mui-selected": {
-      backgroundColor: COLORS.grayMedium,
+      backgroundColor: `var(${V.actionSelected})`,
     },
   },
 };
@@ -164,16 +158,20 @@ export const filtroButtonPrimaryStyles: SxProps<Theme> = {
   fontFamily: FONT_FAMILY_UI,
   fontWeight: 600,
   fontSize: "14px",
-  backgroundColor: COLORS.primary,
-  color: COLORS.white,
+  backgroundColor: GLASS_COLORS.primary,
+  color: `var(${V.textInverse})`,
   textTransform: "none",
   padding: "10px 24px",
   borderRadius: "6px",
   border: `1px solid ${GLASS_COLORS.borderActive}`,
-  boxShadow: "0px 2px 4px rgba(0,0,0,0.3)",
+  boxShadow: `var(${V.shadowPanel})`,
   "&:hover": {
-    backgroundColor: "#0152CC",
-    boxShadow: "0px 4px 8px rgba(0,0,0,0.4)",
+    backgroundColor: `var(${V.actionPrimaryHover})`,
+  },
+  "&.Mui-disabled": {
+    backgroundColor: `var(${V.actionSelected})`,
+    color: `var(${V.textDisabled})`,
+    borderColor: GLASS_COLORS.borderLight,
   },
 };
 
@@ -182,13 +180,17 @@ export const filtroButtonSecondaryStyles: SxProps<Theme> = {
   fontWeight: 600,
   fontSize: "14px",
   backgroundColor: "transparent",
-  color: COLORS.white,
+  color: GLASS_COLORS.textPrimary,
   textTransform: "none",
   padding: "10px 24px",
   borderRadius: "6px",
   border: `1px solid ${GLASS_COLORS.borderMedium}`,
   "&:hover": {
-    backgroundColor: COLORS.rowOdd,
+    backgroundColor: `var(${V.actionHover})`,
+    borderColor: GLASS_COLORS.borderMedium,
+  },
+  "&.Mui-disabled": {
+    color: `var(${V.textDisabled})`,
     borderColor: GLASS_COLORS.borderLight,
   },
 };
@@ -257,19 +259,19 @@ export const alertBaseStyles: SxProps<Theme> = {
   borderRadius: "12px",
   mb: 2,
   backgroundColor: GLASS_COLORS.cardBg,
-  color: COLORS.white,
-  "& .MuiAlert-icon": { color: COLORS.white },
+  color: GLASS_COLORS.textPrimary,
+  "& .MuiAlert-icon": { color: GLASS_COLORS.textSecondary },
   "& .MuiAlert-message": { fontFamily: FONT_FAMILY_UI },
 };
 
 export const errorAlertStyles: SxProps<Theme> = {
   mb: 2,
-  backgroundColor: "rgba(92, 35, 35, 0.9)",
-  color: COLORS.white,
-  border: `1px solid ${COLORS.error}`,
+  backgroundColor: GLASS_COLORS.cardBg,
+  color: GLASS_COLORS.textPrimary,
+  border: `1px solid var(${V.statusError})`,
   borderRadius: "12px",
   "& .MuiAlert-icon": {
-    color: COLORS.error,
+    color: `var(${V.statusError})`,
   },
   "& .MuiAlert-message": {
     fontFamily: FONT_FAMILY_UI,

@@ -16,6 +16,8 @@ export const CSS_VAR_NAMES = {
   textPrimary: "--d-text-primary",
   textSecondary: "--d-text-secondary",
   textMuted: "--d-text-muted",
+  textInverse: "--d-text-inverse",
+  textDisabled: "--d-text-disabled",
   borderSubtle: "--d-border-subtle",
   borderDefault: "--d-border-default",
   borderStrong: "--d-border-strong",
@@ -75,6 +77,8 @@ export function applyDigitalizaCssVariables(
   set(CSS_VAR_NAMES.textPrimary, c.text.primary);
   set(CSS_VAR_NAMES.textSecondary, c.text.secondary);
   set(CSS_VAR_NAMES.textMuted, c.text.muted);
+  set(CSS_VAR_NAMES.textInverse, c.text.inverse);
+  set(CSS_VAR_NAMES.textDisabled, c.text.disabled);
   set(CSS_VAR_NAMES.borderSubtle, c.border.subtle);
   set(CSS_VAR_NAMES.borderDefault, c.border.default);
   set(CSS_VAR_NAMES.borderStrong, c.border.strong);

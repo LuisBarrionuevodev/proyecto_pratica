@@ -60,9 +60,10 @@ export const mapaOperativoCaptionSx: SxProps<Theme> = {
 export const mapaOperativoInnerCardSx: SxProps<Theme> = {
   ...moduleHeroCardSx,
   p: 1.75,
-};/** Título principal del panel lateral (Resumen operativo). */
+};
+/** Título principal del panel lateral (Resumen operativo). */
 export const mapaOperativoPanelTitleSx: SxProps<Theme> = {
-  color: "#fff",
+  color: GLASS_COLORS.textPrimary,
   fontWeight: 700,
   fontSize: "1.25rem",
   lineHeight: 1.3,
@@ -72,7 +73,7 @@ export const mapaOperativoPanelTitleSx: SxProps<Theme> = {
 
 /** Títulos de subcajas (Trabajos operativos, Por tipo, Leyenda). */
 export const mapaOperativoCardTitleSx: SxProps<Theme> = {
-  color: "#fff",
+  color: GLASS_COLORS.textPrimary,
   fontWeight: 700,
   fontSize: "0.875rem",
   lineHeight: 1.35,
@@ -87,7 +88,7 @@ export const mapaOperativoMetricRowSx: SxProps<Theme> = {
 
 /** Label de fila (métricas y tipos de iniciador). */
 export const mapaOperativoMetricRowLabelSx: SxProps<Theme> = {
-  color: "#fff",
+  color: GLASS_COLORS.textPrimary,
   fontWeight: 500,
   fontSize: "0.875rem",
   lineHeight: 1.35,
@@ -112,7 +113,7 @@ export const mapaOperativoHeroValueSx: SxProps<Theme> = {
 
 /** Texto de ítems de leyenda (peso normal). */
 export const mapaOperativoLegendLabelSx: SxProps<Theme> = {
-  color: "#fff",
+  color: GLASS_COLORS.textPrimary,
   fontWeight: 400,
   fontSize: "0.875rem",
   lineHeight: 1.35,

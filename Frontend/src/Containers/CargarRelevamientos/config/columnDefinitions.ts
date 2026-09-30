@@ -1,8 +1,7 @@
 import { GridColumnIcon } from "@glideapps/glide-data-grid";
-import { COLORS } from "../../CargarActuaciones/styles/cargarActuacionesStyles";
 
 export const GROUP_CONFIG = {
-  Relevamiento: { icon: GridColumnIcon.HeaderArray, color: COLORS.grayDark },
+  Relevamiento: { icon: GridColumnIcon.HeaderArray },
 };
 
 /** Ancho mínimo para mostrar "Orientación" en header (sin reducir font). */

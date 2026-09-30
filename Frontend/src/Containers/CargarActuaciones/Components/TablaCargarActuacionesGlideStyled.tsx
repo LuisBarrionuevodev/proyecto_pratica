@@ -44,6 +44,12 @@ import {
 import { GROUP_CONFIG, getVisibleColumnDefinitions, type ActaCargaFocus } from "../config/columnDefinitions";
 import { getDropdownOptions } from "../config/dropdownOptions";
 import { createGridTheme, calculateTableHeight, GRID_DIMENSIONS } from "../config/gridTheme";
+import {
+    glideColumnHeaderThemeOverride,
+    glideGroupHeaderThemeOverride,
+    resolveGlideCellTheme,
+    type GlideCellVisualState,
+} from "../config/glideGridSemantics";
 import { useDigitalizaTheme } from "../../../theme/DigitalizaThemeProvider";
 import {
     extractDataColumns,
@@ -657,6 +663,9 @@ const TablaCargarActuacionesGlideStyled = ({
     };
 
     // Columnas con estilos Neo-Brutalistas - iconos blancos
+    const headerTheme = useMemo(() => glideColumnHeaderThemeOverride(themeColors), [themeColors]);
+    const groupHeaderTheme = useMemo(() => glideGroupHeaderThemeOverride(themeColors), [themeColors]);
+
     const columns = useMemo<GridColumn[]>(
         () =>
             visibleColumnDefs.map((col) => {
@@ -667,16 +676,10 @@ const TablaCargarActuacionesGlideStyled = ({
                     width: col.width,
                     group: col.group,
                     icon: col.icon,
-                    themeOverride: groupConfig ? {
-                        bgHeader: groupConfig.color,
-                        bgHeaderHovered: "#3a3d44",
-                        textHeader: COLORS.white,
-                        fgIconHeader: COLORS.white,
-                        bgIconHeader: "transparent",
-                    } : undefined,
+                    themeOverride: groupConfig ? headerTheme : undefined,
                 };
             }),
-        [visibleColumnDefs]
+        [visibleColumnDefs, headerTheme]
     );
 
     // Contenido de celda con colores Neo-Brutalistas
@@ -700,28 +703,15 @@ const TablaCargarActuacionesGlideStyled = ({
             const rowState = rowData._state;
             const hasData = rowHasData(rowData);
 
-            // Colores según estado - solo mostrar errores si la fila tiene datos
-            let bgColor = COLORS.grayDark;
-            let textColor = COLORS.white;
-            
+            let visualState: GlideCellVisualState = "empty";
             if (hasData) {
-            if (hasError) {
-                bgColor = COLORS.errorLight;
-                textColor = COLORS.errorText;
-            } else if (rowState === "OK") {
-                bgColor = COLORS.successLight;
-                textColor = COLORS.successText;
-            } else if (rowState === "PENDIENTE") {
-                bgColor = COLORS.warningLight;
-                textColor = COLORS.warningText;
-            } else if (rowState === "VALIDANDO") {
-                // Estado visual: validando (neutral, sin azul)
-                bgColor = COLORS.grayMedium;
-                textColor = COLORS.white;
-            }
+                if (hasError) visualState = "error";
+                else if (rowState === "OK") visualState = "ok";
+                else if (rowState === "PENDIENTE") visualState = "pending";
+                else if (rowState === "VALIDANDO") visualState = "validating";
             }
 
-            const themeOverride = { bgCell: bgColor, textDark: textColor };
+            const themeOverride = resolveGlideCellTheme(themeColors, visualState);
 
             // Columna de error de fila - solo mostrar si tiene datos
             if (columnId === "_rowError") {
@@ -733,8 +723,8 @@ const TablaCargarActuacionesGlideStyled = ({
                     allowOverlay: false,
                     readonly: true,
                     themeOverride: rowError
-                        ? { bgCell: COLORS.errorLight, textDark: COLORS.errorText }
-                        : { bgCell: "#1A1C20", textDark: "#666666" },
+                        ? resolveGlideCellTheme(themeColors, "error")
+                        : resolveGlideCellTheme(themeColors, "readonly"),
                 };
             }
 
@@ -822,7 +812,7 @@ const TablaCargarActuacionesGlideStyled = ({
                 themeOverride,
             };
         },
-        [data, catalogs, visibleColumnDefs]
+        [data, catalogs, visibleColumnDefs, themeColors]
     );
 
     const handleCellClicked = useCallback(
@@ -1014,8 +1004,7 @@ const TablaCargarActuacionesGlideStyled = ({
                                 // Iconos de grupo blancos
                                 overrideTheme: {
                                     bgIconHeader: "transparent",
-                                    fgIconHeader: COLORS.white,
-                                    textGroupHeader: COLORS.white,
+                                    ...groupHeaderTheme,
                                 },
                             } : { name: groupName };
                         }}
@@ -1040,11 +1029,11 @@ const TablaCargarActuacionesGlideStyled = ({
                         <strong>8.</strong> <strong>Motivos notificación:</strong> doble clic para elegir hasta tres motivos del catálogo en un solo editor<br/>
                         <br/>
                         <strong>COLORES:</strong>{" "}
-                        <span style={getStatusBadgeStyles(COLORS.errorLight, COLORS.errorText)}>ERROR</span>
-                        <span style={getStatusBadgeStyles(COLORS.successLight, COLORS.successText)}>OK</span>
-                        <span style={getStatusBadgeStyles(COLORS.warningLight, COLORS.warningText)}>ADVERTENCIA</span>
-                        <span style={getStatusBadgeStyles("#1E2127", COLORS.white)}>PENDIENTE</span>
-                        <span style={getStatusBadgeStyles(COLORS.primary, COLORS.white)}>VALIDANDO</span>
+                        <span style={getStatusBadgeStyles(themeColors.status.errorSurface, themeColors.status.error)}>ERROR</span>
+                        <span style={getStatusBadgeStyles(themeColors.status.successSurface, themeColors.status.success)}>OK</span>
+                        <span style={getStatusBadgeStyles(themeColors.status.warningSurface, themeColors.status.warning)}>ADVERTENCIA</span>
+                        <span style={getStatusBadgeStyles(themeColors.status.warningSurface, themeColors.status.warning)}>PENDIENTE</span>
+                        <span style={getStatusBadgeStyles(themeColors.surface.panelSubtle, themeColors.text.secondary)}>VALIDANDO</span>
                     </Typography>
                 </Box>
                 )}
