@@ -72,10 +72,16 @@ const DireccionMoverCompact = memo(function DireccionMoverCompact({
   const [pending, setPending] = useState(false);
 
   return (
-    <Stack direction="row" spacing={0.5} alignItems="center" sx={{ mt: 0.75, flexWrap: "wrap", gap: 0.5 }}>
+    <Stack
+      direction={{ xs: "column", sm: "row" }}
+      spacing={0.5}
+      alignItems={{ xs: "stretch", sm: "center" }}
+      sx={{ mt: 0.75, flexWrap: "wrap", gap: 0.5, width: "100%", minWidth: 0 }}
+    >
       <TextField
         select
         size="small"
+        fullWidth
         label="Grupo"
         value={target}
         disabled={pending}
@@ -84,8 +90,8 @@ const DireccionMoverCompact = memo(function DireccionMoverCompact({
           setTarget(v === "" ? "" : Number(v));
         }}
         sx={{
-          minWidth: 108,
-          maxWidth: 200,
+          minWidth: { xs: 0, sm: 108 },
+          maxWidth: { xs: "100%", sm: 200 },
           flex: "1 1 auto",
           "& .MuiOutlinedInput-root": {
             minHeight: 28,
@@ -124,7 +130,7 @@ const DireccionMoverCompact = memo(function DireccionMoverCompact({
                 }
               })();
             }}
-            sx={MAPA_LATERAL_ACCION_COMPACTA_SX}
+            sx={{ ...MAPA_LATERAL_ACCION_COMPACTA_SX, width: { xs: "100%", sm: "auto" } }}
           >
             {pending ? "…" : "Mover"}
           </Button>
@@ -254,7 +260,7 @@ export function MapaFinalResumenLateral({
   }
 
   return (
-    <Stack spacing={1.5} sx={{ pb: 0.5 }}>
+    <Stack spacing={1.5} sx={{ pb: 0.5, minWidth: 0, width: "100%" }} data-testid="mapa-final-resumen-lateral">
       {gruposVista.map((gv) => {
         const distritos = distritosDelGrupo(gv);
         const distritosLine =
@@ -274,7 +280,7 @@ export function MapaFinalResumenLateral({
           >
             <Stack spacing={1.25}>
               <Box>
-                <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={1} sx={{ flexWrap: "nowrap" }}>
+                <Stack direction="row" alignItems="flex-start" justifyContent="space-between" gap={1} sx={{ flexWrap: "wrap", minWidth: 0 }}>
                   <Typography
                     sx={{
                       ...planificacionPanelTitleSx,
@@ -310,7 +316,13 @@ export function MapaFinalResumenLateral({
               </Box>
 
               <Box>
-                <Stack direction="row" alignItems="center" justifyContent="space-between" gap={0.75} sx={{ mb: 0.5 }}>
+                <Stack
+                  direction={{ xs: "column", sm: "row" }}
+                  alignItems={{ xs: "flex-start", sm: "center" }}
+                  justifyContent="space-between"
+                  gap={0.75}
+                  sx={{ mb: 0.5, width: "100%", minWidth: 0 }}
+                >
                   <Typography
                     variant="caption"
                     sx={{
@@ -332,7 +344,7 @@ export function MapaFinalResumenLateral({
                           disableElevation
                           disabled={!puedeEditarEquipos}
                           onClick={() => onEditarInspectores(grupoMin)}
-                          sx={MAPA_LATERAL_ACCION_COMPACTA_SX}
+                          sx={{ ...MAPA_LATERAL_ACCION_COMPACTA_SX, width: { xs: "100%", sm: "auto" } }}
                         >
                           Equipo
                         </Button>

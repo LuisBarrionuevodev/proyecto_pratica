@@ -128,7 +128,7 @@ export function MapaOtSecuenciaPreview({ itemsCount, readOnly = false, onRefresh
             dsSize="sm"
             disabled={loading}
             onClick={() => setEditOpen(true)}
-            sx={{ mt: 0.5 }}
+            sx={{ mt: 0.5, width: { xs: "100%", md: "auto" } }}
           >
             Editar
           </AppButton>

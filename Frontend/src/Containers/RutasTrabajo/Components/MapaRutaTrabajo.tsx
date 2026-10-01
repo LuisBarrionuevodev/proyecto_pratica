@@ -2,6 +2,7 @@ import { useEffect, useMemo } from "react";
 import { MapContainer, Marker, Polyline, Popup, TileLayer, Tooltip, useMap } from "react-leaflet";
 import L from "leaflet";
 import { Box } from "@mui/material";
+import type { ResponsiveStyleValue } from "@mui/system";
 
 import type { RutaMapaMarker, RutaMapaPolyline } from "../types/rutasTrabajoMapa.types";
 import { MARKER_RING_BOXSHADOW } from "../utils/mapaRutaGrupoTrazado";
@@ -57,8 +58,8 @@ export type MapaRutaTrabajoProps = {
   zoom: number;
   markers: RutaMapaMarker[];
   polylines: RutaMapaPolyline[];
-  /** Altura del contenedor del mapa (Leaflet requiere altura definida). */
-  mapHeight?: string | number;
+  /** Altura del contenedor del mapa (Leaflet requiere altura definida). Acepta valores responsive MUI. */
+  mapHeight?: ResponsiveStyleValue<string | number>;
 };
 
 /**
@@ -70,11 +71,14 @@ export function MapaRutaTrabajo({ center, zoom, markers, polylines, mapHeight = 
   return (
     <Box
       sx={{
+        width: "100%",
+        minWidth: 0,
+        maxWidth: "100%",
         borderRadius: 2,
         overflow: "hidden",
         border: (theme) => `1px solid ${theme.palette.divider}`,
         height: mapHeight,
-        minHeight: 320,
+        minHeight: { xs: 280, md: 320 },
         position: "relative",
         "& .leaflet-container": {
           fontFamily: FONT_FAMILY_UI,

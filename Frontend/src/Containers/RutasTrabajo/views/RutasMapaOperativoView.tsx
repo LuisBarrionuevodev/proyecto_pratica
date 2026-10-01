@@ -18,6 +18,7 @@ import {
 import type { RutasMapaOperativoViewProps } from "../types/rutasTrabajoMapa.types";
 import { AppButton } from "../../../ui/AppButton";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { MAPA_FINAL_MAP_HEIGHT_SX, MAPA_FINAL_RESUMEN_PANEL_SX } from "../mapaFinalLayout";
 
 /**
  * Paso 3 del flujo borrador: mapa, indicadores y documentación.
@@ -120,7 +121,13 @@ export function RutasMapaOperativoView({
       flexWrap="wrap"
       useFlexGap
       data-testid="mapa-final-export-actions"
-      sx={{ flexShrink: 0, justifyContent: { xs: "flex-start", sm: "flex-end" } }}
+      sx={{
+        flexShrink: 0,
+        justifyContent: { xs: "flex-start", sm: "flex-end" },
+        width: "100%",
+        minWidth: 0,
+        "& .MuiButton-root": { width: { xs: "100%", sm: "auto" } },
+      }}
     >
       <Tooltip title="PDF con membrete, datos de la ruta, grupos/domicilios y mini-mapa de referencia." placement="top">
         <span>
@@ -157,8 +164,17 @@ export function RutasMapaOperativoView({
   ) : null;
 
   return (
-    <Stack spacing={1.5} sx={{ minWidth: 0 }} data-testid="mapa-final-view" {...(readOnly ? { "data-ruta-historico-preview": "true" } : {})}>
-      <Paper elevation={0} sx={{ ...rutasInstitutionalPanelPaperSx, py: 1.5, px: 2 }} data-testid="mapa-final-indicadores">
+    <Stack
+      spacing={1.5}
+      sx={{ minWidth: 0, width: "100%", maxWidth: "100%", overflowX: "hidden" }}
+      data-testid="mapa-final-view"
+      {...(readOnly ? { "data-ruta-historico-preview": "true" } : {})}
+    >
+      <Paper
+        elevation={0}
+        sx={{ ...rutasInstitutionalPanelPaperSx, py: 1.5, px: { xs: 1.25, md: 2 }, minWidth: 0, maxWidth: "100%" }}
+        data-testid="mapa-final-indicadores"
+      >
         <Box
           sx={{
             display: "grid",
@@ -171,12 +187,13 @@ export function RutasMapaOperativoView({
           <Stack spacing={1} sx={{ minWidth: 0 }}>
             {ruta != null ? <RutaContextoLine ruta={ruta} variant="compact" /> : null}
             <Stack
-              direction={{ xs: "column", sm: "row" }}
+              direction="row"
               spacing={1.75}
               flexWrap="wrap"
               useFlexGap
-              alignItems={{ sm: "flex-start" }}
+              alignItems="flex-start"
               data-testid="mapa-final-metricas-territoriales"
+              sx={{ width: "100%", minWidth: 0 }}
             >
           <Box sx={{ minWidth: 88 }}>
             <Typography variant="caption" color="text.secondary" sx={{ display: "block", fontSize: "0.68rem" }}>
@@ -248,29 +265,37 @@ export function RutasMapaOperativoView({
         </Box>
       </Paper>
 
-      <Stack direction={{ xs: "column", md: "row" }} spacing={2} alignItems="stretch" sx={{ minHeight: { xs: "auto", md: 420 } }}>
-        <Box sx={{ flex: 1, minWidth: 0, minHeight: { xs: 360, md: 480 } }}>
+      <Stack
+        direction={{ xs: "column", md: "row" }}
+        spacing={2}
+        alignItems="stretch"
+        data-testid="mapa-final-main-layout"
+        sx={{ minHeight: { xs: "auto", md: 420 }, width: "100%", minWidth: 0, maxWidth: "100%" }}
+      >
+        <Box
+          sx={{ flex: 1, minWidth: 0, maxWidth: "100%", order: { xs: 1, md: 0 } }}
+          data-testid="mapa-final-map-region"
+        >
           <MapaRutaTrabajo
             center={mapa.mapCenter}
             zoom={mapa.mapZoom}
             markers={mapa.markers}
             polylines={mapa.polylines}
-            mapHeight="min(72vh, 680px)"
+            mapHeight={MAPA_FINAL_MAP_HEIGHT_SX}
           />
         </Box>
 
         <Paper
           elevation={0}
+          data-testid="mapa-final-resumen-panel"
           sx={{
             ...rutasInstitutionalPanelPaperSx,
-            flex: { md: "0 0 360px" },
-            maxWidth: { md: 440 },
-            minWidth: { md: 300 },
-            maxHeight: { md: "min(72vh, 680px)" },
+            ...MAPA_FINAL_RESUMEN_PANEL_SX,
             display: "flex",
             flexDirection: "column",
             overflow: "hidden",
             minHeight: 0,
+            order: { xs: 2, md: 0 },
           }}
         >
           <Box sx={{ flexShrink: 0 }}>
