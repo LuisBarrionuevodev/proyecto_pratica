@@ -4,6 +4,11 @@ import { Alert, Box, CircularProgress, Stack, Typography } from "@mui/material";
 import { fechaLocalHoyIso } from "../../../utils/dateRange";
 import { InstitutionalMonthCalendarGrid } from "../../../components/calendar/InstitutionalMonthCalendarGrid";
 import {
+  INSTITUTIONAL_CALENDAR_CELL_GAP,
+  INSTITUTIONAL_CALENDAR_CELL_MIN_HEIGHT,
+  institutionalCalendarPanelPadding,
+} from "../../../components/calendar/institutionalCalendarLayout";
+import {
   getCompletarTrabajoPendientesResumen,
   type ICompletarTrabajoPendienteDiaResumen,
 } from "../../../api/completarTrabajoApi";
@@ -23,16 +28,14 @@ import {
 } from "../utils/completarTrabajoCalendarDisplay";
 
 const COMPLETAR_CONTENT_MAX_PX = 1400;
-const COMPLETAR_CALENDAR_CELL_MIN_HEIGHT = 72;
-const COMPLETAR_CALENDAR_CELL_GAP = 1;
 
 const completarCalendarPanelSurfaceSx = {
   ...rutasInstitutionalResumenPaperSx,
+  p: institutionalCalendarPanelPadding,
   width: "100%",
   maxWidth: COMPLETAR_CONTENT_MAX_PX,
   mx: "auto",
   boxSizing: "border-box" as const,
-  p: { xs: 2.5, md: 3.5 },
 };
 
 function buildDiasMap(dias: ICompletarTrabajoPendienteDiaResumen[]): Map<string, ICompletarTrabajoPendienteDiaResumen> {
@@ -134,8 +137,8 @@ export function CompletarEmptyView({ initialFecha, onVerTrabajos }: CompletarTra
                 hoyIso={hoyIso}
                 selectedIso={selectedCalDay}
                 onSelectDay={setSelectedCalDay}
-                cellMinHeight={COMPLETAR_CALENDAR_CELL_MIN_HEIGHT}
-                cellGap={COMPLETAR_CALENDAR_CELL_GAP}
+                cellMinHeight={INSTITUTIONAL_CALENDAR_CELL_MIN_HEIGHT}
+                cellGap={INSTITUTIONAL_CALENDAR_CELL_GAP}
                 aria-label="Calendario operativo: verde sin pendientes, amarillo 1 a 5, rojo 6 o más"
                 getDayTitle={(ctx) => {
                   const row = diasMap.get(ctx.iso);
@@ -151,7 +154,7 @@ export function CompletarEmptyView({ initialFecha, onVerTrabajos }: CompletarTra
                     bgcolor: surface.bgcolor,
                     border: surface.border,
                     color: surface.color,
-                    minHeight: COMPLETAR_CALENDAR_CELL_MIN_HEIGHT,
+                    minHeight: INSTITUTIONAL_CALENDAR_CELL_MIN_HEIGHT,
                     "&:hover": {
                       bgcolor:
                         tono === "neutral"

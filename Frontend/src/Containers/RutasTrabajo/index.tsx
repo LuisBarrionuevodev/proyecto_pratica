@@ -481,7 +481,7 @@ const RutasTrabajo = () => {
         width: "100%",
         minWidth: 0,
         boxSizing: "border-box",
-        p: 3,
+        p: { xs: 1.5, md: 3 },
         display: "flex",
         flexDirection: "column",
         gap: 1.25,

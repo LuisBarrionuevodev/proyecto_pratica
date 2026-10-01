@@ -1,5 +1,4 @@
 import AddIcon from "@mui/icons-material/Add";
-import { FONT_FAMILY_UI } from "../../../theme/typography";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import PublishedWithChangesIcon from "@mui/icons-material/PublishedWithChanges";
 import {
@@ -8,27 +7,37 @@ import {
   Chip,
   CircularProgress,
   Divider,
-  Paper,
   Stack,
   Tab,
-  Tabs,
   Typography,
 } from "@mui/material";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   InstitutionalMonthCalendarGrid,
-  calendarDaysInMonth,
 } from "../../../components/calendar/InstitutionalMonthCalendarGrid";
+import {
+  INSTITUTIONAL_CALENDAR_CELL_GAP,
+  INSTITUTIONAL_CALENDAR_CELL_MIN_HEIGHT,
+  institutionalCalendarPanelPadding,
+} from "../../../components/calendar/institutionalCalendarLayout";
 import { listRutasBorrador, listRutasTrabajo, type IRutaTrabajo } from "../../../api/rutasTrabajoApi";
-import { GLASS_COLORS, moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../../styles/GlassStyles";
-import { fechaLocalHoyIso, toIsoDateLocal } from "../../../utils/dateRange";
-import { AppButton } from "../../../ui";
+import { monthBoundsIso } from "../../CompletarTrabajos/utils/completarTrabajoCalendarDisplay";
+import { GLASS_COLORS, moduleSlicesTabsSx } from "../../../styles/GlassStyles";
+import { fechaLocalHoyIso } from "../../../utils/dateRange";
+import { AppButton, ResponsiveScrollableTabs } from "../../../ui";
+import { layoutShell } from "../../../theme/tokens";
+import { FONT_FAMILY_UI } from "../../../theme/typography";
+import { RutasDiaRutaMobileCard } from "../Components/RutasDiaRutaMobileCard";
 import {
   rutasInstitutionalDividerSx,
   rutasInstitutionalResumenPaperSx,
   rutasResumenTitleSx,
 } from "../styles/institutionalVisual";
+import { rutasLabelFilaRutaListado, type RutasListaTab } from "../utils/rutasEmptyViewDisplay";
+
 /** Misma columna centrada que Completar trabajo (max 1400 px). */
 const MODULE_CONTENT_MAX_PX = 1400;
 
@@ -37,40 +46,19 @@ const shellStackSx = {
   maxWidth: MODULE_CONTENT_MAX_PX,
   mx: "auto",
   boxSizing: "border-box" as const,
+  minWidth: 0,
+  px: { xs: 0.5, md: 1 },
 };
 
-/** Copia del panel calendario de Completar trabajo (`completarCalendarPanelSurfaceSx`). */
 const calendarPanelSurfaceSx = {
   ...rutasInstitutionalResumenPaperSx,
+  p: institutionalCalendarPanelPadding,
   width: "100%",
   maxWidth: MODULE_CONTENT_MAX_PX,
   mx: "auto",
   boxSizing: "border-box" as const,
+  minWidth: 0,
 };
-
-export type RutasListaTab = "borradores" | "publicadas";
-
-function monthBoundsIso(mesAncla: Date): { desde: string; hasta: string } {
-  const y = mesAncla.getFullYear();
-  const m0 = mesAncla.getMonth();
-  const dim = calendarDaysInMonth(y, m0);
-  return {
-    desde: toIsoDateLocal(new Date(y, m0, 1)),
-    hasta: toIsoDateLocal(new Date(y, m0, dim)),
-  };
-}
-
-function labelTurno(t: IRutaTrabajo["turno"]): string {
-  if (t === "MANIANA") return "Mañana";
-  if (t === "TARDE") return "Tarde";
-  return t;
-}
-
-/** Fila de listado: número y turno de ruta. */
-function labelFilaRutaListado(r: IRutaTrabajo): string {
-  const estado = r.estado_ruta === "PUBLICADA" ? "" : ` · ${r.estado_ruta}`;
-  return `Ruta ${r.numero} · ${labelTurno(r.turno)}${estado}`;
-}
 
 async function fetchAllRutasInMonth(params: {
   tab: RutasListaTab;
@@ -123,9 +111,12 @@ const countChipSx = {
 } as const;
 
 /**
- * Entrada sin ruta: tabs de lista arriba; calendario + listado por día abajo (misma posición del CTA primario que Completar trabajo).
+ * Entrada sin ruta: tabs Borradores/Publicadas, calendario selector de fecha y listado del día.
  */
 export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewProps) {
+  const theme = useTheme();
+  const isDesktopShell = useMediaQuery(theme.breakpoints.up(layoutShell.desktopMinBreakpoint));
+
   const [tab, setTab] = useState<RutasListaTab>("borradores");
   const [calMes, setCalMes] = useState(() => {
     const n = new Date();
@@ -188,35 +179,41 @@ export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewP
   const calendarioTitulo = tab === "borradores" ? "Calendario · Planificación" : "Calendario · Publicadas";
   const diaSeleccionadoListo = selectedIso != null && selectedIso >= desde && selectedIso <= hasta;
 
+  const listadoTitulo =
+    rutasDelDiaSeleccionado.length === 0
+      ? null
+      : rutasDelDiaSeleccionado.length === 1
+        ? "1 ruta en esta fecha"
+        : `${rutasDelDiaSeleccionado.length} rutas en esta fecha`;
+
   return (
     <Stack spacing={2.25} sx={{ ...shellStackSx, alignItems: "stretch" }}>
-      <Paper
-        elevation={0}
-        sx={{
-          ...moduleSlicesPanelPaperSx,
-          maxWidth: MODULE_CONTENT_MAX_PX,
-          mx: "auto",
-        }}
+      <ResponsiveScrollableTabs
+        value={tab}
+        onChange={(_, v) => setTab(v as RutasListaTab)}
+        variant="fullWidth"
+        sx={{ ...moduleSlicesTabsSx, width: "100%" }}
+        barSx={{ maxWidth: MODULE_CONTENT_MAX_PX, mx: "auto" }}
       >
-        <Tabs
-          value={tab}
-          onChange={(_, v) => setTab(v as RutasListaTab)}
-          variant="fullWidth"
-          sx={{ ...moduleSlicesTabsSx, width: "100%" }}
-        >
-          <Tab label="Borradores" value="borradores" sx={{ fontFamily: FONT_FAMILY_UI, fontWeight: 600, textTransform: "none" }} />
-          <Tab label="Publicadas" value="publicadas" sx={{ fontFamily: FONT_FAMILY_UI, fontWeight: 600, textTransform: "none" }} />
-        </Tabs>
-      </Paper>
+        <Tab
+          label="Borradores"
+          value="borradores"
+          sx={{ fontFamily: FONT_FAMILY_UI, fontWeight: 600, textTransform: "none" }}
+        />
+        <Tab
+          label="Publicadas"
+          value="publicadas"
+          sx={{ fontFamily: FONT_FAMILY_UI, fontWeight: 600, textTransform: "none" }}
+        />
+      </ResponsiveScrollableTabs>
 
-      {/* Box inferior: mismo look que el panel calendario de Completar trabajo */}
       <Box sx={calendarPanelSurfaceSx}>
-        <Stack spacing={1.5}>
+        <Stack spacing={2.5}>
           <Typography sx={rutasResumenTitleSx}>{calendarioTitulo}</Typography>
 
           {loading ? (
-            <Box sx={{ display: "flex", justifyContent: "center", py: 3 }}>
-              <CircularProgress size={32} sx={{ color: GLASS_COLORS.primary }} />
+            <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+              <CircularProgress size={40} sx={{ color: GLASS_COLORS.primary }} />
             </Box>
           ) : null}
 
@@ -238,6 +235,8 @@ export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewP
               hoyIso={hoyIso}
               selectedIso={selectedIso}
               onSelectDay={(iso) => setSelectedIso(iso)}
+              cellMinHeight={INSTITUTIONAL_CALENDAR_CELL_MIN_HEIGHT}
+              cellGap={INSTITUTIONAL_CALENDAR_CELL_GAP}
               aria-label={
                 tab === "borradores" ? "Calendario de borradores por día" : "Calendario de rutas publicadas por día"
               }
@@ -252,10 +251,10 @@ export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewP
                   return {
                     border: `1px solid ${GLASS_COLORS.borderActive}`,
                     bgcolor: GLASS_COLORS.primaryGlow,
-                    minHeight: 40,
+                    minHeight: INSTITUTIONAL_CALENDAR_CELL_MIN_HEIGHT,
                   };
                 }
-                return { minHeight: 40 };
+                return { minHeight: INSTITUTIONAL_CALENDAR_CELL_MIN_HEIGHT };
               }}
               renderDayFooter={(ctx) => {
                 const n = countPorDia.get(ctx.iso) ?? 0;
@@ -296,11 +295,24 @@ export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewP
             <>
               <Divider sx={rutasInstitutionalDividerSx} />
 
+              {listadoTitulo ? (
+                <Typography
+                  sx={{
+                    fontFamily: FONT_FAMILY_UI,
+                    fontSize: "0.8125rem",
+                    fontWeight: 600,
+                    color: GLASS_COLORS.textSecondary,
+                  }}
+                >
+                  {listadoTitulo}
+                </Typography>
+              ) : null}
+
               {rutasDelDiaSeleccionado.length === 0 ? (
                 <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.8125rem", color: GLASS_COLORS.textMuted }}>
                   {selectedIso == null ? "Seleccioná un día en el calendario." : "Sin rutas para esta fecha."}
                 </Typography>
-              ) : (
+              ) : isDesktopShell ? (
                 <Stack spacing={1} sx={{ maxHeight: 320, overflowY: "auto", pr: 0.5 }}>
                   {rutasDelDiaSeleccionado.map((r) => (
                     <AppButton
@@ -317,8 +329,14 @@ export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewP
                         textAlign: "left",
                       }}
                     >
-                      {labelFilaRutaListado(r)}
+                      {rutasLabelFilaRutaListado(r)}
                     </AppButton>
+                  ))}
+                </Stack>
+              ) : (
+                <Stack spacing={1.5} sx={{ width: "100%", minWidth: 0 }}>
+                  {rutasDelDiaSeleccionado.map((r) => (
+                    <RutasDiaRutaMobileCard key={r.id} ruta={r} tab={tab} onOpen={onAbrirRuta} />
                   ))}
                 </Stack>
               )}
@@ -329,3 +347,6 @@ export function RutasEmptyView({ onCrearBorrador, onAbrirRuta }: RutasEmptyViewP
     </Stack>
   );
 }
+
+// Re-export para consumidores que importaban el tipo desde la vista.
+export type { RutasListaTab };

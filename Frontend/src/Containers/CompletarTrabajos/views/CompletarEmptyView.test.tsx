@@ -25,9 +25,8 @@ describe("CompletarEmptyView — COMPLETAR-UX.1 / 1.1", () => {
 
   it("usa calendario ampliado como centro visual", () => {
     expect(view).toContain("InstitutionalMonthCalendarGrid");
-    expect(view).toContain("COMPLETAR_CALENDAR_CELL_MIN_HEIGHT = 72");
-    expect(view).toContain("COMPLETAR_CALENDAR_CELL_GAP = 1");
-    expect(view).toContain("p: { xs: 2.5, md: 3.5 }");
+    expect(view).toContain("INSTITUTIONAL_CALENDAR_CELL_MIN_HEIGHT");
+    expect(view).toContain("institutionalCalendarPanelPadding");
   });
 
   it("semántica por cantidad y footer gris desde util compartido", () => {
