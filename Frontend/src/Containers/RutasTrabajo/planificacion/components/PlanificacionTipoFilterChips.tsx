@@ -79,7 +79,13 @@ export function PlanificacionTipoFilterChips(props: PlanificacionTipoFilterChips
       >
         Tipo
       </Typography>
-      <Stack direction="row" spacing={0.5} useFlexGap flexWrap="wrap" sx={{ maxHeight: 72, overflowY: "auto", pr: 0.25 }}>
+      <Stack
+        direction="row"
+        spacing={0.5}
+        useFlexGap
+        flexWrap="wrap"
+        sx={{ maxHeight: { xs: "none", sm: 72 }, overflowY: { xs: "visible", sm: "auto" }, pr: 0.25 }}
+      >
         {props.variant === "urgentes"
           ? CHIPS_URGENTES.map((c) => {
               const active = props.urgenteTipoActivo === c.key;

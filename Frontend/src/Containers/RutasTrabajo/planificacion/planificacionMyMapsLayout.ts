@@ -19,11 +19,20 @@ export const PLANIFICACION_MAIN_AREA_MIN_HEIGHT_PX = 580;
 
 export const planificacionMainAreaSx: SxProps<Theme> = {
   flex: "1 1 auto",
-  minHeight: PLANIFICACION_MAIN_AREA_MIN_HEIGHT_PX,
-  height: `max(${PLANIFICACION_MAIN_AREA_MIN_HEIGHT_PX}px, calc(100vh - ${PLANIFICACION_CHROME_OFFSET_PX}px))`,
   minWidth: 0,
+  minHeight: {
+    xs: 0,
+    md: PLANIFICACION_MAIN_AREA_MIN_HEIGHT_PX,
+  },
+  height: {
+    xs: "auto",
+    md: `max(${PLANIFICACION_MAIN_AREA_MIN_HEIGHT_PX}px, calc(100vh - ${PLANIFICACION_CHROME_OFFSET_PX}px))`,
+  },
   alignItems: "stretch",
 };
+
+/** Altura útil del mapa en viewport apilado (xs–sm). */
+export const PLANIFICACION_MAP_VIEWPORT_HEIGHT_XS = "min(52vh, 440px)";
 
 /** @deprecated Usar planificacionMainAreaSx; mantener alias para mapa interno. */
 export const PLANIFICACION_MY_MAPS_HEIGHT = "100%";
@@ -37,6 +46,8 @@ export const planificacionSidebarShellSx: SxProps<Theme> = mergeSx(
     gap: 1,
     height: "100%",
     minHeight: 0,
+    minWidth: 0,
+    maxWidth: "100%",
     display: "flex",
     flexDirection: "column",
   }

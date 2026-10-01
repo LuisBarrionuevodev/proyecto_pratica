@@ -308,7 +308,16 @@ export function PlanificacionView({
         sx={planificacionMainAreaSx}
         data-testid="planificacion-my-maps-layout"
       >
-        <Grid size={{ xs: 12, lg: 4 }} sx={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0, height: "100%" }}>
+        <Grid
+          size={{ xs: 12, md: 4 }}
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            minHeight: 0,
+            minWidth: 0,
+            height: { xs: "auto", md: "100%" },
+          }}
+        >
           <PlanificacionSidebarPanel
             distritoActivoId={ctrl.distritoActivoId}
             contextoActivo={ctrl.contextoActivo}
@@ -339,7 +348,17 @@ export function PlanificacionView({
           />
         </Grid>
 
-        <Grid size={{ xs: 12, lg: 8 }} sx={{ display: "flex", flexDirection: "column", minHeight: 0, minWidth: 0, height: "100%" }}>
+        <Grid
+          size={{ xs: 12, md: 8 }}
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            minHeight: 0,
+            minWidth: 0,
+            height: { xs: "auto", md: "100%" },
+            maxWidth: "100%",
+          }}
+        >
           <PlanificacionMapaDistritos
             cargaPorDistrito={ctrl.cargaPorDistrito}
             distritoCatalogo={ctrl.distritoCatalogo}

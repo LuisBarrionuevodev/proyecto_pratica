@@ -3,7 +3,8 @@ import { FONT_FAMILY_UI } from "../../../theme/typography";
 import { Box, Stack, Typography } from "@mui/material";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 
-import { GLASS_COLORS } from "../../../styles/GlassStyles";export type RutaFlowStep = 1 | 2 | 3;
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
+export type RutaFlowStep = 1 | 2 | 3;
 
 const STEPS: { step: RutaFlowStep; label: string }[] = [
   { step: 1, label: "Planificación" },
@@ -27,33 +28,33 @@ function StepConnector({ disabled }: { disabled: boolean }) {
         flexShrink: 0,
         backgroundColor: disabled ? GLASS_COLORS.borderLight : GLASS_COLORS.borderMedium,
         opacity: 0.85,
-        alignSelf: "center",
-        width: 16,
-        height: 1,
+        alignSelf: { xs: "center", sm: "center" },
+        width: { xs: 1, sm: 16 },
+        height: { xs: 10, sm: 1 },
       }}
     />
   );
 }
 
 /**
- * Navegación secuencial del borrador: tres pasos siempre en fila horizontal.
+ * Navegación secuencial del borrador: vertical compacto en xs, fila desde sm.
  */
 export function RutasTrabajoFlowStepper({ flowStep, flowMaxUnlocked, onStepChange }: RutasTrabajoFlowStepperProps) {
   return (
     <Stack
       component="nav"
       aria-label="Etapas del borrador de ruta"
-      direction="row"
-      alignItems="center"
-      flexWrap="nowrap"
+      direction={{ xs: "column", sm: "row" }}
+      alignItems={{ xs: "stretch", sm: "center" }}
+      flexWrap={{ sm: "nowrap" }}
       useFlexGap
       spacing={0.75}
       sx={{
-        width: "auto",
+        width: "100%",
         minWidth: 0,
         maxWidth: "100%",
         boxSizing: "border-box",
-        overflowX: "auto",
+        overflowX: { xs: "hidden", sm: "auto" },
         overflowY: "hidden",
         scrollbarWidth: "none",
         "&::-webkit-scrollbar": { display: "none" },
@@ -99,11 +100,11 @@ export function RutasTrabajoFlowStepper({ flowStep, flowMaxUnlocked, onStepChang
                 alignItems: "center",
                 gap: 0.5,
                 minWidth: 0,
-                flexShrink: 0,
-                width: "auto",
-                maxWidth: "none",
+                flexShrink: { xs: 0, sm: 0 },
+                width: { xs: "100%", sm: "auto" },
+                maxWidth: "100%",
                 boxSizing: "border-box",
-                justifyContent: "center",
+                justifyContent: { xs: "flex-start", sm: "center" },
                 textAlign: "left",
                 transition: "background-color 0.15s, border-color 0.15s",
                 "&:hover:not(:disabled)": {
@@ -137,9 +138,10 @@ export function RutasTrabajoFlowStepper({ flowStep, flowMaxUnlocked, onStepChang
                   fontSize: "inherit",
                   fontWeight: "inherit",
                   minWidth: 0,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
+                  flex: 1,
+                  overflow: { xs: "visible", sm: "hidden" },
+                  textOverflow: { sm: "ellipsis" },
+                  whiteSpace: { xs: "normal", sm: "nowrap" },
                 }}
               >
                 {label}

@@ -5,12 +5,12 @@ import { resolve } from "node:path";
 const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
 
 describe("OPER-RUTA.7C — layout My Maps planificación", () => {
-  it("PlanificacionView usa sidebar unificado + mapa amplio (lg 4/8)", () => {
+  it("PlanificacionView usa sidebar unificado + mapa amplio (md 4/8)", () => {
     const view = read("src/Containers/RutasTrabajo/planificacion/PlanificacionView.tsx");
     expect(view).toContain("PlanificacionSidebarPanel");
     expect(view).toContain('data-testid="planificacion-my-maps-layout"');
-    expect(view).toContain('size={{ xs: 12, lg: 4 }}');
-    expect(view).toContain('size={{ xs: 12, lg: 8 }}');
+    expect(view).toContain('size={{ xs: 12, md: 4 }}');
+    expect(view).toContain('size={{ xs: 12, md: 8 }}');
     expect(view).not.toContain("PlanificacionSummaryCards");
     expect(view).not.toContain("planificacionRightColumnSx");
     expect(view).not.toContain("planificacionUrgentesSlotSx");

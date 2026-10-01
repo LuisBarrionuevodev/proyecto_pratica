@@ -3,7 +3,8 @@ import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 
-import type { IPlanificacionMetricas, PlanificacionCardKey } from "./types/planificacion.types";type CardDef = {
+import type { IPlanificacionMetricas, PlanificacionCardKey } from "./types/planificacion.types";
+type CardDef = {
 
   key: PlanificacionCardKey;
 
@@ -73,7 +74,7 @@ export function PlanificacionSummaryCards({
 
   return (
 
-    <Grid container spacing={1.5} sx={{ mb: 2 }}>
+    <Grid container spacing={1.5} sx={{ mb: 2, minWidth: 0, width: "100%" }}>
 
       {usaDatasetVisible ? (
 
@@ -115,7 +116,7 @@ export function PlanificacionSummaryCards({
 
         return (
 
-          <Grid size={{ xs: 6, sm: 4, md: 2 }} key={idx}>
+          <Grid size={{ xs: 6, sm: 4, lg: 2 }} key={idx} sx={{ minWidth: 0 }}>
 
             <Paper
 
@@ -126,6 +127,8 @@ export function PlanificacionSummaryCards({
               sx={{
 
                 p: 1.5,
+
+                minWidth: 0,
 
                 cursor: "pointer",
 
@@ -164,6 +167,10 @@ export function PlanificacionSummaryCards({
                   color: GLASS_COLORS.textMuted,
 
                   mb: 0.5,
+
+                  whiteSpace: "normal",
+
+                  lineHeight: 1.25,
 
                 }}
 

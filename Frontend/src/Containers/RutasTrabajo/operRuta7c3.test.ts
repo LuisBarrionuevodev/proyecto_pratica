@@ -9,7 +9,7 @@ describe("OPER-RUTA.7C.3 — pool strip + header derecha + altura real", () => {
     const header = read("src/Containers/RutasTrabajo/Components/RutaTrabajoCompactHeader.tsx");
     expect(header).toContain('data-testid="ruta-trabajo-header-actions"');
     expect(header).toContain("flexGrow: 1");
-    expect(header).toContain('justifyContent: { xs: "flex-start", md: "flex-end" }');
+    expect(header).toContain('justifyContent: { xs: "stretch", sm: "flex-end" }');
     expect(header).not.toContain("RutaResumenHeaderCard");
     expect(header).not.toContain("turnoLabel");
     expect(header).not.toContain("itemsSinOtHint");

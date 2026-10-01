@@ -142,13 +142,13 @@ export function RutaTrabajoCompactHeader({
       }}
     >
       <Stack
-        direction={{ xs: "column", md: "row" }}
-        alignItems={{ xs: "stretch", md: "center" }}
+        direction={{ xs: "column", sm: "row" }}
+        alignItems={{ xs: "stretch", sm: "center" }}
         spacing={1}
         sx={{ width: "100%", minWidth: 0 }}
       >
         {showStepper ? (
-          <Box sx={{ flexShrink: 0, minWidth: 0 }}>
+          <Box sx={{ flex: { xs: "0 1 auto", sm: "1 1 auto" }, minWidth: 0, maxWidth: { sm: "100%" } }}>
             <RutasTrabajoFlowStepper
               flowStep={flowStep}
               flowMaxUnlocked={flowMaxUnlocked}
@@ -157,20 +157,22 @@ export function RutaTrabajoCompactHeader({
           </Box>
         ) : null}
 
-        <Box sx={{ flexGrow: 1, minWidth: 8, display: { xs: "none", md: "block" } }} />
+        <Box sx={{ flexGrow: 1, minWidth: 8, display: { xs: "none", sm: "block" } }} />
 
         <Stack
-          direction="row"
+          direction={{ xs: "column", sm: "row" }}
           spacing={0.75}
-          alignItems="center"
+          alignItems={{ xs: "stretch", sm: "center" }}
           flexWrap="wrap"
           useFlexGap
           data-testid="ruta-trabajo-header-actions"
           sx={{
             flexShrink: 0,
-            ml: { xs: 0, md: "auto" },
-            justifyContent: { xs: "flex-start", md: "flex-end" },
-            alignSelf: { xs: "stretch", md: "center" },
+            minWidth: 0,
+            ml: { xs: 0, sm: "auto" },
+            justifyContent: { xs: "stretch", sm: "flex-end" },
+            alignSelf: { xs: "stretch", sm: "center" },
+            "& .MuiButton-root": { width: { xs: "100%", sm: "auto" } },
           }}
         >
           {actionButtons}

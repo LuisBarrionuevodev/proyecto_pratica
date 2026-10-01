@@ -18,6 +18,7 @@ import { PlanificacionMapaLegend } from "./PlanificacionMapaLegend";
 import { PlanificacionMapaPendientesLayer } from "./PlanificacionMapaPendientesLayer";
 import { PlanificacionMapaUsedLayer } from "./PlanificacionMapaUsedLayer";
 import type { PlanificacionUsedMarker } from "./utils/buildPlanificacionUsedMarkers";
+import { PLANIFICACION_MAP_VIEWPORT_HEIGHT_XS } from "./planificacionMyMapsLayout";
 
 const OSM_ATTRIBUTION = "&copy; OpenStreetMap";
 const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
@@ -135,7 +136,17 @@ export function PlanificacionMapaDistritos({
   const geoJsonKey = `${geoData.features.length}-${distritoCatalogo.length}`;
 
   return (
-    <Box sx={{ position: "relative", width: "100%", minWidth: 0, height: "100%", minHeight: 0 }}>
+    <Box
+      sx={{
+        position: "relative",
+        width: "100%",
+        minWidth: 0,
+        maxWidth: "100%",
+        height: { xs: "auto", md: "100%" },
+        minHeight: 0,
+        overflow: "hidden",
+      }}
+    >
       {loadingCatalogo && distritoCatalogo.length === 0 ? (
         <Box
           sx={{
@@ -157,7 +168,9 @@ export function PlanificacionMapaDistritos({
             borderRadius: 2,
             overflow: "hidden",
             border: `1px solid ${GLASS_COLORS.borderMedium}`,
-            height: "100%",
+            width: "100%",
+            maxWidth: "100%",
+            height: { xs: PLANIFICACION_MAP_VIEWPORT_HEIGHT_XS, md: "100%" },
             minHeight: 280,
             "& .leaflet-container": {
               fontFamily: FONT_FAMILY_UI,
@@ -234,13 +247,15 @@ export function PlanificacionMapaDistritos({
               position: "absolute",
               top: 12,
               right: 12,
+              left: { xs: 12, sm: "auto" },
               zIndex: 1100,
               pointerEvents: "none",
               alignItems: "flex-end",
+              maxWidth: { xs: "calc(100% - 24px)", sm: "none" },
             }}
           >
             {onSelectOutsideDistricts ? (
-              <Box sx={{ pointerEvents: "auto" }}>
+              <Box sx={{ pointerEvents: "auto", maxWidth: "100%" }}>
                 <Chip
                   label={`Fuera de distritos (${outsideDistrictsCount})`}
                   onClick={onSelectOutsideDistricts}
@@ -250,6 +265,13 @@ export function PlanificacionMapaDistritos({
                   sx={{
                     fontFamily: FONT_FAMILY_UI,
                     fontWeight: 700,
+                    maxWidth: "100%",
+                    height: "auto",
+                    "& .MuiChip-label": {
+                      whiteSpace: { xs: "normal", sm: "nowrap" },
+                      lineHeight: 1.25,
+                      py: 0.25,
+                    },
                     backgroundColor: scopeOutsideDistricts
                       ? GLASS_COLORS.primary
                       : `var(${V.surfacePanelSubtle})`,
@@ -259,7 +281,7 @@ export function PlanificacionMapaDistritos({
                 />
               </Box>
             ) : null}
-            <Box sx={overlaySx}>
+            <Box sx={{ ...overlaySx, maxWidth: { xs: "min(100%, 220px)", sm: 240 } }}>
               <Typography
                 sx={{
                   fontFamily: FONT_FAMILY_UI,

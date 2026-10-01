@@ -480,12 +480,14 @@ const RutasTrabajo = () => {
       sx={{
         width: "100%",
         minWidth: 0,
+        maxWidth: "100%",
+        overflowX: rutaId != null ? "hidden" : undefined,
         boxSizing: "border-box",
         p: { xs: 1.5, md: 3 },
         display: "flex",
         flexDirection: "column",
         gap: 1.25,
-        minHeight: rutaId != null ? "calc(100vh - 200px)" : undefined,
+        minHeight: rutaId != null ? { xs: 0, md: "calc(100vh - 200px)" } : undefined,
       }}
     >
         {rutaId != null && ruta != null && ruta.estado_ruta === "BORRADOR" && (

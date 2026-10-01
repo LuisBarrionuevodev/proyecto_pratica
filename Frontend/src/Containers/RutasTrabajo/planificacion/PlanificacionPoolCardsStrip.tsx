@@ -46,6 +46,9 @@ export function PlanificacionPoolCardsStrip({
         px: 1.5,
         py: 1,
         flexShrink: 0,
+        minWidth: 0,
+        maxWidth: "100%",
+        overflow: "hidden",
       }}
     >
       <Stack
