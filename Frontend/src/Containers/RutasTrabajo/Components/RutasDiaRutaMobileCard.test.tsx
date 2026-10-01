@@ -31,5 +31,8 @@ describe("RutasDiaRutaMobileCard", () => {
     expect(html).toContain("Mañana");
     expect(html).toContain("Borrador");
     expect(html).toContain("Abrir ruta");
+    expect(html).toContain('aria-label="Abrir ruta"');
+    expect(html.match(/<button\b/g)?.length ?? 0).toBe(1);
+    expect(html).not.toContain("MuiIconButton-root");
   });
 });

@@ -1,7 +1,7 @@
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import PublishedWithChangesIcon from "@mui/icons-material/PublishedWithChanges";
-import { Box, IconButton, Stack, Typography } from "@mui/material";
+import { Box, Stack, Typography } from "@mui/material";
 
 import type { IRutaTrabajo } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS, moduleContentPanelPaperSx } from "../../../styles/GlassStyles";
@@ -48,6 +48,7 @@ export function RutasDiaRutaMobileCard({ ruta, tab, onOpen }: RutasDiaRutaMobile
     <Box
       component="button"
       type="button"
+      aria-label="Abrir ruta"
       onClick={open}
       sx={{
         ...moduleContentPanelPaperSx,
@@ -74,21 +75,19 @@ export function RutasDiaRutaMobileCard({ ruta, tab, onOpen }: RutasDiaRutaMobile
             {rutasFormatFechaListado(ruta.fecha)} · {rutasLabelTurno(ruta.turno)}
           </Typography>
         </Box>
-        <IconButton
-          size="small"
-          aria-label="Abrir ruta"
-          onClick={(e) => {
-            e.stopPropagation();
-            open();
-          }}
+        <Box
+          aria-hidden
           sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
             color: GLASS_COLORS.textSecondary,
             flexShrink: 0,
-            "&:hover": { color: GLASS_COLORS.primary, backgroundColor: GLASS_COLORS.hoverBg },
+            pointerEvents: "none",
           }}
         >
           <ChevronRightIcon fontSize="small" />
-        </IconButton>
+        </Box>
       </Box>
 
       <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
