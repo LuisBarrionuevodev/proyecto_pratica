@@ -51,6 +51,10 @@ const RankingInspectores = ({ items }: Props) => {
     muiTableContainerProps: {
       sx: {
         maxHeight: Math.min(320, Math.max(160, ranking.length * 40 + 48)),
+        overflowX: "auto",
+        width: "100%",
+        minWidth: 0,
+        maxWidth: "100%",
       },
     },
   });

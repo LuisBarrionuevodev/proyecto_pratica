@@ -12,7 +12,7 @@ type Props = {
  */
 export function DashboardExecutiveKpiGrid({
   children,
-  columns = { xs: "1fr 1fr", sm: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" },
+  columns = { xs: "1fr", sm: "repeat(2, 1fr)", lg: "repeat(4, 1fr)" },
 }: Props) {
   return (
     <Box
@@ -21,6 +21,8 @@ export function DashboardExecutiveKpiGrid({
         gridTemplateColumns: columns,
         gap: 1.25,
         alignItems: "stretch",
+        width: "100%",
+        minWidth: 0,
       }}
     >
       {children}

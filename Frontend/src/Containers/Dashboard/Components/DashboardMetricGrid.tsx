@@ -13,7 +13,7 @@ type Props = {
 export function DashboardMetricGrid({
   children,
   columns = {
-    xs: "1fr 1fr",
+    xs: "1fr",
     sm: "repeat(2, 1fr)",
     md: "repeat(3, 1fr)",
     lg: "repeat(3, 1fr)",
@@ -27,6 +27,8 @@ export function DashboardMetricGrid({
         gridTemplateColumns: columns,
         gap,
         alignItems: "stretch",
+        width: "100%",
+        minWidth: 0,
       }}
     >
       {children}

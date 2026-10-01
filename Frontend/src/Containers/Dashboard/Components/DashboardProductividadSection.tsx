@@ -112,13 +112,22 @@ function baseTableOptions<T extends { inspector_id: number }>(
     },
     muiTablePaperProps: {
       elevation: 0,
-      sx: { background: "transparent", overflow: "hidden" },
+      sx: {
+        background: "transparent",
+        overflow: "hidden",
+        width: "100%",
+        minWidth: 0,
+        maxWidth: "100%",
+      },
     },
     muiTableContainerProps: {
       sx: {
         minHeight: TABLE_MIN_HEIGHT,
         maxHeight: TABLE_MAX_HEIGHT,
         overflowX: "auto",
+        width: "100%",
+        minWidth: 0,
+        maxWidth: "100%",
       },
     },
     muiTableHeadCellProps: {

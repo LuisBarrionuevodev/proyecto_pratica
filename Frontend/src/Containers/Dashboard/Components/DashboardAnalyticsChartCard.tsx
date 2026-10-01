@@ -42,6 +42,11 @@ export function DashboardAnalyticsChartCard({
         sx={{
           flex: fillHeight ? 1 : undefined,
           minHeight: 0,
+          width: "100%",
+          minWidth: 0,
+          maxWidth: "100%",
+          overflowX: "auto",
+          WebkitOverflowScrolling: "touch",
         }}
       >
         {children}

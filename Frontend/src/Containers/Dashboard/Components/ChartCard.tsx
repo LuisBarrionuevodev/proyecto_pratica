@@ -24,7 +24,9 @@ const ChartCard = ({ title, children, demo = false, loading = false, compact = f
       p: compact ? { xs: 1.25, sm: 1.5 } : { xs: 2, sm: 2.5 },
       position: "relative",
       overflow: "hidden",
-      minWidth: compact ? 0 : 260,
+      width: "100%",
+      minWidth: 0,
+      maxWidth: "100%",
     }}
   >
     {loading ? (

@@ -21,7 +21,7 @@ type DashboardSectionBlockProps = {
  */
 export function DashboardSectionBlock({ title, subtitle, first = false, children }: DashboardSectionBlockProps) {
   return (
-    <Box sx={{ ...dashboardSectionSurfaceSx, mt: first ? 0.5 : 2 }}>
+    <Box sx={{ ...dashboardSectionSurfaceSx, mt: first ? 0.5 : 2, minWidth: 0, maxWidth: "100%" }}>
       <Box sx={dashboardSectionHeaderSx}>
         <Typography
           component="h2"

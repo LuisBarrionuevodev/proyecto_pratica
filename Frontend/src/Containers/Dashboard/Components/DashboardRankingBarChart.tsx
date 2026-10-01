@@ -79,7 +79,7 @@ export function DashboardRankingBarChart({
   const values = slice.map((i) => i.value);
 
   return (
-    <Box>
+    <Box sx={{ width: "100%", minWidth: 0, maxWidth: "100%" }}>
       <BarChart
         layout="horizontal"
         yAxis={[

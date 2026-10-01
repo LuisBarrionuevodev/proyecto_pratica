@@ -49,6 +49,7 @@ export function DashboardActasPorTipoChart({ actas }: Props) {
   }
 
   return (
+    <Box sx={{ width: "100%", minWidth: 0, maxWidth: "100%", overflowX: "auto" }}>
     <BarChart
       xAxis={[
         {
@@ -76,5 +77,6 @@ export function DashboardActasPorTipoChart({ actas }: Props) {
       margin={{ left: 36, right: 12, top: 16, bottom: 40 }}
       sx={ChartStyle}
     />
+    </Box>
   );
 }
