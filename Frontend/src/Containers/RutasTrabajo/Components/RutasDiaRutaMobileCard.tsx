@@ -1,9 +1,9 @@
-import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import FolderOpenIcon from "@mui/icons-material/FolderOpen";
 import PublishedWithChangesIcon from "@mui/icons-material/PublishedWithChanges";
 import { Box, Stack, Typography } from "@mui/material";
 
 import type { IRutaTrabajo } from "../../../api/rutasTrabajoApi";
+import { AppButton } from "../../../ui";
 import { GLASS_COLORS, moduleContentPanelPaperSx } from "../../../styles/GlassStyles";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
 import {
@@ -38,18 +38,13 @@ export type RutasDiaRutaMobileCardProps = {
 };
 
 /**
- * Card táctil de acceso a ruta (listado del día en móvil).
+ * Card informativa del día + única acción «Abrir ruta» (móvil).
  */
 export function RutasDiaRutaMobileCard({ ruta, tab, onOpen }: RutasDiaRutaMobileCardProps) {
-  const open = () => onOpen(ruta.id);
   const Icon = tab === "borradores" ? FolderOpenIcon : PublishedWithChangesIcon;
 
   return (
     <Box
-      component="button"
-      type="button"
-      aria-label="Abrir ruta"
-      onClick={open}
       sx={{
         ...moduleContentPanelPaperSx,
         p: 1.5,
@@ -58,36 +53,15 @@ export function RutasDiaRutaMobileCard({ ruta, tab, onOpen }: RutasDiaRutaMobile
         gap: 1,
         minWidth: 0,
         width: "100%",
-        textAlign: "left",
-        cursor: "pointer",
-        border: "none",
-        font: "inherit",
-        color: "inherit",
-        "&:hover": { filter: "brightness(1.02)" },
       }}
     >
-      <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, minWidth: 0 }}>
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ ...valueSx, fontWeight: 700, fontSize: "0.95rem" }}>
-            Ruta {ruta.numero}
-          </Typography>
-          <Typography sx={{ ...valueSx, color: GLASS_COLORS.textSecondary, fontSize: "0.8125rem", mt: 0.25 }}>
-            {rutasFormatFechaListado(ruta.fecha)} · {rutasLabelTurno(ruta.turno)}
-          </Typography>
-        </Box>
-        <Box
-          aria-hidden
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            color: GLASS_COLORS.textSecondary,
-            flexShrink: 0,
-            pointerEvents: "none",
-          }}
-        >
-          <ChevronRightIcon fontSize="small" />
-        </Box>
+      <Box sx={{ minWidth: 0 }}>
+        <Typography sx={{ ...valueSx, fontWeight: 700, fontSize: "0.95rem" }}>
+          Ruta {ruta.numero}
+        </Typography>
+        <Typography sx={{ ...valueSx, color: GLASS_COLORS.textSecondary, fontSize: "0.8125rem", mt: 0.25 }}>
+          {rutasFormatFechaListado(ruta.fecha)} · {rutasLabelTurno(ruta.turno)}
+        </Typography>
       </Box>
 
       <Stack direction="row" spacing={2} flexWrap="wrap" useFlexGap>
@@ -97,12 +71,16 @@ export function RutasDiaRutaMobileCard({ ruta, tab, onOpen }: RutasDiaRutaMobile
         </Box>
       </Stack>
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 0.75, color: GLASS_COLORS.primary }}>
-        <Icon sx={{ fontSize: 18 }} />
-        <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.8125rem", fontWeight: 700 }}>
-          Abrir ruta
-        </Typography>
-      </Box>
+      <AppButton
+        dsVariant="primary"
+        dsSize="sm"
+        fullWidth
+        startIcon={<Icon />}
+        onClick={() => onOpen(ruta.id)}
+        aria-label="Abrir ruta"
+      >
+        Abrir ruta
+      </AppButton>
     </Box>
   );
 }

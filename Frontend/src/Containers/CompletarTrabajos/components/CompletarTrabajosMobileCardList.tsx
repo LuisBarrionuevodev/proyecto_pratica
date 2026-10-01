@@ -1,5 +1,5 @@
 import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
-import { Box, CircularProgress, IconButton, Stack, Tooltip, Typography } from "@mui/material";
+import { Box, CircularProgress, Stack, Typography } from "@mui/material";
 
 import type { ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
 import { formatCrudDialogOtReference } from "../../../components/crudDialog/crudDialogReference";
@@ -78,28 +78,11 @@ export function CompletarTrabajosMobileCardList({
               minWidth: 0,
             }}
           >
-            <Box sx={{ display: "flex", alignItems: "flex-start", gap: 1, minWidth: 0 }}>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                <Typography sx={{ ...valueSx, fontWeight: 700, fontSize: "0.95rem" }}>{otRef}</Typography>
-                <Typography sx={{ ...valueSx, color: GLASS_COLORS.textSecondary, fontSize: "0.8125rem", mt: 0.25 }}>
-                  {origen}
-                </Typography>
-              </Box>
-              <Tooltip title="Completar trabajo">
-                <IconButton
-                  size="small"
-                  aria-label="Completar trabajo"
-                  disabled={loading}
-                  onClick={() => onOpenCompletarModal(row)}
-                  sx={{
-                    color: GLASS_COLORS.textSecondary,
-                    flexShrink: 0,
-                    "&:hover": { color: GLASS_COLORS.primary, backgroundColor: GLASS_COLORS.hoverBg },
-                  }}
-                >
-                  <AssignmentTurnedInIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ ...valueSx, fontWeight: 700, fontSize: "0.95rem" }}>{otRef}</Typography>
+              <Typography sx={{ ...valueSx, color: GLASS_COLORS.textSecondary, fontSize: "0.8125rem", mt: 0.25 }}>
+                {origen}
+              </Typography>
             </Box>
 
             <Box>

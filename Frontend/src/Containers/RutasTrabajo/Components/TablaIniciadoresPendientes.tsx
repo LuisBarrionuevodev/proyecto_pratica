@@ -300,7 +300,8 @@ function IniciadoresPoolTableMrt({
         size: 240,
         Cell: ({ row }) => {
           const domicilio = domicilioLineaAsignacion(row.original);
-          const rubro = rubroLineaAsignacion(row.original);          return (
+          const rubro = rubroLineaAsignacion(row.original);
+          return (
             <Box sx={{ display: "flex", flexDirection: "column", gap: 0.35, minWidth: 0, py: 0.125 }}>
               <Typography
                 variant="body2"
@@ -330,7 +331,7 @@ function IniciadoresPoolTableMrt({
                   {rubro}
                 </Typography>
               ) : (
-                <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.22)", fontFamily: FONT_FAMILY_UI }}>
+                <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: FONT_FAMILY_UI }}>
                   —
                 </Typography>
               )}
@@ -360,9 +361,26 @@ function IniciadoresPoolTableMrt({
     onRowSelectionChange: handleRowSelectionChange,
 
     renderTopToolbarCustomActions,
+
+    muiTablePaperProps: {
+      elevation: 0,
+      sx: { width: "100%", minWidth: 0, maxWidth: "100%", overflow: "hidden", boxShadow: "none" },
+    },
+    muiTableContainerProps: {
+      sx: {
+        width: "100%",
+        minWidth: 0,
+        maxWidth: "100%",
+        overflowX: "auto",
+      },
+    },
   });
 
-  return <MaterialReactTable table={table} />;
+  return (
+    <Box sx={{ width: "100%", minWidth: 0, maxWidth: "100%", overflow: "hidden" }}>
+      <MaterialReactTable table={table} />
+    </Box>
+  );
 }
 
 const IniciadoresPoolTableMrtMemo = memo(IniciadoresPoolTableMrt);
@@ -398,7 +416,7 @@ function TablaIniciadoresPendientesInner({
   const mostrarFiltroDistrito = distritoOptions.length > 2;
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25 }}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25, minWidth: 0, width: "100%" }}>
       <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ columnGap: 1, rowGap: 1, alignItems: "flex-end" }}>
         <Box sx={mergeSx(compactFiltroSx, asignacionFiltroInputSlotSx, { flex: "1 1 140px", minWidth: 132 })}>
           <AppSelect

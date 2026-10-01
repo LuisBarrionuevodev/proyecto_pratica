@@ -31,8 +31,12 @@ export function completarTrabajoTitularLinea(row: ICompletarTrabajoPendienteRow)
   return rubro || "—";
 }
 
+/** Etiqueta de estado para UI (no altera el valor persistido). */
 export function completarTrabajoEstadoLabel(row: ICompletarTrabajoPendienteRow): string {
-  return (row.estado_operativo ?? row.iniciador_estado ?? "").trim() || "—";
+  const raw = (row.estado_operativo ?? row.iniciador_estado ?? "").trim();
+  if (!raw) return "—";
+  if (raw === "EN_PROCESO") return "EN PROCESO";
+  return raw;
 }
 
 export function completarTrabajoInspectoresNombres(row: ICompletarTrabajoPendienteRow): string[] {

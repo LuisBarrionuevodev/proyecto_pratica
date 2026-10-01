@@ -22,6 +22,7 @@ import {
   completarCeldaSurfaceSx,
   completarCeldaTitle,
   completarPendingFooterSx,
+  formatPendientesDiaDescripcion,
   monthBoundsIso,
   pendientesFooterLabel,
   resolvePendienteCeldaTono,
@@ -143,7 +144,7 @@ export function CompletarEmptyView({ initialFecha, onVerTrabajos }: CompletarTra
                 getDayTitle={(ctx) => {
                   const row = diasMap.get(ctx.iso);
                   const tono = resolvePendienteCeldaTono(row);
-                  const pendientes = pendientesFooterLabel(row);
+                  const pendientes = row ? formatPendientesDiaDescripcion(row.total) : undefined;
                   return completarCeldaTitle(tono, pendientes);
                 }}
                 getDayButtonSx={(ctx) => {

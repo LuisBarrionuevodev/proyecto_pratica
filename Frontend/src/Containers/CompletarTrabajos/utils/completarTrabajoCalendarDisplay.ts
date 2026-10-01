@@ -25,10 +25,16 @@ export function monthBoundsIso(mesAncla: Date): { desde: string; hasta: string }
 }
 
 /**
- * Etiqueta de pendientes para celda del calendario (singular/plural).
+ * Etiqueta compacta visible en celda del calendario (`N!`).
  * Retorna `undefined` si no debe mostrarse contador (0 o ausente).
  */
 export function formatPendientesDiaLabel(total: number): string | undefined {
+  if (total <= 0) return undefined;
+  return `${total}!`;
+}
+
+/** Texto descriptivo para tooltip / accesibilidad (no va en la celda). */
+export function formatPendientesDiaDescripcion(total: number): string | undefined {
   if (total <= 0) return undefined;
   return total === 1 ? "1 pendiente" : `${total} pendientes`;
 }

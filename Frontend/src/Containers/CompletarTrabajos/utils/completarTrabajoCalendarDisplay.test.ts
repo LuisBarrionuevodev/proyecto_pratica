@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import type { ICompletarTrabajoPendienteDiaResumen } from "../../../api/completarTrabajoApi";
 import {
   completarCeldaSurfaceSx,
+  formatPendientesDiaDescripcion,
   formatPendientesDiaLabel,
   monthBoundsIso,
   pendientesFooterLabel,
@@ -19,17 +20,22 @@ function row(total: number, fecha = "2026-07-11"): ICompletarTrabajoPendienteDia
 }
 
 describe("completarTrabajoCalendarDisplay", () => {
-  it("formatPendientesDiaLabel singular y plural", () => {
+  it("formatPendientesDiaLabel compacto en celda", () => {
     expect(formatPendientesDiaLabel(0)).toBeUndefined();
-    expect(formatPendientesDiaLabel(1)).toBe("1 pendiente");
-    expect(formatPendientesDiaLabel(2)).toBe("2 pendientes");
+    expect(formatPendientesDiaLabel(1)).toBe("1!");
+    expect(formatPendientesDiaLabel(17)).toBe("17!");
+  });
+
+  it("formatPendientesDiaDescripcion para tooltip", () => {
+    expect(formatPendientesDiaDescripcion(1)).toBe("1 pendiente");
+    expect(formatPendientesDiaDescripcion(17)).toBe("17 pendientes");
   });
 
   it("pendientesFooterLabel usa total del resumen", () => {
     expect(pendientesFooterLabel(undefined)).toBeUndefined();
     expect(pendientesFooterLabel(row(0))).toBeUndefined();
-    expect(pendientesFooterLabel(row(1))).toBe("1 pendiente");
-    expect(pendientesFooterLabel(row(2))).toBe("2 pendientes");
+    expect(pendientesFooterLabel(row(1))).toBe("1!");
+    expect(pendientesFooterLabel(row(2))).toBe("2!");
   });
 
   it("monthBoundsIso devuelve primer y último día del mes", () => {
@@ -76,22 +82,22 @@ describe("completarTrabajoCalendarDisplay", () => {
       expect(completarCeldaSurfaceSx("verde").bgcolor).toContain("--d-calendar-completar-verde-bg");
     });
 
-    it("11/07 amarillo con 1 pendiente", () => {
+    it("11/07 amarillo con 1!", () => {
       const r = julioFixture.get("2026-07-11");
       expect(resolvePendienteCeldaTono(r)).toBe("amarillo");
-      expect(pendientesFooterLabel(r)).toBe("1 pendiente");
+      expect(pendientesFooterLabel(r)).toBe("1!");
     });
 
-    it("15/07 amarillo con 5 pendientes", () => {
+    it("15/07 amarillo con 5!", () => {
       const r = julioFixture.get("2026-07-15");
       expect(resolvePendienteCeldaTono(r)).toBe("amarillo");
-      expect(pendientesFooterLabel(r)).toBe("5 pendientes");
+      expect(pendientesFooterLabel(r)).toBe("5!");
     });
 
-    it("21/07 rojo con 6 pendientes", () => {
+    it("21/07 rojo con 6!", () => {
       const r = julioFixture.get("2026-07-21");
       expect(resolvePendienteCeldaTono(r)).toBe("rojo");
-      expect(pendientesFooterLabel(r)).toBe("6 pendientes");
+      expect(pendientesFooterLabel(r)).toBe("6!");
       expect(completarCeldaSurfaceSx("rojo").bgcolor).toContain("--d-calendar-completar-rojo-bg");
     });
   });

@@ -69,7 +69,7 @@ export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajos
           >
             Total de trabajos pendientes del día: {total} · {fecha}
           </Typography>
-          <AppButton dsVariant="ghost" onClick={onVolver} sx={{ alignSelf: { xs: "stretch", sm: "center" } }}>
+          <AppButton dsVariant="primary" onClick={onVolver} sx={{ alignSelf: { xs: "stretch", sm: "center" } }}>
             Volver
           </AppButton>
         </Box>

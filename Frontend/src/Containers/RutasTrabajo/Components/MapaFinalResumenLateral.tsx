@@ -4,6 +4,7 @@ import { Box, Button, Chip, Divider, MenuItem, Stack, TextField, Tooltip, Typogr
 
 import type { IRutaGrupoMin, IRutaItemMin } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { CSS_VAR_NAMES as V } from "../../../theme/applyCssVariables";
 import {
   planificacionPanelSubtitleSx,
   planificacionPanelTitleSx,
@@ -52,7 +53,8 @@ function distritosDelGrupo(gv: RutaMapaGrupoVista): string[] {
 function chipLabelInspector(fila: { nombre: string; legajo: string | null }): string {
   if (fila.legajo) return `${fila.nombre} · Leg. ${fila.legajo}`;
   return fila.nombre;
-}type MoverDestinoOption = { id: number; nombre: string };
+}
+type MoverDestinoOption = { id: number; nombre: string };
 
 /**
  * Selector + botón compacto (misma línea visual que «Equipo») para mover visita a otro grupo.
@@ -155,7 +157,7 @@ function DireccionRow({
       sx={{
         borderRadius: "10px",
         border: `1px solid ${GLASS_COLORS.borderLight}`,
-        bgcolor: "rgba(0,0,0,0.14)",
+        bgcolor: `var(${V.surfacePanelSubtle})`,
         overflow: "hidden",
       }}
     >
@@ -267,7 +269,7 @@ export function MapaFinalResumenLateral({
               p: 1.25,
               border: `1px solid ${GLASS_COLORS.borderLight}`,
               borderLeft: `4px solid ${gv.color}`,
-              backgroundColor: "rgba(0,0,0,0.2)",
+              backgroundColor: `var(${V.surfacePanelSubtle})`,
             }}
           >
             <Stack spacing={1.25}>

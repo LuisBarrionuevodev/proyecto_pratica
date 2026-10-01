@@ -165,8 +165,8 @@ const AsignacionPoolColumn = memo(function AsignacionPoolColumn({
   onEliminarDelPoolSeleccion,
 }: AsignacionPoolColumnProps) {
   return (
-    <Grid size={{ xs: 12, md: 7 }}>
-      <Paper elevation={0} sx={rutasInstitutionalPanelPaperSx}>
+    <Grid size={{ xs: 12, md: 7 }} sx={{ minWidth: 0 }}>
+      <Paper elevation={0} sx={{ ...rutasInstitutionalPanelPaperSx, minWidth: 0, overflow: "hidden" }}>
         <Stack
           direction="row"
           justifyContent="space-between"
@@ -239,8 +239,8 @@ const AsignacionGruposColumn = memo(function AsignacionGruposColumn({
   onQuitarItem,
 }: AsignacionGruposColumnProps) {
   return (
-    <Grid size={{ xs: 12, md: 5 }}>
-      <Paper elevation={0} sx={rutasInstitutionalPanelPaperSx}>
+    <Grid size={{ xs: 12, md: 5 }} sx={{ minWidth: 0 }}>
+      <Paper elevation={0} sx={{ ...rutasInstitutionalPanelPaperSx, minWidth: 0, overflow: "hidden" }}>
         <Typography sx={{ ...planificacionPanelTitleSx, mb: 0.75 }}>Grupos</Typography>
         <AsignacionGruposResumenChips ruta={ruta} grupos={grupos} itemsCount={itemsCount} />
         <AppButton
@@ -349,8 +349,8 @@ function RutasPlanificacionView({
   );
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5 }}>
-      <Grid container spacing={2.5}>
+    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, minWidth: 0, width: "100%" }}>
+      <Grid container spacing={2.5} sx={{ minWidth: 0, width: "100%" }}>
         <AsignacionPoolColumn
           ruta={ruta}
           totalEnPool={totalEnPool}

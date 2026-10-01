@@ -9,6 +9,7 @@ import type { DistritoCatalogoItem } from "../../../api/geolocalizacionApi";
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
 import distritosGeoRaw from "../../Mapa/distritos.json";
 import { glassCard, GLASS_COLORS } from "../../../styles/GlassStyles";
+import { CSS_VAR_NAMES as V } from "../../../theme/applyCssVariables";
 import type { ICargaDistritoRow } from "./types/planificacion.types";
 import { enrichPlanificacionDistritosGeoJson } from "./utils/mergePlanificacionDistritosGeo";
 import { PlanificacionMapInvalidateSize } from "./PlanificacionMapInvalidateSize";
@@ -21,7 +22,8 @@ import type { PlanificacionUsedMarker } from "./utils/buildPlanificacionUsedMark
 const OSM_ATTRIBUTION = "&copy; OpenStreetMap";
 const OSM_URL = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
-const TUCUMAN_CENTER: [number, number] = [-26.8241, -65.2226];const overlaySx = {
+const TUCUMAN_CENTER: [number, number] = [-26.8241, -65.2226];
+const overlaySx = {
   ...glassCard,
   p: 1,
   maxWidth: 240,
@@ -250,8 +252,8 @@ export function PlanificacionMapaDistritos({
                     fontWeight: 700,
                     backgroundColor: scopeOutsideDistricts
                       ? GLASS_COLORS.primary
-                      : "rgba(26,29,34,0.88)",
-                    color: scopeOutsideDistricts ? "#fff" : GLASS_COLORS.textPrimary,
+                      : `var(${V.surfacePanelSubtle})`,
+                    color: scopeOutsideDistricts ? "primary.contrastText" : "text.primary",
                     borderColor: GLASS_COLORS.borderMedium,
                   }}
                 />

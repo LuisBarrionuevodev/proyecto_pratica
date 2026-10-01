@@ -1,6 +1,5 @@
 import { useMemo } from "react";
-import { Box, IconButton, Tooltip, Typography } from "@mui/material";
-import AssignmentTurnedInIcon from "@mui/icons-material/AssignmentTurnedIn";
+import { Box, Tooltip, Typography } from "@mui/material";
 import {
   MaterialReactTable,
   useMaterialReactTable,
@@ -15,10 +14,9 @@ import {
   BandejaSegmentChipsCell,
   BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
 } from "../../Actuaciones/Components/bandejaTableCells";
-import {
-  COLORS,
-  DARK_TABLE_CONFIG,
-} from "../../Actuaciones/styles/actuacionesTableStyles";
+import { DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
+import { AppButton } from "../../../ui";
+import { completarTrabajoEstadoLabel } from "../utils/completarTrabajosListDisplay";
 import {
   completarTrabajoDomicilioLinea,
   completarTrabajoInspectoresNombres,
@@ -142,8 +140,37 @@ export function CompletarTrabajosMRT({
         grow: true,
         Cell: ({ row }) => <BandejaSegmentChipsCell segments={equipoSegments(row.original)} />,
       },
+      {
+        id: "col_estado",
+        header: "Estado",
+        accessorFn: (row) => completarTrabajoEstadoLabel(row),
+        size: 108,
+        grow: false,
+        Cell: ({ row }) => (
+          <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontSize: "0.8125rem", color: GLASS_COLORS.textPrimary }}>
+            {completarTrabajoEstadoLabel(row.original)}
+          </Typography>
+        ),
+      },
+      {
+        id: "col_completar",
+        header: "",
+        size: 120,
+        grow: false,
+        enableSorting: false,
+        Cell: ({ row }) => (
+          <AppButton
+            dsVariant="primary"
+            dsSize="sm"
+            disabled={loading}
+            onClick={() => onOpenCompletarModal(row.original)}
+          >
+            Completar
+          </AppButton>
+        ),
+      },
     ],
-    []
+    [loading, onOpenCompletarModal]
   );
 
   const table = useMaterialReactTable({
@@ -166,14 +193,7 @@ export function CompletarTrabajosMRT({
     columns,
     data: rows,
     getRowId: (r) => String(r.ruta_item_id),
-    enableRowActions: true,
-    positionActionsColumn: "first",
-    displayColumnDefOptions: {
-      "mrt-row-actions": {
-        size: 52,
-        grow: false,
-      },
-    },
+    enableRowActions: false,
     manualPagination: true,
     rowCount: total,
     state: {
@@ -190,27 +210,6 @@ export function CompletarTrabajosMRT({
     initialState: {
       density: "compact",
     },
-    renderRowActions: ({ row }) => (
-      <Tooltip title="Completar trabajo">
-        <IconButton
-          size="small"
-          disabled={loading}
-          sx={{
-            color: COLORS.white,
-            transition: "color 0.2s ease, background-color 0.2s ease",
-            "&:hover": {
-              color: COLORS.primary,
-              backgroundColor: "rgba(1, 102, 255, 0.15)",
-            },
-            "&.Mui-disabled": { color: "#555" },
-          }}
-          onClick={() => onOpenCompletarModal(row.original)}
-          aria-label="Completar trabajo"
-        >
-          <AssignmentTurnedInIcon fontSize="small" />
-        </IconButton>
-      </Tooltip>
-    ),
   });
 
   return (
@@ -226,7 +225,7 @@ export function CompletarTrabajosMRT({
             display: "block",
           }}
         >
-          Tocá el ícono de completar para abrir el formulario. Sin contraproducencia = visita realizada.
+          Usá el botón Completar para abrir el formulario. Sin contraproducencia = visita realizada.
         </Typography>
       }
     >

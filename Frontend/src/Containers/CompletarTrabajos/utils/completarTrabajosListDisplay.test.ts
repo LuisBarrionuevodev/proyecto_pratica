@@ -53,5 +53,6 @@ describe("completarTrabajosListDisplay", () => {
   it("prioriza titular local y expone estado operativo", () => {
     expect(completarTrabajoTitularLinea(row({ nombre_local: "La Esquina" }))).toBe("La Esquina");
     expect(completarTrabajoEstadoLabel(row({ estado_operativo: "EN_CURSO" }))).toBe("EN_CURSO");
+    expect(completarTrabajoEstadoLabel(row({ estado_operativo: "EN_PROCESO" }))).toBe("EN PROCESO");
   });
 });
