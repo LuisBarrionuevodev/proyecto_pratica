@@ -33,6 +33,7 @@ const ModalCrearGrupoRuta = ({ open, onClose, onSubmit, disabled = false }: Prop
   return (
     <AppDialog
       open={open}
+      mobileFullScreen
       // eslint-disable-next-line @typescript-eslint/no-unused-vars -- MUI Dialog onClose(event, reason)
       onClose={(_event, _reason) => handleClose()}
       onCloseButtonClick={() => handleClose()}

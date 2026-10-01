@@ -28,15 +28,15 @@ describe("RUTAS / FIX VISUAL 1 — chips y botones destructivos", () => {
   });
 
   it("Tabla asignación eliminar del pool usa danger estándar", () => {
-    const tabla = read("src/Containers/RutasTrabajo/Components/TablaIniciadoresPendientes.tsx");
-    expect(tabla).toContain('dsVariant="danger"');
-    expect(tabla).not.toContain('bgcolor: "error.main"');
+    const actions = read("src/Containers/RutasTrabajo/Components/AsignacionPoolSelectionActions.tsx");
+    expect(actions).toContain('dsVariant="danger"');
+    expect(actions).not.toContain('bgcolor: "error.main"');
   });
 
   it("Tabla asignación contador seleccionados usa RutasOperativaChip", () => {
-    const tabla = read("src/Containers/RutasTrabajo/Components/TablaIniciadoresPendientes.tsx");
-    expect(tabla).toContain("RutasOperativaChip");
-    expect(tabla).toContain("${nSel} seleccionados");
-    expect(tabla).not.toMatch(/<Chip label=\{\`\$\{nSel\} seleccionados\`\}/);
+    const actions = read("src/Containers/RutasTrabajo/Components/AsignacionPoolSelectionActions.tsx");
+    expect(actions).toContain("RutasOperativaChip");
+    expect(actions).toContain("${nSel} seleccionados");
+    expect(actions).not.toMatch(/<Chip label=\{\`\$\{nSel\} seleccionados\`\}/);
   });
 });

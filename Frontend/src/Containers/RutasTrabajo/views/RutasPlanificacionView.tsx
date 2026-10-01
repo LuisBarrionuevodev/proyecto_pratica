@@ -165,8 +165,12 @@ const AsignacionPoolColumn = memo(function AsignacionPoolColumn({
   onEliminarDelPoolSeleccion,
 }: AsignacionPoolColumnProps) {
   return (
-    <Grid size={{ xs: 12, md: 7 }} sx={{ minWidth: 0 }}>
-      <Paper elevation={0} sx={{ ...rutasInstitutionalPanelPaperSx, minWidth: 0, overflow: "hidden" }}>
+    <Grid size={{ xs: 12, md: 7 }} sx={{ minWidth: 0, maxWidth: "100%" }}>
+      <Paper
+        elevation={0}
+        data-testid="asignacion-pool-panel"
+        sx={{ ...rutasInstitutionalPanelPaperSx, minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
+      >
         <Stack
           direction="row"
           justifyContent="space-between"
@@ -239,8 +243,12 @@ const AsignacionGruposColumn = memo(function AsignacionGruposColumn({
   onQuitarItem,
 }: AsignacionGruposColumnProps) {
   return (
-    <Grid size={{ xs: 12, md: 5 }} sx={{ minWidth: 0 }}>
-      <Paper elevation={0} sx={{ ...rutasInstitutionalPanelPaperSx, minWidth: 0, overflow: "hidden" }}>
+    <Grid size={{ xs: 12, md: 5 }} sx={{ minWidth: 0, maxWidth: "100%" }}>
+      <Paper
+        elevation={0}
+        data-testid="asignacion-grupos-panel"
+        sx={{ ...rutasInstitutionalPanelPaperSx, minWidth: 0, maxWidth: "100%", overflow: "hidden" }}
+      >
         <Typography sx={{ ...planificacionPanelTitleSx, mb: 0.75 }}>Grupos</Typography>
         <AsignacionGruposResumenChips ruta={ruta} grupos={grupos} itemsCount={itemsCount} />
         <AppButton
@@ -248,7 +256,7 @@ const AsignacionGruposColumn = memo(function AsignacionGruposColumn({
           dsSize="sm"
           disabled={!canCreateGrupo}
           onClick={onOpenCrearGrupo}
-          sx={{ mb: 1.5, fontWeight: 700 }}
+          sx={{ mb: 1.5, fontWeight: 700, width: { xs: "100%", md: "auto" } }}
         >
           + Nuevo grupo
         </AppButton>
@@ -349,8 +357,19 @@ function RutasPlanificacionView({
   );
 
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.5, minWidth: 0, width: "100%" }}>
-      <Grid container spacing={2.5} sx={{ minWidth: 0, width: "100%" }}>
+    <Box
+      data-testid="rutas-asignacion-view"
+      sx={{
+        display: "flex",
+        flexDirection: "column",
+        gap: 1.5,
+        minWidth: 0,
+        width: "100%",
+        maxWidth: "100%",
+        overflowX: "hidden",
+      }}
+    >
+      <Grid container spacing={2.5} sx={{ minWidth: 0, width: "100%", maxWidth: "100%" }}>
         <AsignacionPoolColumn
           ruta={ruta}
           totalEnPool={totalEnPool}

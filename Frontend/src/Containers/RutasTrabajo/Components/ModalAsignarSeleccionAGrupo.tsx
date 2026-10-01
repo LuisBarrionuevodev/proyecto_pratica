@@ -64,6 +64,7 @@ function ModalAsignarSeleccionAGrupoInner({ open, onClose, grupos, selectedCount
     <AppDialog
       open={open}
       keepMounted={false}
+      mobileFullScreen
       {...DIALOG_OPEN_PERF}
       // eslint-disable-next-line @typescript-eslint/no-unused-vars -- MUI Dialog onClose(event, reason)
       onClose={(_event, _reason) => handleClose()}

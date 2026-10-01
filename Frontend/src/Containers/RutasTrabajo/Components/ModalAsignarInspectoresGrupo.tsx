@@ -178,6 +178,7 @@ function ModalAsignarInspectoresGrupoInner({ open, onClose, onSubmit, grupo, ins
     <AppDialog
       open={open}
       keepMounted={false}
+      mobileFullScreen
       maxWidth="md"
       fullWidth
       scroll="paper"

@@ -182,7 +182,14 @@ const GrupoRutaSection = memo(function GrupoRutaSection({
             />
           </Stack>
         </Box>
-        <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap justifyContent="flex-end">
+        <Stack
+          direction={{ xs: "column", sm: "row" }}
+          spacing={0.75}
+          flexWrap="wrap"
+          useFlexGap
+          justifyContent="flex-end"
+          sx={{ width: { xs: "100%", sm: "auto" }, minWidth: 0, "& .MuiButton-root": { width: { xs: "100%", sm: "auto" } } }}
+        >
           <Button type="button" variant="contained" size="small" disableElevation onClick={() => onToggleExpanded(grupo.id)} sx={rutasAsignacionNeutralContainedButtonSx}>
             {expanded ? "Ocultar items" : "Gestionar items"}
           </Button>

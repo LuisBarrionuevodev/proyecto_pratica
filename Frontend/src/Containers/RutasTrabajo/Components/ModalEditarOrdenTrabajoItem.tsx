@@ -46,6 +46,7 @@ const ModalEditarOrdenTrabajoItem = ({ open, onClose, item, onConfirm }: Props) 
   return (
     <AppDialog
       open={open}
+      mobileFullScreen
       // eslint-disable-next-line @typescript-eslint/no-unused-vars -- MUI Dialog onClose(event, reason)
       onClose={(_event, _reason) => handleClose()}
       onCloseButtonClick={() => handleClose()}

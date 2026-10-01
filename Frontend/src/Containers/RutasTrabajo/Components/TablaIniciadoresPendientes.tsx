@@ -1,6 +1,8 @@
-import { memo, useCallback, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useMemo, useRef } from "react";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
 import { Box, Button, Chip, Stack, TextField, Typography } from "@mui/material";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 import {
   MaterialReactTable,
   useMaterialReactTable,
@@ -25,11 +27,12 @@ import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { mergeSx } from "../../../utils/muiSx";
 import { DARK_TABLE_CONFIG } from "../../Actuaciones/styles/actuacionesTableStyles";
 import { filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
-import { AppButton, AppSelect } from "../../../ui";
-import { RutasOperativaChip } from "./RutasOperativaChip";
+import { layoutShell } from "../../../theme/tokens";
+import { AppSelect } from "../../../ui";
+import { AsignacionPoolMobileCardList } from "./AsignacionPoolMobileCardList";
+import { AsignacionPoolSelectionActions } from "./AsignacionPoolSelectionActions";
 import {
   asignacionFiltroInputSlotSx,
-  planificacionPanelFooterMetaSx,
   planificacionTextFieldSx,
   rutasAsignacionNeutralContainedButtonSx,
   rutasOperativaChipSx,
@@ -158,64 +161,28 @@ function IniciadoresPoolTableMrt({
     [assignedIniciadorIds]
   );
 
-  const [eliminandoPool, setEliminandoPool] = useState(false);
-
-  const handleEliminarDelPool = useCallback(async () => {
-    if (!onEliminarDelPool || !poolIdByIniciadorId) return;
-    const poolIds = selectedIds
-      .map((id) => poolIdByIniciadorId[id])
-      .filter((pid): pid is number => pid != null);
-    if (!poolIds.length) return;
-    setEliminandoPool(true);
-    try {
-      await onEliminarDelPool(poolIds);
-    } finally {
-      setEliminandoPool(false);
-    }
-  }, [onEliminarDelPool, poolIdByIniciadorId, selectedIds]);
-
-  const renderTopToolbarCustomActions = useCallback(() => {
-    const nSel = selectedIds.length;
-    const puedeEliminar =
-      nSel > 0 &&
-      Boolean(onEliminarDelPool && poolIdByIniciadorId) &&
-      selectedIds.every(
-        (id) => !assignedIniciadorIds.has(id) && poolIdByIniciadorId![id] != null
-      );
-
-    return (
-      <Stack direction="row" spacing={1.5} alignItems="center" sx={{ pl: 0.5 }} flexWrap="wrap" useFlexGap>
-        <Typography sx={{ ...planificacionPanelFooterMetaSx, fontSize: "0.8125rem", color: GLASS_COLORS.textSecondary }}>
-          {totalEnPool} en pool · {rowsDisponibles.length} visibles
-        </Typography>
-        <RutasOperativaChip label={`${nSel} seleccionados`} color="primary" />
-        {onEliminarDelPool ? (
-          <AppButton
-            dsVariant="danger"
-            dsSize="sm"
-            disabled={!puedeEliminar || eliminandoPool}
-            onClick={() => void handleEliminarDelPool()}
-            data-testid="asignacion-eliminar-del-pool"
-          >
-            {eliminandoPool ? "Eliminando…" : "Eliminar del pool"}
-          </AppButton>
-        ) : null}
-        <AppButton dsVariant="primary" dsSize="sm" onClick={onAssignSelected} disabled={nSel === 0}>
-          Asignar seleccionados
-        </AppButton>
-      </Stack>
-    );
-  }, [
-    totalEnPool,
-    rowsDisponibles.length,
-    selectedIds,
-    assignedIniciadorIds,
-    onAssignSelected,
-    onEliminarDelPool,
-    poolIdByIniciadorId,
-    eliminandoPool,
-    handleEliminarDelPool,
-  ]);
+  const renderTopToolbarCustomActions = useCallback(
+    () => (
+      <AsignacionPoolSelectionActions
+        totalEnPool={totalEnPool}
+        rowsVisiblesCount={rowsDisponibles.length}
+        selectedIds={selectedIds}
+        assignedIniciadorIds={assignedIniciadorIds}
+        onAssignSelected={onAssignSelected}
+        poolIdByIniciadorId={poolIdByIniciadorId}
+        onEliminarDelPool={onEliminarDelPool}
+      />
+    ),
+    [
+      totalEnPool,
+      rowsDisponibles.length,
+      selectedIds,
+      assignedIniciadorIds,
+      onAssignSelected,
+      onEliminarDelPool,
+      poolIdByIniciadorId,
+    ]
+  );
 
   const columns = useMemo<MRT_ColumnDef<IRutaIniciadorPendienteRow>[]>(
     () => [
@@ -412,13 +379,36 @@ function TablaIniciadoresPendientesInner({
   poolIdByIniciadorId,
   onEliminarDelPool,
 }: TableProps) {
+  const theme = useTheme();
+  const isDesktopPoolTable = useMediaQuery(theme.breakpoints.up(layoutShell.desktopMinBreakpoint));
+
+  const rowsDisponibles = useMemo(
+    () => rows.filter((row) => !assignedIniciadorIds.has(row.id)),
+    [rows, assignedIniciadorIds]
+  );
+
   /** Solo si el pool mezcla más de un distrito: el filtro aporta valor; si no, no mostramos el control. */
   const mostrarFiltroDistrito = distritoOptions.length > 2;
 
+  const filtroSlotSx = {
+    flex: { xs: "1 1 100%", sm: "1 1 140px" },
+    minWidth: { xs: 0, sm: 132 },
+    maxWidth: { xs: "100%", sm: 220 },
+  } as const;
+
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", gap: 1.25, minWidth: 0, width: "100%" }}>
-      <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap sx={{ columnGap: 1, rowGap: 1, alignItems: "flex-end" }}>
-        <Box sx={mergeSx(compactFiltroSx, asignacionFiltroInputSlotSx, { flex: "1 1 140px", minWidth: 132 })}>
+    <Box
+      data-testid="tabla-iniciadores-pendientes"
+      sx={{ display: "flex", flexDirection: "column", gap: 1.25, minWidth: 0, width: "100%", maxWidth: "100%" }}
+    >
+      <Stack
+        direction="row"
+        spacing={1}
+        flexWrap="wrap"
+        useFlexGap
+        sx={{ columnGap: 1, rowGap: 1, alignItems: "flex-end", width: "100%", minWidth: 0 }}
+      >
+        <Box sx={mergeSx(compactFiltroSx, asignacionFiltroInputSlotSx, filtroSlotSx)}>
           <AppSelect
             appearance="dense"
             label="Tipo"
@@ -428,7 +418,13 @@ function TablaIniciadoresPendientesInner({
             options={[...TIPO_INICIADOR_OPTIONS]}
           />
         </Box>
-        <Box sx={mergeSx(compactFiltroSx, asignacionFiltroInputSlotSx, { flex: "0 1 172px", minWidth: 160 })}>
+        <Box
+          sx={mergeSx(compactFiltroSx, asignacionFiltroInputSlotSx, {
+            flex: { xs: "1 1 100%", sm: "0 1 172px" },
+            minWidth: { xs: 0, sm: 160 },
+            maxWidth: { xs: "100%", sm: 220 },
+          })}
+        >
           <AppSelect
             appearance="dense"
             label="Prioridad"
@@ -444,7 +440,7 @@ function TablaIniciadoresPendientesInner({
           />
         </Box>
         {mostrarFiltroDistrito ? (
-          <Box sx={mergeSx(compactFiltroSx, asignacionFiltroInputSlotSx, { flex: "1 1 140px", minWidth: 128 })}>
+          <Box sx={mergeSx(compactFiltroSx, asignacionFiltroInputSlotSx, filtroSlotSx)}>
             <AppSelect
               appearance="dense"
               label="Distrito"
@@ -455,7 +451,13 @@ function TablaIniciadoresPendientesInner({
             />
           </Box>
         ) : null}
-        <Box sx={mergeSx(compactFiltroSx, asignacionFiltroInputSlotSx, { flex: "2 1 200px", minWidth: 160, maxWidth: 360 })}>
+        <Box
+          sx={mergeSx(compactFiltroSx, asignacionFiltroInputSlotSx, {
+            flex: { xs: "1 1 100%", sm: "2 1 200px" },
+            minWidth: { xs: 0, sm: 160 },
+            maxWidth: { xs: "100%", sm: 360 },
+          })}
+        >
           <TextField
             hiddenLabel
             size="small"
@@ -491,16 +493,36 @@ function TablaIniciadoresPendientesInner({
         </Stack>
       ) : null}
 
-      <IniciadoresPoolTableMrtMemo
-        rows={rows}
-        totalEnPool={totalEnPool}
-        selectedIds={selectedIds}
-        assignedIniciadorIds={assignedIniciadorIds}
-        onSelectionChange={onSelectionChange}
-        onAssignSelected={onAssignSelected}
-        poolIdByIniciadorId={poolIdByIniciadorId}
-        onEliminarDelPool={onEliminarDelPool}
-      />
+      {isDesktopPoolTable ? (
+        <IniciadoresPoolTableMrtMemo
+          rows={rows}
+          totalEnPool={totalEnPool}
+          selectedIds={selectedIds}
+          assignedIniciadorIds={assignedIniciadorIds}
+          onSelectionChange={onSelectionChange}
+          onAssignSelected={onAssignSelected}
+          poolIdByIniciadorId={poolIdByIniciadorId}
+          onEliminarDelPool={onEliminarDelPool}
+        />
+      ) : (
+        <Stack spacing={1.25} sx={{ minWidth: 0, width: "100%" }}>
+          <AsignacionPoolSelectionActions
+            totalEnPool={totalEnPool}
+            rowsVisiblesCount={rowsDisponibles.length}
+            selectedIds={selectedIds}
+            assignedIniciadorIds={assignedIniciadorIds}
+            onAssignSelected={onAssignSelected}
+            poolIdByIniciadorId={poolIdByIniciadorId}
+            onEliminarDelPool={onEliminarDelPool}
+          />
+          <AsignacionPoolMobileCardList
+            rows={rowsDisponibles}
+            selectedIds={selectedIds}
+            assignedIniciadorIds={assignedIniciadorIds}
+            onSelectionChange={onSelectionChange}
+          />
+        </Stack>
+      )}
     </Box>
   );
 }
