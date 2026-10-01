@@ -2,11 +2,28 @@ import { Box, ToggleButton, ToggleButtonGroup } from "@mui/material";
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 
 import { AppTextField } from "../../../ui";
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { CSS_VAR_NAMES as V } from "../../../theme/applyCssVariables";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 type EditorMode = "NUMERO" | "ESQUINA";
 
 const isOnlyDigits = (value: string) => /^\d+$/.test(value);
+
+const numeroEsquinaToggleGroupSx = {
+  "& .MuiToggleButton-root": {
+    textTransform: "none" as const,
+    fontFamily: FONT_FAMILY_UI,
+    fontSize: "0.8125rem",
+    color: GLASS_COLORS.textSecondary,
+    borderColor: GLASS_COLORS.borderMedium,
+    px: 1.5,
+  },
+  "& .Mui-selected": {
+    bgcolor: `var(${V.actionSelected}) !important`,
+    color: `${GLASS_COLORS.textPrimary} !important`,
+  },
+} as const;
 
 export type NumeroEsquinaFreeEditorProps = {
   value: string | null;
@@ -100,18 +117,7 @@ export function NumeroEsquinaFreeEditor({
             sx={{
               alignSelf: { xs: "flex-start", sm: "auto" },
               flexShrink: 0,
-              "& .MuiToggleButton-root": {
-                textTransform: "none",
-                fontFamily: FONT_FAMILY_UI,
-                fontSize: "0.8125rem",
-                color: "rgba(255,255,255,0.75)",
-                borderColor: "rgba(255,255,255,0.28)",
-                px: 1.5,
-              },
-              "& .Mui-selected": {
-                bgcolor: "rgba(255,255,255,0.12) !important",
-                color: "rgba(255,255,255,0.95) !important",
-              },
+              ...numeroEsquinaToggleGroupSx,
             }}
           >
             <ToggleButton value="NUMERO">Número</ToggleButton>
@@ -171,18 +177,7 @@ export function NumeroEsquinaFreeEditor({
         aria-label="modo numero esquina"
         sx={{
           alignSelf: "flex-start",
-          "& .MuiToggleButton-root": {
-            textTransform: "none",
-            fontFamily: FONT_FAMILY_UI,
-            fontSize: "0.8125rem",
-            color: "rgba(255,255,255,0.75)",
-            borderColor: "rgba(255,255,255,0.28)",
-            px: 1.5,
-          },
-          "& .Mui-selected": {
-            bgcolor: "rgba(255,255,255,0.12) !important",
-            color: "rgba(255,255,255,0.95) !important",
-          },
+          ...numeroEsquinaToggleGroupSx,
         }}
       >
         <ToggleButton value="NUMERO">Número</ToggleButton>

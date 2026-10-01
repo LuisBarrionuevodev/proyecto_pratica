@@ -1,4 +1,6 @@
 import { useEffect, useState } from "react";
+import useMediaQuery from "@mui/material/useMediaQuery";
+import { useTheme } from "@mui/material/styles";
 import { Alert, Box, Typography } from "@mui/material";
 
 import type { ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
@@ -7,8 +9,10 @@ import { AppButton } from "../../../ui";
 import { GLASS_COLORS, moduleContentPanelPaperSx } from "../../../styles/GlassStyles";
 import { CompletarTrabajoModal } from "../components/CompletarTrabajoModal";
 import { CompletarTrabajosMRT } from "../components/CompletarTrabajosMRT";
+import { CompletarTrabajosMobileCardList } from "../components/CompletarTrabajosMobileCardList";
 import { useCompletarTrabajoCatalogs, useTrabajosDelDia } from "../hooks";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
+import { layoutShell } from "../../../theme/tokens";
 
 export type CompletarTrabajosGridViewProps = {
   fecha: string;
@@ -21,6 +25,8 @@ const DEFAULT_PER_PAGE = 20;
  * Vista principal: tabla resumen + modal de cierre (`submitCompletarTrabajoCierreFromRow`).
  */
 export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajosGridViewProps) {
+  const theme = useTheme();
+  const isDesktopShell = useMediaQuery(theme.breakpoints.up(layoutShell.desktopMinBreakpoint));
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(DEFAULT_PER_PAGE);
   const [modalRow, setModalRow] = useState<ICompletarTrabajoPendienteRow | null>(null);
@@ -88,21 +94,32 @@ export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajos
           borrador), que la ruta esté publicada y que queden ítems EN_PROCESO.
         </Typography>
       )}
-      {(total > 0 || loading) && (
-        <CompletarTrabajosMRT
-          rows={rows}
-          loading={loading}
-          total={total}
-          page={page}
-          perPage={perPage}
-          onPageChange={setPage}
-          onPerPageChange={(n) => {
-            setPerPage(n);
-            setPage(1);
-          }}
-          onOpenCompletarModal={setModalRow}
-        />
-      )}
+      {(total > 0 || loading) &&
+        (isDesktopShell ? (
+          <CompletarTrabajosMRT
+            rows={rows}
+            loading={loading}
+            total={total}
+            page={page}
+            perPage={perPage}
+            onPageChange={setPage}
+            onPerPageChange={(n) => {
+              setPerPage(n);
+              setPage(1);
+            }}
+            onOpenCompletarModal={setModalRow}
+          />
+        ) : (
+          <CompletarTrabajosMobileCardList
+            rows={rows}
+            loading={loading}
+            total={total}
+            page={page}
+            perPage={perPage}
+            onPageChange={setPage}
+            onOpenCompletarModal={setModalRow}
+          />
+        ))}
 
       <CompletarTrabajoModal
         open={modalRow != null}

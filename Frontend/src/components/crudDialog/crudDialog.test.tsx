@@ -34,6 +34,18 @@ describe("CrudDialogHeader", () => {
     expect(html).toContain("Vista");
   });
 
+  it("muestra referencia OT/actuación con color semántico del tema", () => {
+    const html = render(
+      <CrudDialogHeader domainChip="Actuaciones" titulo="Editar" reference="OT 123456" />
+    );
+    expect(html).toContain("OT 123456");
+    const refIdx = html.indexOf("OT 123456");
+    const refSlice = html.slice(Math.max(0, refIdx - 1200), refIdx + 40);
+    expect(refSlice).toMatch(/color:\s*rgba\(0,\s*0,\s*0,\s*0\.87\)/);
+    expect(refSlice).not.toMatch(/color:\s*#fff/i);
+    expect(refSlice).not.toMatch(/color:\s*white/i);
+  });
+
   it("expone etiquetas de modo", () => {
     expect(crudDialogModeLabel("edit")).toBe("Edición");
     expect(crudDialogModeLabel("create")).toBe("Alta");

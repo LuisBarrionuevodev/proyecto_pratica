@@ -7,6 +7,12 @@ export type { CrudGlassDialogProps } from "./CrudGlassDialog";
 export { CrudDialogHeader, crudDialogModeLabel } from "./CrudDialogHeader";
 export type { CrudDialogHeaderProps, CrudDialogMode } from "./CrudDialogHeader";
 
+export {
+  formatCrudDialogActuacionReference,
+  formatCrudDialogOtReference,
+  resolveCrudDialogHeaderReference,
+} from "./crudDialogReference";
+
 export { CrudDialogSection } from "./CrudDialogSection";
 export type { CrudDialogSectionProps, CrudDialogSectionVariant } from "./CrudDialogSection";
 

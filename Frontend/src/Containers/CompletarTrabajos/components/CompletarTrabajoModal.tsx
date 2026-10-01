@@ -26,10 +26,11 @@ import {
   CrudGlassDialog,
   useCrudDialogScrollContainer,
 } from "../../../components/crudDialog";
+import { formatCrudDialogOtReference } from "../../../components/crudDialog/crudDialogReference";
 import { DOC_MODAL_BLOCK_STACK_SPACING } from "../../../styles/documentalModalTokens";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { CSS_VAR_NAMES as V } from "../../../theme/applyCssVariables";
-import { AppSelect, AppTextField } from "../../../ui";
+import { AppSelect, AppTextField, ResponsiveFormGrid } from "../../../ui";
 import { useAppFeedback } from "../../../components/feedback";
 import { ActaNumFieldLazy } from "../../Actuaciones/Components/ActaNumFieldLazy";
 import {
@@ -154,11 +155,8 @@ const modalToggleGroupSx = {
   },
 } as const;
 
-const edicionGrid2ColSx = {
-  display: "grid",
-  gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
-  gap: 2,
-  width: "100%",
+const completarModalFormGridSx = {
+  gridTemplateColumns: { md: "repeat(2, minmax(0, 1fr))" },
   alignItems: "end",
 } as const;
 
@@ -1161,6 +1159,7 @@ export function CompletarTrabajoModal({
       onClose={handleDialogClose}
       onCloseButtonClick={handleClose}
       maxWidth="md"
+      mobileFullScreen
       disablePortal={disablePortal}
       hideBackdrop={disablePortal}
       title={
@@ -1168,6 +1167,7 @@ export function CompletarTrabajoModal({
           domainChip="Completar trabajo"
           titulo={tipoIniciadorLabel}
           subtitulo={headerSubtitulo}
+          reference={formatCrudDialogOtReference((resolvedRow ?? row)?.orden_trabajo_numero)}
         />
       }
       actions={
@@ -1551,7 +1551,7 @@ export function CompletarTrabajoModal({
         {showDomicilioCalleNumeroEditable && (
         <CompletarBloque title="Domicilio y establecimiento">
         <Box sx={{ ...col, width: "100%" }}>
-        <Box sx={edicionGrid2ColSx}>
+        <ResponsiveFormGrid sx={completarModalFormGridSx}>
           <AppTextField
             appearance="glass"
             label="Calle"
@@ -1576,7 +1576,7 @@ export function CompletarTrabajoModal({
             helperText={fe("numero") || undefined}
             initialMode={numeroTipo}
           />
-        </Box>
+        </ResponsiveFormGrid>
 
         {showContribDomicilioEditable && !showIdentityVerificarInformar && (
         <AppSelect
@@ -1639,7 +1639,7 @@ export function CompletarTrabajoModal({
         </ToggleButtonGroup>
 
         {titularModo === "persona" ? (
-          <Box sx={edicionGrid2ColSx}>
+          <ResponsiveFormGrid sx={completarModalFormGridSx}>
             <AppTextField
               appearance="glass"
               label="Apellido"
@@ -1666,7 +1666,7 @@ export function CompletarTrabajoModal({
               error={Boolean(fe("contrib_nombre"))}
               helperText={fe("contrib_nombre") || undefined}
             />
-          </Box>
+          </ResponsiveFormGrid>
         ) : (
           <AppTextField
             appearance="glass"
@@ -1754,7 +1754,7 @@ export function CompletarTrabajoModal({
                   items: fe("items_acta_inspeccion"),
                 }}
               />
-              <Box sx={edicionGrid2ColSx}>
+              <ResponsiveFormGrid sx={completarModalFormGridSx}>
                 {esReinspeccionNotificacion ? (
                   <Box
                     sx={{
@@ -1787,7 +1787,7 @@ export function CompletarTrabajoModal({
                     helperText={fe("acta_notificacion_num") || undefined}
                   />
                 )}
-              </Box>
+              </ResponsiveFormGrid>
               {!esReinspeccionNotificacion ? (
                 <>
                   <Typography variant="caption" sx={labelMutedSx}>
@@ -1875,7 +1875,7 @@ export function CompletarTrabajoModal({
               ) : null}
             </>
           )}
-          <Box sx={edicionGrid2ColSx}>
+          <ResponsiveFormGrid sx={completarModalFormGridSx}>
             <ActaNumFieldLazy
               appearance="glass"
               label={
@@ -1912,8 +1912,8 @@ export function CompletarTrabajoModal({
                 (esNoPermiteInspeccion && !visitaRealizada ? "Obligatorio para esta contraproducencia." : undefined)
               }
             />
-          </Box>
-          <Box sx={edicionGrid2ColSx}>
+          </ResponsiveFormGrid>
+          <ResponsiveFormGrid sx={completarModalFormGridSx}>
             <ActaNumFieldLazy
               appearance="glass"
               label="N° acta de clausura (opcional)"
@@ -1940,7 +1940,7 @@ export function CompletarTrabajoModal({
             ) : (
               <Box />
             )}
-          </Box>
+          </ResponsiveFormGrid>
           {visitaRealizada ? (
             <AppTextField
               appearance="glass"

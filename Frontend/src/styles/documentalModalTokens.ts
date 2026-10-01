@@ -43,7 +43,7 @@ export const docModalSubtitleSx: SxProps<Theme> = {
   wordBreak: "break-word",
 };
 
-/** Referencia tipo Actuación #… / OT: blanca, más discreta por tamaño y peso. */
+/** Referencia tipo Actuación #… / OT: discreta por tamaño y peso (`DOC_MODAL_TEXT` / tema). */
 export const docModalReferenceSx: SxProps<Theme> = {
   color: DOC_MODAL_TEXT,
   fontWeight: 400,

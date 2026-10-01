@@ -1,6 +1,8 @@
 import { Box, Chip, Typography } from "@mui/material";
 
+import { docModalReferenceSx } from "../../styles/documentalModalTokens";
 import { crudDialogHeaderChipSx, CRUD_DIALOG_TEXT } from "../../styles/crudDialogTokens";
+import { mergeSx } from "../../utils/muiSx";
 
 export type CrudDialogMode = "view" | "edit" | "create";
 
@@ -18,6 +20,8 @@ export type CrudDialogHeaderProps = {
   /** Chip de estado operativo opcional (p. ej. «Pendiente»). */
   statusChip?: string | null;
   mode?: CrudDialogMode;
+  /** Identificador discreto (OT, actuación) alineado a la derecha del bloque de título. */
+  reference?: string | null;
 };
 
 /**
@@ -29,9 +33,21 @@ export function CrudDialogHeader({
   subtitulo,
   statusChip,
   mode,
+  reference,
 }: CrudDialogHeaderProps) {
+  const refLabel = (reference ?? "").trim();
   return (
-    <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.5, minWidth: 0 }}>
+    <Box
+      sx={{
+        display: "flex",
+        flexDirection: "row",
+        alignItems: "flex-start",
+        gap: 1,
+        width: "100%",
+        minWidth: 0,
+      }}
+    >
+      <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.5, minWidth: 0, flex: 1 }}>
       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, alignItems: "center" }}>
         {domainChip ? (
           <Chip label={domainChip} size="small" variant="outlined" sx={crudDialogHeaderChipSx.domain} />
@@ -53,6 +69,22 @@ export function CrudDialogHeader({
       {subtitulo ? (
         <Typography variant="body2" sx={{ color: CRUD_DIALOG_TEXT.primary, fontWeight: 500, lineHeight: 1.4, opacity: 0.92 }}>
           {subtitulo}
+        </Typography>
+      ) : null}
+      </Box>
+      {refLabel ? (
+        <Typography
+          component="span"
+          sx={mergeSx(docModalReferenceSx, {
+            color: "text.primary",
+            flexShrink: 0,
+            textAlign: "right",
+            maxWidth: "42%",
+            wordBreak: "break-word",
+            pt: 0.25,
+          })}
+        >
+          {refLabel}
         </Typography>
       ) : null}
     </Box>

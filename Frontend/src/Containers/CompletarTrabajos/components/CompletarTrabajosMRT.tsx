@@ -8,63 +8,44 @@ import {
 } from "material-react-table";
 
 import type { ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
-import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
 import {
   BandejaDomicilioYRubroCell,
   BandejaEllipsisCell,
   BandejaFechaYChipOtCell,
   BandejaSegmentChipsCell,
   BANDEJA_MRT_READ_ONLY_TABLE_PROPS,
-  splitCommaList,
 } from "../../Actuaciones/Components/bandejaTableCells";
 import {
   COLORS,
   DARK_TABLE_CONFIG,
 } from "../../Actuaciones/styles/actuacionesTableStyles";
-import { tipoIniciadorDesdeCodigoApi } from "../../RutasTrabajo/planificacion/utils/iniciadorDisplay";
+import {
+  completarTrabajoDomicilioLinea,
+  completarTrabajoInspectoresNombres,
+  completarTrabajoOrigenTipoSegments,
+} from "../utils/completarTrabajosListDisplay";
 import { DataTableMrtShell } from "../../../components/dataTable/DataTableMrtShell";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
 
-function domicilioLinea(row: ICompletarTrabajoPendienteRow): string {
-  const t =
-    row.domicilio_texto?.trim() || formatActuacionListDomicilioLinea(row).trim() || "";
-  return t || "—";
-}
-
-function inspectoresNombres(row: ICompletarTrabajoPendienteRow): string[] {
-  const texto = row.inspectores_texto?.trim();
-  if (texto) return splitCommaList(texto);
-  return [row.inspector1, row.inspector2, row.inspector3].filter((s): s is string =>
-    Boolean(s?.trim())
-  );
-}
-
-function origenTipoSegments(row: ICompletarTrabajoPendienteRow): string[] {
-  const segs: string[] = [];
-  const origenLabel = tipoIniciadorDesdeCodigoApi(row.tipo_iniciador);
-  const tipo = (row.tipo_actuacion ?? "").trim();
-  if (origenLabel) segs.push(`Origen: ${origenLabel}`);
-  if (tipo) segs.push(`Tipo: ${tipo}`);
-  return segs;
-}
-
 function origenTipoAccessor(row: ICompletarTrabajoPendienteRow): string {
-  return origenTipoSegments(row).join(" · ") || "—";
+  return completarTrabajoOrigenTipoSegments(row).join(" · ") || "—";
 }
 
 function equipoSegments(row: ICompletarTrabajoPendienteRow): string[] {
   const segs: string[] = [];
   const grupo = (row.grupo_nombre ?? "").trim();
   if (grupo) segs.push(`Grupo: ${grupo}`);
-  segs.push(...inspectoresNombres(row));
+  segs.push(...completarTrabajoInspectoresNombres(row));
   return segs;
 }
 
 function domicilioAccessor(row: ICompletarTrabajoPendienteRow): string {
-  const parts = [domicilioLinea(row), (row.rubro_nombre ?? "").trim(), (row.nombre_local ?? "").trim()].filter(
-    Boolean
-  );
+  const parts = [
+    completarTrabajoDomicilioLinea(row),
+    (row.rubro_nombre ?? "").trim(),
+    (row.nombre_local ?? "").trim(),
+  ].filter(Boolean);
   return parts.join(" · ") || "—";
 }
 
@@ -119,7 +100,7 @@ export function CompletarTrabajosMRT({
         size: 168,
         grow: true,
         Cell: ({ row }) => {
-          const segs = origenTipoSegments(row.original);
+          const segs = completarTrabajoOrigenTipoSegments(row.original);
           if (segs.length === 0) {
             return <BandejaEllipsisCell value="—" />;
           }
@@ -134,7 +115,7 @@ export function CompletarTrabajosMRT({
         grow: true,
         Cell: ({ row }) => {
           const r = row.original;
-          const line = domicilioLinea(r);
+          const line = completarTrabajoDomicilioLinea(r);
           const nombreLocal = (r.nombre_local ?? "").trim();
           const rubro = r.rubro_nombre;
           if (!nombreLocal) {

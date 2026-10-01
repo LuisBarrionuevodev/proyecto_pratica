@@ -38,10 +38,18 @@ import {
   CrudGlassDialog,
   crudDialogActionsRowSx,
 } from "../../../components/crudDialog";
+import { formatCrudDialogOtReference } from "../../../components/crudDialog/crudDialogReference";
 import { DOC_MODAL_BLOCK_STACK_SPACING } from "../../../styles/documentalModalTokens";
 import { GLASS_COLORS, moduleHeroCardSx } from "../../../styles/GlassStyles";
 import { CSS_VAR_NAMES as V } from "../../../theme/applyCssVariables";
-import { AppButton, AppSelect, AppTextField, CardGlass, type AppSelectOption } from "../../../ui";
+import {
+  AppButton,
+  AppSelect,
+  AppTextField,
+  CardGlass,
+  ResponsiveFormGrid,
+  type AppSelectOption,
+} from "../../../ui";
 import {
   InspeccionChecklistFields,
   isValidActaInspeccionNum,
@@ -138,11 +146,8 @@ const formControlLabelSx = {
   "& .MuiFormControlLabel-label.Mui-disabled": { color: GLASS_COLORS.textMuted },
 } as const;
 
-const edicionGrid2ColSx = {
-  display: "grid",
-  gridTemplateColumns: { xs: "1fr", sm: "repeat(2, 1fr)" },
-  gap: 2,
-  width: "100%",
+const cargarModalFormGridSx = {
+  gridTemplateColumns: { md: "repeat(2, minmax(0, 1fr))" },
   alignItems: "end",
 } as const;
 
@@ -533,11 +538,13 @@ export function CargarActuacionNuevaModal() {
         onCloseButtonClick={() => tryClose()}
         maxWidth="md"
         fullWidth
+        mobileFullScreen
         title={
           <CrudDialogHeader
             domainChip="Cargar actuación"
             titulo="Nueva actuación"
             subtitulo="Datos operativos y actas del día"
+            reference={formatCrudDialogOtReference(texts["Orden de trabajo"])}
           />
         }
         actions={
@@ -612,7 +619,7 @@ export function CargarActuacionNuevaModal() {
 
         <CargarActuacionBloque title="Datos generales">
         <Box sx={{ ...col, width: "100%" }}>
-          <Box sx={edicionGrid2ColSx}>
+          <ResponsiveFormGrid sx={cargarModalFormGridSx}>
           <AppTextField
             appearance="glass"
             fullWidth
@@ -644,7 +651,7 @@ export function CargarActuacionNuevaModal() {
               helperText={errorFor("Orden de trabajo") || undefined}
             />
           ) : null}
-          </Box>
+          </ResponsiveFormGrid>
 
           <Typography variant="caption" sx={{ ...labelMutedSx, display: "block" }}>
             Inspectores
@@ -704,7 +711,7 @@ export function CargarActuacionNuevaModal() {
           title={cargaSoloComprobacion ? "Ubicación" : "Domicilio y establecimiento"}
         >
         <Box sx={{ ...col, width: "100%" }}>
-          <Box sx={edicionGrid2ColSx}>
+          <ResponsiveFormGrid sx={cargarModalFormGridSx}>
           <AppTextField
             appearance="glass"
             label="Calle"
@@ -731,7 +738,7 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Número"))}
             helperText={errorFor("Número") || undefined}
           />
-          </Box>
+          </ResponsiveFormGrid>
           {!cargaSoloComprobacion ? (
           <Autocomplete
             size="small"
@@ -776,7 +783,7 @@ export function CargarActuacionNuevaModal() {
           </ToggleButtonGroup>
 
           {titularModo === "persona" ? (
-            <Box sx={edicionGrid2ColSx}>
+            <ResponsiveFormGrid sx={cargarModalFormGridSx}>
               <AppTextField
                 appearance="glass"
                 label="Apellido"
@@ -801,7 +808,7 @@ export function CargarActuacionNuevaModal() {
                 error={Boolean(errorFor("Nombre"))}
                 helperText={errorFor("Nombre") || undefined}
               />
-            </Box>
+            </ResponsiveFormGrid>
           ) : (
             <AppTextField
               appearance="glass"
@@ -868,7 +875,7 @@ export function CargarActuacionNuevaModal() {
           ) : null}
           {!cargaSoloComprobacion ? (
           <>
-          <Box sx={edicionGrid2ColSx}>
+          <ResponsiveFormGrid sx={cargarModalFormGridSx}>
           <AppTextField
             appearance="glass"
             label="N° acta de notificación"
@@ -881,7 +888,7 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Acta notificación"))}
             helperText={errorFor("Acta notificación") || undefined}
           />
-          </Box>
+          </ResponsiveFormGrid>
           <Typography variant="caption" sx={{ ...labelMutedSx, display: "block" }}>
             Motivos de notificación (máx. {MOTIVOS_NOTIFICACION_MAX})
           </Typography>
@@ -962,7 +969,7 @@ export function CargarActuacionNuevaModal() {
           />
           </>
           ) : null}
-          <Box sx={edicionGrid2ColSx}>
+          <ResponsiveFormGrid sx={cargarModalFormGridSx}>
           <AppTextField
             appearance="glass"
             label="N° acta de comprobación"
@@ -989,10 +996,10 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Motivo comprobación"))}
             helperText={errorFor("Motivo comprobación") || undefined}
           />
-          </Box>
+          </ResponsiveFormGrid>
           {!cargaSoloComprobacion ? (
           <>
-          <Box sx={edicionGrid2ColSx}>
+          <ResponsiveFormGrid sx={cargarModalFormGridSx}>
           <AppTextField
             appearance="glass"
             label="N° acta de clausura (opcional)"
@@ -1017,7 +1024,7 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Acta decomiso"))}
             helperText={errorFor("Acta decomiso") || undefined}
           />
-          </Box>
+          </ResponsiveFormGrid>
           <AppTextField
             appearance="glass"
             label="Kilos decomisados"

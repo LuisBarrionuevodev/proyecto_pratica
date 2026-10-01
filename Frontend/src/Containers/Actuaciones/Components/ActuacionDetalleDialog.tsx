@@ -42,6 +42,8 @@ import {
   docModalSubheadingInCardSx,
 } from "../../../styles/documentalModalTokens";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { CSS_VAR_NAMES as V } from "../../../theme/applyCssVariables";
+import { resolveCrudDialogHeaderReference } from "../../../components/crudDialog/crudDialogReference";
 import { NumeroEsquinaFreeEditor } from "./NumeroEsquinaFreeEditor";
 import { AppButton, AppSelect, AppTextField } from "../../../ui";
 import { COLORS } from "../styles/filtroStyles";
@@ -191,14 +193,14 @@ const blockShellSx = {
 };
 
 /** Estilo de inputs deshabilitados en edición; referencia estable (no recrear por render). */
-const roFieldSx = { "& .MuiInputBase-input": { color: "rgba(255,255,255,0.94)" } };
+const roFieldSx = { "& .MuiInputBase-input": { color: GLASS_COLORS.textPrimary } };
 
-/** Autocomplete / TextField auxiliar: alto contraste sobre fondo oscuro del modal. */
+/** Autocomplete / TextField auxiliar en modal glass (tokens semánticos). */
 const modalAuxInputSx = {
   "& .MuiInputBase-input": { color: DOC_MODAL_TEXT },
-  "& .MuiInputLabel-root": { color: "rgba(255,255,255,0.92)" },
-  "& .MuiOutlinedInput-notchedOutline": { borderColor: "rgba(255,255,255,0.38)" },
-  "& .MuiFormHelperText-root": { color: "rgba(255,255,255,0.88)" },
+  "& .MuiInputLabel-root": { color: GLASS_COLORS.textSecondary },
+  "& .MuiOutlinedInput-notchedOutline": { borderColor: GLASS_COLORS.borderMedium },
+  "& .MuiFormHelperText-root": { color: GLASS_COLORS.textMuted },
 } as const;
 
 const edicionGrid2ColSx = {
@@ -210,11 +212,11 @@ const edicionGrid2ColSx = {
 } as const;
 
 const col = { display: "flex", flexDirection: "column" as const, gap: 1.5 };
-const labelMuted = { color: "rgba(255,255,255,0.5)", fontFamily: FONT_FAMILY_UI } as const;
+const labelMuted = { color: GLASS_COLORS.textMuted, fontFamily: FONT_FAMILY_UI } as const;
 
 const actuacionModalChipSx = {
-  bgcolor: "rgba(255,255,255,0.12)",
-  color: "rgba(255,255,255,0.92)",
+  bgcolor: `var(${V.actionSelected})`,
+  color: GLASS_COLORS.textPrimary,
 } as const;
 
 /** Acta de notificación / comprobación bloqueada por expediente (misma semántica que `lockedNotif` / `lockedComp`). */
@@ -813,6 +815,11 @@ export function ActuacionDetalleDialog({
       oficioForm.verificarEstadoOperativo,
       oficioFormCtx,
     ]
+  );
+
+  const dialogHeaderReference = useMemo(
+    () => resolveCrudDialogHeaderReference(draft.orden_trabajo_numero, Number(draft.id)),
+    [draft.orden_trabajo_numero, draft.id]
   );
 
   const registerActaFlush = useCallback((fn: () => void) => {
@@ -1915,11 +1922,13 @@ export function ActuacionDetalleDialog({
       onClose={handleDialogClose}
       onCloseButtonClick={handleClose}
       maxWidth="md"
+      mobileFullScreen
       title={
         <CrudDialogHeader
           domainChip="Actuaciones"
           titulo={isEditing ? "Editar actuación" : "Ver actuación"}
           subtitulo={isEditing ? "Datos operativos y actas del día" : "Consulta de ficha operativa"}
+          reference={dialogHeaderReference}
         />
       }
       actions={

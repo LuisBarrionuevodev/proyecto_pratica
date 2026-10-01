@@ -106,6 +106,22 @@ describe("CompletarTrabajoModal", () => {
     expect(html).not.toContain("MuiAlert-standardError");
   });
 
+  it("header incluye referencia OT con texto semántico", () => {
+    const html = render(
+      <CompletarTrabajoModal
+        open
+        disablePortal
+        row={buildRow({ orden_trabajo_numero: "998877" })}
+        catalogs={catalogs}
+        catalogsReady
+        onClose={() => undefined}
+        onSuccess={() => undefined}
+      />
+    );
+    expect(html).toContain("OT 998877");
+    expect(html).not.toMatch(/reference[^>]*color:\s*#fff/i);
+  });
+
   it("header muestra chip Completar trabajo sin chip Edición", () => {
     const html = render(
       <CompletarTrabajoModal
