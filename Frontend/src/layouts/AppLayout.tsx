@@ -53,7 +53,7 @@ const AppLayout = () => {
             sx={{
                 display: "flex",
                 flexDirection: "column",
-                height: "100vh",
+                height: { xs: "100dvh", md: "100vh" },
                 width: "100%",
                 maxWidth: "100%",
                 overflow: "hidden",
@@ -92,7 +92,10 @@ const AppLayout = () => {
                 sx={{
                     display: "flex",
                     marginTop: `${TOPBAR_HEIGHT}px`,
-                    height: isDesktopShell ? LAYOUT_HEIGHT : `calc(100vh - ${TOPBAR_HEIGHT}px)`,
+                    height: {
+                        xs: `calc(100dvh - ${TOPBAR_HEIGHT}px)`,
+                        md: LAYOUT_HEIGHT,
+                    },
                     overflow: "hidden",
                     padding: isDesktopShell ? `${OUTER_MARGIN}px` : 1,
                     paddingTop: 0,
@@ -143,6 +146,11 @@ const AppLayout = () => {
                                 minHeight: 0,
                                 overflowY: "auto",
                                 overflowX: "hidden",
+                                boxSizing: "border-box",
+                                paddingBottom: {
+                                    xs: "calc(24px + env(safe-area-inset-bottom))",
+                                    md: 0,
+                                },
                                 "&::-webkit-scrollbar": {
                                     width: "6px",
                                 },

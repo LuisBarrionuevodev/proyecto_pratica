@@ -67,6 +67,14 @@ describe("V1.1-RESP.1 — shell responsive mobile-first", () => {
         expect(layout).toMatch(/overflowX:\s*"hidden"/);
     });
 
+    it("V1.1-RESP.5.1: viewport dinámico y safe area en scroll móvil", () => {
+        const layout = readSrc("layouts/AppLayout.tsx");
+        expect(layout).toContain('height: { xs: "100dvh", md: "100vh" }');
+        expect(layout).toContain("100dvh");
+        expect(layout).toContain("safe-area-inset-bottom");
+        expect(layout).toContain('paddingBottom:');
+    });
+
     it("drawer móvil reutiliza glassSidebar sin superficie glass paralela", () => {
         const navStyles = readSrc("styles/NavBarStyles.ts");
         expect(navStyles).toContain("styleNavDrawerPaper");
