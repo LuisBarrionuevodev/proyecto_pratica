@@ -2,9 +2,7 @@
 builder = "NIXPACKS"
 
 [deploy]
-# Migraciones antes del deploy (INSPECTOR.1 y futuras revisiones Alembic).
-preDeployCommand = "FLASK_APP=run.py flask db upgrade"
-startCommand = "gunicorn \"run:app\" --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
+startCommand = "FLASK_APP=run.py flask db upgrade && exec gunicorn \"run:app\" --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"
