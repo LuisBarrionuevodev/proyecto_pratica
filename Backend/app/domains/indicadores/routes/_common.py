@@ -8,6 +8,10 @@ from pydantic import ValidationError
 
 from app.domains.indicadores.schemas.indicadores_filtros_query import IndicadoresFiltrosQuery
 from app.domains.indicadores.utils.indicadores_perf_log import PerfTimer, log_indicadores_endpoint
+from app.domains.usuarios.security.inspector_scope_policy import (
+    InspectorScopeError,
+    resolve_effective_inspector_id,
+)
 from app.shared.errors import pydantic_errors_to_cell_map
 
 T = TypeVar("T")
@@ -27,20 +31,45 @@ def query_dict_from_request() -> dict:
     return raw
 
 
+def apply_inspector_scope_to_indicadores_query(
+    q: IndicadoresFiltrosQuery,
+) -> IndicadoresFiltrosQuery:
+    """
+    Aplica política de scope al filtro ``inspector_id`` antes de ejecutar métricas.
+
+    Parámetros:
+        q: filtros validados del dashboard.
+
+    Retorno:
+        Copia con ``inspector_id`` efectivo según sesión.
+
+    Errores:
+        InspectorScopeError: acceso cruzado o contrato Inspector incumplido.
+    """
+    effective = resolve_effective_inspector_id(q.inspector_id)
+    if effective == q.inspector_id:
+        return q
+    return q.model_copy(update={"inspector_id": effective})
+
+
 def parse_indicadores_filtros_query():
     """
     Valida query params compartidos (desde, hasta, distrito_id?, inspector_id?).
 
     Retorno:
-        Tupla (IndicadoresFiltrosQuery, None) o (None, response_422).
+        Tupla (IndicadoresFiltrosQuery, None) o (None, response_422/403/401).
     """
     try:
-        return IndicadoresFiltrosQuery.model_validate(query_dict_from_request()), None
+        q = IndicadoresFiltrosQuery.model_validate(query_dict_from_request())
     except ValidationError as e:
         return None, (
             jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}),
             422,
         )
+    try:
+        return apply_inspector_scope_to_indicadores_query(q), None
+    except InspectorScopeError as e:
+        return None, (jsonify({"detail": str(e)}), e.status_code)
 
 
 def build_indicadores_with_perf(

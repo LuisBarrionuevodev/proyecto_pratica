@@ -4,7 +4,11 @@ from flask import jsonify, request
 from pydantic import ValidationError
 
 from app.domains.actuaciones.schemas.list_filters import ActuacionesListFilters
+from app.domains.actuaciones.services.list_inspector_scope import (
+    resolve_actuaciones_list_inspector_id,
+)
 from app.domains.actuaciones.services.list_service import listar_actuaciones_con_filtros
+from app.domains.usuarios.security.inspector_scope_policy import InspectorScopeError
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     build_counts_by_eo_from_actuaciones,
 )
@@ -63,9 +67,14 @@ def listar_actuaciones():
             params["page_size"] = int(params["page_size"])
         if "actuacion_id" in params and params["actuacion_id"]:
             params["actuacion_id"] = int(params["actuacion_id"])
+        requested_inspector_id: int | None = None
         if "inspector_id" in params and params["inspector_id"]:
-            params["inspector_id"] = int(params["inspector_id"])
-        
+            requested_inspector_id = int(params["inspector_id"])
+        try:
+            params["inspector_id"] = resolve_actuaciones_list_inspector_id(requested_inspector_id)
+        except InspectorScopeError as e:
+            return jsonify({"detail": str(e)}), e.status_code
+
         # Validar con Pydantic
         filters = ActuacionesListFilters.model_validate(params)
         
