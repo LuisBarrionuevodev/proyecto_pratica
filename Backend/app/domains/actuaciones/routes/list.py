@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from flask import jsonify, request
+from flask_jwt_extended import jwt_required
 from pydantic import ValidationError
 
 from app.domains.actuaciones.schemas.list_filters import ActuacionesListFilters
@@ -25,6 +26,7 @@ from . import actuacion
 
 
 @actuacion.get("/")
+@jwt_required()
 def listar_actuaciones():
     """
     Lista actuaciones con filtros opcionales.

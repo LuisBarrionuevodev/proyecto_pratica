@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from flask import jsonify
+from flask_jwt_extended import jwt_required
 
 from . import indicadores_api
 from ._common import build_indicadores_with_perf, parse_indicadores_filtros_query
@@ -10,6 +11,7 @@ from app.domains.indicadores.services.indicadores_riesgo_service import (
 
 
 @indicadores_api.get("/riesgo")
+@jwt_required()
 def get_indicadores_riesgo():
     """
     Indicadores de riesgo bromatológico (rubros, motivos, decomiso por rubro).

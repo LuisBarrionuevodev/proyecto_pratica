@@ -362,6 +362,49 @@ def test_resolve_effective_inspector_id_with_jwt_context(app, scope_fixture) -> 
         assert resolve_effective_inspector_id(None) == d["ins_a"].id
 
 
+_QUERY_RANGO = "desde=2026-06-01&hasta=2026-06-30"
+
+
+def test_actuaciones_list_sin_jwt_401_not_500(client) -> None:
+    resp = client.get(f"/actuaciones?{_QUERY_RANGO}")
+    assert resp.status_code == 401
+    assert resp.status_code != 500
+    assert "detail" in (resp.get_json() or {})
+
+
+def test_indicadores_ejecutivo_sin_jwt_401_not_500(client) -> None:
+    resp = client.get(f"/api/indicadores/ejecutivo?{_QUERY_RANGO}")
+    assert resp.status_code == 401
+    assert resp.status_code != 500
+    assert "detail" in (resp.get_json() or {})
+
+
+def test_admin_actuaciones_can_filter_inspector_b(app, client, scope_fixture) -> None:
+    d = scope_fixture
+    token = create_access_token(identity=str(d["admin"].id))
+    headers = {"Authorization": f"Bearer {token}"}
+    resp = client.get(
+        f"/actuaciones?{_QUERY_RANGO}&inspector_id={d['ins_b'].id}",
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    body = resp.get_json()
+    ids = {item["id"] for item in body["items"]}
+    assert d["act_b"].id in ids
+
+
+def test_admin_indicadores_can_filter_inspector_a(app, client, scope_fixture) -> None:
+    d = scope_fixture
+    token = create_access_token(identity=str(d["admin"].id))
+    headers = {"Authorization": f"Bearer {token}"}
+    resp = client.get(
+        f"/api/indicadores/ejecutivo?{_QUERY_RANGO}&inspector_id={d['ins_a'].id}",
+        headers=headers,
+    )
+    assert resp.status_code == 200
+    assert resp.status_code != 500
+
+
 def test_list_filters_receive_scoped_inspector_via_adapter(app, scope_fixture) -> None:
     d = scope_fixture
     from app.domains.actuaciones.services.list_inspector_scope import (

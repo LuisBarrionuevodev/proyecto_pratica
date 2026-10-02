@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from flask import jsonify
+from flask_jwt_extended import jwt_required
 
 from . import indicadores_api
 from ._common import parse_indicadores_filtros_query
@@ -10,6 +11,7 @@ from app.domains.indicadores.services.indicadores_resumen_service import (
 
 
 @indicadores_api.get("/resumen")
+@jwt_required()
 def get_indicadores_resumen():
     """
     Resumen agregado para dashboard operativo (actuaciones, actas, contraproducencias, mapa operativo).
