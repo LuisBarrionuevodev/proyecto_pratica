@@ -81,6 +81,8 @@ export type TablaCargarActuacionesGlideStyledProps = {
     showHowTo?: boolean;
 };
 
+const GRID_KIND = "actuaciones" as const;
+
 // =============================================================================
 // COMPONENTE PRINCIPAL
 // =============================================================================
@@ -238,6 +240,7 @@ const TablaCargarActuacionesGlideStyled = ({
         try {
             const response = await validateBatch({
                 batch_id: effectiveBatchId,
+                kind: GRID_KIND,
                 rows: rowsToValidate,
             });
 
@@ -281,6 +284,7 @@ const TablaCargarActuacionesGlideStyled = ({
             const dataColumns = extractDataColumns(row);
             const response = await validateRow({
                 batch_id: batchId,
+                kind: GRID_KIND,
                 row_id: row._rowId!,
                 row: dataColumns,
             });
@@ -381,7 +385,11 @@ const TablaCargarActuacionesGlideStyled = ({
             }
 
             setIsCommitting(true);
-            const commitResp = await commitBatch({ batch_id: startedBatchId, rows: okRows });
+            const commitResp = await commitBatch({
+                batch_id: startedBatchId,
+                kind: GRID_KIND,
+                rows: okRows,
+            });
             processCommitResults(commitResp.results);
         } catch (error: any) {
             console.error("❌ Error en commit batch:", error);
@@ -507,6 +515,7 @@ const TablaCargarActuacionesGlideStyled = ({
                         } else {
                             validateRow({
                                 batch_id: batchId,
+                                kind: GRID_KIND,
                                 row_id: rowId,
                                 row: {},
                             }).catch(() => {
@@ -582,6 +591,7 @@ const TablaCargarActuacionesGlideStyled = ({
                         } else {
                             validateRow({
                                 batch_id: batchId,
+                                kind: GRID_KIND,
                                 row_id: rowId,
                                 row: {},
                             }).catch(() => {
@@ -651,6 +661,7 @@ const TablaCargarActuacionesGlideStyled = ({
                         } else {
                             validateRow({
                                 batch_id: batchId,
+                                kind: GRID_KIND,
                                 row_id: rowId,
                                 row: {},
                             }).catch(() => {

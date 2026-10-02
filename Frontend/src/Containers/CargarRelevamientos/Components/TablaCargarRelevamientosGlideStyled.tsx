@@ -98,6 +98,8 @@ interface TablaCargarRelevamientosGlideStyledProps {
   showTitle?: boolean;
 }
 
+const GRID_KIND = "relevamientos" as const;
+
 const CELL_ERROR_META_KEYS = new Set(["_row", "detail", "_global"]);
 const RELEVAMIENTO_DRAFT_SAVE_DEBOUNCE_MS = 300;
 
@@ -320,7 +322,11 @@ const TablaCargarRelevamientosGlideStyled = ({
       }));
 
       try {
-        const response = await validateBatch({ batch_id: effectiveBatchId, rows: rowsToValidate });
+        const response = await validateBatch({
+          batch_id: effectiveBatchId,
+          kind: GRID_KIND,
+          rows: rowsToValidate,
+        });
         replaceGridRows((prev) =>
           prev.map((row) => {
             const result = response.results.find((r) => r.row_id === row._rowId);
@@ -394,7 +400,11 @@ const TablaCargarRelevamientosGlideStyled = ({
       }
 
       setIsCommitting(true);
-      const commitResp = await commitBatch({ batch_id: startedBatchId, rows: okRows });
+      const commitResp = await commitBatch({
+        batch_id: startedBatchId,
+        kind: GRID_KIND,
+        rows: okRows,
+      });
       // Future: hook global de notificaciones cuando exista el sistema unificado (éxito parcial/total).
       replaceGridRows((prev) => {
         const next: GridRow[] = prev.map((row) => {
@@ -506,7 +516,12 @@ const TablaCargarRelevamientosGlideStyled = ({
 
       const rowId = rowData._rowId;
       if (rowId && batchSessionId && !rowHasData(updatedRow)) {
-        void validateRow({ batch_id: batchSessionId, row_id: rowId, row: {} }).catch(() => {});
+        void validateRow({
+          batch_id: batchSessionId,
+          kind: GRID_KIND,
+          row_id: rowId,
+          row: {},
+        }).catch(() => {});
       }
     },
     [ensureBatchStarted, catalogRelevadores, replaceGridRows]

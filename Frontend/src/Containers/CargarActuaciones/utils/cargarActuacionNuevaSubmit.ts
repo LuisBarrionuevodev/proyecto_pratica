@@ -67,6 +67,7 @@ export async function submitCargarActuacionNuevaRow(deps: SubmitCargarActuacionN
   try {
     const response = await validateRow({
       batch_id: batchId,
+      kind: "actuaciones",
       row_id: rowId,
       row: payload as GridRow,
     });
@@ -85,6 +86,7 @@ export async function submitCargarActuacionNuevaRow(deps: SubmitCargarActuacionN
 
     const commitResp = await commitBatch({
       batch_id: batchId,
+      kind: "actuaciones",
       rows: [{ row_id: rowId, normalized: response.normalized as unknown as GridRow }],
     });
 

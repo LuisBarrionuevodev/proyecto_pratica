@@ -65,8 +65,10 @@ export interface StartBatchResponse {
   batch_id: string;
 }
 
+export type GridBatchKind = "actuaciones" | "relevamientos";
+
 export interface StartBatchRequest {
-  kind?: string;
+  kind: GridBatchKind;
 }
 
 export interface ValidateRowResponse {
@@ -111,23 +113,27 @@ export interface CatalogResponse {
 
 export interface ValidateRowRequest {
   batch_id: string;
+  kind: GridBatchKind;
   row_id: string;
   row: GridRow;
 }
 
 export interface ValidateBatchRequest {
   batch_id: string;
+  kind: GridBatchKind;
   rows: Array<{ row_id: string; row: GridRow }>;
 }
 
 export interface CommitRowRequest {
   batch_id: string;
+  kind: GridBatchKind;
   row_id: string;
   normalized: GridRow; // Backend expects normalized data, not raw row
 }
 
 export interface CommitBatchRequest {
   batch_id: string;
+  kind: GridBatchKind;
   rows: Array<{ row_id: string; normalized: GridRow }>; // Backend expects normalized data
 }
 
@@ -137,7 +143,7 @@ export interface CommitBatchRequest {
  * Inicia un nuevo batch de carga
  */
 export const startBatch = async (
-  kind: string = "actuaciones"
+  kind: GridBatchKind = "actuaciones"
 ): Promise<StartBatchResponse> => {
   const payload: StartBatchRequest = { kind };
   const { data } = await apiClient.post<StartBatchResponse>("/grid/start", payload);

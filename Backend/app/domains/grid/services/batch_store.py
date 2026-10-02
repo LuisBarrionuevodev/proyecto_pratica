@@ -9,6 +9,25 @@ import time
 
 DupKey = Tuple[str, str]  # (orden_trabajo_norm, fecha_iso)
 
+ALLOWED_BATCH_KINDS = frozenset({"actuaciones", "relevamientos"})
+
+
+class BatchKindMismatchError(Exception):
+    """Conflicto entre el kind del lote local y el declarado en la request."""
+
+    def __init__(self, batch_id: UUID, requested_kind: str, local_kind: str) -> None:
+        self.batch_id = batch_id
+        self.requested_kind = requested_kind
+        self.local_kind = local_kind
+        super().__init__(
+            f"El batch pertenece a «{local_kind}» y no coincide con el dominio "
+            f"solicitado «{requested_kind}»."
+        )
+
+
+class BatchNotFoundError(KeyError):
+    """Lote inexistente en este worker (debe resolverse con ensure_for_request)."""
+
 
 @dataclass
 class BatchState:
@@ -40,12 +59,44 @@ class InMemoryBatchStore:
         self._batches: Dict[UUID, BatchState] = {}
 
     def start_batch(self, kind: str = "actuaciones") -> UUID:
+        kind_norm = self._normalize_kind(kind)
         batch_id = uuid4()
-        st = BatchState(kind=kind)
-        if kind == "relevamientos":
-            st.fecha_relevamiento_default = date.today()
+        st = self._new_batch_state(kind_norm)
         self._batches[batch_id] = st
         return batch_id
+
+    @staticmethod
+    def _normalize_kind(kind: str) -> str:
+        kind_norm = (kind or "").strip().lower()
+        if kind_norm not in ALLOWED_BATCH_KINDS:
+            raise ValueError(f"kind inválido: {kind}")
+        return kind_norm
+
+    @staticmethod
+    def _new_batch_state(kind_norm: str) -> BatchState:
+        st = BatchState(kind=kind_norm)
+        if kind_norm == "relevamientos":
+            st.fecha_relevamiento_default = date.today()
+        return st
+
+    def ensure_for_request(self, batch_id: UUID, kind: str) -> BatchState:
+        """
+        Asegura estado local del batch para validate/commit en workers Gunicorn.
+
+        - Si existe y el kind coincide, lo devuelve.
+        - Si existe con otro kind, lanza BatchKindMismatchError (409).
+        - Si no existe (otro worker hizo start), crea estado con el kind recibido.
+        """
+        self._purge_if_needed()
+        kind_norm = self._normalize_kind(kind)
+        if batch_id in self._batches:
+            st = self._batches[batch_id]
+            if st.kind != kind_norm:
+                raise BatchKindMismatchError(batch_id, kind_norm, st.kind)
+            return st
+        st = self._new_batch_state(kind_norm)
+        self._batches[batch_id] = st
+        return st
 
     def _purge_if_needed(self) -> None:
         now = time.time()
@@ -54,10 +105,10 @@ class InMemoryBatchStore:
             del self._batches[bid]
 
     def get(self, batch_id: UUID) -> BatchState:
+        """Devuelve un batch ya presente en este worker (sin fallback silencioso)."""
         self._purge_if_needed()
         if batch_id not in self._batches:
-            # si no existe, lo creamos (opción práctica para dev)
-            self._batches[batch_id] = BatchState()
+            raise BatchNotFoundError(batch_id)
         return self._batches[batch_id]
 
     def upsert_row_key(self, batch_id: UUID, row_id: str, dup_key: DupKey) -> Optional[str]:

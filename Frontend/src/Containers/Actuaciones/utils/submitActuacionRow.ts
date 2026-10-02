@@ -403,6 +403,7 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   if (!skipValidation) {
     const v = await validateRow({
       batch_id: ACTUACION_TABLE_UI_BATCH_ID,
+      kind: "actuaciones",
       row_id: `act_${id}`,
       row: rowWithInspectores as any,
     });

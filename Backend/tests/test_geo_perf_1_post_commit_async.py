@@ -97,6 +97,7 @@ def test_commit_batch_responde_sin_esperar_provider_lento(app, client, auth_head
             headers=auth_headers,
             json={
                 "batch_id": batch_id,
+                "kind": "relevamientos",
                 "rows": [{"row_id": "r1", "normalized": payload}],
             },
         )

@@ -219,6 +219,7 @@ export async function submitRelevamientoRow(
   if (!skipValidation && batchId) {
     const v = await validateRow({
       batch_id: batchId,
+      kind: "relevamientos",
       row_id: `rel_${id}`,
       row: buildRelevamientoGridRow(fullRow) as any,
     });

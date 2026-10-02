@@ -1,9 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Literal, Optional
 from uuid import UUID
 
 from pydantic import BaseModel, Field
+
+GridBatchKind = Literal["actuaciones", "relevamientos"]
 
 
 class StartBatchResponse(BaseModel):
@@ -11,12 +13,14 @@ class StartBatchResponse(BaseModel):
 
 
 class StartBatchRequest(BaseModel):
-    """Inicio de batch con kind opcional."""
-    kind: str = "actuaciones"
+    """Inicio de batch con dominio explícito."""
+
+    kind: GridBatchKind = "actuaciones"
 
 
 class ValidateRowRequest(BaseModel):
     batch_id: UUID
+    kind: GridBatchKind
     row_id: str = Field(..., min_length=1)
     row: Dict[str, Any]  # raw row
 
@@ -38,6 +42,7 @@ class BatchRowItem(BaseModel):
 
 class ValidateBatchRequest(BaseModel):
     batch_id: UUID
+    kind: GridBatchKind
     rows: List[BatchRowItem]
 
 
@@ -50,6 +55,7 @@ class CommitRowRequest(BaseModel):
     """Commit/persistencia de una fila ya validada y mapeada (payload canon)."""
 
     batch_id: UUID
+    kind: GridBatchKind
     row_id: str = Field(..., min_length=1)
     normalized: Dict[str, Any]
 
@@ -74,6 +80,7 @@ class CommitBatchRequest(BaseModel):
     """Commit/persistencia de múltiples filas ya validadas."""
 
     batch_id: UUID
+    kind: GridBatchKind
     rows: List[CommitRowItem]
 
 

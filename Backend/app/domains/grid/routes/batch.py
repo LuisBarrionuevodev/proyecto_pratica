@@ -16,7 +16,7 @@ from app.domains.grid.schemas.batch import (
     CommitBatchResponse,  # nuevo: commit batch
 )
 from app.shared.errors import pydantic_errors_to_cell_map
-from app.domains.grid.services.batch_store import InMemoryBatchStore
+from app.domains.grid.services.batch_store import BatchKindMismatchError, InMemoryBatchStore
 from app.domains.grid.services.validate_service import GridValidateService
 from app.domains.grid.services.post_commit_geocode import schedule_geocode_after_grid_commit
 from app.domains.catalogos.services.rubros_catalog_service import listar_rubros_catalogo
@@ -39,6 +39,21 @@ from . import grid
 
 store = InMemoryBatchStore()
 svc = GridValidateService(store)
+
+
+def _ensure_batch_for_request(batch_id, kind: str):
+    """
+    Resuelve estado local del batch declarando dominio explícito.
+
+    Returns:
+        (BatchState, None) o (None, flask_response_tuple) en conflicto de kind.
+    """
+    try:
+        return store.ensure_for_request(batch_id, kind), None
+    except BatchKindMismatchError as e:
+        return None, (jsonify({"detail": str(e)}), 409)
+    except ValueError as e:
+        return None, (jsonify({"detail": str(e)}), 422)
 
 
 def _fetch_catalog(label: str, query_fn, map_fn):
@@ -76,8 +91,7 @@ def start_batch():
     except Exception as e:
         return jsonify({"detail": "Invalid JSON", "error": str(e)}), 400
 
-    kind = (req.kind or "actuaciones").strip().lower()
-    batch_id = store.start_batch(kind=kind)
+    batch_id = store.start_batch(kind=req.kind)
     resp = StartBatchResponse(batch_id=batch_id)
     return jsonify(resp.model_dump()), 200
 
@@ -93,7 +107,9 @@ def validate_row():
     except Exception as e:
         return jsonify({"detail": "Invalid JSON", "error": str(e)}), 400
 
-    batch = store.get(req.batch_id)
+    batch, err = _ensure_batch_for_request(req.batch_id, req.kind)
+    if err:
+        return err
     resp = svc.validate_row(req.batch_id, req.row_id, req.row, batch.kind)
     return jsonify(resp.model_dump()), 200
 
@@ -109,8 +125,11 @@ def validate_batch():
     except Exception as e:
         return jsonify({"detail": "Invalid JSON", "error": str(e)}), 400
 
+    batch, err = _ensure_batch_for_request(req.batch_id, req.kind)
+    if err:
+        return err
+
     results = []
-    batch = store.get(req.batch_id)
     for item in req.rows:
         results.append(svc.validate_row(req.batch_id, item.row_id, item.row, batch.kind))
 
@@ -139,9 +158,12 @@ def commit_batch():
     except Exception as e:
         return jsonify({"detail": "Invalid JSON", "error": str(e)}), 400
 
+    batch, err = _ensure_batch_for_request(req.batch_id, req.kind)
+    if err:
+        return err
+
     results = []
     domicilio_ids_for_geocode: list[int] = []
-    batch = store.get(req.batch_id)
     from app.domains.grid.services.registry import get_handler
     handler = get_handler(batch.kind)
     for item in req.rows:
@@ -317,7 +339,9 @@ def commit_row():
     except Exception as e:
         return jsonify({"detail": "Invalid JSON", "error": str(e)}), 400
 
-    batch = store.get(req.batch_id)
+    batch, err = _ensure_batch_for_request(req.batch_id, req.kind)
+    if err:
+        return err
     from app.domains.grid.services.registry import get_handler
     handler = get_handler(batch.kind)
 

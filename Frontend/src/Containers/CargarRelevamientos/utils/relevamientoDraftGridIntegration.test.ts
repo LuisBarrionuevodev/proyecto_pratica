@@ -100,11 +100,13 @@ describe("RELEVAMIENTO-HOTFIX.2B — grid validate/commit tras remount", () => {
     const batchId = "batch-test";
     const validateResp = await validateBatchApi({
       batch_id: batchId,
+      kind: "relevamientos",
       rows: [{ row_id: remounted._rowId!, row: payload }],
     });
     expect(validateResp.results[0]?.ok).toBe(true);
     expect(validateBatch).toHaveBeenCalledWith({
       batch_id: batchId,
+      kind: "relevamientos",
       rows: [
         {
           row_id: "row_sin_fecha",
@@ -120,6 +122,7 @@ describe("RELEVAMIENTO-HOTFIX.2B — grid validate/commit tras remount", () => {
 
     const commitResp = await commitBatchApi({
       batch_id: batchId,
+      kind: "relevamientos",
       rows: [
         {
           row_id: remounted._rowId!,
