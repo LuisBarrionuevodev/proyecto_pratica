@@ -36,7 +36,7 @@ describe("GestionUsuarioCrudDialog", () => {
     );
     expect(html).toContain("Usuario");
     expect(html).toContain("relev1");
-    expect(html).toContain("Relevador");
+    expect(html).toContain("Inspector");
     expect(html).toContain("Editar");
     expect(html).not.toContain("Cancelar");
     expect(html).not.toContain("Guardar cambios");

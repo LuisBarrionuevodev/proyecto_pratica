@@ -16,6 +16,8 @@ type MeResponse = {
   user: {
     username: string;
     role: string;
+    inspector_id?: number | null;
+    inspector_nombre?: string | null;
   };
   profile: {
     nickname: string | null;
@@ -38,6 +40,8 @@ export type AppSessionValue = {
   toolbarPrimary: string;
   toolbarRoleLabel: string;
   toolbarShowRoleBadge: boolean;
+  inspectorId: number | null;
+  inspectorNombre: string | null;
   refresh: () => void;
 };
 
@@ -58,12 +62,16 @@ function resetSessionFields(
   setRole: (v: AppRole | null) => void,
   setUsername: (v: string | null) => void,
   setNickname: (v: string | null) => void,
-  setAvatarKey: (v: string) => void
+  setAvatarKey: (v: string) => void,
+  setInspectorId: (v: number | null) => void,
+  setInspectorNombre: (v: string | null) => void
 ): void {
   setRole(null);
   setUsername(null);
   setNickname(null);
   setAvatarKey(DEFAULT_AVATAR);
+  setInspectorId(null);
+  setInspectorNombre(null);
 }
 
 /**
@@ -76,6 +84,8 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
   const [username, setUsername] = useState<string | null>(null);
   const [nickname, setNickname] = useState<string | null>(null);
   const [avatarKey, setAvatarKey] = useState(DEFAULT_AVATAR);
+  const [inspectorId, setInspectorId] = useState<number | null>(null);
+  const [inspectorNombre, setInspectorNombre] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
   const refresh = useCallback(() => {
@@ -90,7 +100,14 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
       const token = localStorage.getItem("access_token");
       if (!token) {
         if (cancel) return;
-        resetSessionFields(setRole, setUsername, setNickname, setAvatarKey);
+        resetSessionFields(
+          setRole,
+          setUsername,
+          setNickname,
+          setAvatarKey,
+          setInspectorId,
+          setInspectorNombre
+        );
         setStatus("unauthenticated");
         return;
       }
@@ -104,10 +121,19 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
         setUsername(u.username ?? null);
         setNickname(p.nickname ?? null);
         setAvatarKey(p.avatar_key || DEFAULT_AVATAR);
+        setInspectorId(u.inspector_id ?? null);
+        setInspectorNombre(u.inspector_nombre ?? null);
         setStatus("ready");
       } catch {
         if (cancel) return;
-        resetSessionFields(setRole, setUsername, setNickname, setAvatarKey);
+        resetSessionFields(
+          setRole,
+          setUsername,
+          setNickname,
+          setAvatarKey,
+          setInspectorId,
+          setInspectorNombre
+        );
         setStatus("error");
       }
     };
@@ -152,9 +178,23 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
       toolbarPrimary: status === "loading" ? "…" : toolbar.primary,
       toolbarRoleLabel: toolbar.roleLabel,
       toolbarShowRoleBadge: status === "ready" && toolbar.showRoleBadge,
+      inspectorId,
+      inspectorNombre,
       refresh,
     }),
-    [status, authReady, role, username, nickname, avatarKey, displayName, toolbar, refresh]
+    [
+      status,
+      authReady,
+      role,
+      username,
+      nickname,
+      avatarKey,
+      displayName,
+      toolbar,
+      inspectorId,
+      inspectorNombre,
+      refresh,
+    ]
   );
 
   return <AppSessionContext.Provider value={value}>{children}</AppSessionContext.Provider>;

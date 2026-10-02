@@ -3,7 +3,7 @@ export type AppRole = "admin" | "usuario" | "relevador";
 export const ROLE_LABELS: Record<AppRole, string> = {
   admin: "Administrador",
   usuario: "Usuario",
-  relevador: "Relevador",
+  relevador: "Inspector",
 };
 
 /** Rutas permitidas para RELEVADOR (nav + acceso directo). */

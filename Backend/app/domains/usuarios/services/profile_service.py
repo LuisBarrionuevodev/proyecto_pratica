@@ -4,6 +4,7 @@ from flask_jwt_extended import get_jwt_identity
 
 from app.database import db
 from app.domains.usuarios.security.passwords import hash_password, verify_password
+from app.domains.usuarios.services.session_user_payload import user_to_auth_payload
 from app.domains.usuarios.services.users_service import _ensure_profile
 from app.models.user import User
 
@@ -35,12 +36,7 @@ def get_my_profile() -> dict:
     profile = _ensure_profile(user)
     db.session.commit()
     return {
-        "user": {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "role": user.role,
-        },
+        "user": user_to_auth_payload(user),
         "profile": profile.to_dict(),
     }
 

@@ -6,6 +6,7 @@ from sqlalchemy import or_
 
 from app.database import db
 from app.domains.usuarios.security.passwords import hash_password
+from app.domains.usuarios.services.inspector_link_service import apply_user_inspector_link
 from app.models.profile import Profile
 from app.models.user import User
 
@@ -93,6 +94,7 @@ def create_user_admin(
     email: str,
     password: str,
     role: str,
+    inspector_id: int | None = None,
 ) -> int:
     """
     Crea un usuario con su perfil por defecto.
@@ -128,6 +130,12 @@ def create_user_admin(
     db.session.add(user)
     db.session.flush()
 
+    apply_user_inspector_link(
+        user,
+        role=role,
+        inspector_id=inspector_id,
+        inspector_id_provided=True,
+    )
     _ensure_profile(user)
     db.session.commit()
     return user.id
@@ -141,6 +149,8 @@ def update_user_admin(
     password: Optional[str] = None,
     role: Optional[str] = None,
     is_active: Optional[bool] = None,
+    inspector_id: Optional[int] = None,
+    inspector_id_provided: bool = False,
 ) -> None:
     """
     Actualiza datos administrativos de un usuario.
@@ -184,6 +194,13 @@ def update_user_admin(
 
     if is_active is not None:
         user.is_active = is_active
+
+    apply_user_inspector_link(
+        user,
+        role=user.role,
+        inspector_id=inspector_id,
+        inspector_id_provided=inspector_id_provided,
+    )
 
     _ensure_profile(user)
     db.session.add(user)

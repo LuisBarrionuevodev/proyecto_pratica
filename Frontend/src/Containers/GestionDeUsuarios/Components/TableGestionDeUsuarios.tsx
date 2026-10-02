@@ -40,6 +40,8 @@ type Usuario = {
   email: string;
   role: "admin" | "usuario" | "relevador";
   is_active?: boolean;
+  inspector_id?: number | null;
+  inspector_nombre?: string | null;
   password?: string;
 };
 
@@ -287,6 +289,11 @@ const TableGestionDeUsuarios = () => {
             sx={bandejaOutlinedChipSx}
           />
         ),
+      },
+      {
+        accessorKey: "inspector_nombre",
+        header: "Inspector vinculado",
+        Cell: ({ row }) => row.original.inspector_nombre || "—",
       },
       {
         id: "estado",

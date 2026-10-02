@@ -29,6 +29,11 @@ class Inspector(db.Model):
     )
     relevamientos = db.relationship("Relevamiento", back_populates="inspector")
     turno = db.relationship("Turno", back_populates="inspector")
+    linked_user = db.relationship(
+        "User",
+        back_populates="inspector",
+        uselist=False,
+    )
 
     def to_dict(self, include_relations=False, include_actuaciones=False):
         data = {

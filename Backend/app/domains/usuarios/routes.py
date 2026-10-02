@@ -206,12 +206,15 @@ def admin_users_create():
             email=body.email,
             password=body.password,
             role=body.role,
+            inspector_id=body.inspector_id,
         )
         return jsonify({"ok": True, "id": new_id}), 201
     except ValidationError as e:
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
     except ValueError as e:
-        return jsonify({"detail": str(e)}), 409
+        message = str(e)
+        status = 409 if "vinculado" in message.lower() else 400
+        return jsonify({"detail": message}), status
 
 
 @usuarios_api.put("/api/admin/users/<int:user_id>")
@@ -223,6 +226,7 @@ def admin_users_update(user_id: int):
     data = request.get_json(silent=True) or {}
     try:
         body = AdminUserUpdateRequest.model_validate(data)
+        inspector_id_provided = "inspector_id" in body.model_fields_set
         update_user_admin(
             user_id,
             username=body.username,
@@ -230,13 +234,21 @@ def admin_users_update(user_id: int):
             password=body.password,
             role=body.role,
             is_active=body.is_active,
+            inspector_id=body.inspector_id,
+            inspector_id_provided=inspector_id_provided,
         )
         return jsonify({"ok": True}), 200
     except ValidationError as e:
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
     except ValueError as e:
         message = str(e)
-        status = 404 if "no encontrado" in message.lower() else 409
+        lower = message.lower()
+        if "no encontrado" in lower:
+            status = 404
+        elif "vinculado" in lower:
+            status = 409
+        else:
+            status = 409
         return jsonify({"detail": message}), status
 
 

@@ -45,7 +45,7 @@ describe("HOTFIX-CIERRE-DIA RELEVADOR roles", () => {
   });
 
   it("label Relevador visible", () => {
-    expect(ROLE_LABELS.relevador).toBe("Relevador");
+    expect(ROLE_LABELS.relevador).toBe("Inspector");
   });
 });
 

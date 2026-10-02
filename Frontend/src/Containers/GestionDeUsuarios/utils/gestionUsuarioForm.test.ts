@@ -13,7 +13,7 @@ import { mapGestionUsuarioApiErrors } from "./gestionUsuarioFormErrors";
 describe("gestionUsuarioForm", () => {
   it("usuarioRoleLabel muestra etiquetas humanas sin cambiar valores API", () => {
     expect(usuarioRoleLabel("admin")).toBe("Administrador");
-    expect(usuarioRoleLabel("relevador")).toBe("Relevador");
+    expect(usuarioRoleLabel("relevador")).toBe("Inspector");
     expect(normalizeUsuarioRoleForApi("relevador")).toBe("relevador");
   });
 
@@ -22,10 +22,12 @@ describe("gestionUsuarioForm", () => {
       username: "jperez",
       email: "a@b.com",
       role: "relevador",
+      inspector_id: 3,
     });
     expect(form.username).toBe("jperez");
     expect(form.password).toBe("");
     expect(form.role).toBe("relevador");
+    expect(form.inspector_id).toBe(3);
   });
 
   it("password obligatorio solo en alta", () => {
@@ -49,13 +51,29 @@ describe("gestionUsuarioForm", () => {
         email: " e@x.com ",
         password: "secret",
         role: "relevador",
+        inspector_id: 7,
       })
     ).toEqual({
       username: "u",
       email: "e@x.com",
       password: "secret",
       role: "relevador",
+      inspector_id: 7,
     });
+  });
+
+  it("rol Inspector exige inspector_id en validación cliente", () => {
+    const errors = validateGestionUsuarioForm(
+      {
+        username: "abc",
+        email: "a@b.com",
+        password: "secret",
+        role: "relevador",
+        inspector_id: "",
+      },
+      true
+    );
+    expect(errors.inspector_id).toBeTruthy();
   });
 
   it("buildUpdateUsuarioPayload omite password vacío", () => {

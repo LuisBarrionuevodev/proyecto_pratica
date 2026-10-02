@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Box } from "@mui/material";
+import { fetchInspectores } from "../../../api/gridApi";
 
 import {
   CrudDialogActions,
@@ -24,6 +25,8 @@ export type GestionUsuarioCrudTarget = {
   email: string;
   role: "admin" | "usuario" | "relevador";
   is_active?: boolean;
+  inspector_id?: number | null;
+  inspector_nombre?: string | null;
 };
 
 export type GestionUsuarioCrudDialogProps = {
@@ -56,6 +59,21 @@ export function GestionUsuarioCrudDialog({
   const [draft, setDraft] = useState<GestionUsuarioFormValues>(() =>
     mode !== "create" && user ? gestionUsuarioFormFromUser(user) : emptyGestionUsuarioForm()
   );
+  const [inspectorOptions, setInspectorOptions] = useState<{ value: number; label: string }[]>([]);
+
+  useEffect(() => {
+    if (!open) return;
+    void fetchInspectores()
+      .then((resp) =>
+        setInspectorOptions(
+          resp.items.map((item) => ({
+            value: item.id,
+            label: item.legajo ? `${item.nombre} (${item.legajo})` : item.nombre,
+          }))
+        )
+      )
+      .catch(() => setInspectorOptions([]));
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -178,13 +196,53 @@ export function GestionUsuarioCrudDialog({
               appearance="glass"
               label="Rol"
               value={draft.role}
-              onChange={(e) => patch({ role: e.target.value as GestionUsuarioFormValues["role"] })}
+              onChange={(e) => {
+                const nextRole = e.target.value as GestionUsuarioFormValues["role"];
+                patch({
+                  role: nextRole,
+                  inspector_id: nextRole === "relevador" ? draft.inspector_id : "",
+                });
+              }}
               options={[{ value: "", label: "—" }, ...USUARIO_ROLE_OPTIONS]}
               fullWidth
               error={Boolean(fe("role"))}
               helperText={fe("role") || undefined}
             />
           </CrudFormSlot>
+          {draft.role === "relevador" ? (
+            <CrudFormSlot
+              label="Inspector"
+              mode={formMode}
+              value={
+                draft.inspector_id === ""
+                  ? user?.inspector_nombre ?? null
+                  : inspectorOptions.find((o) => o.value === draft.inspector_id)?.label ??
+                    user?.inspector_nombre ??
+                    null
+              }
+              required
+              error={Boolean(fe("inspector_id"))}
+              helperText={fe("inspector_id")}
+            >
+              <AppSelect
+                appearance="glass"
+                label="Inspector"
+                value={draft.inspector_id === "" ? "" : String(draft.inspector_id)}
+                onChange={(e) =>
+                  patch({
+                    inspector_id: e.target.value === "" ? "" : Number(e.target.value),
+                  })
+                }
+                options={[{ value: "", label: "—" }, ...inspectorOptions.map((o) => ({
+                  value: String(o.value),
+                  label: o.label,
+                }))]}
+                fullWidth
+                error={Boolean(fe("inspector_id"))}
+                helperText={fe("inspector_id") || undefined}
+              />
+            </CrudFormSlot>
+          ) : null}
           <CrudFormSlot
             label="Contraseña"
             mode={formMode}

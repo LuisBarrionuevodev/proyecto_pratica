@@ -70,7 +70,7 @@ const FiltroUsuarios = ({ onFiltrar, onLimpiar }: FiltroUsuariosProps) => {
               { value: "", label: "Todos" },
               { value: "admin", label: "Admin" },
               { value: "usuario", label: "Usuario" },
-              { value: "relevador", label: "Relevador" },
+              { value: "relevador", label: "Inspector" },
             ]}
           />
         </Box>

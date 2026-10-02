@@ -5,6 +5,7 @@ export type GestionUsuarioFormValues = {
   email: string;
   password: string;
   role: UsuarioRole | "";
+  inspector_id: number | "";
 };
 
 export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -12,7 +13,7 @@ export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 export const USUARIO_ROLE_OPTIONS: { value: UsuarioRole; label: string }[] = [
   { value: "admin", label: "Administrador" },
   { value: "usuario", label: "Usuario" },
-  { value: "relevador", label: "Relevador" },
+  { value: "relevador", label: "Inspector" },
 ];
 
 /** Label legible del rol (valor API sin cambiar). */
@@ -22,19 +23,21 @@ export function usuarioRoleLabel(role: string | null | undefined): string {
 }
 
 export function emptyGestionUsuarioForm(): GestionUsuarioFormValues {
-  return { username: "", email: "", password: "", role: "" };
+  return { username: "", email: "", password: "", role: "", inspector_id: "" };
 }
 
 export function gestionUsuarioFormFromUser(user: {
   username: string;
   email: string;
   role: UsuarioRole;
+  inspector_id?: number | null;
 }): GestionUsuarioFormValues {
   return {
     username: user.username ?? "",
     email: user.email ?? "",
     password: "",
     role: user.role ?? "",
+    inspector_id: user.inspector_id ?? "",
   };
 }
 
@@ -46,22 +49,32 @@ export function normalizeUsuarioRoleForApi(role: string): UsuarioRole {
 }
 
 export function buildCreateUsuarioPayload(values: GestionUsuarioFormValues) {
-  return {
+  const role = normalizeUsuarioRoleForApi(values.role);
+  const payload: Record<string, unknown> = {
     username: values.username.trim(),
     email: values.email.trim(),
     password: values.password,
-    role: normalizeUsuarioRoleForApi(values.role),
+    role,
   };
+  if (role === "relevador") {
+    payload.inspector_id = values.inspector_id === "" ? null : Number(values.inspector_id);
+  }
+  return payload;
 }
 
 export function buildUpdateUsuarioPayload(values: GestionUsuarioFormValues) {
   const password = values.password.trim();
-  return {
+  const role = normalizeUsuarioRoleForApi(values.role);
+  const payload: Record<string, unknown> = {
     username: values.username.trim(),
     email: values.email.trim(),
     password: password || undefined,
-    role: normalizeUsuarioRoleForApi(values.role),
+    role,
   };
+  if (role === "relevador") {
+    payload.inspector_id = values.inspector_id === "" ? null : Number(values.inspector_id);
+  }
+  return payload;
 }
 
 export function validateGestionUsuarioForm(
@@ -92,6 +105,10 @@ export function validateGestionUsuarioForm(
 
   if (!role) {
     errors.role = "Role is required";
+  }
+
+  if (role === "relevador" && values.inspector_id === "") {
+    errors.inspector_id = "Debe seleccionar un inspector";
   }
 
   return errors;

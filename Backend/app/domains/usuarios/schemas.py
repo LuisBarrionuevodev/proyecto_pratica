@@ -50,6 +50,15 @@ class AdminUserCreateRequest(BaseModel):
     email: EmailStr
     password: str = Field(min_length=6, max_length=255)
     role: RoleType
+    inspector_id: Optional[int] = None
+
+    @model_validator(mode="after")
+    def validate_inspector_for_role(self) -> "AdminUserCreateRequest":
+        if self.role == "relevador" and self.inspector_id is None:
+            raise ValueError("El rol Inspector requiere inspector_id.")
+        if self.role != "relevador" and self.inspector_id is not None:
+            raise ValueError("inspector_id solo aplica al rol Inspector.")
+        return self
 
 
 class AdminUserUpdateRequest(BaseModel):
@@ -60,6 +69,7 @@ class AdminUserUpdateRequest(BaseModel):
     password: Optional[str] = Field(default=None, min_length=6, max_length=255)
     role: Optional[RoleType] = None
     is_active: Optional[bool] = None
+    inspector_id: Optional[int] = None
 
     @model_validator(mode="after")
     def validate_has_values(self) -> "AdminUserUpdateRequest":
@@ -69,6 +79,7 @@ class AdminUserUpdateRequest(BaseModel):
             and self.password is None
             and self.role is None
             and self.is_active is None
+            and "inspector_id" not in self.model_fields_set
         ):
             raise ValueError("Debe enviar al menos un campo para actualizar.")
         return self

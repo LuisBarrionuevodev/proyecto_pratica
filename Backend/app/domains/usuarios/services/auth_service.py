@@ -6,6 +6,7 @@ from app.database import db
 from app.models.profile import Profile
 from app.models.user import User
 from app.domains.usuarios.security.passwords import verify_password
+from app.domains.usuarios.services.session_user_payload import user_to_auth_payload
 from app.domains.usuarios.services.users_service import _ensure_profile
 
 
@@ -38,12 +39,7 @@ def login_user(*, username: str, password: str) -> dict:
     )
     return {
         "access_token": token,
-        "user": {
-            "id": user.id,
-            "username": user.username,
-            "email": user.email,
-            "role": user.role,
-        },
+        "user": user_to_auth_payload(user),
         "profile": profile.to_dict(),
     }
 

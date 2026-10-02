@@ -34,6 +34,13 @@ class User(db.Model):
         server_default=db.func.current_timestamp(),
         onupdate=db.func.current_timestamp(),
     )
+    inspector_id = db.Column(
+        db.Integer,
+        db.ForeignKey("inspector.id", ondelete="RESTRICT", onupdate="CASCADE"),
+        nullable=True,
+        unique=True,
+        index=True,
+    )
 
     profile = db.relationship(
         "Profile",
@@ -46,14 +53,23 @@ class User(db.Model):
         back_populates="user",
         cascade="all, delete-orphan",
     )
+    inspector = db.relationship(
+        "Inspector",
+        back_populates="linked_user",
+        uselist=False,
+    )
 
     def to_admin_dict(self) -> dict:
         """Serializa el usuario para endpoints de administración."""
+        from app.domains.usuarios.services.inspector_link_service import resolve_inspector_nombre
+
         return {
             "id": self.id,
             "username": self.username,
             "email": self.email,
             "role": self.role,
             "is_active": self.is_active,
+            "inspector_id": self.inspector_id,
+            "inspector_nombre": resolve_inspector_nombre(self),
         }
 
