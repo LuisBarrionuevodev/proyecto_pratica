@@ -1,5 +1,5 @@
 """
-Permisos por rol de usuario (HOTFIX-CIERRE-DIA — RELEVADOR).
+Permisos por rol de usuario (Inspector / RELEVADOR operativo).
 """
 
 from __future__ import annotations
@@ -7,21 +7,16 @@ from __future__ import annotations
 import re
 from typing import Final
 
-# Prefijos permitidos para RELEVADOR (carga relevamientos/denuncias, cargar actuación, gestión RD).
+# Inspector (relevador): Completar trabajo + catálogos grid + perfil.
 _RELEVADOR_ALLOWED: Final[tuple[re.Pattern[str], ...]] = (
-    re.compile(r"^/relevamientos(?:/.*)?$"),
-    re.compile(r"^/api/denuncias(?:/.*)?$"),
+    re.compile(r"^/actuaciones/completar-trabajo(?:/.*)?$"),
     re.compile(r"^/grid(?:/.*)?$"),
     re.compile(r"^/catalogos/rubros(?:/.*)?$"),
     re.compile(r"^/api/profile(?:/.*)?$"),
-    re.compile(r"^/actuaciones/?$"),
-    re.compile(r"^/actuaciones/\d+$"),
 )
 
-# Bloqueos explícitos aunque coincidan con prefijos amplios.
 _RELEVADOR_DENIED: Final[tuple[re.Pattern[str], ...]] = (
     re.compile(r"^/actuaciones/pendientes(?:/.*)?$"),
-    re.compile(r"^/actuaciones/completar-trabajo(?:/.*)?$"),
     re.compile(r"^/api/admin(?:/.*)?$"),
 )
 
@@ -37,17 +32,16 @@ def relevador_may_access(method: str, path: str) -> bool:
     Retorno:
         True si el acceso está permitido.
     """
-    m = (method or "GET").upper()
+    _ = (method or "GET").upper()
     p = path.rstrip("/") or "/"
 
     for rx in _RELEVADOR_DENIED:
         if rx.match(p):
             return False
 
-    # Listado/edición masiva de actuaciones: solo carga vía POST /actuaciones y grid.
-    if p == "/actuaciones" and m != "POST":
-        return False
-    if re.match(r"^/actuaciones/\d+$", p) and m in ("GET", "DELETE"):
+    if p == "/actuaciones" or (
+        p.startswith("/actuaciones/") and not p.startswith("/actuaciones/completar-trabajo")
+    ):
         return False
 
     return any(rx.match(p) for rx in _RELEVADOR_ALLOWED)

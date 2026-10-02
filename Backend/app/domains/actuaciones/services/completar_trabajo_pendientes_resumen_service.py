@@ -5,43 +5,33 @@ from datetime import date
 from sqlalchemy import case, func
 
 from app.database import db
-from app.models import RutaItem, RutaTrabajo
-
 from app.domains.actuaciones.presenters.completar_trabajo_presenters import (
     dia_resumen_completar_trabajo_pendientes,
 )
+from app.domains.actuaciones.services.completar_trabajo_pendientes_query import (
+    apply_completar_trabajo_inspector_scope,
+)
+from app.models import RutaItem, RutaTrabajo
 
 
 def list_completar_trabajo_pendientes_resumen_por_dia(
     *,
     fecha_desde: date,
     fecha_hasta: date,
+    inspector_id_effective: int | None = None,
 ) -> tuple[list[dict], dict]:
     """
     Agrega por día operativo de ruta publicada el ámbito Completar trabajo.
 
-    **Actividad del día** (consistente con el listado por fecha): existe al menos un
-    `RutaItem` no borrado, con `actuacion_id`, en una `RutaTrabajo` PUBLICADA con esa
-    `fecha`. Es la misma base de datos que alimenta el grid (actuación mínima generada
-    al publicar).
-
-    Por cada día con actividad se devuelve:
-    - `total`: cantidad EN_PROCESO (pendientes de cierre; mismo criterio que GET pendientes).
-    - `items_con_actuacion`: total de ítems en ese ámbito (cualquier `estado_ruta_item`).
-    - `categoria_calendario`: CON_PENDIENTES si `total`>0, si no COMPLETO (actividad sin cierres pendientes).
-
-    Fechas sin fila: sin actividad en este módulo para el rango consultado.
+    Misma base de ítems que el listado por fecha; el scope Inspector se aplica antes del GROUP BY.
 
     Parámetros:
         fecha_desde: inicio inclusive (`RutaTrabajo.fecha`).
         fecha_hasta: fin inclusive.
+        inspector_id_effective: scope Inspector; None = vista global.
 
     Retorno:
-        Tupla (`dias`, `meta`). `dias` incluye **todos** los días con actividad (incluso `total==0`),
-        orden cronológico.
-
-    Errores:
-        Ninguno desde servicio; validación de rango en capa Pydantic de la ruta.
+        Tupla (`dias`, `meta`).
     """
     hoy = date.today()
 
@@ -50,7 +40,7 @@ def list_completar_trabajo_pendientes_resumen_por_dia(
     ).label("pendientes_cierre")
     items_expr = func.count(RutaItem.id).label("items_con_actuacion")
 
-    rows = (
+    aggregate = (
         db.session.query(
             RutaTrabajo.fecha,
             items_expr,
@@ -65,7 +55,11 @@ def list_completar_trabajo_pendientes_resumen_por_dia(
             RutaTrabajo.fecha >= fecha_desde,
             RutaTrabajo.fecha <= fecha_hasta,
         )
-        .group_by(RutaTrabajo.fecha)
+    )
+    aggregate = apply_completar_trabajo_inspector_scope(aggregate, inspector_id_effective)
+
+    rows = (
+        aggregate.group_by(RutaTrabajo.fecha)
         .having(func.count(RutaItem.id) > 0)
         .order_by(RutaTrabajo.fecha.asc())
         .all()

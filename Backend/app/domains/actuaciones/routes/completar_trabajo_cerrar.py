@@ -3,12 +3,17 @@ from __future__ import annotations
 from typing import Any
 
 from flask import jsonify, request
+from flask_jwt_extended import jwt_required
 from pydantic import ValidationError
 
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import (
     CompletarTrabajoCierreCompletoIn,
 )
 from app.domains.actuaciones.services.completar_trabajo_cierre_service import cerrar_completar_trabajo_por_ruta_item
+from app.domains.actuaciones.services.completar_trabajo_ruta_item_access import (
+    RutaItemAccessError,
+    assert_current_user_can_access_ruta_item,
+)
 from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
 from app.shared.errors import pydantic_errors_to_cell_map
 from app.security.rate_limiter import limit_completar_trabajo_cerrar, limiter
@@ -17,6 +22,7 @@ from . import actuacion
 
 
 @actuacion.post("/completar-trabajo/cerrar/<int:ruta_item_id>")
+@jwt_required()
 @limiter.limit(limit_completar_trabajo_cerrar)
 def cerrar_completar_trabajo(ruta_item_id: int):
     """
@@ -43,6 +49,7 @@ def cerrar_completar_trabajo(ruta_item_id: int):
     """
     data: dict[str, Any] = request.get_json(silent=True) or {}
     try:
+        assert_current_user_can_access_ruta_item(ruta_item_id)
         payload = CompletarTrabajoCierreCompletoIn.model_validate(data)
         user_id = get_current_user_id()
         row = cerrar_completar_trabajo_por_ruta_item(
@@ -51,6 +58,8 @@ def cerrar_completar_trabajo(ruta_item_id: int):
             ejecutado_por_user_id=user_id,
         )
         return jsonify({"item": row}), 200
+    except RutaItemAccessError as e:
+        return jsonify({"detail": str(e)}), e.status_code
     except ValidationError as e:
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
     except LookupError as e:
