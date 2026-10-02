@@ -156,6 +156,14 @@ const TablaCargarRelevamientosGlideStyled = ({
   const draftSaveTimerRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const sessionUsernameRef = useRef(session.username);
 
+  /** Fuente de verdad operativa: actualiza ref antes del render para submit inmediato tras Glide. */
+  const replaceGridRows = useCallback((next: GridRow[] | ((prev: GridRow[]) => GridRow[])) => {
+    const nextData = typeof next === "function" ? next(dataRef.current) : next;
+    dataRef.current = nextData;
+    setData(nextData);
+    return nextData;
+  }, []);
+
   const catalogRelevadorNombres = useMemo(
     () => [...new Set(catalogRelevadores.map((i) => i.nombre))],
     [catalogRelevadores]
@@ -232,7 +240,9 @@ const TablaCargarRelevamientosGlideStyled = ({
     draftsHydratedRef.current = true;
     const drafts = readRelevamientoDrafts(session.username);
     if (drafts.length > 0) {
-      setData(buildInitialRelevamientoGridData(drafts, catalogRelevadores));
+      const hydrated = buildInitialRelevamientoGridData(drafts, catalogRelevadores);
+      dataRef.current = hydrated;
+      setData(hydrated);
     }
   }, [session.status, session.username, catalogRelevadores]);
 
@@ -285,11 +295,14 @@ const TablaCargarRelevamientosGlideStyled = ({
 
       const rowsWithData = rows.filter((row) => {
         const isCommitted = row.ID !== undefined && row.ID !== null;
-        return rowHasData(row) && (row._touched || (!isCommitted && row._state !== "OK"));
+        return (
+          rowHasData(row) &&
+          (row._touched || row._needsCommit || (!isCommitted && row._state !== "OK"))
+        );
       });
       if (rowsWithData.length === 0) return null;
 
-      setData((prev) =>
+      replaceGridRows((prev) =>
         prev.map((row) => {
           const isCommitted = row.ID !== undefined && row.ID !== null;
           if (isCommitted && !row._touched) {
@@ -308,7 +321,7 @@ const TablaCargarRelevamientosGlideStyled = ({
 
       try {
         const response = await validateBatch({ batch_id: effectiveBatchId, rows: rowsToValidate });
-        setData((prev) =>
+        replaceGridRows((prev) =>
           prev.map((row) => {
             const result = response.results.find((r) => r.row_id === row._rowId);
             if (!result) return row;
@@ -327,7 +340,7 @@ const TablaCargarRelevamientosGlideStyled = ({
         return null;
       }
     },
-    [batchId]
+    [batchId, replaceGridRows]
   );
 
   const handleCommitBatch = useCallback(async () => {
@@ -346,7 +359,7 @@ const TablaCargarRelevamientosGlideStyled = ({
       setIsValidatingAll(true);
       setGlobalError(null);
 
-      setData((prev) =>
+      replaceGridRows((prev) =>
         prev.map((row) =>
           row.ID && !row._touched ? { ...row, _cellErrors: {}, _rowError: null } : row
         )
@@ -360,25 +373,10 @@ const TablaCargarRelevamientosGlideStyled = ({
       const response = await validateBatchRows(rowsToValidate, startedBatchId);
       const touchedRows = dataRef.current.filter((row) => rowHasData(row) && row._needsCommit);
 
-      let okRows =
+      const okRows =
         response?.results
           .filter((r) => r.ok && r.normalized)
-          .map((r) => ({ row_id: r.row_id, normalized: r.normalized! })) || [];
-
-      const localOkRows = rowsToValidate
-        .filter((row) => row._state === "OK" && row._normalized)
-        .map((row) => ({ row_id: row._rowId!, normalized: row._normalized! }));
-
-      if (localOkRows.length > 0) {
-        const existing = new Set(okRows.map((r) => r.row_id));
-        localOkRows.forEach((row) => {
-          if (!existing.has(row.row_id)) okRows.push(row);
-        });
-      }
-
-      if (!response) {
-        okRows = localOkRows;
-      }
+          .map((r) => ({ row_id: r.row_id, normalized: r.normalized! })) ?? [];
 
       if (okRows.length === 0) {
         if (!response && touchedRows.length === 0) {
@@ -398,7 +396,7 @@ const TablaCargarRelevamientosGlideStyled = ({
       setIsCommitting(true);
       const commitResp = await commitBatch({ batch_id: startedBatchId, rows: okRows });
       // Future: hook global de notificaciones cuando exista el sistema unificado (éxito parcial/total).
-      setData((prev) => {
+      replaceGridRows((prev) => {
         const next: GridRow[] = prev.map((row) => {
           const result = commitResp.results.find((r) => r.row_id === row._rowId);
           if (!result) return row;
@@ -430,16 +428,16 @@ const TablaCargarRelevamientosGlideStyled = ({
       setIsCommitting(false);
       commitBatchInFlightRef.current = false;
     }
-  }, [ensureBatchStarted, session.username, validateBatchRows]);
+  }, [ensureBatchStarted, replaceGridRows, session.username, validateBatchRows]);
 
   const handleCellEdit = useCallback(
     async ([col, row]: Item, newValue: EditableGridCell): Promise<void> => {
-      if (row >= data.length) return;
+      if (row >= dataRef.current.length) return;
       const batchSessionId = await ensureBatchStarted();
 
       const columnDef = COLUMN_DEFINITIONS[col];
       const columnId = columnDef.id;
-      const rowData = data[row];
+      const rowData = dataRef.current[row];
 
       let value: any;
       if (newValue.kind === GridCellKind.Custom) {
@@ -500,10 +498,9 @@ const TablaCargarRelevamientosGlideStyled = ({
         updatedRow = syncRelevadorIdsOnRow(updatedRow, catalogRelevadores);
       }
 
-      setData((prev) => {
+      replaceGridRows((prev) => {
         const newData = [...prev];
         newData[row] = updatedRow;
-        dataRef.current = newData;
         return newData;
       });
 
@@ -512,7 +509,7 @@ const TablaCargarRelevamientosGlideStyled = ({
         void validateRow({ batch_id: batchSessionId, row_id: rowId, row: {} }).catch(() => {});
       }
     },
-    [data, ensureBatchStarted, catalogRelevadores]
+    [ensureBatchStarted, catalogRelevadores, replaceGridRows]
   );
 
   const focusGridCell = useCallback((dataCol: number, rowIndex: number) => {
@@ -735,13 +732,13 @@ const TablaCargarRelevamientosGlideStyled = ({
   }, [ensureBatchStarted]);
 
   const onRowAppended = useCallback(() => {
-    setData((prev) => [...prev, createEmptyRow()]);
+    replaceGridRows((prev) => [...prev, createEmptyRow()]);
     requestAnimationFrame(() => {
       const rowIdx = dataRef.current.length - 1;
       const [dataCol] = relevamientoInspectorGridCell(rowIdx);
       focusGridCell(dataCol, rowIdx);
     });
-  }, [focusGridCell]);
+  }, [focusGridCell, replaceGridRows]);
   const rowsWithData = data.filter(rowHasData);
   const validationRailEntries = useMemo(() => buildValidationRailEntries(data), [data]);
 

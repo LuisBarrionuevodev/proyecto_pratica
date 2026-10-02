@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import date
 from datetime import datetime
 
@@ -22,6 +23,7 @@ from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicil
 from app.domains.geolocalizacion.geocoding.services.geocode_orchestrator import (
     on_domicilio_changed,
 )
+from app.domains.grid.services.post_commit_geocode import schedule_geocode_after_grid_commit
 from app.domains.denuncias.schemas import DenunciasGestionFilters, DenunciaGestionRowIn
 from app.domains.denuncias.services.operational_guard_service import (
     get_iniciador_pendiente_denuncia,
@@ -33,6 +35,23 @@ from app.domains.rutas_trabajo.services.iniciador_policy_service import (
     priority_for_tipo,
 )
 from app.utils.iniciador_estado import es_estado_iniciador_pendiente, normalize_estado_iniciador
+
+logger = logging.getLogger(__name__)
+
+
+def _encolar_geocode_domicilio_denuncia(domicilio_id: int) -> None:
+    """
+    Encola geocode post-commit sin bloquear la respuesta HTTP de alta de denuncia.
+
+    Si el encolado falla, registra el incidente y no revierte la denuncia ya persistida.
+    """
+    try:
+        schedule_geocode_after_grid_commit([int(domicilio_id)])
+    except Exception:
+        logger.exception(
+            "denuncia_geocode_enqueue_failed domicilio_id=%s",
+            domicilio_id,
+        )
 
 
 def _validar_exactamente_un_origen(**origenes: int | None) -> None:
@@ -63,10 +82,6 @@ def _resolver_domicilio_id(
     numero_tipo_override = "NUMERO" if numero and str(numero).strip() else "ESQUINA"
     normalizar_domicilio_en_sesion(dom, override_numero_tipo=numero_tipo_override)
     db.session.commit()
-    try:
-        on_domicilio_changed(dom.id)
-    except Exception:
-        pass
     return dom.id
 
 
@@ -134,6 +149,7 @@ def crear_denuncia_con_iniciador(
     )
     db.session.add(iniciador)
     db.session.commit()
+    _encolar_geocode_domicilio_denuncia(int(resolved_domicilio_id))
     return denuncia, iniciador
 
 

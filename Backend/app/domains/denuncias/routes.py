@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import logging
+
 from flask import Blueprint, jsonify, request
 from flask_jwt_extended import jwt_required
 from pydantic import ValidationError
+
+from app.database import db
 
 from app.domains.denuncias.schemas import (
     DenunciaCreateRequest,
@@ -24,6 +28,7 @@ from app.domains.rutas_trabajo.services.anular_iniciador_por_origen_service impo
 from app.shared.errors import pydantic_errors_to_cell_map
 
 denuncias_api = Blueprint("denuncias_api", __name__)
+logger = logging.getLogger(__name__)
 
 
 @denuncias_api.post("/api/denuncias")
@@ -50,6 +55,10 @@ def create_denuncia():
         # 403: JWT válido pero usuario inexistente/inactivo (no confundir con 401 de token ausente/expirado).
         status = 403 if "no autorizado" in msg.lower() else 400
         return jsonify({"detail": msg}), status
+    except Exception:
+        db.session.rollback()
+        logger.exception("create_denuncia_unexpected_error")
+        return jsonify({"detail": "Error interno del servidor."}), 500
 
 
 @denuncias_api.get("/api/denuncias")
