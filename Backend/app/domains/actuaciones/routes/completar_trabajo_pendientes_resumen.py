@@ -1,19 +1,25 @@
 from __future__ import annotations
 
 from flask import jsonify, request
+from flask_jwt_extended import jwt_required
 from pydantic import ValidationError
 
 from app.domains.actuaciones.schemas.completar_trabajo_pendientes_resumen_filters import (
     CompletarTrabajoPendientesResumenQuery,
 )
+from app.domains.actuaciones.services.completar_trabajo_inspector_scope import (
+    resolve_completar_trabajo_effective_inspector_id,
+)
 from app.domains.actuaciones.services.completar_trabajo_pendientes_resumen_service import (
     list_completar_trabajo_pendientes_resumen_por_dia,
 )
+from app.domains.usuarios.security.inspector_scope_policy import InspectorScopeError
 
 from . import actuacion
 
 
 @actuacion.get("/completar-trabajo/pendientes/resumen")
+@jwt_required()
 def resumen_completar_trabajo_pendientes_por_dia():
     """
     Resumen de pendientes Completar trabajo por día de ruta publicada (agregado en servidor).
@@ -37,13 +43,17 @@ def resumen_completar_trabajo_pendientes_por_dia():
         422: validación Pydantic
     """
     try:
+        inspector_id_effective = resolve_completar_trabajo_effective_inspector_id()
         raw = request.args.to_dict()
         params = {k: (v if v else None) for k, v in raw.items()}
         filters = CompletarTrabajoPendientesResumenQuery.model_validate(params)
         dias, meta = list_completar_trabajo_pendientes_resumen_por_dia(
             fecha_desde=filters.fecha_desde,
             fecha_hasta=filters.fecha_hasta,
+            inspector_id_effective=inspector_id_effective,
         )
         return jsonify({"dias": dias, "meta": meta}), 200
+    except InspectorScopeError as e:
+        return jsonify({"detail": str(e)}), e.status_code
     except ValidationError as e:
         return jsonify({"detail": "Validation error", "errors": e.errors()}), 422

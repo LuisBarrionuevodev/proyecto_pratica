@@ -1,4 +1,4 @@
-"""HOTFIX-CIERRE-DIA: rol RELEVADOR backend."""
+"""HOTFIX-CIERRE-DIA / INSPECTOR.3: rol RELEVADOR backend."""
 
 from __future__ import annotations
 
@@ -24,22 +24,23 @@ def test_schema_acepta_rol_relevador() -> None:
     assert req.role == "relevador"
 
 
-def test_relevador_permite_relevamientos_y_denuncias() -> None:
-    assert relevador_may_access("GET", "/relevamientos")
-    assert relevador_may_access("POST", "/api/denuncias")
-    assert relevador_may_access("POST", "/actuaciones")
+def test_relevador_permite_completar_trabajo_y_grid() -> None:
+    assert relevador_may_access("GET", "/actuaciones/completar-trabajo/pendientes")
+    assert relevador_may_access("POST", "/actuaciones/completar-trabajo/cerrar/1")
+    assert relevador_may_access("GET", "/grid/catalogs/inspectores")
     assert relevador_may_access("GET", "/api/profile/me")
 
 
-def test_relevador_no_lista_actuaciones() -> None:
+def test_relevador_no_carga_ni_listados_globales() -> None:
     assert not relevador_may_access("GET", "/actuaciones")
     assert not relevador_may_access("GET", "/actuaciones/42")
-    assert relevador_may_access("PUT", "/actuaciones/42")
+    assert not relevador_may_access("POST", "/actuaciones")
+    assert not relevador_may_access("GET", "/relevamientos")
+    assert not relevador_may_access("POST", "/api/denuncias")
 
 
 def test_relevador_bloquea_rutas_y_admin() -> None:
     assert not relevador_may_access("GET", "/rutas-trabajo/1/planificacion/metricas")
-    assert not relevador_may_access("POST", "/actuaciones/completar-trabajo/cerrar/1")
     assert not role_may_access_endpoint("relevador", "GET", "/api/admin/users")
     assert not role_may_access_endpoint("relevador", "GET", "/api/indicadores/resumen")
 

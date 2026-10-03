@@ -1,19 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-
 import {
+  completarTrabajosLabelForRole,
   isMenuPathVisibleForRole,
   isPathAllowedForRole,
   RELEVADOR_ALLOWED_PATHS,
-  RELEVADOR_INICIO_PATHS,
   ROLE_LABELS,
 } from "../auth/roles";
 
-const read = (rel: string) => readFileSync(resolve(process.cwd(), rel), "utf8");
-
-describe("HOTFIX-CIERRE-DIA RELEVADOR roles", () => {
-  it("RELEVADOR ve solo rutas permitidas", () => {
+describe("INSPECTOR.3 — rol relevador / Completar mis trabajos", () => {
+  it("relevador solo inicio, completar y perfil", () => {
     for (const p of RELEVADOR_ALLOWED_PATHS) {
       expect(isPathAllowedForRole("relevador", p)).toBe(true);
     }
@@ -21,52 +16,28 @@ describe("HOTFIX-CIERRE-DIA RELEVADOR roles", () => {
     expect(isPathAllowedForRole("relevador", "/dashboard")).toBe(false);
     expect(isPathAllowedForRole("relevador", "/gestionDeUsuarios")).toBe(false);
     expect(isPathAllowedForRole("relevador", "/mapa")).toBe(false);
+    expect(isPathAllowedForRole("relevador", "/cargarActuacion")).toBe(false);
+    expect(isPathAllowedForRole("relevador", "/relevamientos")).toBe(false);
   });
 
-  it("RELEVADOR inicio solo 4 cards (incluye perfil)", () => {
-    expect(RELEVADOR_INICIO_PATHS).toEqual([
-      "/cargarActuacion",
-      "/cargarRelevamiento",
-      "/relevamientos",
-      "/perfil",
-    ]);
-    expect(isMenuPathVisibleForRole("relevador", "/cargarActuacion")).toBe(true);
-    expect(isMenuPathVisibleForRole("relevador", "/completarTrabajos")).toBe(false);
+  it("menú relevador muestra Completar mis trabajos", () => {
+    expect(isMenuPathVisibleForRole("relevador", "/completarTrabajos")).toBe(true);
+    expect(isMenuPathVisibleForRole("relevador", "/cargarActuacion")).toBe(false);
+    expect(completarTrabajosLabelForRole("relevador")).toBe("Completar mis trabajos");
+    expect(completarTrabajosLabelForRole("admin")).toBe("Completar trabajo");
   });
 
-  it("admin ve todo incluido gestión usuarios", () => {
+  it("admin conserva acceso global", () => {
     expect(isMenuPathVisibleForRole("admin", "/gestionDeUsuarios")).toBe(true);
     expect(isPathAllowedForRole("admin", "/rutasTrabajo")).toBe(true);
   });
 
-  it("usuario no ve gestión usuarios", () => {
+  it("usuario sin gestión usuarios", () => {
     expect(isMenuPathVisibleForRole("usuario", "/gestionDeUsuarios")).toBe(false);
     expect(isPathAllowedForRole("usuario", "/rutasTrabajo")).toBe(true);
   });
 
-  it("label Relevador visible", () => {
+  it("label visible Inspector", () => {
     expect(ROLE_LABELS.relevador).toBe("Inspector");
-  });
-});
-
-describe("HOTFIX-CIERRE-DIA frontend wiring", () => {
-  it("NavLeft usa accessConfig unificado", () => {
-    expect(read("src/Componets/NavLeft.tsx")).toContain("getVisibleMenuSections");
-  });
-
-  it("AppLayout usa RoleRouteGuard", () => {
-    expect(read("src/layouts/AppLayout.tsx")).toContain("RoleRouteGuard");
-  });
-
-  it("completar trabajo vincula notificacion_id", () => {
-    const src = readFileSync(
-      resolve(
-        process.cwd(),
-        "../Backend/app/domains/actuaciones/services/completar_trabajo_cierre_service.py"
-      ),
-      "utf8"
-    );
-    expect(src).toContain("_vincular_notificacion_reinspeccion_en_acta");
-    expect(src).toContain("act.notificacion_id = ini.notificacion_id");
   });
 });

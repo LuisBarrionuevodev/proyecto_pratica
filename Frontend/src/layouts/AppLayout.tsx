@@ -7,6 +7,7 @@ import { InstitutionalViewHeaderBar } from "./InstitutionalViewHeaderBar";
 import NavLeft from "../Componets/NavLeft";
 import TopBar from "../Componets/TopBar";
 import { RoleRouteGuard } from "./RoleRouteGuard";
+import { useAppSession } from "../auth/AppSessionProvider";
 import { TRANSITION, glassContent } from "../styles/GlassStyles";
 import { CSS_VAR_NAMES } from "../theme/applyCssVariables";
 import { layoutShell } from "../theme/tokens";
@@ -29,9 +30,10 @@ const AppLayout = () => {
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [mobileNavOpen, setMobileNavOpen] = useState(false);
     const location = useLocation();
+    const { role } = useAppSession();
 
     const currentSidebarWidth = sidebarOpen ? SIDEBAR_EXPANDED : SIDEBAR_COLLAPSED;
-    const currentLabel = resolveBreadcrumbLabel(location.pathname);
+    const currentLabel = resolveBreadcrumbLabel(location.pathname, role);
 
     useEffect(() => {
         setBodyAuthenticatedRoute(true);

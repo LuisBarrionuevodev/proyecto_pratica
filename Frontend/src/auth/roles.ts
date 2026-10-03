@@ -6,22 +6,31 @@ export const ROLE_LABELS: Record<AppRole, string> = {
   relevador: "Inspector",
 };
 
+export const COMPLETAR_TRABAJOS_PATH = "/completarTrabajos";
+
 /** Rutas permitidas para RELEVADOR (nav + acceso directo). */
 export const RELEVADOR_ALLOWED_PATHS: readonly string[] = [
   "/inicio",
-  "/cargarActuacion",
-  "/cargarRelevamiento",
-  "/relevamientos",
+  COMPLETAR_TRABAJOS_PATH,
   "/perfil",
 ];
 
 /** Cards de Inicio visibles para RELEVADOR (incluye Mi perfil). */
 export const RELEVADOR_INICIO_PATHS: readonly string[] = [
-  "/cargarActuacion",
-  "/cargarRelevamiento",
-  "/relevamientos",
+  COMPLETAR_TRABAJOS_PATH,
   "/perfil",
 ];
+
+export function completarTrabajosLabelForRole(role: AppRole): string {
+  return role === "relevador" ? "Completar mis trabajos" : "Completar trabajo";
+}
+
+export function resolveMenuLabelForRole(role: AppRole, path: string, defaultText: string): string {
+  if (path === COMPLETAR_TRABAJOS_PATH) {
+    return completarTrabajosLabelForRole(role);
+  }
+  return defaultText;
+}
 
 /**
  * Indica si un rol puede navegar a la ruta (path exacto o prefijo de detalle).

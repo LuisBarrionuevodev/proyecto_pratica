@@ -13,8 +13,8 @@ describe("CIERRE-QA-2 A — Pool no achica Urgentes", () => {
     const styles = read("src/Containers/RutasTrabajo/styles/institutionalVisual.ts");
     expect(styles).toContain("planificacionUrgentesSlotSx");
     expect(styles).toContain("planificacionPoolSlotSx");
-    expect(view).toContain("planificacionUrgentesSlotSx");
-    expect(view).toContain("planificacionPoolSlotSx");
+    expect(view).toContain("planificacionMainAreaSx");
+    expect(view).toContain("PlanificacionPoolCardsStrip");
   });
 
   it("Urgentes y Pool usan list viewport con scroll propio", () => {
@@ -27,16 +27,16 @@ describe("CIERRE-QA-2 A — Pool no achica Urgentes", () => {
 });
 
 describe("CIERRE-QA-2 B — Toolbar usuario/perfil", () => {
-  it("Relevador sin nombre muestra solo Relevador", () => {
+  it("Inspector sin nombre muestra solo Inspector", () => {
     const d = formatToolbarUserDisplay(null, "usuario", "relevador");
-    expect(d.primary).toBe("Relevador");
+    expect(d.primary).toBe("Inspector");
     expect(d.showRoleBadge).toBe(false);
   });
 
-  it("Relevador con nombre muestra nombre y badge", () => {
+  it("Inspector con nombre muestra nombre y badge", () => {
     const d = formatToolbarUserDisplay("Pablo García", "usuario", "relevador");
     expect(d.primary).toBe("Pablo García");
-    expect(d.roleLabel).toBe("Relevador");
+    expect(d.roleLabel).toBe("Inspector");
     expect(d.showRoleBadge).toBe(true);
   });
 
@@ -57,7 +57,8 @@ describe("CIERRE-QA-2 C/D — Permisos unificados sin flicker", () => {
   it("canAccessModule alinea nav e inicio", () => {
     expect(canAccessModule("admin", "/gestionDeUsuarios")).toBe(true);
     expect(canAccessModule("usuario", "/gestionDeUsuarios")).toBe(false);
-    expect(canAccessModule("relevador", "/cargarActuacion")).toBe(true);
+    expect(canAccessModule("relevador", "/completarTrabajos")).toBe(true);
+    expect(canAccessModule("relevador", "/cargarActuacion")).toBe(false);
     expect(canAccessModule("relevador", "/rutasTrabajo")).toBe(false);
   });
 
@@ -74,8 +75,18 @@ describe("CIERRE-QA-2 C/D — Permisos unificados sin flicker", () => {
     expect(home).not.toContain("/gestionDeUsuarios");
     expect(home).not.toContain("/rutasTrabajo");
     expect(nav).not.toContain("/gestionDeUsuarios");
-    expect(home).toHaveLength(4);
+    expect(home).toHaveLength(2);
     expect(home).toContain("/perfil");
+    expect(home).toContain("/completarTrabajos");
+  });
+
+  it("INSPECTOR.3 — menú relevador etiqueta Completar mis trabajos", () => {
+    const nav = getVisibleMenuSections("relevador").flatMap((s) => s.items);
+    const ct = nav.find((i) => i.path === "/completarTrabajos");
+    expect(ct?.text).toBe("Completar mis trabajos");
+    const home = getVisibleHomeCards("relevador");
+    const card = home.find((c) => c.to === "/completarTrabajos");
+    expect(card?.title).toBe("Completar mis trabajos");
   });
 
   it("Inicio default deny: skeleton mientras carga", () => {
