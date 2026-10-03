@@ -55,6 +55,12 @@ _PHASE1_METHOD_PATH: Final[tuple[tuple[str, re.Pattern[str]], ...]] = (
         "POST",
         re.compile(r"^/actuaciones/pendientes/sync-notificaciones-vencidas$"),
     ),
+    ("POST", re.compile(r"^/grid/start$")),
+    ("POST", re.compile(r"^/grid/batch/start$")),
+    ("POST", re.compile(r"^/grid/validate-row$")),
+    ("POST", re.compile(r"^/grid/batch/validate-row$")),
+    ("POST", re.compile(r"^/grid/validate-batch$")),
+    ("POST", re.compile(r"^/grid/batch/validate-batch$")),
     ("POST", re.compile(r"^/grid/commit-batch$")),
     ("POST", re.compile(r"^/grid/commit-row$")),
     (

@@ -19,16 +19,20 @@ def test_schema_acepta_rol_relevador() -> None:
             "email": "rel1@example.com",
             "password": "secret1",
             "role": "relevador",
+            "inspector_id": 1,
         }
     )
     assert req.role == "relevador"
 
 
-def test_relevador_permite_completar_trabajo_y_grid() -> None:
+def test_relevador_permite_completar_trabajo_y_catalogos() -> None:
     assert relevador_may_access("GET", "/actuaciones/completar-trabajo/pendientes")
     assert relevador_may_access("POST", "/actuaciones/completar-trabajo/cerrar/1")
     assert relevador_may_access("GET", "/grid/catalogs/inspectores")
+    assert relevador_may_access("GET", "/catalogos/rubros")
     assert relevador_may_access("GET", "/api/profile/me")
+    assert not relevador_may_access("POST", "/grid/start")
+    assert not relevador_may_access("POST", "/grid/commit-batch")
 
 
 def test_relevador_no_carga_ni_listados_globales() -> None:

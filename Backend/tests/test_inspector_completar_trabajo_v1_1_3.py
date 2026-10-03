@@ -37,6 +37,11 @@ from app.models import (
     User,
 )
 from app.models.turno import TipoTurno
+from tests.helpers.fixture_isolation import (
+    fecha_fixture_aislada,
+    uniq_ruta_numero,
+    unique_ot_numero,
+)
 
 
 def _suf() -> str:
@@ -55,7 +60,7 @@ def _mk_turno() -> Turno:
 
 def _mk_inspector() -> Inspector:
     turno = _mk_turno()
-    ins = Inspector(nombre=f"Insp {_suf()}", legajo=_suf()[:6], turno_id=turno.id)
+    ins = Inspector(nombre=f"Insp {_suf()}", legajo=_suf()[:5], turno_id=turno.id)
     db.session.add(ins)
     db.session.flush()
     return ins
@@ -91,7 +96,7 @@ def _mk_item_en_grupo(
     dom = Domicilio(calle=f"C {tag}", numero="1", rubro_id=rub.id)
     db.session.add(dom)
     db.session.flush()
-    ot = OrdenTrabajo(numero_acta=tag[:6], anio=2026, mes=7)
+    ot = OrdenTrabajo(numero_acta=unique_ot_numero(), anio=2026, mes=7)
     db.session.add(ot)
     db.session.flush()
     act = Actuaciones(
@@ -118,7 +123,7 @@ def _mk_item_en_grupo(
         fecha=fecha,
         turno="MANIANA",
         estado_ruta="PUBLICADA",
-        numero=random.randint(1000, 99999),
+        numero=uniq_ruta_numero(),
         created_by_user_id=actor_id,
     )
     db.session.add(ruta)
@@ -168,7 +173,7 @@ def ct_scope_data(app):
         ins_b = _mk_inspector()
         user_a = _mk_relevador(ins_a)
         user_b = _mk_relevador(ins_b)
-        fecha = date(2026, 7, 15)
+        fecha = fecha_fixture_aislada(anio=2026)
         item_a = _mk_item_en_grupo(admin.id, fecha, [ins_a.id], suf=f"a_{_suf()}")
         item_b = _mk_item_en_grupo(admin.id, fecha, [ins_b.id], suf=f"b_{_suf()}")
         item_shared = _mk_item_en_grupo(admin.id, fecha, [ins_a.id, ins_b.id], suf=f"s_{_suf()}")
@@ -243,9 +248,10 @@ def test_inspector_b_listado_simetrico(ct_scope_data) -> None:
 
 def test_resumen_mismo_scope_que_listado(ct_scope_data) -> None:
     d = ct_scope_data
+    f = d["fecha"]
     dias, _ = list_completar_trabajo_pendientes_resumen_por_dia(
-        fecha_desde=date(2026, 7, 1),
-        fecha_hasta=date(2026, 7, 31),
+        fecha_desde=date(f.year, f.month, 1),
+        fecha_hasta=date(f.year, f.month, 28),
         inspector_id_effective=d["ins_a"].id,
     )
     row = next(x for x in dias if x["fecha"] == d["fecha"].isoformat())

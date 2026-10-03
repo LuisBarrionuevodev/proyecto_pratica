@@ -7,18 +7,30 @@ from __future__ import annotations
 import re
 from typing import Final
 
-# Inspector (relevador): Completar trabajo + catálogos grid + perfil.
-_RELEVADOR_ALLOWED: Final[tuple[re.Pattern[str], ...]] = (
-    re.compile(r"^/actuaciones/completar-trabajo(?:/.*)?$"),
-    re.compile(r"^/grid(?:/.*)?$"),
-    re.compile(r"^/catalogos/rubros(?:/.*)?$"),
-    re.compile(r"^/api/profile(?:/.*)?$"),
+_RELEVADOR_COMPLETAR_TRABAJO_RX: Final[re.Pattern[str]] = re.compile(
+    r"^/actuaciones/completar-trabajo(?:/.*)?$"
+)
+_RELEVADOR_PROFILE_RX: Final[re.Pattern[str]] = re.compile(r"^/api/profile(?:/.*)?$")
+_RELEVADOR_RUBROS_RX: Final[re.Pattern[str]] = re.compile(r"^/catalogos/rubros(?:/.*)?$")
+
+_RELEVADOR_GRID_CATALOG_GET_PATHS: Final[frozenset[str]] = frozenset(
+    {
+        "/grid/catalogs/inspectores",
+        "/grid/catalogs/motivos",
+        "/grid/catalogs/contraproducencias",
+        "/grid/catalogs/motivos-comprobacion",
+        "/grid/catalogs/items-acta-inspeccion",
+    }
 )
 
 _RELEVADOR_DENIED: Final[tuple[re.Pattern[str], ...]] = (
     re.compile(r"^/actuaciones/pendientes(?:/.*)?$"),
     re.compile(r"^/api/admin(?:/.*)?$"),
 )
+
+
+def _normalize_path(path: str) -> str:
+    return path.rstrip("/") or "/"
 
 
 def relevador_may_access(method: str, path: str) -> bool:
@@ -32,8 +44,8 @@ def relevador_may_access(method: str, path: str) -> bool:
     Retorno:
         True si el acceso está permitido.
     """
-    _ = (method or "GET").upper()
-    p = path.rstrip("/") or "/"
+    m = (method or "GET").upper()
+    p = _normalize_path(path)
 
     for rx in _RELEVADOR_DENIED:
         if rx.match(p):
@@ -44,7 +56,22 @@ def relevador_may_access(method: str, path: str) -> bool:
     ):
         return False
 
-    return any(rx.match(p) for rx in _RELEVADOR_ALLOWED)
+    if _RELEVADOR_COMPLETAR_TRABAJO_RX.match(p):
+        return m in ("GET", "POST", "HEAD", "OPTIONS")
+
+    if _RELEVADOR_PROFILE_RX.match(p):
+        return m in ("GET", "PATCH", "POST", "HEAD", "OPTIONS")
+
+    if _RELEVADOR_RUBROS_RX.match(p):
+        return m in ("GET", "HEAD", "OPTIONS")
+
+    if m == "GET" and p in _RELEVADOR_GRID_CATALOG_GET_PATHS:
+        return True
+
+    if p.startswith("/grid"):
+        return False
+
+    return False
 
 
 def role_may_access_endpoint(role: str, method: str, path: str) -> bool:
