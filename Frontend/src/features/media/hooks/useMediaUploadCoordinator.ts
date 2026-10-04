@@ -115,13 +115,15 @@ export function useMediaUploadCoordinator() {
   }, []);
 
   const retryItem = useCallback((localId: string) => {
-    setItems((prev) =>
-      prev.map((x) =>
+    setItems((prev) => {
+      const next: MediaQueuedFile[] = prev.map((x) =>
         x.localId === localId
-          ? { ...x, phase: "pending", progressPct: 0, errorMessage: null }
+          ? { ...x, phase: "pending" as const, progressPct: 0, errorMessage: null }
           : x
-      )
-    );
+      );
+      itemsRef.current = next;
+      return next;
+    });
   }, []);
 
   const hasPendingUpload = items.some(

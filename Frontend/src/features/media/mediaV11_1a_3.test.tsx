@@ -1,13 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { MEDIA_CATEGORY_CONFIG_1A } from "./mediaConstants";
+import { MEDIA_1A_GALLERIES } from "./mediaConstants";
 import { runCompletarTrabajoFinalizeFlow } from "../../Containers/CompletarTrabajos/utils/completarTrabajoFinalizeFlow";
 import { vi } from "vitest";
 
 describe("MEDIA.1A.3 configuración galerías", () => {
   it("expone cupos 9 y 7 sin FOTO_INSPECCION", () => {
-    expect(MEDIA_CATEGORY_CONFIG_1A.FOTO_DOCUMENTACION_LOCAL.cupo).toBe(9);
-    expect(MEDIA_CATEGORY_CONFIG_1A.FOTO_ACTA.cupo).toBe(7);
-    expect("FOTO_INSPECCION" in MEDIA_CATEGORY_CONFIG_1A).toBe(false);
+    expect(MEDIA_1A_GALLERIES).toHaveLength(2);
+    expect(MEDIA_1A_GALLERIES[0].cupo).toBe(9);
+    expect(MEDIA_1A_GALLERIES[1].cupo).toBe(7);
+    expect(MEDIA_1A_GALLERIES.some((g) => g.categoria === "FOTO_INSPECCION")).toBe(false);
   });
 });
 

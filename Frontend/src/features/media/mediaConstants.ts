@@ -50,6 +50,22 @@ export const MEDIA_CATEGORY_MAX: Record<MediaCategoria1A, number> = {
   [MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL]: MEDIA_MAX_FOTO_DOCUMENTACION_LOCAL,
 };
 
+/** Galerías habilitadas en Media.1A (orden de UI). Media.1B agregará otra entrada. */
+export const MEDIA_1A_GALLERIES = [
+  {
+    categoria: MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
+    titulo: "Fotos de la documentación del local",
+    ejemplos: MEDIA_CATEGORY_HINTS[MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL],
+    cupo: MEDIA_MAX_FOTO_DOCUMENTACION_LOCAL,
+  },
+  {
+    categoria: MEDIA_CATEGORIA_FOTO_ACTA,
+    titulo: "Fotos de las actas",
+    ejemplos: MEDIA_CATEGORY_HINTS[MEDIA_CATEGORIA_FOTO_ACTA],
+    cupo: MEDIA_MAX_FOTO_ACTA,
+  },
+] as const;
+
 /** Configuración por galería (extensible a Media.1B). */
 export const MEDIA_CATEGORY_CONFIG_1A: Record<
   MediaCategoria1A,

@@ -19,6 +19,8 @@ type Props = {
   onRemove: (localId: string) => void;
   onRetry?: (localId: string) => void;
   disabled?: boolean;
+  /** Solo botón y cola; el encabezado/contador lo muestra el padre (galería CRUD). */
+  embedded?: boolean;
 };
 
 export function MediaUploadSection({
@@ -29,6 +31,7 @@ export function MediaUploadSection({
   onRemove,
   onRetry,
   disabled,
+  embedded = false,
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const label = MEDIA_CATEGORY_LABELS[categoria];
@@ -39,19 +42,21 @@ export function MediaUploadSection({
 
   return (
     <Box>
-      <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.5 }}>
-        <Box>
-          <Typography variant="subtitle2" sx={{ color: GLASS_COLORS.textPrimary }}>
-            {label}
+      {!embedded ? (
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.5 }}>
+          <Box>
+            <Typography variant="subtitle2" sx={{ color: GLASS_COLORS.textPrimary }}>
+              {label}
+            </Typography>
+            <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted, fontStyle: "italic", mt: 0.25 }}>
+              {hint}
+            </Typography>
+          </Box>
+          <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, flexShrink: 0, ml: 1 }}>
+            {used} / {max}
           </Typography>
-          <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted, fontStyle: "italic", mt: 0.25 }}>
-            {hint}
-          </Typography>
-        </Box>
-        <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, flexShrink: 0, ml: 1 }}>
-          {used} / {max}
-        </Typography>
-      </Stack>
+        </Stack>
+      ) : null}
       <Stack spacing={1}>
         <input
           ref={inputRef}
