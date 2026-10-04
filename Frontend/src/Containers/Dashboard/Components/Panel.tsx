@@ -41,6 +41,8 @@ import { DashboardProductividadSectionLazy } from "./DashboardProductividadSecti
 import { DashboardRiesgoSection } from "./DashboardRiesgoSection";
 import { DashboardSectionGate } from "./DashboardSectionGate";
 import { ResponsiveFiltersPanel, ResponsiveScrollableTabs } from "../../../ui";
+import { useAppSession } from "../../../auth/AppSessionProvider";
+import { normalizeAppRole } from "../../../auth/roles";
 
 const PERIODOS: Periodo[] = ["Semanal", "Mensual", "Trimestral", "Anual"];
 
@@ -57,6 +59,10 @@ const dashFiltroFormSx = mergeSx(filtroItemStyles, {
  */
 
 const Panel = () => {
+  const { role: sessionRole } = useAppSession();
+  const appRole = normalizeAppRole(sessionRole);
+  const isInspectorIndicadores = appRole === "relevador";
+
   const [periodo, setPeriodo] = useState<Periodo>("Mensual");
   const [distritoId, setDistritoId] = useState<string>("");
   const [inspectorId, setInspectorId] = useState<string>("");
@@ -66,6 +72,7 @@ const Panel = () => {
   const { desde, hasta } = useMemo(() => periodoToDateRange(periodo), [periodo]);
 
   useEffect(() => {
+    if (isInspectorIndicadores) return;
     let cancel = false;
     fetchDistritosCatalogo()
       .then((res) => {
@@ -77,9 +84,10 @@ const Panel = () => {
     return () => {
       cancel = true;
     };
-  }, []);
+  }, [isInspectorIndicadores]);
 
   useEffect(() => {
+    if (isInspectorIndicadores) return;
     let cancel = false;
     fetchInspectores()
       .then((res) => {
@@ -91,7 +99,7 @@ const Panel = () => {
     return () => {
       cancel = true;
     };
-  }, []);
+  }, [isInspectorIndicadores]);
 
   const indicadoresParams = useMemo(() => {
     const p: {
@@ -100,14 +108,16 @@ const Panel = () => {
       distrito_id?: number;
       inspector_id?: number;
     } = { desde, hasta };
-    if (distritoId !== "") {
-      p.distrito_id = Number(distritoId);
-    }
-    if (inspectorId !== "") {
-      p.inspector_id = Number(inspectorId);
+    if (!isInspectorIndicadores) {
+      if (distritoId !== "") {
+        p.distrito_id = Number(distritoId);
+      }
+      if (inspectorId !== "") {
+        p.inspector_id = Number(inspectorId);
+      }
     }
     return p;
-  }, [desde, hasta, distritoId, inspectorId]);
+  }, [desde, hasta, distritoId, inspectorId, isInspectorIndicadores]);
 
   const {
     data: ejecutivoData,
@@ -229,6 +239,7 @@ const Panel = () => {
   return (
     <Box
       data-testid="dashboard-panel"
+      data-inspector-indicadores={isInspectorIndicadores ? "true" : undefined}
       sx={mergeSx(functionalPageShellSx, { overflowX: "hidden", minWidth: 0 })}
     >
       <Paper
@@ -255,108 +266,112 @@ const Panel = () => {
           ))}
         </ResponsiveScrollableTabs>
 
-        <ResponsiveFiltersPanel
-          activeFiltersSlot={filtersSummary}
-          surfaceSx={{
-            bgcolor: "transparent",
-            border: "none",
-            boxShadow: "none",
-            p: 0,
-            backdropFilter: "none",
-            WebkitBackdropFilter: "none",
-          }}
-        >
-          <Box
-            sx={{
-              ...TableExportBoxStyles,
+        {!isInspectorIndicadores ? (
+          <ResponsiveFiltersPanel
+            activeFiltersSlot={filtersSummary}
+            surfaceSx={{
+              bgcolor: "transparent",
+              border: "none",
+              boxShadow: "none",
               p: 0,
-              flexDirection: "column",
-              flexWrap: "wrap",
-              alignItems: "stretch",
-              gap: 1.25,
-              width: "100%",
-              minWidth: 0,
+              backdropFilter: "none",
+              WebkitBackdropFilter: "none",
             }}
           >
-            <FormControl variant="outlined" sx={dashFiltroFormSx}>
-              <InputLabel id="dash-distrito-label" shrink>
-                Distrito
-              </InputLabel>
-              <Select
-                labelId="dash-distrito-label"
-                label="Distrito"
-                notched
-                displayEmpty
-                value={distritoId}
-                onChange={(e) => setDistritoId(String(e.target.value))}
-              >
-                <MenuItem value="">
-                  <em>Todos</em>
-                </MenuItem>
-                {distritoOptions.map((d) => (
-                  <MenuItem key={d.id} value={String(d.id)}>
-                    {d.nombre}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-            <FormControl variant="outlined" sx={dashFiltroFormSx}>
-              <InputLabel id="dash-inspector-label" shrink>
-                Inspector
-              </InputLabel>
-              <Select
-                labelId="dash-inspector-label"
-                label="Inspector"
-                notched
-                displayEmpty
-                value={inspectorId}
-                onChange={(e) => setInspectorId(String(e.target.value))}
-              >
-                <MenuItem value="">
-                  <em>Todos</em>
-                </MenuItem>
-                {inspectorOptions.map((i) => (
-                  <MenuItem key={i.id} value={String(i.id)}>
-                    {i.nombre}
-                  </MenuItem>
-                ))}
-              </Select>
-            </FormControl>
-          </Box>
-        </ResponsiveFiltersPanel>
-
-        <Tooltip
-          title={
-            hasExportData
-              ? "Informe PDF institucional del período seleccionado."
-              : "Cargá indicadores antes de exportar."
-          }
-        >
-          <span>
-            <Button
-              variant="outlined"
-              fullWidth
-              startIcon={<PictureAsPdfOutlinedIcon />}
-              disabled={!hasExportData || anyBlockingLoad}
-              onClick={() =>
-                downloadDashboardPdf({
-                  payload: exportPayload,
-                  desde,
-                  hasta,
-                })
-              }
+            <Box
               sx={{
-                ...TableExportButtonStyles,
-                fontWeight: 700,
-                width: { xs: "100%", md: "auto" },
-                alignSelf: { md: "flex-end" },
-                whiteSpace: "normal",
+                ...TableExportBoxStyles,
+                p: 0,
+                flexDirection: "column",
+                flexWrap: "wrap",
+                alignItems: "stretch",
+                gap: 1.25,
+                width: "100%",
+                minWidth: 0,
               }}
             >
-              Exportar PDF
-            </Button>
-          </span>
-        </Tooltip>
+              <FormControl variant="outlined" sx={dashFiltroFormSx}>
+                <InputLabel id="dash-distrito-label" shrink>
+                  Distrito
+                </InputLabel>
+                <Select
+                  labelId="dash-distrito-label"
+                  label="Distrito"
+                  notched
+                  displayEmpty
+                  value={distritoId}
+                  onChange={(e) => setDistritoId(String(e.target.value))}
+                >
+                  <MenuItem value="">
+                    <em>Todos</em>
+                  </MenuItem>
+                  {distritoOptions.map((d) => (
+                    <MenuItem key={d.id} value={String(d.id)}>
+                      {d.nombre}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+              <FormControl variant="outlined" sx={dashFiltroFormSx}>
+                <InputLabel id="dash-inspector-label" shrink>
+                  Inspector
+                </InputLabel>
+                <Select
+                  labelId="dash-inspector-label"
+                  label="Inspector"
+                  notched
+                  displayEmpty
+                  value={inspectorId}
+                  onChange={(e) => setInspectorId(String(e.target.value))}
+                >
+                  <MenuItem value="">
+                    <em>Todos</em>
+                  </MenuItem>
+                  {inspectorOptions.map((i) => (
+                    <MenuItem key={i.id} value={String(i.id)}>
+                      {i.nombre}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
+          </ResponsiveFiltersPanel>
+        ) : null}
+
+        {!isInspectorIndicadores ? (
+          <Tooltip
+            title={
+              hasExportData
+                ? "Informe PDF institucional del período seleccionado."
+                : "Cargá indicadores antes de exportar."
+            }
+          >
+            <span>
+              <Button
+                variant="outlined"
+                fullWidth
+                startIcon={<PictureAsPdfOutlinedIcon />}
+                disabled={!hasExportData || anyBlockingLoad}
+                onClick={() =>
+                  downloadDashboardPdf({
+                    payload: exportPayload,
+                    desde,
+                    hasta,
+                  })
+                }
+                sx={{
+                  ...TableExportButtonStyles,
+                  fontWeight: 700,
+                  width: { xs: "100%", md: "auto" },
+                  alignSelf: { md: "flex-end" },
+                  whiteSpace: "normal",
+                }}
+              >
+                Exportar PDF
+              </Button>
+            </span>
+          </Tooltip>
+        ) : null}
       </Paper>
 
       <OperativoPeriodoLabel desde={desde} hasta={hasta} />

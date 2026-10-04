@@ -23,6 +23,15 @@ _RELEVADOR_GRID_CATALOG_GET_PATHS: Final[frozenset[str]] = frozenset(
     }
 )
 
+_RELEVADOR_INDICADORES_GET_PATHS: Final[frozenset[str]] = frozenset(
+    {
+        "/api/indicadores/ejecutivo",
+        "/api/indicadores/riesgo",
+        "/api/indicadores/no-realizadas",
+        "/api/indicadores/productividad",
+    }
+)
+
 _RELEVADOR_DENIED: Final[tuple[re.Pattern[str], ...]] = (
     re.compile(r"^/actuaciones/pendientes(?:/.*)?$"),
     re.compile(r"^/api/admin(?:/.*)?$"),
@@ -68,6 +77,11 @@ def relevador_may_access(method: str, path: str) -> bool:
 
     if m == "GET" and p in _RELEVADOR_GRID_CATALOG_GET_PATHS:
         return True
+
+    if p.startswith("/api/indicadores"):
+        if p in _RELEVADOR_INDICADORES_GET_PATHS:
+            return m in ("GET", "HEAD", "OPTIONS")
+        return False
 
     if p.startswith("/grid"):
         return False

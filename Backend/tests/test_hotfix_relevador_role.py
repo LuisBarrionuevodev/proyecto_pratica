@@ -55,6 +55,12 @@ def test_relevador_bloquea_rutas_y_admin() -> None:
     assert not role_may_access_endpoint("relevador", "GET", "/api/indicadores/resumen")
 
 
+def test_relevador_indicadores_dashboard_get_allowlist() -> None:
+    assert relevador_may_access("GET", "/api/indicadores/ejecutivo")
+    assert relevador_may_access("GET", "/api/indicadores/productividad")
+    assert not relevador_may_access("POST", "/api/indicadores/ejecutivo")
+
+
 def test_usuario_sigue_sin_restriccion_extra() -> None:
     assert role_may_access_endpoint("usuario", "GET", "/rutas-trabajo/1/planificacion/metricas")
 

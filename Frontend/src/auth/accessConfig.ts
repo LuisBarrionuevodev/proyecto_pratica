@@ -3,6 +3,7 @@ import { INICIO_ACCESOS, type InicioAccesoItem } from "../Containers/Inicio/inic
 import {
   actuacionesLabelForRole,
   completarTrabajosLabelForRole,
+  indicadoresLabelForRole,
   isMenuPathVisibleForRole,
   resolveMenuLabelForRole,
   type AppRole,
@@ -22,6 +23,9 @@ export function getVisibleHomeCards(role: AppRole): InicioAccesoItem[] {
     }
     if (item.to === "/actuaciones") {
       return { ...item, title: actuacionesLabelForRole(role) };
+    }
+    if (item.to === "/dashboard") {
+      return { ...item, title: indicadoresLabelForRole(role) };
     }
     return item;
   });

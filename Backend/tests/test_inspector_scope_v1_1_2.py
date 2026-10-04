@@ -354,11 +354,7 @@ def test_indicadores_route_inspector_cross_403(app, client, scope_fixture) -> No
         headers=headers,
     )
     assert resp.status_code == 403
-    detail = resp.get_json()["detail"]
-    assert detail in (
-        CROSS_INSPECTOR_ACCESS_DETAIL,
-        "No tiene permisos para esta acción",
-    )
+    assert resp.get_json()["detail"] == CROSS_INSPECTOR_ACCESS_DETAIL
 
 
 def test_resolve_effective_inspector_id_with_jwt_context(app, scope_fixture) -> None:

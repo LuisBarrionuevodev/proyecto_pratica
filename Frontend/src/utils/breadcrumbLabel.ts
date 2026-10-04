@@ -1,6 +1,11 @@
 import { matchPath } from "react-router-dom";
 import { routeLabels } from "../constants/menuItems";
-import { actuacionesLabelForRole, completarTrabajosLabelForRole, type AppRole } from "../auth/roles";
+import {
+  actuacionesLabelForRole,
+  completarTrabajosLabelForRole,
+  indicadoresLabelForRole,
+  type AppRole,
+} from "../auth/roles";
 
 /**
  * Resuelve el texto del breadcrumb del AppLayout para rutas estáticas y dinámicas.
@@ -17,6 +22,9 @@ export function resolveBreadcrumbLabel(pathname: string, role?: AppRole | null):
   }
   if (pathname === "/actuaciones" && role === "relevador") {
     return actuacionesLabelForRole("relevador");
+  }
+  if (pathname === "/dashboard" && role === "relevador") {
+    return indicadoresLabelForRole("relevador");
   }
   return routeLabels[pathname] ?? "Vista";
 }
