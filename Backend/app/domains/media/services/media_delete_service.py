@@ -12,6 +12,7 @@ from app.domains.media.services.media_access_service import (
     get_archivo_link_for_access,
 )
 from app.domains.media.services.media_storage_service import MediaStorageService
+from app.domains.media.utils.media_observability import log_archivo_delete_ok, log_storage_error
 
 def eliminar_archivo(archivo_id: int, actor_user_id: int) -> ArchivoDeleteOut:
     """
@@ -40,6 +41,11 @@ def eliminar_archivo(archivo_id: int, actor_user_id: int) -> ArchivoDeleteOut:
     try:
         storage.delete_object(arch.object_key)
     except Exception as exc:
+        log_storage_error(
+            operation="delete_object",
+            cause=type(exc).__name__,
+            archivo_id=int(arch.id),
+        )
         raise ValueError("No se pudo eliminar el archivo del storage.") from exc
 
     now = datetime.utcnow()
@@ -47,5 +53,11 @@ def eliminar_archivo(archivo_id: int, actor_user_id: int) -> ArchivoDeleteOut:
     arch.deleted_at = now
     arch.deleted_by_user_id = int(actor_user_id)
     db.session.commit()
+
+    log_archivo_delete_ok(
+        archivo_id=int(arch.id),
+        ruta_item_id=int(link.ruta_item_id),
+        categoria=link.categoria,
+    )
 
     return ArchivoDeleteOut(archivo_id=int(arch.id), status="DELETED")

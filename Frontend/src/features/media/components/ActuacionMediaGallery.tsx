@@ -43,6 +43,7 @@ function serverItemsForCategoria(
 export function ActuacionMediaGallery({ rutaItemId, readOnly = false, hideTitle = false }: Props) {
   const feedback = useAppFeedback();
   const coordinator = useMediaUploadCoordinator();
+  const { resetAll: resetUploadQueue } = coordinator;
   const [data, setData] = useState<RutaItemArchivosListResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<MediaArchivoListItem | null>(null);
@@ -63,6 +64,10 @@ export function ActuacionMediaGallery({ rutaItemId, readOnly = false, hideTitle 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    resetUploadQueue();
+  }, [rutaItemId, resetUploadQueue]);
 
   const runUpload = useCallback(async () => {
     if (!rutaItemId) return;

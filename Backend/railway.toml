@@ -3,6 +3,8 @@ builder = "NIXPACKS"
 
 [deploy]
 startCommand = "FLASK_APP=run.py flask db upgrade && exec gunicorn \"run:app\" --bind 0.0.0.0:$PORT --workers 2 --timeout 120"
+# Cron (servicio aparte en Railway): schedule 0 5 * * * → FLASK_APP=run.py flask cleanup-pending-media
+# Ver Backend/docs/ops_cleanup_pending_media.md
 healthcheckPath = "/health"
 healthcheckTimeout = 30
 restartPolicyType = "ON_FAILURE"

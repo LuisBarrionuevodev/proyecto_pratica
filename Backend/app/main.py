@@ -361,10 +361,19 @@ def create_app(config_override: dict | None = None):
 
         with app.app_context():
             try:
-                n = cleanup_pending_media(older_than_hours=older_than_hours)
+                result = cleanup_pending_media(older_than_hours=older_than_hours)
             except Exception:
                 app.logger.exception("cleanup-pending-media falló")
                 raise click.Abort()
-        click.echo(json.dumps({"deleted_pending": n}, ensure_ascii=True))
+        click.echo(
+            json.dumps(
+                {
+                    "deleted_pending": result.processed,
+                    "storage_delete_errors": result.storage_delete_errors,
+                    "skipped_already_deleted": result.skipped_already_deleted,
+                },
+                ensure_ascii=True,
+            )
+        )
 
     return app

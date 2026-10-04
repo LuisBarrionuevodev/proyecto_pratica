@@ -335,8 +335,8 @@ def test_cleanup_pending_vencidos(app, app_ctx, scope_fixture) -> None:
     arch = Archivo.query.get(archivo_id)
     arch.created_at = datetime.utcnow() - timedelta(hours=30)
     db.session.commit()
-    n = cleanup_pending_media(older_than_hours=24)
-    assert n >= 1
+    result = cleanup_pending_media(older_than_hours=24)
+    assert result.processed >= 1
     db.session.expire_all()
     arch2 = Archivo.query.get(archivo_id)
     assert arch2.status == "DELETED"

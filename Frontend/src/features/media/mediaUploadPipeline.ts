@@ -118,8 +118,8 @@ export async function uploadQueuedFilesWithConcurrency(
       emitGlobalBytes();
       options.onItemPhase?.(item.localId, "ready", 100, { archivoId: result.archivoId });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Error al subir el archivo.";
-      options.onItemPhase?.(item.localId, "error", 0, { errorMessage: msg });
+      const msg = e instanceof Error ? e.message : "Error al subir";
+      options.onItemPhase?.(item.localId, "error", 0, { errorMessage: msg, archivoId: null });
       failedIds.push(item.localId);
       item.errorMessage = msg;
     }

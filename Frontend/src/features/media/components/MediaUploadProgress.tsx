@@ -8,8 +8,12 @@ import {
   useTheme,
 } from "@mui/material";
 import { AppButton } from "../../../ui";
-import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { useDigitalizaTheme } from "../../../theme/DigitalizaThemeProvider";
 import type { MediaQueuedFile } from "../mediaTypes";
+import {
+  mediaUploadProgressDialogPaperSx,
+  mediaUploadProgressPanelSx,
+} from "../mediaUploadProgressPanelStyles";
 
 const phaseLabel: Record<MediaQueuedFile["phase"], string> = {
   pending: "Pendiente",
@@ -17,7 +21,7 @@ const phaseLabel: Record<MediaQueuedFile["phase"], string> = {
   uploading: "Subiendo",
   verifying: "Verificando",
   ready: "Listo",
-  error: "Error",
+  error: "Error al subir",
 };
 
 type Props = {
@@ -29,6 +33,7 @@ type Props = {
 
 export function MediaUploadProgress({ open, globalPct, items, onRetry }: Props) {
   const theme = useTheme();
+  const { mode, colors } = useDigitalizaTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
   if (!open) return null;
   const displayItems = items;
@@ -38,16 +43,36 @@ export function MediaUploadProgress({ open, globalPct, items, onRetry }: Props) 
     (x) => x.phase === "preparing" || x.phase === "uploading" || x.phase === "verifying"
   );
 
+  const panelSx = mediaUploadProgressPanelSx(mode);
+  const textPrimary = colors.text.primary;
+  const textMuted = colors.text.muted;
+  const border = colors.border.default;
+
   return (
-    <Dialog open={open} fullScreen={fullScreen} maxWidth="sm" fullWidth>
-      <Box sx={{ p: 2.5 }}>
-        <Typography variant="h6" sx={{ color: GLASS_COLORS.textPrimary, mb: 1 }}>
+    <Dialog
+      open={open}
+      fullScreen={fullScreen}
+      maxWidth="sm"
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: mediaUploadProgressDialogPaperSx(mode),
+        },
+      }}
+    >
+      <Box sx={panelSx}>
+        <Typography variant="h6" sx={{ color: textPrimary, mb: 1 }}>
           Subiendo evidencia
         </Typography>
-        <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted, mb: 1 }}>
+        <Typography variant="body2" sx={{ color: textMuted, mb: 1 }}>
           Subiendo {Math.min(done + (inFlight ? 1 : 0), total)} de {total} archivos
         </Typography>
-        <LinearProgress variant="determinate" value={globalPct} sx={{ mb: 2, height: 8, borderRadius: 1 }} />
+        <LinearProgress
+          variant="determinate"
+          value={globalPct}
+          color="primary"
+          sx={{ mb: 2, height: 8, borderRadius: 1 }}
+        />
         <Stack spacing={1} sx={{ maxHeight: fullScreen ? "60vh" : 320, overflow: "auto" }}>
           {displayItems.map((item) => (
             <Box
@@ -58,16 +83,18 @@ export function MediaUploadProgress({ open, globalPct, items, onRetry }: Props) 
                 justifyContent: "space-between",
                 gap: 1,
                 py: 0.5,
-                borderBottom: `1px solid ${GLASS_COLORS.borderLight}`,
+                borderBottom: `1px solid ${border}`,
               }}
             >
               <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography variant="body2" noWrap>{item.file.name}</Typography>
-                <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted }}>
+                <Typography variant="body2" noWrap sx={{ color: textPrimary }}>
+                  {item.file.name}
+                </Typography>
+                <Typography variant="caption" sx={{ color: textMuted }}>
                   {phaseLabel[item.phase]}
                   {item.phase === "uploading" ? ` ${item.progressPct}%` : ""}
                 </Typography>
-                {item.errorMessage ? (
+                {item.phase === "error" && item.errorMessage ? (
                   <Typography variant="caption" color="error" display="block">
                     {item.errorMessage}
                   </Typography>

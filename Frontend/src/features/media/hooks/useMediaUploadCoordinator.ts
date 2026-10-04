@@ -119,7 +119,13 @@ export function useMediaUploadCoordinator() {
     setItems((prev) => {
       const next: MediaQueuedFile[] = prev.map((x) =>
         x.localId === localId
-          ? { ...x, phase: "pending" as const, progressPct: 0, errorMessage: null }
+          ? {
+              ...x,
+              phase: "pending" as const,
+              progressPct: 0,
+              errorMessage: null,
+              archivoId: null,
+            }
           : x
       );
       itemsRef.current = next;
@@ -147,7 +153,7 @@ export function useMediaUploadCoordinator() {
               progressPct: progressPct ?? 0,
               ...(meta?.archivoId != null ? { archivoId: meta.archivoId } : {}),
               ...(phase === "error"
-                ? { errorMessage: meta?.errorMessage ?? "Error al subir el archivo." }
+                ? { errorMessage: meta?.errorMessage ?? "Error al subir", archivoId: null }
                 : { errorMessage: null }),
             });
           },

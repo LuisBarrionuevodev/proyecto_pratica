@@ -15,6 +15,7 @@ from app.integrations.media_storage.config import (
     load_media_storage_config,
     max_archivos_por_categoria,
 )
+from app.domains.media.utils.media_observability import log_upload_intent_created
 from app.models import Archivo, RutaItemArchivo
 
 
@@ -97,6 +98,12 @@ def crear_upload_intent(
     )
     db.session.add(link)
     db.session.commit()
+
+    log_upload_intent_created(
+        archivo_id=int(arch.id),
+        ruta_item_id=int(ruta_item_id),
+        categoria=body.categoria,
+    )
 
     return UploadIntentOut(
         archivo_id=int(arch.id),
