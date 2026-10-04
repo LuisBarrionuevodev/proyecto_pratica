@@ -14,6 +14,10 @@ from app.domains.actuaciones.presenters.actuacion_presenters import (
 from app.domains.actuaciones.utils.actuaciones_bandeja_eager import (
     reload_actuaciones_inspeccion_checklist_eager,
 )
+from app.domains.actuaciones.presenters.actuacion_gestion_seguimiento_presenter import (
+    enrich_actuacion_grid_row_gestion_detalle,
+)
+from app.domains.usuarios.security.inspector_scope_policy import InspectorScopeError
 from app.domains.actuaciones.schemas.grid.actuacion_row_in import ActuacionGridRowIn
 from app.domains.actuaciones.schemas.actuacion_patch_in import ActuacionPatchIn
 from app.shared.errors import pydantic_errors_to_cell_map
@@ -58,15 +62,23 @@ def actualizar_actuacion_route(actuacion_id: int):
         act_ids = [int(act_reload.id)]
         iniciador_map = build_iniciador_ruta_por_actuacion_id(act_ids)
         batch = build_actuacion_grid_batch_maps([act_reload], iniciador_map)
-        return jsonify(
-            actuacion_to_grid_row(
-                act_reload,
-                iniciador_desde_ruta=iniciador_map.get(int(act_reload.id)),
-                batch=batch,
-                expose_telefono_solicitud_carnet=True,
-            )
-        ), 200
+        row = actuacion_to_grid_row(
+            act_reload,
+            iniciador_desde_ruta=iniciador_map.get(int(act_reload.id)),
+            batch=batch,
+            expose_telefono_solicitud_carnet=True,
+        )
+        row = enrich_actuacion_grid_row_gestion_detalle(
+            row,
+            act_reload,
+            iniciador_map.get(int(act_reload.id)),
+            batch,
+            include_telefono_en_seguimiento=True,
+        )
+        return jsonify(row), 200
 
+    except InspectorScopeError as e:
+        return jsonify({"detail": str(e)}), e.status_code
     except ValidationError as e:
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
     except CorregirCierreOperativoError as e:

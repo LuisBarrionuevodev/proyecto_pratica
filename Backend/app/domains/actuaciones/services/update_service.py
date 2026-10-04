@@ -499,6 +499,16 @@ def actualizar_actuacion(
     uid = resolve_actor_user_id(actor_user_id)
     act = _get_actuacion_or_404(actuacion_id)
     log_stage(actuacion_id, "0_entrada")
+    from app.domains.actuaciones.services.actuaciones_actuacion_inspector_scope import (
+        assert_inspector_puede_acceder_actuacion,
+    )
+    from app.domains.actuaciones.services.acta_seguimiento_gestion_service import (
+        extraer_fragmento_seguimiento_gestion,
+        validar_y_aplicar_seguimiento_gestion_put,
+    )
+
+    assert_inspector_puede_acceder_actuacion(actuacion_id)
+    seguimiento_put = extraer_fragmento_seguimiento_gestion(payload)
     assert_actuacion_editable_sin_intento_posterior(actuacion_id)
 
     from app.domains.actuaciones.services.oficio_circuito_service import (
@@ -584,6 +594,9 @@ def actualizar_actuacion(
     log_stage(actuacion_id, "2_aplicar_payload_fin")
 
     if getattr(act, "carga_solo_comprobacion", False):
+        validar_y_aplicar_seguimiento_gestion_put(
+            act, seguimiento_put, actor_user_id=uid
+        )
         db.session.add(act)
         db.session.commit()
         if old_comprobacion_id is not None and old_comprobacion_id != act.comprobacion_id:
@@ -630,6 +643,9 @@ def actualizar_actuacion(
 
     materializar_iniciadores_oficio_pendientes_para_actuacion(act, actor_user_id=uid)
 
+    validar_y_aplicar_seguimiento_gestion_put(
+        act, seguimiento_put, actor_user_id=uid
+    )
     db.session.add(act)
     log_stage(actuacion_id, "5_commit_inicio")
     db.session.commit()

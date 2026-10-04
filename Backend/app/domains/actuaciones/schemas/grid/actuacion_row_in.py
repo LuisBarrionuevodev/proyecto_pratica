@@ -240,6 +240,11 @@ class ActuacionGridRowIn(BaseModel):
     notificacion_previa_num: Optional[str] = None
     comprobacion_previa_num: Optional[str] = None
 
+    # Seguimiento de acta (Gestión / PUT canal actas)
+    solicita_carnet_manipulador: Optional[bool] = None
+    telefono_contacto_solicitud_carnet: Optional[str] = None
+    faltas_notificacion_subsanadas: Optional[bool] = None
+
     # ---------- Normalizaciones (before) ----------
     @field_validator(
         "orden_trabajo_numero",
@@ -305,6 +310,30 @@ class ActuacionGridRowIn(BaseModel):
         if not isinstance(v, list):
             raise ValueError("items_acta_inspeccion debe ser una lista.")
         return v
+
+    @field_validator(
+        "solicita_carnet_manipulador",
+        "faltas_notificacion_subsanadas",
+        mode="before",
+    )
+    @classmethod
+    def normalize_bool_seguimiento(cls, v: object) -> object:
+        if v is None or v == "":
+            return None
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, str):
+            s = v.strip().lower()
+            if s in ("true", "1", "si", "sí", "yes"):
+                return True
+            if s in ("false", "0", "no"):
+                return False
+        return v
+
+    @field_validator("telefono_contacto_solicitud_carnet", mode="before")
+    @classmethod
+    def normalize_telefono_seguimiento(cls, v: Any) -> Any:
+        return _clean_str(v)
 
     @field_validator("cantidad_personas_sin_carnet_sanidad", mode="before")
     @classmethod

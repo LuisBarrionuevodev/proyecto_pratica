@@ -162,4 +162,11 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
     if row.actas_a_quitar:
         payload["actas_a_quitar"] = list(row.actas_a_quitar)
 
+    if "solicita_carnet_manipulador" in row.model_fields_set:
+        payload["solicita_carnet_manipulador"] = row.solicita_carnet_manipulador
+    if "telefono_contacto_solicitud_carnet" in row.model_fields_set:
+        payload["telefono_contacto_solicitud_carnet"] = row.telefono_contacto_solicitud_carnet
+    if "faltas_notificacion_subsanadas" in row.model_fields_set:
+        payload["faltas_notificacion_subsanadas"] = row.faltas_notificacion_subsanadas
+
     return payload

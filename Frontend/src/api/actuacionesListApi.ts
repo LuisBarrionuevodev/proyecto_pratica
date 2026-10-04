@@ -2,6 +2,19 @@ import { apiClient } from "./apiClient";
 
 // ============= TYPES =============
 
+export interface IActuacionGestionUiPolicy {
+  mostrar_solicitud_carnet_manipulador: boolean;
+  mostrar_subsanacion_notificacion: boolean;
+  puede_editar_seguimiento: boolean;
+}
+
+export interface IActuacionSeguimientoDetalle {
+  solicita_carnet_manipulador?: boolean | null;
+  telefono_contacto_solicitud_carnet?: string | null;
+  faltas_notificacion_subsanadas?: boolean | null;
+  notificacion_origen_numero?: string | null;
+}
+
 /**
  * Tipo completo para una actuación (formato grid con todas las columnas)
  */
@@ -37,6 +50,8 @@ export interface IActuacionListItem {
   solicita_carnet_manipulador?: boolean | null;
   telefono_contacto_solicitud_carnet?: string | null;
   faltas_notificacion_subsanadas?: boolean | null;
+  ui_policy?: IActuacionGestionUiPolicy | null;
+  seguimiento?: IActuacionSeguimientoDetalle | null;
   /** Verificar e informar: true/false; null en ratificaciones. */
   realizo_nueva_inspeccion?: boolean | null;
     doc_nro: string | null;

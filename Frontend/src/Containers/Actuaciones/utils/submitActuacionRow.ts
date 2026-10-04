@@ -35,6 +35,7 @@ import {
   stripUntouchedPersonasSinCarnetFromPut,
 } from "./inspeccionChecklistSubmit";
 import { isReinspeccionPorNotificacion } from "./actuacionesExportPdfResumen";
+import { stripGestionSeguimientoDisallowedFromPut } from "./actuacionGestionSeguimientoPut";
 import {
   domicilioCalleCargadaEditable,
   domicilioEsTipoEsquina,
@@ -80,6 +81,8 @@ const ACTUACION_CANAL_PUT_OMIT_KEYS = [
   "resultado_cumplimiento_oficio",
   "notificacion_previa_num",
   "comprobacion_previa_num",
+  "ui_policy",
+  "seguimiento",
 ] as const;
 
 /** Campos operativos de reinspección por oficio: dueños del POST `corregir-cierre-oficio`. */
@@ -383,7 +386,9 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   const actasQuitarEnPutTransaccional =
     actasPendingClear.length > 0 && (esReinspeccionNotificacion || tieneContraproducenciaFinal);
 
-  const rowForCanal = sanitizeActuacionRowForCanalActasPut(rowToSubmit);
+  const rowForCanal = stripGestionSeguimientoDisallowedFromPut(
+    sanitizeActuacionRowForCanalActasPut(rowToSubmit)
+  );
   const inspectores = buildInspectoresForCanal(rowForCanal);
   const rowWithInspectores: IActuacionListItem & { actas_a_quitar?: ActaCanalQuitarTipo[] } = {
     ...rowForCanal,

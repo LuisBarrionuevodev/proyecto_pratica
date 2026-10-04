@@ -11,6 +11,8 @@ import {
   Link,
   Stack,
   TextField,
+  ToggleButton,
+  ToggleButtonGroup,
   Typography,
 } from "@mui/material";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -107,6 +109,15 @@ import {
   MSG_VERIFICAR_LEGACY_INCONSISTENTE,
   resolveVerificarEstadoFromPersisted,
 } from "../../../shared/reinspeccionOficio/verificarEstadoOperativo";
+import {
+  boolToFaltasSubsanadasUi,
+  boolToSolicitaCarnetUi,
+} from "../../CompletarTrabajos/utils/actaSeguimientoUi";
+import {
+  applyGestionSeguimientoDraftToRow,
+  gestionSeguimientoDraftFromRow,
+  mergeActuacionSeguimientoFromApiRow,
+} from "../utils/actuacionGestionSeguimientoPut";
 
 const documentacionTramiteChipModalSx = {
   ...docModalChipSx,
@@ -447,7 +458,23 @@ function inspectoresLinea(row: IActuacionListItem): string {
 function resultadoSeguimientoHayContenido(draft: IActuacionListItem): boolean {
   const res = draft.resultado_cumplimiento_oficio;
   const tieneResultado = res != null && String(res).trim() !== "";
-  return tieneResultado || documentacionTramiteModalTieneContenido(draft) || tieneRestriccionesEdicion(draft);
+  const merged = mergeActuacionSeguimientoFromApiRow(draft);
+  const solicitaCarnet = merged.solicita_carnet_manipulador;
+  const tieneSolicitudCarnet = solicitaCarnet === true || solicitaCarnet === false;
+  const subs = merged.faltas_notificacion_subsanadas;
+  const tieneSubsanacion = subs === true || subs === false;
+  const policy = draft.ui_policy;
+  const seguimientoUi =
+    Boolean(policy?.mostrar_solicitud_carnet_manipulador) ||
+    Boolean(policy?.mostrar_subsanacion_notificacion) ||
+    tieneSolicitudCarnet ||
+    tieneSubsanacion;
+  return (
+    tieneResultado ||
+    documentacionTramiteModalTieneContenido(draft) ||
+    tieneRestriccionesEdicion(draft) ||
+    seguimientoUi
+  );
 }
 
 /** F2.4: trámite propio en chips; origen de reinspección en líneas bajo «Trámite origen». */
@@ -792,6 +819,130 @@ function BloqueEvidenciasEpicollect({ draft, embedded }: { draft: IActuacionList
           </Box>
         );
       })}
+    </Box>
+  );
+}
+
+function ActaSeguimientoGestionEdicion({
+  draft,
+  onDraftChange,
+  fieldErrors,
+  saving,
+}: {
+  draft: IActuacionListItem;
+  onDraftChange: (patch: Partial<IActuacionListItem> | IActuacionListItem) => void;
+  fieldErrors: Record<string, string>;
+  saving: boolean;
+}) {
+  const policy = draft.ui_policy;
+  const showCarnet = Boolean(policy?.mostrar_solicitud_carnet_manipulador);
+  const showSubs = Boolean(policy?.mostrar_subsanacion_notificacion);
+  if (!showCarnet && !showSubs) return null;
+  if (!policy?.puede_editar_seguimiento) return null;
+
+  const merged = mergeActuacionSeguimientoFromApiRow(draft);
+  const solicitaUi = boolToSolicitaCarnetUi(merged.solicita_carnet_manipulador);
+  const subsUi = boolToFaltasSubsanadasUi(merged.faltas_notificacion_subsanadas);
+  const tel = (merged.telefono_contacto_solicitud_carnet ?? "").trim();
+  const origenNum =
+    (draft.seguimiento?.notificacion_origen_numero ?? "").trim() ||
+    (draft.origen_reinspeccion_notificacion?.notificacion_acta_numero ?? "").trim() ||
+    null;
+
+  const patchSeguimiento = (partial: {
+    solicitaCarnet?: "" | "si" | "no";
+    telefonoCarnet?: string;
+    faltasSubsanadas?: "" | "si" | "no";
+  }) => {
+    const base = gestionSeguimientoDraftFromRow(draft);
+    const next = { ...base, ...partial };
+    onDraftChange(applyGestionSeguimientoDraftToRow(draft, next));
+  };
+
+  const fe = (k: string) => fieldErrors[k] ?? "";
+
+  return (
+    <Box sx={{ ...col, width: "100%", mt: 2 }}>
+      {showCarnet ? (
+        <Box sx={{ mb: showSubs ? 2.5 : 0 }}>
+          <Typography variant="subtitle2" sx={{ color: GLASS_COLORS.textSecondary, mb: 0.5 }}>
+            Solicitud de carnet de manipulador
+          </Typography>
+          <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, mb: 1 }}>
+            ¿El personal presente solicita carnet de manipulador de alimentos?
+          </Typography>
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            value={solicitaUi}
+            disabled={saving}
+            onChange={(_e, v: "" | "si" | "no" | null) => {
+              const next = v ?? "";
+              patchSeguimiento({
+                solicitaCarnet: next,
+                telefonoCarnet: next === "si" ? tel : "",
+              });
+            }}
+          >
+            <ToggleButton value="si">Sí</ToggleButton>
+            <ToggleButton value="no">No</ToggleButton>
+          </ToggleButtonGroup>
+          {fe("solicita_carnet_manipulador") ? (
+            <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
+              {fe("solicita_carnet_manipulador")}
+            </Typography>
+          ) : null}
+          {solicitaUi === "si" ? (
+            <AppTextField
+              appearance="glass"
+              label="Teléfono de contacto del personal solicitante"
+              value={tel}
+              onChange={(e) => patchSeguimiento({ telefonoCarnet: e.target.value })}
+              fullWidth
+              sx={{ mt: 1.5 }}
+              disabled={saving}
+              inputProps={{ maxLength: 32 }}
+              error={Boolean(fe("telefono_contacto_solicitud_carnet"))}
+              helperText={fe("telefono_contacto_solicitud_carnet") || undefined}
+            />
+          ) : null}
+        </Box>
+      ) : null}
+      {showSubs ? (
+        <Box>
+          <Typography variant="subtitle2" sx={{ color: GLASS_COLORS.textSecondary, mb: 0.5 }}>
+            Resultado de la reinspección
+          </Typography>
+          {origenNum ? (
+            <CrudFormSlot
+              label="Notificación origen"
+              mode="view"
+              value={origenNum}
+              sx={{ mb: 1.25 }}
+            />
+          ) : null}
+          <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, mb: 1 }}>
+            ¿Se subsanaron las faltas por las cuales se labró la notificación?
+          </Typography>
+          <ToggleButtonGroup
+            exclusive
+            size="small"
+            value={subsUi}
+            disabled={saving}
+            onChange={(_e, v: "" | "si" | "no" | null) => {
+              patchSeguimiento({ faltasSubsanadas: v ?? "" });
+            }}
+          >
+            <ToggleButton value="si">Sí</ToggleButton>
+            <ToggleButton value="no">No</ToggleButton>
+          </ToggleButtonGroup>
+          {fe("faltas_notificacion_subsanadas") ? (
+            <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
+              {fe("faltas_notificacion_subsanadas")}
+            </Typography>
+          ) : null}
+        </Box>
+      ) : null}
     </Box>
   );
 }
@@ -1726,6 +1877,12 @@ export function ActuacionDetalleDialog({
               errors={{
                 items: e("items_acta_inspeccion"),
               }}
+            />
+            <ActaSeguimientoGestionEdicion
+              draft={draft}
+              onDraftChange={onDraftChange}
+              fieldErrors={fieldErrors}
+              saving={saving}
             />
             </>
             ) : null}

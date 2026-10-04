@@ -35,6 +35,13 @@ class NotificacionResultadoReinspeccion(db.Model):
         nullable=False,
         index=True,
     )
+    updated_at = db.Column(db.DateTime, nullable=True)
+    updated_by_user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="RESTRICT", onupdate="CASCADE"),
+        nullable=True,
+        index=True,
+    )
 
     notificacion = db.relationship("Notificacion")
     actuacion = db.relationship("Actuaciones")
