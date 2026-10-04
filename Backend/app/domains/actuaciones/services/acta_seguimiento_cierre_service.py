@@ -95,7 +95,7 @@ def validar_payload_acta_seguimiento_cierre(
     if (envia_carnet or envia_tel) and not ctx_carnet:
         _field_error(
             ("solicita_carnet_manipulador",),
-            "La solicitud de carnet solo aplica a Relevamiento con acta de inspección.",
+            "La solicitud de carnet solo aplica a Relevamiento o Denuncia con acta de inspección.",
         )
     if envia_subs and not ctx_subs:
         _field_error(

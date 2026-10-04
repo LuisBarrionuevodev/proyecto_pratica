@@ -3,6 +3,8 @@ from __future__ import annotations
 from app.domains.actuaciones.services.completar_trabajo_contraproducencia import ContrapBucket
 from app.models import IniciadorRuta
 
+TIPOS_INICIADOR_SOLICITUD_CARNET = frozenset({"RELEVAMIENTO", "DENUNCIA"})
+
 
 def labra_acta_inspeccion_en_cierre(acta_inspeccion_num: str | None) -> bool:
     """True si el cierre incluye número de acta de inspección."""
@@ -16,11 +18,11 @@ def contexto_solicitud_carnet_relevamiento(
     labra_inspeccion: bool,
 ) -> bool:
     """
-    Bloque de solicitud de carnet aplica en Relevamiento con visita realizada y acta de inspección.
+    Bloque de solicitud de carnet aplica en Relevamiento o Denuncia con visita realizada y acta de inspección.
     """
     if bucket != ContrapBucket.NONE or not labra_inspeccion:
         return False
-    return (ini.tipo_iniciador or "").strip() == "RELEVAMIENTO"
+    return (ini.tipo_iniciador or "").strip() in TIPOS_INICIADOR_SOLICITUD_CARNET
 
 
 def contexto_subsanacion_reinspeccion_notificacion(

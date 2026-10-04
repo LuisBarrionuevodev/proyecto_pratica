@@ -33,6 +33,39 @@ describe("actaSeguimientoUi", () => {
     ).toBe(true);
   });
 
+  it("denuncia con política habilitada muestra carnet; reinspección no", () => {
+    const base = {
+      recurso_logico: "actuacion",
+      ancla_operativa: "ruta_item",
+      orden_trabajo_y_fecha_readonly: true,
+      inspectores_readonly: true,
+      previas_visible: false,
+      post_cierre: "",
+      tipo_iniciador: "DENUNCIA",
+    };
+    expect(
+      mostrarBloqueSolicitudCarnet({
+        ...base,
+        mostrar_solicitud_carnet_manipulador: true,
+      })
+    ).toBe(true);
+    expect(
+      mostrarBloqueSolicitudCarnet({
+        ...base,
+        tipo_iniciador: "REINSPECCION_NOTIFICACION",
+        mostrar_solicitud_carnet_manipulador: false,
+        mostrar_subsanacion_notificacion: true,
+      })
+    ).toBe(false);
+    expect(
+      mostrarBloqueSubsanacionNotificacion({
+        ...base,
+        tipo_iniciador: "REINSPECCION_NOTIFICACION",
+        mostrar_subsanacion_notificacion: true,
+      })
+    ).toBe(true);
+  });
+
   it("convierte valores si/no a boolean", () => {
     expect(solicitaCarnetUiToBool("si")).toBe(true);
     expect(solicitaCarnetUiToBool("no")).toBe(false);
