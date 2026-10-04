@@ -126,6 +126,7 @@ import {
   formatGestionRubroNombre,
   gestionContextoDisplayValue,
 } from "../utils/actuacionGestionContexto";
+import { ActuacionMediaGallery } from "../../../features/media/components/ActuacionMediaGallery";
 
 const documentacionTramiteChipModalSx = {
   ...docModalChipSx,
@@ -2220,6 +2221,13 @@ export function ActuacionDetalleDialog({
         <Box sx={{ display: isEditing ? "block" : "none" }} aria-hidden={!isEditing}>
           {edicionVista}
         </Box>
+        <DocumentalBloque overline="Archivos de la actuación">
+          <ActuacionMediaGallery
+            rutaItemId={draft.ruta_item_id}
+            readOnly={!isEditing}
+            hideTitle
+          />
+        </DocumentalBloque>
         {detailLoading ? (
           <Box
             sx={{

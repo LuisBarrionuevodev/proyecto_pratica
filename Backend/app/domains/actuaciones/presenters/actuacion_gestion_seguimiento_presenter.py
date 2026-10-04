@@ -189,4 +189,8 @@ def present_actuacion_gestion_detalle(act: Actuaciones) -> dict[str, Any]:
     if seg is not None:
         row["seguimiento"] = seg
     row.update(build_actuacion_gestion_contexto_detalle(act))
+    from app.domains.media.utils.ruta_item_resolver import resolve_ruta_item_id_for_actuacion
+
+    ruta_item_id = resolve_ruta_item_id_for_actuacion(act_id)
+    row["ruta_item_id"] = ruta_item_id
     return row

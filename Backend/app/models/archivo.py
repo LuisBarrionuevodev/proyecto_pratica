@@ -45,6 +45,12 @@ class Archivo(db.Model):
     )
     uploaded_at = db.Column(db.DateTime(), nullable=True)
     deleted_at = db.Column(db.DateTime(), nullable=True)
+    deleted_by_user_id = db.Column(
+        db.Integer,
+        db.ForeignKey("users.id", ondelete="SET NULL", onupdate="CASCADE"),
+        nullable=True,
+        index=True,
+    )
 
     ruta_item_links = db.relationship(
         "RutaItemArchivo",

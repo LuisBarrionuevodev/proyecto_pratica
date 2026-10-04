@@ -339,6 +339,24 @@ describe("CompletarTrabajoModal", () => {
     expect(html).not.toContain("N° acta de notificación");
   });
 
+  it("MEDIA.1A: dos galerías de carga sin inspección", () => {
+    const html = render(
+      <CompletarTrabajoModal
+        open
+        disablePortal
+        row={buildRow()}
+        catalogs={catalogs}
+        catalogsReady
+        onClose={() => undefined}
+        onSuccess={() => undefined}
+      />
+    );
+    expect(html).toContain("Fotos de las actas");
+    expect(html).toContain("Fotos de la documentación del local");
+    expect(html).not.toContain("Foto_INSPECCION");
+    expect(html).not.toMatch(/inspección.*12/i);
+  });
+
   it("reinspección por notificación mantiene flujo sin regresión de oficio", () => {
     const html = render(
       <CompletarTrabajoModal

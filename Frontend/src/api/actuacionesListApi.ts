@@ -71,6 +71,8 @@ export interface IActuacionListItem {
   domicilio?: IActuacionGestionDomicilioDetalle | null;
   rubro?: IActuacionGestionRubroDetalle | null;
   contribuyente?: IActuacionGestionContribuyenteDetalle | null;
+  /** Solo en GET gestión: ancla para archivos Media. */
+  ruta_item_id?: number | null;
   /** Verificar e informar: true/false; null en ratificaciones. */
   realizo_nueva_inspeccion?: boolean | null;
     doc_nro: string | null;

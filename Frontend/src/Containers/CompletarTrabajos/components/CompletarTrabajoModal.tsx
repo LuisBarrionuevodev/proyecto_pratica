@@ -114,6 +114,8 @@ import {
   mostrarBloqueSolicitudCarnet,
   mostrarBloqueSubsanacionNotificacion,
 } from "../utils/actaSeguimientoUi";
+import { useCompletarTrabajoMediaQueues } from "../../../features/media/hooks/useMediaCategoryQueue";
+import { MediaUploadSection } from "../../../features/media/components/MediaUploadSection";
 
 const modalAuxInputSx = {
   "& .MuiInputBase-input": { color: GLASS_COLORS.textPrimary },
@@ -481,6 +483,8 @@ export function CompletarTrabajoModal({
   const [realizoNuevaInspeccion, setRealizoNuevaInspeccion] = useState("");
   const [observacionesEjecucion, setObservacionesEjecucion] = useState("");
   const [saving, setSaving] = useState(false);
+  const mediaQueues = useCompletarTrabajoMediaQueues();
+  const [mediaGlobalProgress, setMediaGlobalProgress] = useState(0);
   /** Claves alineadas al payload / errores 422 del backend (pydantic field names). */
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -901,10 +905,25 @@ export function CompletarTrabajoModal({
     [cat.motivosComprobacion]
   );
 
+  const uploadPendingMediaIfAny = useCallback(async (): Promise<boolean> => {
+    if (!resolvedRow || !mediaQueues.hasPendingUpload) return true;
+    try {
+      setMediaGlobalProgress(0);
+      await mediaQueues.uploadAll(resolvedRow.ruta_item_id, setMediaGlobalProgress);
+      return true;
+    } catch {
+      feedback.error(
+        "No se pudieron subir todos los archivos. Revise los fallidos e intente de nuevo."
+      );
+      return false;
+    }
+  }, [resolvedRow, mediaQueues, feedback]);
+
   const handleClose = useCallback(() => {
     if (saving) return;
+    mediaQueues.resetAll();
     onClose();
-  }, [saving, onClose]);
+  }, [saving, onClose, mediaQueues]);
 
   const handleDialogClose = useCallback(
     (_event: unknown, _reason: string) => {
@@ -950,6 +969,10 @@ export function CompletarTrabajoModal({
         return;
       }
       setSaving(true);
+      if (!(await uploadPendingMediaIfAny())) {
+        setSaving(false);
+        return;
+      }
       try {
         const usaContraReencolado = resultadoCumplimientoOficio === "NO_CUMPLE" && contraTrim;
         const values: Record<string, unknown> = {
@@ -999,6 +1022,10 @@ export function CompletarTrabajoModal({
 
       if (realizoNuevaInspeccion === "no") {
         setSaving(true);
+        if (!(await uploadPendingMediaIfAny())) {
+          setSaving(false);
+          return;
+        }
         try {
           const values: Record<string, unknown> = {
             tipo_actuacion: tipoCierre,
@@ -1069,6 +1096,10 @@ export function CompletarTrabajoModal({
       return;
     }
     setSaving(true);
+    if (!(await uploadPendingMediaIfAny())) {
+      setSaving(false);
+      return;
+    }
     try {
       const titularPayload: Record<string, unknown> =
         titularModo === "persona"
@@ -1208,11 +1239,23 @@ export function CompletarTrabajoModal({
           mode="edit"
           onSave={() => void handleSubmit()}
           loading={saving}
-          saveLabel="Guardar cierre"
+          saveLabel={
+            mediaQueues.hasPendingUpload
+              ? "FINALIZAR TRABAJO Y SUBIR ARCHIVOS"
+              : "Guardar cierre"
+          }
         />
       }
     >
       <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} ref={scrollContainerRef}>
+      {saving && mediaQueues.hasPendingUpload ? (
+        <Box>
+          <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted }}>
+            Subiendo archivos… {mediaGlobalProgress}%
+          </Typography>
+          <LinearProgress variant="determinate" value={mediaGlobalProgress} />
+        </Box>
+      ) : null}
       {row && detalleLoading && !resolvedRow && (
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2 }}>
           <LinearProgress sx={{ borderRadius: 1 }} />
@@ -2062,6 +2105,26 @@ export function CompletarTrabajoModal({
         </Box>
         </CompletarBloque>
       )}
+      <CompletarBloque title="Archivos del trabajo">
+        <Stack spacing={2}>
+          <MediaUploadSection
+            categoria="FOTO_ACTA"
+            items={mediaQueues.fotoActa.items}
+            onAddFiles={(files, tipo) => mediaQueues.fotoActa.addFiles(files, tipo)}
+            onRemove={mediaQueues.fotoActa.removeItem}
+            onRetry={(id) => void mediaQueues.fotoActa.retryItem(id)}
+            disabled={saving}
+          />
+          <MediaUploadSection
+            categoria="FOTO_DOCUMENTACION_LOCAL"
+            items={mediaQueues.fotoDoc.items}
+            onAddFiles={(files, tipo) => mediaQueues.fotoDoc.addFiles(files, tipo)}
+            onRemove={mediaQueues.fotoDoc.removeItem}
+            onRetry={(id) => void mediaQueues.fotoDoc.retryItem(id)}
+            disabled={saving}
+          />
+        </Stack>
+      </CompletarBloque>
       <CompletarBloque title="Observaciones">
         <Box sx={{ ...col, width: "100%" }}>
           <AppTextField
