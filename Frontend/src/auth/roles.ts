@@ -7,16 +7,19 @@ export const ROLE_LABELS: Record<AppRole, string> = {
 };
 
 export const COMPLETAR_TRABAJOS_PATH = "/completarTrabajos";
+export const ACTUACIONES_PATH = "/actuaciones";
 
 /** Rutas permitidas para RELEVADOR (nav + acceso directo). */
 export const RELEVADOR_ALLOWED_PATHS: readonly string[] = [
   "/inicio",
+  ACTUACIONES_PATH,
   COMPLETAR_TRABAJOS_PATH,
   "/perfil",
 ];
 
 /** Cards de Inicio visibles para RELEVADOR (incluye Mi perfil). */
 export const RELEVADOR_INICIO_PATHS: readonly string[] = [
+  ACTUACIONES_PATH,
   COMPLETAR_TRABAJOS_PATH,
   "/perfil",
 ];
@@ -25,9 +28,16 @@ export function completarTrabajosLabelForRole(role: AppRole): string {
   return role === "relevador" ? "Completar mis trabajos" : "Completar trabajo";
 }
 
+export function actuacionesLabelForRole(role: AppRole): string {
+  return role === "relevador" ? "Mis actuaciones" : "Actuaciones";
+}
+
 export function resolveMenuLabelForRole(role: AppRole, path: string, defaultText: string): string {
   if (path === COMPLETAR_TRABAJOS_PATH) {
     return completarTrabajosLabelForRole(role);
+  }
+  if (path === ACTUACIONES_PATH) {
+    return actuacionesLabelForRole(role);
   }
   return defaultText;
 }

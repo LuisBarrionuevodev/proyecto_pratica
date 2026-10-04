@@ -51,9 +51,10 @@ def relevador_may_access(method: str, path: str) -> bool:
         if rx.match(p):
             return False
 
-    if p == "/actuaciones" or (
-        p.startswith("/actuaciones/") and not p.startswith("/actuaciones/completar-trabajo")
-    ):
+    if p == "/actuaciones":
+        return m in ("GET", "HEAD", "OPTIONS")
+
+    if p.startswith("/actuaciones/") and not p.startswith("/actuaciones/completar-trabajo"):
         return False
 
     if _RELEVADOR_COMPLETAR_TRABAJO_RX.match(p):

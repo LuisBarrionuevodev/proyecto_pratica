@@ -19,6 +19,6 @@ describe("DOCS-EXP.2 — export Actuaciones", () => {
     expect(src).toContain("exportActuacionesDataset");
     expect(src).toContain("buildActuacionesExportFiltersFromMeta");
     expect(src).toContain("actuacionesExportToolbar");
-    expect(src).toContain("exportToolbar={actuacionesExportToolbar}");
+    expect(src).toMatch(/exportToolbar=\{isInspectorReadOnly \? null : actuacionesExportToolbar\}/);
   });
 });

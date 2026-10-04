@@ -8,7 +8,8 @@ import {
 } from "../auth/roles";
 
 describe("INSPECTOR.3 — rol relevador / Completar mis trabajos", () => {
-  it("relevador solo inicio, completar y perfil", () => {
+  it("relevador inicio, mis actuaciones, completar y perfil", () => {
+    expect(isPathAllowedForRole("relevador", "/actuaciones")).toBe(true);
     for (const p of RELEVADOR_ALLOWED_PATHS) {
       expect(isPathAllowedForRole("relevador", p)).toBe(true);
     }

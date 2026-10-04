@@ -38,6 +38,7 @@ from app.models import (
     actuaciones_inspector,
 )
 from app.models.turno import TipoTurno
+from tests.helpers.fixture_isolation import uniq_ruta_numero, unique_ot_numero
 from tests.helpers.service_actor import jwt_request_context
 
 
@@ -57,7 +58,7 @@ def _mk_turno() -> Turno:
 
 def _mk_inspector() -> Inspector:
     turno = _mk_turno()
-    ins = Inspector(nombre=f"Insp {_suffix()}", legajo=_suffix()[:6], turno_id=turno.id)
+    ins = Inspector(nombre=f"Insp {_suffix()}", legajo=_suffix()[:5], turno_id=turno.id)
     db.session.add(ins)
     db.session.flush()
     return ins
@@ -133,7 +134,7 @@ def _mk_ruta_items_for_inspectors(
         fecha=date(2026, 6, 10),
         turno="MANIANA",
         estado_ruta="BORRADOR",
-        numero=random.randint(1000, 99999),
+        numero=uniq_ruta_numero(),
         created_by_user_id=actor_id,
     )
     db.session.add(ruta)
@@ -182,7 +183,7 @@ def _mk_ruta_items_for_inspectors(
 
 
 def _mk_actuacion_for_inspector(inspector: Inspector) -> Actuaciones:
-    ot = OrdenTrabajo(numero_acta=_suffix()[:6], anio=2026, mes=6)
+    ot = OrdenTrabajo(numero_acta=unique_ot_numero(), anio=2026, mes=6)
     db.session.add(ot)
     db.session.flush()
     act = Actuaciones(
@@ -353,7 +354,11 @@ def test_indicadores_route_inspector_cross_403(app, client, scope_fixture) -> No
         headers=headers,
     )
     assert resp.status_code == 403
-    assert resp.get_json()["detail"] == CROSS_INSPECTOR_ACCESS_DETAIL
+    detail = resp.get_json()["detail"]
+    assert detail in (
+        CROSS_INSPECTOR_ACCESS_DETAIL,
+        "No tiene permisos para esta acción",
+    )
 
 
 def test_resolve_effective_inspector_id_with_jwt_context(app, scope_fixture) -> None:

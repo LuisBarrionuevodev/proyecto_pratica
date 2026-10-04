@@ -43,10 +43,15 @@ import {
   BandejaTableSummaryItem,
 } from "../../components/dataTable/BandejaTableSummary";
 import { functionalPageShellSx } from "../../styles/functionalPageShell";
+import { useAppSession } from "../../auth/AppSessionProvider";
+import { actuacionesLabelForRole, normalizeAppRole } from "../../auth/roles";
 
 const ActuacionesContainer = (): JSX.Element => {
   const navigate = useNavigate();
   const feedback = useAppFeedback();
+  const { role } = useAppSession();
+  const appRole = normalizeAppRole(role);
+  const isInspectorReadOnly = appRole === "relevador";
   const [tab] = useState<"todos" | "pendientes">("todos");
 
   const [exportOpen, setExportOpen] = useState(false);
@@ -238,12 +243,13 @@ const ActuacionesContainer = (): JSX.Element => {
 
   return (
     <Box sx={functionalPageShellSx}>
-        <Typography sx={titleStyles}>Actuaciones</Typography>
+        <Typography sx={titleStyles}>{actuacionesLabelForRole(appRole)}</Typography>
 
         <>
             <FiltroFechas
               onFiltrar={handleFiltrarTodos}
               onLimpiarLista={limpiarLista}
+              hideInspectorFilter={isInspectorReadOnly}
             />
 
             {error && hasSearched && (
@@ -328,7 +334,10 @@ const ActuacionesContainer = (): JSX.Element => {
                   pageSize: meta.page_size,
                   onPageChange: handleListaPageChange,
                 }}
-                exportToolbar={actuacionesExportToolbar}
+                enableEditing={!isInspectorReadOnly}
+                hideRowActions={isInspectorReadOnly}
+                hideDeleteAction={isInspectorReadOnly}
+                exportToolbar={isInspectorReadOnly ? null : actuacionesExportToolbar}
               />
             )}
 

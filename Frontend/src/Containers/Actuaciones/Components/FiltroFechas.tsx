@@ -34,12 +34,14 @@ export type ActuacionesFiltroPayload = IActuacionesListFilters;
 interface FiltroFechasProps {
   onFiltrar: (filtros: IActuacionesListFilters) => void;
   onLimpiarLista?: () => void;
+  /** Inspector operativo: no puede filtrar por otro inspector. */
+  hideInspectorFilter?: boolean;
 }
 
 /**
  * Filtros de Actuaciones: datos + actas + período (PERF.1-A1 / A1.1).
  */
-const FiltroFechas = ({ onFiltrar, onLimpiarLista }: FiltroFechasProps) => {
+const FiltroFechas = ({ onFiltrar, onLimpiarLista, hideInspectorFilter = false }: FiltroFechasProps) => {
   const [form, setForm] = useState(ACTUACIONES_FILTRO_FORM_VACIO);
   const [validationError, setValidationError] = useState<string | null>(null);
   const [catalogTipos, setCatalogTipos] = useState<string[]>([]);
@@ -174,21 +176,23 @@ const FiltroFechas = ({ onFiltrar, onLimpiarLista }: FiltroFechasProps) => {
             options={tipoOptions}
           />
         </Box>
-        <Box sx={filtroItemStyles}>
-          <AppSelect
-            appearance="dense"
-            fullWidth
-            label="Inspector"
-            value={form.inspectorId === "" ? "" : String(form.inspectorId)}
-            onChange={(e) =>
-              patchForm({
-                inspectorId: e.target.value === "" ? "" : Number(e.target.value),
-              })
-            }
-            variant="outlined"
-            options={inspectorOptions}
-          />
-        </Box>
+        {!hideInspectorFilter ? (
+          <Box sx={filtroItemStyles}>
+            <AppSelect
+              appearance="dense"
+              fullWidth
+              label="Inspector"
+              value={form.inspectorId === "" ? "" : String(form.inspectorId)}
+              onChange={(e) =>
+                patchForm({
+                  inspectorId: e.target.value === "" ? "" : Number(e.target.value),
+                })
+              }
+              variant="outlined"
+              options={inspectorOptions}
+            />
+          </Box>
+        ) : null}
       </Box>
 
       <Divider sx={{ borderColor: "rgba(255,255,255,0.12)", my: 2 }} />
