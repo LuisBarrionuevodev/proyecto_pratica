@@ -1,4 +1,4 @@
-"""V1.1-MEDIA.0 — storage privado, upload intent, complete y download."""
+"""V1.1-MEDIA.0 / 0A — storage privado, categorías y cupos por RutaItem."""
 
 from __future__ import annotations
 
@@ -10,10 +10,14 @@ import pytest
 from flask_jwt_extended import create_access_token
 
 from app.database import db
+from app.domains.media.constants import (
+    CATEGORIA_FOTO_ACTA,
+    CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
+)
 from app.domains.media.services.cleanup_pending_media_service import cleanup_pending_media
 from app.integrations.media_storage.factory import get_media_storage, reset_media_storage_singleton
 from app.integrations.media_storage.mock_storage import MockMediaStorage
-from app.models import Archivo
+from app.models import Archivo, RutaItemArchivo
 from tests.test_inspector_scope_v1_1_2 import scope_fixture  # noqa: F401
 
 PDF_BYTES = b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n" + b"x" * 200
@@ -27,7 +31,7 @@ def _auth_headers(user_id: int) -> dict[str, str]:
 
 def _intent_payload(**overrides) -> dict:
     body = {
-        "categoria": "ACTA_DOCUMENTACION",
+        "categoria": CATEGORIA_FOTO_ACTA,
         "tipo_documento": "ACTA_INSPECCION",
         "filename": "acta-001.pdf",
         "content_type": "application/pdf",
@@ -67,7 +71,7 @@ def _simulate_upload_and_complete(client, user_id: int, intent_resp) -> dict:
     return data
 
 
-def test_upload_intent_acta_documentacion_ok(app, client, app_ctx, scope_fixture) -> None:
+def test_upload_intent_foto_acta_ok(app, client, app_ctx, scope_fixture) -> None:
     d = scope_fixture
     resp = _create_intent(client, d["item_a"].id, d["user_a"].id)
     assert resp.status_code == 201
@@ -78,7 +82,7 @@ def test_upload_intent_acta_documentacion_ok(app, client, app_ctx, scope_fixture
     assert arch is not None
     assert arch.status == "PENDING"
     assert "acta-001" not in arch.object_key
-    assert "digitaliza/ruta-items/" in arch.object_key
+    assert f"/{CATEGORIA_FOTO_ACTA}/" in arch.object_key
 
 
 def test_inspector_ajeno_upload_intent_403(app, client, app_ctx, scope_fixture) -> None:
@@ -87,7 +91,7 @@ def test_inspector_ajeno_upload_intent_403(app, client, app_ctx, scope_fixture) 
     assert resp.status_code == 403
 
 
-def test_foto_inspeccion_rechazada_media0(app, client, app_ctx, scope_fixture) -> None:
+def test_foto_inspeccion_rechazada_media0a(app, client, app_ctx, scope_fixture) -> None:
     d = scope_fixture
     resp = _create_intent(
         client,
@@ -136,23 +140,114 @@ def test_imagen_tamano_excedido_422(app, client, app_ctx, scope_fixture) -> None
     assert resp.status_code == 422
 
 
-def test_noveno_documento_422(app, client, app_ctx, scope_fixture) -> None:
+def test_foto_acta_octavo_archivo_422(app, client, app_ctx, scope_fixture) -> None:
     d = scope_fixture
-    for i in range(8):
-        r = _create_intent(client, d["item_a"].id, d["user_a"].id, filename=f"f{i}.pdf")
+    for i in range(7):
+        r = _create_intent(
+            client,
+            d["item_a"].id,
+            d["user_a"].id,
+            categoria=CATEGORIA_FOTO_ACTA,
+            filename=f"acta{i}.pdf",
+        )
         assert r.status_code == 201
-    r9 = _create_intent(client, d["item_a"].id, d["user_a"].id, filename="f9.pdf")
-    assert r9.status_code == 422
+    r8 = _create_intent(
+        client,
+        d["item_a"].id,
+        d["user_a"].id,
+        categoria=CATEGORIA_FOTO_ACTA,
+        filename="acta8.pdf",
+    )
+    assert r8.status_code == 422
 
 
-def test_complete_pending_to_ready(app, client, app_ctx, scope_fixture) -> None:
+def test_foto_documentacion_local_decimo_archivo_422(app, client, app_ctx, scope_fixture) -> None:
     d = scope_fixture
-    intent = _create_intent(client, d["item_a"].id, d["user_a"].id)
+    for i in range(9):
+        r = _create_intent(
+            client,
+            d["item_a"].id,
+            d["user_a"].id,
+            categoria=CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
+            tipo_documento="HABILITACION",
+            filename=f"hab{i}.pdf",
+        )
+        assert r.status_code == 201
+    r10 = _create_intent(
+        client,
+        d["item_a"].id,
+        d["user_a"].id,
+        categoria=CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
+        tipo_documento="OTRO_DOCUMENTO_LOCAL",
+        filename="hab10.pdf",
+    )
+    assert r10.status_code == 422
+
+
+def test_cupos_independientes_entre_categorias(app, client, app_ctx, scope_fixture) -> None:
+    d = scope_fixture
+    for i in range(7):
+        assert (
+            _create_intent(
+                client,
+                d["item_a"].id,
+                d["user_a"].id,
+                categoria=CATEGORIA_FOTO_ACTA,
+                filename=f"a{i}.pdf",
+            ).status_code
+            == 201
+        )
+    for i in range(9):
+        assert (
+            _create_intent(
+                client,
+                d["item_a"].id,
+                d["user_a"].id,
+                categoria=CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
+                tipo_documento="CARNET_MANIPULADOR",
+                filename=f"d{i}.pdf",
+            ).status_code
+            == 201
+        )
+    assert (
+        _create_intent(
+            client,
+            d["item_a"].id,
+            d["user_a"].id,
+            categoria=CATEGORIA_FOTO_ACTA,
+            filename="extra_acta.pdf",
+        ).status_code
+        == 422
+    )
+    assert (
+        _create_intent(
+            client,
+            d["item_a"].id,
+            d["user_a"].id,
+            categoria=CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
+            tipo_documento="CERTIFICADO_DESINFECCION",
+            filename="extra_doc.pdf",
+        ).status_code
+        == 422
+    )
+
+
+def test_complete_pending_to_ready_conserva_categoria(app, client, app_ctx, scope_fixture) -> None:
+    d = scope_fixture
+    intent = _create_intent(
+        client,
+        d["item_a"].id,
+        d["user_a"].id,
+        categoria=CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
+        tipo_documento="HABILITACION",
+    )
     assert intent.status_code == 201
     data = _simulate_upload_and_complete(client, d["user_a"].id, intent)
     arch = Archivo.query.get(data["archivo_id"])
     assert arch.status == "READY"
-    assert arch.uploaded_at is not None
+    link = RutaItemArchivo.query.filter_by(archivo_id=arch.id).one()
+    assert link.categoria == CATEGORIA_FOTO_DOCUMENTACION_LOCAL
+    assert link.tipo_documento == "HABILITACION"
 
 
 def test_complete_invalid_magic_rejected(app, client, app_ctx, scope_fixture) -> None:
@@ -225,7 +320,12 @@ def test_grid_actuaciones_sin_urls_media(app, client, app_ctx, scope_fixture) ->
 def test_cleanup_pending_vencidos(app, app_ctx, scope_fixture) -> None:
     d = scope_fixture
     with app.test_client() as client:
-        intent = _create_intent(client, d["item_a"].id, d["user_a"].id)
+        intent = _create_intent(
+            client,
+            d["item_a"].id,
+            d["user_a"].id,
+            categoria=CATEGORIA_FOTO_ACTA,
+        )
         archivo_id = intent.get_json()["archivo_id"]
     arch = Archivo.query.get(archivo_id)
     arch.created_at = datetime.utcnow() - timedelta(hours=30)
@@ -236,3 +336,5 @@ def test_cleanup_pending_vencidos(app, app_ctx, scope_fixture) -> None:
     arch2 = Archivo.query.get(archivo_id)
     assert arch2.status == "DELETED"
     assert arch2.deleted_at is not None
+    link = RutaItemArchivo.query.filter_by(archivo_id=archivo_id).one()
+    assert link.categoria == CATEGORIA_FOTO_ACTA

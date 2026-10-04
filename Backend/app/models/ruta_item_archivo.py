@@ -25,7 +25,8 @@ class RutaItemArchivo(db.Model):
     )
     categoria = db.Column(
         db.Enum(
-            "ACTA_DOCUMENTACION",
+            "FOTO_ACTA",
+            "FOTO_DOCUMENTACION_LOCAL",
             "FOTO_INSPECCION",
             name="ruta_item_archivo_categoria_enum",
         ),
@@ -36,7 +37,11 @@ class RutaItemArchivo(db.Model):
         db.Enum(
             "ACTA_INSPECCION",
             "ACTA_NOTIFICACION",
-            "OTRO_DOCUMENTO",
+            "OTRO_ACTA",
+            "HABILITACION",
+            "CARNET_MANIPULADOR",
+            "CERTIFICADO_DESINFECCION",
+            "OTRO_DOCUMENTO_LOCAL",
             name="ruta_item_archivo_tipo_documento_enum",
         ),
         nullable=True,

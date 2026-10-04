@@ -5,6 +5,12 @@ from __future__ import annotations
 import os
 from dataclasses import dataclass
 
+from app.domains.media.constants import (
+    CATEGORIA_FOTO_ACTA,
+    CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
+    CATEGORIA_FOTO_INSPECCION,
+)
+
 
 def _int_env(key: str, default: int) -> int:
     raw = os.getenv(key)
@@ -26,8 +32,25 @@ class MediaStorageConfig:
     presigned_ttl_seconds: int
     max_image_bytes: int
     max_document_bytes: int
-    max_acta_documentacion_per_ruta_item: int
+    max_foto_acta_per_ruta_item: int
+    max_foto_documentacion_local_per_ruta_item: int
     max_foto_inspeccion_per_ruta_item: int
+
+
+def max_archivos_por_categoria(config: MediaStorageConfig, categoria: str) -> int:
+    """
+    Devuelve el cupo configurado para una categoría de archivo.
+
+    Errores:
+        ValueError: categoría desconocida.
+    """
+    if categoria == CATEGORIA_FOTO_ACTA:
+        return config.max_foto_acta_per_ruta_item
+    if categoria == CATEGORIA_FOTO_DOCUMENTACION_LOCAL:
+        return config.max_foto_documentacion_local_per_ruta_item
+    if categoria == CATEGORIA_FOTO_INSPECCION:
+        return config.max_foto_inspeccion_per_ruta_item
+    raise ValueError("categoria inválida.")
 
 
 def load_media_storage_config() -> MediaStorageConfig:
@@ -50,8 +73,9 @@ def load_media_storage_config() -> MediaStorageConfig:
         presigned_ttl_seconds=_int_env("MEDIA_PRESIGNED_URL_TTL_SECONDS", 600),
         max_image_bytes=_int_env("MEDIA_MAX_IMAGE_BYTES", 10_485_760),
         max_document_bytes=_int_env("MEDIA_MAX_DOCUMENT_BYTES", 15_728_640),
-        max_acta_documentacion_per_ruta_item=_int_env(
-            "MEDIA_MAX_ACTA_DOCUMENTACION_PER_RUTA_ITEM", 8
+        max_foto_acta_per_ruta_item=_int_env("MEDIA_MAX_FOTO_ACTA_PER_RUTA_ITEM", 7),
+        max_foto_documentacion_local_per_ruta_item=_int_env(
+            "MEDIA_MAX_FOTO_DOCUMENTACION_LOCAL_PER_RUTA_ITEM", 9
         ),
         max_foto_inspeccion_per_ruta_item=_int_env(
             "MEDIA_MAX_FOTO_INSPECCION_PER_RUTA_ITEM", 12

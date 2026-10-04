@@ -5,19 +5,36 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Literal, Optional
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
-from app.domains.media.constants import CATEGORIA_ACTA_DOCUMENTACION, CATEGORIA_FOTO_INSPECCION
+from app.domains.media.constants import (
+    CATEGORIA_FOTO_ACTA,
+    CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
+    CATEGORIA_FOTO_INSPECCION,
+    CATEGORIAS_MEDIA_0A_HABILITADAS,
+    TIPOS_DOCUMENTO_FOTO_ACTA,
+    TIPOS_DOCUMENTO_FOTO_DOCUMENTACION_LOCAL,
+)
 from app.domains.media.utils.file_validation import normalize_sha256, validate_content_type_allowed
+
+TipoDocumentoFotoActa = Literal["ACTA_INSPECCION", "ACTA_NOTIFICACION", "OTRO_ACTA"]
+TipoDocumentoFotoLocal = Literal[
+    "HABILITACION",
+    "CARNET_MANIPULADOR",
+    "CERTIFICADO_DESINFECCION",
+    "OTRO_DOCUMENTO_LOCAL",
+]
 
 
 class UploadIntentIn(BaseModel):
     """Body de POST upload-intents."""
 
-    categoria: Literal["ACTA_DOCUMENTACION", "FOTO_INSPECCION"]
-    tipo_documento: Optional[
-        Literal["ACTA_INSPECCION", "ACTA_NOTIFICACION", "OTRO_DOCUMENTO"]
-    ] = None
+    categoria: Literal[
+        "FOTO_ACTA",
+        "FOTO_DOCUMENTACION_LOCAL",
+        "FOTO_INSPECCION",
+    ]
+    tipo_documento: Optional[TipoDocumentoFotoActa | TipoDocumentoFotoLocal] = None
     filename: str = Field(min_length=1, max_length=255)
     content_type: str = Field(min_length=1, max_length=128)
     byte_size: int = Field(gt=0)
@@ -33,14 +50,20 @@ class UploadIntentIn(BaseModel):
     def validate_hash(cls, v: str) -> str:
         return normalize_sha256(v)
 
-    @field_validator("categoria")
-    @classmethod
-    def validate_categoria_media0(cls, v: str) -> str:
-        if v != CATEGORIA_ACTA_DOCUMENTACION:
-            if v == CATEGORIA_FOTO_INSPECCION:
-                raise ValueError("FOTO_INSPECCION no está habilitada en esta versión.")
+    @model_validator(mode="after")
+    def validate_categoria_y_tipo(self) -> UploadIntentIn:
+        if self.categoria == CATEGORIA_FOTO_INSPECCION:
+            raise ValueError("FOTO_INSPECCION no está habilitada en esta versión.")
+        if self.categoria not in CATEGORIAS_MEDIA_0A_HABILITADAS:
             raise ValueError("categoria inválida.")
-        return v
+        if self.tipo_documento is not None:
+            if self.categoria == CATEGORIA_FOTO_ACTA:
+                if self.tipo_documento not in TIPOS_DOCUMENTO_FOTO_ACTA:
+                    raise ValueError("tipo_documento no válido para FOTO_ACTA.")
+            elif self.categoria == CATEGORIA_FOTO_DOCUMENTACION_LOCAL:
+                if self.tipo_documento not in TIPOS_DOCUMENTO_FOTO_DOCUMENTACION_LOCAL:
+                    raise ValueError("tipo_documento no válido para FOTO_DOCUMENTACION_LOCAL.")
+        return self
 
 
 class UploadIntentOut(BaseModel):

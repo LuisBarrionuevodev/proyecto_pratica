@@ -6,9 +6,18 @@ import re
 import uuid
 
 from app.domains.media.constants import (
-    CATEGORIA_ACTA_DOCUMENTACION,
+    CATEGORIA_FOTO_ACTA,
+    CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
     CATEGORIA_FOTO_INSPECCION,
     PDF_CONTENT_TYPE,
+)
+
+_CATEGORIAS_OBJECT_KEY = frozenset(
+    {
+        CATEGORIA_FOTO_ACTA,
+        CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
+        CATEGORIA_FOTO_INSPECCION,
+    }
 )
 
 _CONTENT_TYPE_EXTENSION: dict[str, str] = {
@@ -56,13 +65,13 @@ def build_object_key(
 
     Parámetros:
         ruta_item_id: ítem de ruta ancla.
-        categoria: ACTA_DOCUMENTACION o FOTO_INSPECCION.
+        categoria: FOTO_ACTA, FOTO_DOCUMENTACION_LOCAL o FOTO_INSPECCION.
         content_type: MIME ya validado.
 
     Retorno:
         object_key único sin datos personales.
     """
-    if categoria not in (CATEGORIA_ACTA_DOCUMENTACION, CATEGORIA_FOTO_INSPECCION):
+    if categoria not in _CATEGORIAS_OBJECT_KEY:
         raise ValueError("Categoría inválida para object_key.")
     ext = safe_extension_for_content_type(content_type)
     token = uuid.uuid4().hex
