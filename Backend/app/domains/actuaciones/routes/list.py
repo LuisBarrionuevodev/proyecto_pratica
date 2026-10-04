@@ -90,6 +90,7 @@ def listar_actuaciones():
         iniciador_map = build_iniciador_ruta_por_actuacion_id(act_ids)
         batch = build_actuacion_grid_batch_maps(items_raw, iniciador_map)
         editable_map = build_actuacion_editable_flags_por_actuacion_id(act_ids)
+        expose_tel = filters.actuacion_id is not None and len(items_raw) == 1
         items_dto = [
             actuacion_to_grid_row(
                 act,
@@ -97,6 +98,7 @@ def listar_actuaciones():
                 iniciador_desde_ruta=iniciador_map.get(int(act.id)),
                 batch=batch,
                 editable_override=editable_map.get(int(act.id)),
+                expose_telefono_solicitud_carnet=expose_tel,
             )
             for act in items_raw
         ]

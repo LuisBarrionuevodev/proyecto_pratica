@@ -6,7 +6,11 @@ from flask import jsonify, request
 from pydantic import ValidationError
 
 from app.domains.actuaciones.mappers.grid.actuacion_row_mapper import map_actuacion_row
-from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
+from app.domains.actuaciones.presenters.actuacion_presenters import (
+    actuacion_to_grid_row,
+    build_actuacion_grid_batch_maps,
+    build_iniciador_ruta_por_actuacion_id,
+)
 from app.domains.actuaciones.utils.actuaciones_bandeja_eager import (
     reload_actuaciones_inspeccion_checklist_eager,
 )
@@ -51,7 +55,17 @@ def actualizar_actuacion_route(actuacion_id: int):
             actuacion_id, payload, actor_user_id=actor_user_id
         )
         act_reload = reload_actuaciones_inspeccion_checklist_eager([act])[0]
-        return jsonify(actuacion_to_grid_row(act_reload)), 200
+        act_ids = [int(act_reload.id)]
+        iniciador_map = build_iniciador_ruta_por_actuacion_id(act_ids)
+        batch = build_actuacion_grid_batch_maps([act_reload], iniciador_map)
+        return jsonify(
+            actuacion_to_grid_row(
+                act_reload,
+                iniciador_desde_ruta=iniciador_map.get(int(act_reload.id)),
+                batch=batch,
+                expose_telefono_solicitud_carnet=True,
+            )
+        ), 200
 
     except ValidationError as e:
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422

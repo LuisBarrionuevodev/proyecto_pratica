@@ -64,7 +64,18 @@ from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     count_actuaciones_por_establecimiento_operativo_ids,
 )
 from app.domains.actuaciones.attach.inspeccion import items_acta_inspeccion_read_dtos
-from app.models import Actuaciones, Comprobacion, Expediente, IniciadorRuta, Notificacion, Oficio, Relevamiento, RutaItem
+from app.models import (
+    Actuaciones,
+    Comprobacion,
+    Expediente,
+    IniciadorRuta,
+    Notificacion,
+    NotificacionResultadoReinspeccion,
+    Oficio,
+    Relevamiento,
+    RutaItem,
+)
+from app.models.solicitud_carnet_manipulador import SolicitudCarnetManipulador
 from app.domains.rutas_trabajo.utils.rubro_operativo import (
     rubro_nombre_operativo_para_iniciador,
     titular_operativo_visible_para_iniciador,
@@ -103,6 +114,8 @@ class ActuacionGridBatchMaps:
     comprobacion_by_id: dict[int, Comprobacion]
     oficio_by_id: dict[int, Oficio]
     notificacion_by_id: dict[int, Notificacion]
+    solicitud_carnet_by_inspeccion_id: dict[int, SolicitudCarnetManipulador]
+    resultado_reinspeccion_by_actuacion_id: dict[int, NotificacionResultadoReinspeccion]
 
 
 def _domicilio_edit_flags_for_grid(
@@ -364,6 +377,29 @@ def build_actuacion_grid_batch_maps(
         for n in Notificacion.query.filter(Notificacion.id.in_(notif_ids)).all():
             not_map[int(n.id)] = n
 
+    insp_ids: set[int] = set()
+    act_ids_seg: set[int] = set()
+    for a in acts:
+        if getattr(a, "id", None):
+            act_ids_seg.add(int(a.id))
+        insp = getattr(a, "inspeccion", None)
+        if insp is not None and getattr(insp, "id", None):
+            insp_ids.add(int(insp.id))
+
+    carnet_map: dict[int, SolicitudCarnetManipulador] = {}
+    if insp_ids:
+        for row in SolicitudCarnetManipulador.query.filter(
+            SolicitudCarnetManipulador.inspeccion_id.in_(insp_ids)
+        ).all():
+            carnet_map[int(row.inspeccion_id)] = row
+
+    resultado_map: dict[int, NotificacionResultadoReinspeccion] = {}
+    if act_ids_seg:
+        for row in NotificacionResultadoReinspeccion.query.filter(
+            NotificacionResultadoReinspeccion.actuacion_id.in_(act_ids_seg)
+        ).all():
+            resultado_map[int(row.actuacion_id)] = row
+
     return ActuacionGridBatchMaps(
         expediente_envio_by_comp_id=envio,
         expediente_primero_by_notif_id=ex_not,
@@ -371,7 +407,37 @@ def build_actuacion_grid_batch_maps(
         comprobacion_by_id=comp_map,
         oficio_by_id=ofi_map,
         notificacion_by_id=not_map,
+        solicitud_carnet_by_inspeccion_id=carnet_map,
+        resultado_reinspeccion_by_actuacion_id=resultado_map,
     )
+
+
+def _seguimiento_acta_grid_fields(
+    act: Actuaciones,
+    batch: ActuacionGridBatchMaps | None,
+    *,
+    expose_telefono_solicitud_carnet: bool,
+) -> dict[str, Any]:
+    """Campos de seguimiento de acta (sin teléfono en listados masivos)."""
+    out: dict[str, Any] = {
+        "solicita_carnet_manipulador": None,
+        "telefono_contacto_solicitud_carnet": None,
+        "faltas_notificacion_subsanadas": None,
+    }
+    if batch is None:
+        return out
+    insp = getattr(act, "inspeccion", None)
+    if insp is not None and getattr(insp, "id", None):
+        sc = batch.solicitud_carnet_by_inspeccion_id.get(int(insp.id))
+        if sc is not None:
+            out["solicita_carnet_manipulador"] = bool(sc.solicita_carnet)
+            if expose_telefono_solicitud_carnet:
+                out["telefono_contacto_solicitud_carnet"] = sc.telefono_contacto
+    if getattr(act, "id", None):
+        rr = batch.resultado_reinspeccion_by_actuacion_id.get(int(act.id))
+        if rr is not None:
+            out["faltas_notificacion_subsanadas"] = bool(rr.faltas_subsanadas)
+    return out
 
 
 def _clasificar_circuito_documental(
@@ -747,6 +813,7 @@ def actuacion_to_grid_row(
     iniciador_desde_ruta: IniciadorRuta | None = None,
     batch: ActuacionGridBatchMaps | None = None,
     editable_override: dict[str, object] | None = None,
+    expose_telefono_solicitud_carnet: bool = False,
 ) -> Dict[str, Any]:
     """
     Convierte una Actuación (con relaciones) al formato plano
@@ -1082,6 +1149,11 @@ def actuacion_to_grid_row(
         **_actuacion_edit_flags_for_grid(act, editable_override=editable_override),
         **_epicollect_detalle_for_grid(act),
         **_epicollect_evidencias_for_grid(act),
+        **_seguimiento_acta_grid_fields(
+            act,
+            batch,
+            expose_telefono_solicitud_carnet=expose_telefono_solicitud_carnet,
+        ),
     }
 
 

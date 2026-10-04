@@ -15,6 +15,11 @@ from app.domains.actuaciones.services.completar_trabajo_tipo_iniciador import (
 from app.domains.actuaciones.utils.identity_operativa_mode import (
     prefill_identidad_verificar_informar,
 )
+from app.domains.actuaciones.utils.acta_seguimiento_policy import (
+    contexto_solicitud_carnet_relevamiento,
+    contexto_subsanacion_reinspeccion_notificacion,
+)
+from app.domains.actuaciones.services.completar_trabajo_contraproducencia import ContrapBucket
 
 # Campos de `actuacion_to_grid_row` necesarios para edición inline de cierre (sin previas en UI).
 _COMPLETAR_GRID_EXTRA_KEYS: tuple[str, ...] = (
@@ -313,6 +318,20 @@ def ruta_item_completar_trabajo_detalle(
         Dict con `row`, `inspectores_grupo`, `ui_policy`, `tipo_actuacion_esperado`.
     """
     row = ruta_item_completar_trabajo_to_row(item)
+    ini = item.iniciador_ruta
+    tipo_ini = (ini.tipo_iniciador or "").strip() if ini else ""
+    mostrar_carnet = bool(
+        ini
+        and contexto_solicitud_carnet_relevamiento(
+            ini, bucket=ContrapBucket.NONE, labra_inspeccion=True
+        )
+    )
+    mostrar_subs = bool(
+        ini
+        and contexto_subsanacion_reinspeccion_notificacion(
+            ini, bucket=ContrapBucket.NONE, labra_inspeccion=True
+        )
+    )
 
     return {
         "row": row,
@@ -325,6 +344,9 @@ def ruta_item_completar_trabajo_detalle(
             "inspectores_readonly": True,
             "previas_visible": False,
             "post_cierre": "POST /actuaciones/completar-trabajo/cerrar/<ruta_item_id>",
+            "mostrar_solicitud_carnet_manipulador": mostrar_carnet,
+            "mostrar_subsanacion_notificacion": mostrar_subs,
+            "tipo_iniciador": tipo_ini or None,
         },
     }
 

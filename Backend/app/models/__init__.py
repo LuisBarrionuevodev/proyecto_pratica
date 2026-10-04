@@ -48,6 +48,8 @@ from .ruta_grupo import RutaGrupo
 from .ruta_grupo_inspector import RutaGrupoInspector
 from .ruta_item import RutaItem
 from .ruta_pool_dia import RutaPoolDia
+from .solicitud_carnet_manipulador import SolicitudCarnetManipulador
+from .notificacion_resultado_reinspeccion import NotificacionResultadoReinspeccion
 __all__ = [
     "actuaciones_inspector",
     "notificacion_motivo",
@@ -103,4 +105,6 @@ __all__ = [
     "RutaGrupoInspector",
     "RutaItem",
     "RutaPoolDia",
+    "SolicitudCarnetManipulador",
+    "NotificacionResultadoReinspeccion",
 ]

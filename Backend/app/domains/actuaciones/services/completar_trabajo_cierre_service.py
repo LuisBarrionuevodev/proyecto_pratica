@@ -478,6 +478,12 @@ def cerrar_completar_trabajo_por_ruta_item(
     _validar_payload_verificar_informar(ini, payload)
 
     stored_contra, bucket = normalize_contraproducencia(payload.contraproducencia)
+    from app.domains.actuaciones.services.acta_seguimiento_cierre_service import (
+        persistir_acta_seguimiento_tras_cierre,
+        validar_payload_acta_seguimiento_cierre,
+    )
+
+    validar_payload_acta_seguimiento_cierre(ini=ini, payload=payload, bucket=bucket)
     if bucket != ContrapBucket.NONE and stored_contra:
         if not contraproducencia_permitida_en_completar_trabajo(
             ini.tipo_iniciador,
@@ -622,6 +628,13 @@ def cerrar_completar_trabajo_por_ruta_item(
             ini.cerrado_motivo = None
             reencolar_iniciador_si_oficio_no_cumple(ini=ini, act=act, item=item, now=now)
             _vincular_notificacion_reinspeccion_en_acta(act=act, ini=ini, bucket=bucket)
+            persistir_acta_seguimiento_tras_cierre(
+                act=act,
+                ini=ini,
+                payload=payload,
+                bucket=bucket,
+                ejecutado_por_user_id=ejecutado_por_user_id,
+            )
         elif bucket == ContrapBucket.NO_EXISTE_LOCAL:
             assert stored_contra is not None
             item.estado_ejecucion = "NO_REALIZADO"

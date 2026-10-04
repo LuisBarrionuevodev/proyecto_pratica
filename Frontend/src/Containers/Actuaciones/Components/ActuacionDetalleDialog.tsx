@@ -493,10 +493,15 @@ function DocumentacionTramiteModalLectura({ draft }: { draft: IActuacionListItem
 function ResultadoSeguimientoLectura({ draft }: { draft: IActuacionListItem }) {
   const res = draft.resultado_cumplimiento_oficio;
   const tieneResultado = res != null && String(res).trim() !== "";
+  const solicitaCarnet = draft.solicita_carnet_manipulador;
+  const tieneSolicitudCarnet = solicitaCarnet === true || solicitaCarnet === false;
+  const telCarnet = (draft.telefono_contacto_solicitud_carnet ?? "").trim();
+  const subs = draft.faltas_notificacion_subsanadas;
+  const tieneSubsanacion = subs === true || subs === false;
   const showDoc = documentacionTramiteModalTieneContenido(draft);
   const showEdicion = tieneRestriccionesEdicion(draft);
 
-  if (!tieneResultado && !showDoc && !showEdicion) {
+  if (!tieneResultado && !tieneSolicitudCarnet && !tieneSubsanacion && !showDoc && !showEdicion) {
     return null;
   }
 
@@ -508,6 +513,36 @@ function ResultadoSeguimientoLectura({ draft }: { draft: IActuacionListItem }) {
         label="Resultado cumplimiento oficio"
         mode="view"
         value={dash(res)}
+      />
+    );
+  }
+  if (tieneSolicitudCarnet) {
+    bloques.push(
+      <CrudFormSlot
+        key="carnet"
+        label="Solicitud carnet manipulador"
+        mode="view"
+        value={solicitaCarnet ? "Sí" : "No"}
+      />
+    );
+    if (solicitaCarnet && telCarnet) {
+      bloques.push(
+        <CrudFormSlot
+          key="tel-carnet"
+          label="Teléfono contacto solicitud carnet"
+          mode="view"
+          value={telCarnet}
+        />
+      );
+    }
+  }
+  if (tieneSubsanacion) {
+    bloques.push(
+      <CrudFormSlot
+        key="subs"
+        label="Faltas notificadas subsanadas"
+        mode="view"
+        value={subs ? "Sí" : "No"}
       />
     );
   }

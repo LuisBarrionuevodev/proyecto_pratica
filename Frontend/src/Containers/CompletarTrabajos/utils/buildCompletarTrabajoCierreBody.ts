@@ -52,6 +52,9 @@ export type CompletarTrabajoFormFields = {
   acta_clausura_num: string;
   acta_decomiso_num: string;
   decomiso_kilos_total: string;
+  solicita_carnet_manipulador: string;
+  telefono_contacto_solicitud_carnet: string;
+  faltas_notificacion_subsanadas: string;
 };
 
 export type ReinspeccionOficioTipoActuacionValidation =
@@ -313,6 +316,20 @@ export function buildCompletarTrabajoCierreBody(
     body.inspectores = options.inspectoresExplicitos.map((n) => String(n).trim()).filter(Boolean);
   }
 
+  if (visitaRealizada && incluirInspeccion && s(f.acta_inspeccion_num)) {
+    const sol = s(f.solicita_carnet_manipulador);
+    if (sol === "si") {
+      body.solicita_carnet_manipulador = true;
+      const tel = s(f.telefono_contacto_solicitud_carnet);
+      if (tel) body.telefono_contacto_solicitud_carnet = tel;
+    } else if (sol === "no") {
+      body.solicita_carnet_manipulador = false;
+    }
+    const subs = s(f.faltas_notificacion_subsanadas);
+    if (subs === "si") body.faltas_notificacion_subsanadas = true;
+    if (subs === "no") body.faltas_notificacion_subsanadas = false;
+  }
+
   return body;
 }
 
@@ -343,6 +360,9 @@ export const EMPTY_COMPLETAR_FORM: CompletarTrabajoFormFields = {
   acta_clausura_num: "",
   acta_decomiso_num: "",
   decomiso_kilos_total: "",
+  solicita_carnet_manipulador: "",
+  telefono_contacto_solicitud_carnet: "",
+  faltas_notificacion_subsanadas: "",
 };
 
 function strFromUnknown(v: unknown): string {
@@ -450,6 +470,9 @@ function rowToFormFields(row: ICompletarTrabajoPendienteRow): CompletarTrabajoFo
     acta_clausura_num: row.acta_clausura_num ?? "",
     acta_decomiso_num: row.acta_decomiso_num ?? "",
     decomiso_kilos_total: kilosStr,
+    solicita_carnet_manipulador: "",
+    telefono_contacto_solicitud_carnet: "",
+    faltas_notificacion_subsanadas: "",
   };
 }
 
@@ -472,6 +495,17 @@ export function buildCompletarTrabajoCierreBodyFromInline(
   }
   if ("resultado_cumplimiento_oficio" in values) {
     fields.resultado_cumplimiento_oficio = strFromUnknown(values.resultado_cumplimiento_oficio);
+  }
+  if ("solicita_carnet_manipulador" in values) {
+    fields.solicita_carnet_manipulador = strFromUnknown(values.solicita_carnet_manipulador);
+  }
+  if ("telefono_contacto_solicitud_carnet" in values) {
+    fields.telefono_contacto_solicitud_carnet = strFromUnknown(
+      values.telefono_contacto_solicitud_carnet
+    );
+  }
+  if ("faltas_notificacion_subsanadas" in values) {
+    fields.faltas_notificacion_subsanadas = strFromUnknown(values.faltas_notificacion_subsanadas);
   }
   if (options?.omitPrecargadoPr2 === true) {
     applyOmitPrecargadoPr2(fields);

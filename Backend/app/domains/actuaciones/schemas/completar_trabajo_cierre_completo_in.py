@@ -88,6 +88,26 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
     resultado_cumplimiento_oficio: Optional[Literal["CUMPLE", "NO_CUMPLE"]] = None
     realizo_nueva_inspeccion: Optional[bool] = None
 
+    solicita_carnet_manipulador: Optional[bool] = None
+    telefono_contacto_solicitud_carnet: Optional[str] = None
+    faltas_notificacion_subsanadas: Optional[bool] = None
+
+    @model_validator(mode="before")
+    @classmethod
+    def rechazar_ids_seguimiento_desde_cliente(cls, data: Any) -> Any:
+        if not isinstance(data, dict):
+            return data
+        for key in (
+            "contribuyente_id",
+            "notificacion_id",
+            "inspeccion_id",
+        ):
+            if key in data:
+                raise ValueError(
+                    f"No envíe {key} en Completar trabajo; el origen se resuelve en el servidor."
+                )
+        return data
+
     @model_validator(mode="before")
     @classmethod
     def rechazar_oficio_y_expediente_canal_completar_trabajo(cls, data: Any) -> Any:
@@ -129,6 +149,31 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
         if isinstance(v, str):
             s = v.strip()
             return s or None
+        return v
+
+    @field_validator("telefono_contacto_solicitud_carnet", mode="before")
+    @classmethod
+    def strip_telefono_solicitud_carnet(cls, v: object) -> object:
+        if v is None:
+            return None
+        if isinstance(v, str):
+            s = v.strip()
+            return s or None
+        return v
+
+    @field_validator("solicita_carnet_manipulador", "faltas_notificacion_subsanadas", mode="before")
+    @classmethod
+    def normalize_bool_seguimiento(cls, v: object) -> object:
+        if v is None or v == "":
+            return None
+        if isinstance(v, bool):
+            return v
+        if isinstance(v, str):
+            s = v.strip().lower()
+            if s in ("si", "sí", "true", "1"):
+                return True
+            if s in ("no", "false", "0"):
+                return False
         return v
 
     @field_validator("realizo_nueva_inspeccion", mode="before")
@@ -277,6 +322,12 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
                 ),
                 ("decomiso_kilos_total", self.decomiso_kilos_total is not None),
                 ("resultado_cumplimiento_oficio", self.resultado_cumplimiento_oficio is not None),
+                ("solicita_carnet_manipulador", self.solicita_carnet_manipulador is not None),
+                (
+                    "telefono_contacto_solicitud_carnet",
+                    self.telefono_contacto_solicitud_carnet is not None,
+                ),
+                ("faltas_notificacion_subsanadas", self.faltas_notificacion_subsanadas is not None),
             ]
         else:
             bloque = [
@@ -300,6 +351,12 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
                 ("comprobacion_motivo", bool(self.comprobacion_motivo)),
                 ("decomiso_kilos_total", self.decomiso_kilos_total is not None),
                 ("resultado_cumplimiento_oficio", self.resultado_cumplimiento_oficio is not None),
+                ("solicita_carnet_manipulador", self.solicita_carnet_manipulador is not None),
+                (
+                    "telefono_contacto_solicitud_carnet",
+                    self.telefono_contacto_solicitud_carnet is not None,
+                ),
+                ("faltas_notificacion_subsanadas", self.faltas_notificacion_subsanadas is not None),
             ]
         malos = [k for k, ok in bloque if ok]
         if malos:

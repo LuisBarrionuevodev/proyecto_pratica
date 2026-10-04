@@ -34,6 +34,9 @@ export interface IActuacionListItem {
     actas_a_quitar?: ActaCanalQuitarTipo[];
   /** Presente en respuesta API (reinspección por oficio, etc.). */
   resultado_cumplimiento_oficio?: string | null;
+  solicita_carnet_manipulador?: boolean | null;
+  telefono_contacto_solicitud_carnet?: string | null;
+  faltas_notificacion_subsanadas?: boolean | null;
   /** Verificar e informar: true/false; null en ratificaciones. */
   realizo_nueva_inspeccion?: boolean | null;
     doc_nro: string | null;

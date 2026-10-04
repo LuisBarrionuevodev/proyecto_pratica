@@ -16,7 +16,11 @@ import {
   Typography,
 } from "@mui/material";
 
-import type { ICompletarTrabajoInspectorGrupo, ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
+import type {
+  ICompletarTrabajoInspectorGrupo,
+  ICompletarTrabajoPendienteRow,
+  ICompletarTrabajoUiPolicy,
+} from "../../../api/completarTrabajoApi";
 import { getCompletarTrabajoDetalle } from "../../../api/completarTrabajoApi";
 import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
 import {
@@ -106,6 +110,10 @@ import {
 import { ReinspeccionOficioResultadoFields } from "../../../shared/reinspeccionOficio/ReinspeccionOficioResultadoFields";
 import { usaInspeccionNormalReinspeccionOficio } from "../../../shared/reinspeccionOficio/usaInspeccionNormalReinspeccionOficio";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
+import {
+  mostrarBloqueSolicitudCarnet,
+  mostrarBloqueSubsanacionNotificacion,
+} from "../utils/actaSeguimientoUi";
 
 const modalAuxInputSx = {
   "& .MuiInputBase-input": { color: GLASS_COLORS.textPrimary },
@@ -482,6 +490,12 @@ export function CompletarTrabajoModal({
   const [detalleError, setDetalleError] = useState<string | null>(null);
   const [inspectoresGrupo, setInspectoresGrupo] = useState<ICompletarTrabajoInspectorGrupo[]>([]);
   const [tipoActuacionEsperadoRef, setTipoActuacionEsperadoRef] = useState<string | null>(null);
+  const [uiPolicy, setUiPolicy] = useState<ICompletarTrabajoUiPolicy | null>(null);
+  const [solicitaCarnetManipulador, setSolicitaCarnetManipulador] = useState<"" | "si" | "no">("");
+  const [telefonoSolicitudCarnet, setTelefonoSolicitudCarnet] = useState("");
+  const [faltasNotificacionSubsanadas, setFaltasNotificacionSubsanadas] = useState<"" | "si" | "no">(
+    ""
+  );
 
   const [inspectoresList, setInspectoresList] = useState<string[]>([]);
   const [inspectoresDirty, setInspectoresDirty] = useState(false);
@@ -502,6 +516,10 @@ export function CompletarTrabajoModal({
       setDetalleError(null);
       setInspectoresGrupo([]);
       setTipoActuacionEsperadoRef(null);
+      setUiPolicy(null);
+      setSolicitaCarnetManipulador("");
+      setTelefonoSolicitudCarnet("");
+      setFaltasNotificacionSubsanadas("");
       return;
     }
     let cancelled = false;
@@ -510,6 +528,7 @@ export function CompletarTrabajoModal({
     setDetalleError(null);
     setInspectoresGrupo([]);
     setTipoActuacionEsperadoRef(null);
+    setUiPolicy(null);
 
     getCompletarTrabajoDetalle(row.ruta_item_id)
       .then((d) => {
@@ -517,6 +536,7 @@ export function CompletarTrabajoModal({
         setResolvedRow(d.row);
         setInspectoresGrupo(d.inspectores_grupo ?? []);
         setTipoActuacionEsperadoRef(d.tipo_actuacion_esperado ?? d.row.tipo_actuacion_esperado ?? null);
+        setUiPolicy(d.ui_policy ?? null);
         setDetalleLoading(false);
       })
       .catch((e) => {
@@ -718,6 +738,10 @@ export function CompletarTrabajoModal({
   );
   const esReinspeccionNotificacion = displayRow?.tipo_iniciador === "REINSPECCION_NOTIFICACION";
   const notificacionOrigenTexto = formatNotificacionOrigenReadonly(displayRow);
+  const bloqueSolicitudCarnetVisible =
+    visitaRealizada && mostrarBloqueSolicitudCarnet(uiPolicy);
+  const bloqueSubsanacionVisible =
+    visitaRealizada && mostrarBloqueSubsanacionNotificacion(uiPolicy);
   const verificarMuestraInspeccionNormal =
     esFlujoVerificarInformarUi &&
     usaInspeccionNormalReinspeccionOficio(
@@ -1123,6 +1147,15 @@ export function CompletarTrabajoModal({
           if (!Number.isNaN(cantidad) && cantidad >= 0) {
             values.cantidad_personas_sin_carnet_sanidad = cantidad;
           }
+        }
+        if (bloqueSolicitudCarnetVisible && isValidActaInspeccionNum(actaInspeccion)) {
+          values.solicita_carnet_manipulador = solicitaCarnetManipulador;
+          if (solicitaCarnetManipulador === "si") {
+            values.telefono_contacto_solicitud_carnet = telefonoSolicitudCarnet;
+          }
+        }
+        if (bloqueSubsanacionVisible && isValidActaInspeccionNum(actaInspeccion)) {
+          values.faltas_notificacion_subsanadas = faltasNotificacionSubsanadas;
         }
       } else if (esNoPermiteInspeccion) {
         Object.assign(values, {
@@ -1754,6 +1787,77 @@ export function CompletarTrabajoModal({
                   items: fe("items_acta_inspeccion"),
                 }}
               />
+              {bloqueSolicitudCarnetVisible ? (
+                <Box sx={{ ...col, width: "100%" }}>
+                  <Typography variant="subtitle2" sx={{ color: GLASS_COLORS.textSecondary }}>
+                    ¿El personal presente solicita carnet de manipulador de alimentos?
+                  </Typography>
+                  <ToggleButtonGroup
+                    exclusive
+                    size="small"
+                    value={solicitaCarnetManipulador}
+                    onChange={(_e, v: "" | "si" | "no" | null) => {
+                      const next = v ?? "";
+                      setSolicitaCarnetManipulador(next);
+                      clearFe("solicita_carnet_manipulador");
+                      if (next !== "si") {
+                        setTelefonoSolicitudCarnet("");
+                        clearFe("telefono_contacto_solicitud_carnet");
+                      }
+                    }}
+                    sx={{ mt: 1 }}
+                  >
+                    <ToggleButton value="si">Sí</ToggleButton>
+                    <ToggleButton value="no">No</ToggleButton>
+                  </ToggleButtonGroup>
+                  {fe("solicita_carnet_manipulador") ? (
+                    <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
+                      {fe("solicita_carnet_manipulador")}
+                    </Typography>
+                  ) : null}
+                  {solicitaCarnetManipulador === "si" ? (
+                    <AppTextField
+                      appearance="glass"
+                      label="Teléfono de contacto del personal solicitante"
+                      value={telefonoSolicitudCarnet}
+                      onChange={(e) => {
+                        setTelefonoSolicitudCarnet(e.target.value);
+                        clearFe("telefono_contacto_solicitud_carnet");
+                      }}
+                      fullWidth
+                      sx={{ mt: 1.5 }}
+                      inputProps={{ maxLength: 32 }}
+                      error={Boolean(fe("telefono_contacto_solicitud_carnet"))}
+                      helperText={fe("telefono_contacto_solicitud_carnet") || undefined}
+                    />
+                  ) : null}
+                </Box>
+              ) : null}
+              {bloqueSubsanacionVisible ? (
+                <Box sx={{ ...col, width: "100%" }}>
+                  <Typography variant="subtitle2" sx={{ color: GLASS_COLORS.textSecondary }}>
+                    ¿Se subsanaron las faltas por las cuales se labró la notificación?
+                  </Typography>
+                  <ToggleButtonGroup
+                    exclusive
+                    size="small"
+                    value={faltasNotificacionSubsanadas}
+                    onChange={(_e, v: "" | "si" | "no" | null) => {
+                      setFaltasNotificacionSubsanadas(v ?? "");
+                      clearFe("faltas_notificacion_subsanadas");
+                    }}
+                    sx={{ mt: 1 }}
+                  >
+                    <ToggleButton value="si">Sí</ToggleButton>
+                    <ToggleButton value="no">No</ToggleButton>
+                  </ToggleButtonGroup>
+                  {fe("faltas_notificacion_subsanadas") ? (
+                    <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
+                      {fe("faltas_notificacion_subsanadas")}
+                    </Typography>
+                  ) : null}
+                </Box>
+              ) : null}
               <ResponsiveFormGrid sx={completarModalFormGridSx}>
                 {esReinspeccionNotificacion ? (
                   <Box

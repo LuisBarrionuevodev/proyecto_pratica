@@ -156,6 +156,9 @@ export interface ICompletarTrabajoUiPolicy {
   inspectores_readonly: boolean;
   previas_visible: boolean;
   post_cierre: string;
+  mostrar_solicitud_carnet_manipulador?: boolean;
+  mostrar_subsanacion_notificacion?: boolean;
+  tipo_iniciador?: string | null;
 }
 
 /** Respuesta GET detalle (fase 1) para armar el formulario. */
@@ -225,6 +228,9 @@ export interface ICompletarTrabajoCierreBody {
   resultado_cumplimiento_oficio?: "CUMPLE" | "NO_CUMPLE" | null;
   /** Verificar e informar: true = inspección normal; false = sin actas normales. */
   realizo_nueva_inspeccion?: boolean | null;
+  solicita_carnet_manipulador?: boolean | null;
+  telefono_contacto_solicitud_carnet?: string | null;
+  faltas_notificacion_subsanadas?: boolean | null;
 }
 
 export const postCompletarTrabajoCerrar = async (
