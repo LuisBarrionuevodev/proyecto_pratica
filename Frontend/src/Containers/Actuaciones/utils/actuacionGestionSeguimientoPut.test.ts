@@ -4,6 +4,7 @@ import {
   applyGestionSeguimientoDraftToRow,
   prepareActuacionGestionModalRow,
   stripActuacionRowForListStorage,
+  buildGestionSeguimientoPutFields,
   stripGestionSeguimientoDisallowedFromPut,
 } from "./actuacionGestionSeguimientoPut";
 
@@ -98,6 +99,24 @@ describe("actuacionGestionSeguimientoPut", () => {
     expect(stripped.telefono_contacto_solicitud_carnet).toBeNull();
     expect(stripped.ui_policy).toBeUndefined();
     expect(stripped.seguimiento).toBeUndefined();
+  });
+
+  it("buildGestionSeguimientoPutFields incluye teléfono con policy explícita", () => {
+    const row = {
+      ...baseRow(),
+      ui_policy: {
+        mostrar_solicitud_carnet_manipulador: true,
+        mostrar_subsanacion_notificacion: false,
+        puede_editar_seguimiento: true,
+      },
+    };
+    const fields = buildGestionSeguimientoPutFields(row, row.ui_policy);
+    expect(fields.telefono_contacto_solicitud_carnet).toBe("351");
+    const stripped = stripGestionSeguimientoDisallowedFromPut(
+      { ...row, ui_policy: undefined },
+      row.ui_policy
+    );
+    expect(stripped.telefono_contacto_solicitud_carnet).toBe("351");
   });
 
   it("applyGestionSeguimientoDraftToRow respeta policy", () => {

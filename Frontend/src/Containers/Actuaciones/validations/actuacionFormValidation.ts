@@ -24,6 +24,7 @@ import {
   validateAndNormalizeActaNum,
   validateDocNro,
 } from "./actuacionFormNormalize";
+import { validateGestionSeguimientoFields } from "../utils/actuacionGestionSeguimientoPut";
 
 /** Mensajes alineados a `CompletarTrabajoModal` (pre-submit) y reglas CRUD Editar Actuación. */
 export const ACTUACION_VALIDATION_MESSAGES = {
@@ -348,6 +349,10 @@ export function validateActuacionFormForSubmit(
     (typeof decomisoKilos !== "number" || Number.isNaN(decomisoKilos))
   ) {
     fieldErrors.decomiso_kilos_total = ACTUACION_VALIDATION_MESSAGES.kilosNumericos;
+  }
+
+  if (crudEdit && "ui_policy" in form && (form as IActuacionListItem).ui_policy) {
+    Object.assign(fieldErrors, validateGestionSeguimientoFields(form as IActuacionListItem));
   }
 
   const globalError = buildActuacionFormGlobalError(fieldErrors, [...rowMessages, ...warnings]);

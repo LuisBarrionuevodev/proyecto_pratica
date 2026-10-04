@@ -35,7 +35,10 @@ import {
   stripUntouchedPersonasSinCarnetFromPut,
 } from "./inspeccionChecklistSubmit";
 import { isReinspeccionPorNotificacion } from "./actuacionesExportPdfResumen";
-import { stripGestionSeguimientoDisallowedFromPut } from "./actuacionGestionSeguimientoPut";
+import {
+  buildGestionSeguimientoPutFields,
+  stripGestionSeguimientoDisallowedFromPut,
+} from "./actuacionGestionSeguimientoPut";
 import {
   domicilioCalleCargadaEditable,
   domicilioEsTipoEsquina,
@@ -83,6 +86,9 @@ const ACTUACION_CANAL_PUT_OMIT_KEYS = [
   "comprobacion_previa_num",
   "ui_policy",
   "seguimiento",
+  "domicilio",
+  "rubro",
+  "contribuyente",
 ] as const;
 
 /** Campos operativos de reinspección por oficio: dueños del POST `corregir-cierre-oficio`. */
@@ -386,8 +392,14 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   const actasQuitarEnPutTransaccional =
     actasPendingClear.length > 0 && (esReinspeccionNotificacion || tieneContraproducenciaFinal);
 
+  const gestionUiPolicy = rowToSubmit.ui_policy ?? null;
+  const seguimientoPutFields = buildGestionSeguimientoPutFields(rowToSubmit, gestionUiPolicy);
   const rowForCanal = stripGestionSeguimientoDisallowedFromPut(
-    sanitizeActuacionRowForCanalActasPut(rowToSubmit)
+    {
+      ...sanitizeActuacionRowForCanalActasPut(rowToSubmit),
+      ...seguimientoPutFields,
+    },
+    gestionUiPolicy
   );
   const inspectores = buildInspectoresForCanal(rowForCanal);
   const rowWithInspectores: IActuacionListItem & { actas_a_quitar?: ActaCanalQuitarTipo[] } = {

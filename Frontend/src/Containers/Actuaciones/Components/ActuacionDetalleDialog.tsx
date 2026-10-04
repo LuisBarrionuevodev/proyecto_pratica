@@ -1173,9 +1173,15 @@ export function ActuacionDetalleDialog({
       return;
     }
     const hydrated = domicilioRowParaEdicionCalle({ ...draft });
-    onDraftChange(hydrated);
     setEditBaseline({ ...hydrated });
     setIsEditing(true);
+    const patch: Partial<IActuacionListItem> = {};
+    if (hydrated.calle !== draft.calle) patch.calle = hydrated.calle;
+    if (hydrated.numero !== draft.numero) patch.numero = hydrated.numero;
+    if (hydrated.numero_tipo !== draft.numero_tipo) patch.numero_tipo = hydrated.numero_tipo;
+    if (Object.keys(patch).length > 0) {
+      onDraftChange(patch);
+    }
   }, [draft, feedback, onDraftChange]);
 
   const handleSaveClick = useCallback(async () => {
@@ -2208,7 +2214,12 @@ export function ActuacionDetalleDialog({
       }
     >
       <Box sx={{ position: "relative" }}>
-        {!isEditing ? detalleVista : edicionVista}
+        <Box sx={{ display: isEditing ? "none" : "block" }} aria-hidden={isEditing}>
+          {detalleVista}
+        </Box>
+        <Box sx={{ display: isEditing ? "block" : "none" }} aria-hidden={!isEditing}>
+          {edicionVista}
+        </Box>
         {detailLoading ? (
           <Box
             sx={{

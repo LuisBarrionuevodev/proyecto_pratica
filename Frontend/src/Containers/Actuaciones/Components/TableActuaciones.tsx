@@ -264,7 +264,9 @@ const TablaActuaciones = ({
 
         notifyActuacionSaveResult(result, feedback);
         if (result.updatedRow) {
-          onActuacionListPatch?.(stripActuacionRowForListStorage(result.updatedRow));
+          onActuacionListPatch?.(
+            stripActuacionRowForListStorage(prepareActuacionGestionModalRow(result.updatedRow))
+          );
         }
         setEditDraft(null);
         setEditOriginalRow(null);

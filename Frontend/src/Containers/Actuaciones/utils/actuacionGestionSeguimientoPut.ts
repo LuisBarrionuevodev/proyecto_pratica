@@ -15,15 +15,60 @@ export function resolveActuacionGestionUiPolicy(
   return row.ui_policy ?? null;
 }
 
+/**
+ * Campos de seguimiento para el body del PUT (tras sanitizar la fila).
+ * Usa `ui_policy` capturada antes de `sanitizeActuacionRowForCanalActasPut`.
+ */
+export function buildGestionSeguimientoPutFields(
+  row: IActuacionListItem,
+  policy: IActuacionGestionUiPolicy | null | undefined
+): Pick<
+  IActuacionListItem,
+  | "solicita_carnet_manipulador"
+  | "telefono_contacto_solicitud_carnet"
+  | "faltas_notificacion_subsanadas"
+> {
+  const out: Pick<
+    IActuacionListItem,
+    | "solicita_carnet_manipulador"
+    | "telefono_contacto_solicitud_carnet"
+    | "faltas_notificacion_subsanadas"
+  > = {};
+  if (!policy?.puede_editar_seguimiento) {
+    return out;
+  }
+  const merged = mergeActuacionSeguimientoFromApiRow(row);
+
+  if (policy.mostrar_solicitud_carnet_manipulador) {
+    const sol = merged.solicita_carnet_manipulador;
+    if (sol === true || sol === false) {
+      out.solicita_carnet_manipulador = sol;
+      out.telefono_contacto_solicitud_carnet = sol
+        ? (merged.telefono_contacto_solicitud_carnet ?? "").trim() || null
+        : null;
+    }
+  }
+
+  if (policy.mostrar_subsanacion_notificacion) {
+    const subs = merged.faltas_notificacion_subsanadas;
+    if (subs === true || subs === false) {
+      out.faltas_notificacion_subsanadas = subs;
+    }
+  }
+
+  return out;
+}
+
 /** Omite campos de seguimiento no permitidos por `ui_policy` antes del PUT. */
 export function stripGestionSeguimientoDisallowedFromPut(
-  row: IActuacionListItem
+  row: IActuacionListItem,
+  policyOverride?: IActuacionGestionUiPolicy | null
 ): IActuacionListItem {
   const copy: Record<string, unknown> = { ...row };
   delete copy.ui_policy;
   delete copy.seguimiento;
 
-  const policy = resolveActuacionGestionUiPolicy(row);
+  const policy = policyOverride ?? resolveActuacionGestionUiPolicy(row);
   if (!policy?.mostrar_solicitud_carnet_manipulador) {
     delete copy.solicita_carnet_manipulador;
     delete copy.telefono_contacto_solicitud_carnet;
