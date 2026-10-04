@@ -80,10 +80,8 @@ import {
   tipoActuacionReinspeccionOficioOpts,
 } from "../utils/completarTrabajoReinspeccionOficioUi";
 import { esNoPermiteInspeccionContraproducencia } from "../utils/completarTrabajoContraproducencia";
-import {
-  actuacionCompletarTrabajoValidationContext,
-  validateActuacionFormForSubmit,
-} from "../../Actuaciones/validations/actuacionFormValidation";
+import { actuacionCompletarTrabajoValidationContext } from "../../Actuaciones/validations/actuacionFormValidation";
+import { mergeCompletarTrabajoSubmitValidation } from "../utils/completarTrabajoSubmitValidation";
 import { filtrarContraproducenciasPorTipoIniciador } from "../utils/contraproducenciasPorTipoIniciador";
 import {
   esFlujoCierreOficio,
@@ -1062,7 +1060,7 @@ export function CompletarTrabajoModal({
       return;
     }
 
-    const preValidation = validateActuacionFormForSubmit(
+    const preValidation = mergeCompletarTrabajoSubmitValidation(
       buildCompletarTrabajoValidationForm(resolvedRow, {
         contraproducencia,
         calle,
@@ -1088,7 +1086,15 @@ export function CompletarTrabajoModal({
         visitaRealizada,
         esReinspeccionNotificacion,
         omitContribDomEnValidacion
-      )
+      ),
+      {
+        uiPolicy,
+        visitaRealizada,
+        actaInspeccion,
+        solicitaCarnetManipulador,
+        telefonoSolicitudCarnet,
+        faltasNotificacionSubsanadas,
+      }
     );
     if (!preValidation.canSubmit) {
       setFieldErrors(preValidation.fieldErrors);
