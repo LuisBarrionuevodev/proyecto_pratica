@@ -112,7 +112,8 @@ import {
   mostrarBloqueSolicitudCarnet,
   mostrarBloqueSubsanacionNotificacion,
 } from "../utils/actaSeguimientoUi";
-import { useCompletarTrabajoMediaQueues } from "../../../features/media/hooks/useMediaCategoryQueue";
+import { useCompletarTrabajoMediaQueues } from "../../../features/media/hooks/useMediaUploadCoordinator";
+import { MediaUploadProgress } from "../../../features/media/components/MediaUploadProgress";
 import { MediaUploadSection } from "../../../features/media/components/MediaUploadSection";
 
 const modalAuxInputSx = {
@@ -482,7 +483,6 @@ export function CompletarTrabajoModal({
   const [observacionesEjecucion, setObservacionesEjecucion] = useState("");
   const [saving, setSaving] = useState(false);
   const mediaQueues = useCompletarTrabajoMediaQueues();
-  const [mediaGlobalProgress, setMediaGlobalProgress] = useState(0);
   /** Claves alineadas al payload / errores 422 del backend (pydantic field names). */
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -906,8 +906,7 @@ export function CompletarTrabajoModal({
   const uploadPendingMediaIfAny = useCallback(async (): Promise<boolean> => {
     if (!resolvedRow || !mediaQueues.hasPendingUpload) return true;
     try {
-      setMediaGlobalProgress(0);
-      await mediaQueues.uploadAll(resolvedRow.ruta_item_id, setMediaGlobalProgress);
+      await mediaQueues.uploadAll(resolvedRow.ruta_item_id);
       return true;
     } catch {
       feedback.error(
@@ -1254,14 +1253,17 @@ export function CompletarTrabajoModal({
       }
     >
       <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} ref={scrollContainerRef}>
-      {saving && mediaQueues.hasPendingUpload ? (
-        <Box>
-          <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted }}>
-            Subiendo archivos… {mediaGlobalProgress}%
-          </Typography>
-          <LinearProgress variant="determinate" value={mediaGlobalProgress} />
-        </Box>
-      ) : null}
+      <MediaUploadProgress
+        open={mediaQueues.session.active}
+        globalPct={mediaQueues.session.globalPct}
+        items={
+          mediaQueues.session.items.length > 0 ? mediaQueues.session.items : mediaQueues.allItems
+        }
+        onRetry={(id) => {
+          mediaQueues.retryItem(id);
+          if (resolvedRow) void mediaQueues.uploadAll(resolvedRow.ruta_item_id);
+        }}
+      />
       {row && detalleLoading && !resolvedRow && (
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2 }}>
           <LinearProgress sx={{ borderRadius: 1 }} />

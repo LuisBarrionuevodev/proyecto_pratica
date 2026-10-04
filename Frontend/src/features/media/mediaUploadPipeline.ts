@@ -85,7 +85,15 @@ export async function uploadQueuedFilesWithConcurrency(
   const toUpload = items.filter((x) => x.phase === "pending" || (x.phase === "error" && !x.archivoId));
   if (toUpload.length === 0) return;
   const totalBytes = toUpload.reduce((s, f) => s + f.file.size, 0);
-  let uploadedBytes = 0;
+  const bytesLoadedById = new Map<string, number>();
+  const emitGlobalBytes = () => {
+    if (!options.onGlobalProgress || totalBytes <= 0) return;
+    let sum = 0;
+    for (const f of toUpload) {
+      sum += bytesLoadedById.get(f.localId) ?? 0;
+    }
+    options.onGlobalProgress(Math.min(100, Math.round((sum / totalBytes) * 100)));
+  };
   const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
   let index = 0;
 
@@ -95,16 +103,20 @@ export async function uploadQueuedFilesWithConcurrency(
     options.onItemPhase?.(item.localId, "preparing", 0);
     try {
       options.onItemPhase?.(item.localId, "uploading", 0);
+      bytesLoadedById.set(item.localId, 0);
       const result = await uploadSingleQueuedFile(rutaItemId, item, (pct) => {
         options.onItemPhase?.(item.localId, "uploading", pct);
+        bytesLoadedById.set(
+          item.localId,
+          Math.round((pct / 100) * item.file.size)
+        );
+        emitGlobalBytes();
       });
       options.onItemPhase?.(item.localId, "verifying", 100);
       item.archivoId = result.archivoId;
+      bytesLoadedById.set(item.localId, item.file.size);
+      emitGlobalBytes();
       options.onItemPhase?.(item.localId, "ready", 100, { archivoId: result.archivoId });
-      uploadedBytes += item.file.size;
-      if (options.onGlobalProgress && totalBytes > 0) {
-        options.onGlobalProgress(Math.min(100, Math.round((uploadedBytes / totalBytes) * 100)));
-      }
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Error al subir el archivo.";
       options.onItemPhase?.(item.localId, "error", 0, { errorMessage: msg });
