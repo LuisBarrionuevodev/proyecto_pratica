@@ -22,6 +22,8 @@ import {
 } from "../styles/GlassStyles";
 import {
   responsiveDialogActionsLayoutSx,
+  responsiveDialogFullscreenChromeSx,
+  responsiveDialogFullscreenContentLayoutSx,
   responsiveDialogFullscreenPaperLayoutSx,
   responsiveDialogPaperLayoutSx,
 } from "../styles/responsivePatterns";
@@ -146,13 +148,20 @@ export function AppDialog({
     appearance === "glass" ? glassDialogContentSx : undefined,
     glassDialogContentDividersSx,
     dialogContentLayoutSx,
+    useMobileFullScreen ? responsiveDialogFullscreenContentLayoutSx : undefined,
     contentSx
   );
 
   const mergedActionsSx: SxProps<Theme> = mergeSx(
     appearance === "glass" ? glassDialogActionsSx : undefined,
     appearance === "glass" && enableResponsiveLayout ? responsiveDialogActionsLayoutSx : undefined,
+    useMobileFullScreen ? responsiveDialogFullscreenChromeSx : undefined,
     actionsSxProp
+  );
+
+  const mergedTitleSx: SxProps<Theme> = mergeSx(
+    titleSx,
+    useMobileFullScreen ? responsiveDialogFullscreenChromeSx : undefined
   );
 
   return (
@@ -171,7 +180,7 @@ export function AppDialog({
       {...rest}
     >
       {showTitleRow && (
-        <DialogTitle sx={titleSx}>
+        <DialogTitle sx={mergedTitleSx}>
           <Box component="span" sx={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
             {title ?? null}
           </Box>

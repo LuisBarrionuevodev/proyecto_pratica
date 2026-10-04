@@ -1,4 +1,6 @@
 import { createTheme } from "@mui/material/styles";
+import { createCatalogMenuThemeOverrides } from "../theme/catalogMenuTheme";
+import { createMobileFormInputThemeOverrides } from "../theme/mobileFormInputTheme";
 import { FONT_FAMILY_UI } from "../theme/typography";
 import { getSemanticColors, type DigitalizaThemeMode } from "../theme/colors";
 
@@ -9,6 +11,10 @@ export function createAppTheme(mode: DigitalizaThemeMode) {
   const c = getSemanticColors(mode);
 
   return createTheme({
+    components: {
+      ...createCatalogMenuThemeOverrides(c, mode),
+      ...createMobileFormInputThemeOverrides(),
+    },
     palette: {
       mode,
       primary: {

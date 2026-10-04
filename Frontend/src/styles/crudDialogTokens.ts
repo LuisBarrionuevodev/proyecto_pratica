@@ -60,8 +60,8 @@ export const crudDialogContentSx: SxProps<Theme> = {
   ...formDialogContentStackSx,
   flex: "1 1 auto",
   minHeight: 0,
-  overflowY: "auto",
-  maxHeight: { xs: "calc(100vh - 11rem)", sm: "min(72vh, 760px)" },
+  overflow: "hidden",
+  maxHeight: { sm: "min(72vh, 760px)" },
   px: 0,
   py: 0,
   backgroundColor: "transparent",
@@ -279,6 +279,9 @@ export const crudDialogFormFieldsSx: SxProps<Theme> = {
     color: CRUD_DIALOG_TEXT.primary,
     fontSize: "0.875rem",
     boxSizing: "border-box",
+    "@media (max-width: 599.95px)": {
+      fontSize: "16px",
+    },
   },
   "& .MuiOutlinedInput-root:not(.MuiInputBase-multiline) .MuiOutlinedInput-input": {
     py: 0,
@@ -286,10 +289,21 @@ export const crudDialogFormFieldsSx: SxProps<Theme> = {
   "& .MuiOutlinedInput-root.MuiInputBase-multiline .MuiOutlinedInput-input": {
     py: 0.5,
     lineHeight: 1.45,
+    "@media (max-width: 599.95px)": {
+      fontSize: "16px",
+    },
+  },
+  "& .MuiAutocomplete-input": {
+    "@media (max-width: 599.95px)": {
+      fontSize: "16px",
+    },
   },
   "& .MuiSelect-select": {
     color: CRUD_DIALOG_TEXT.primary,
     fontSize: "0.875rem",
+    "@media (max-width: 599.95px)": {
+      fontSize: "16px",
+    },
     py: 0,
     display: "flex",
     alignItems: "center",

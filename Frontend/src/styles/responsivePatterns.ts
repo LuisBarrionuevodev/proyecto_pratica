@@ -27,10 +27,34 @@ export const responsiveDialogFullscreenPaperLayoutSx: SxProps<Theme> = {
     [`@media (max-width: 599.95px)`]: {
         width: "100%",
         maxWidth: "100%",
-        height: "100%",
-        maxHeight: "100%",
+        height: "100dvh",
+        maxHeight: "100dvh",
+        minHeight: "100dvh",
         margin: 0,
         borderRadius: 0,
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        boxSizing: "border-box",
+    },
+};
+
+/** Contenido del diálogo en fullscreen móvil: solo el cuerpo interno hace scroll. */
+export const responsiveDialogFullscreenContentLayoutSx: SxProps<Theme> = {
+    [`@media (max-width: 599.95px)`]: {
+        flex: "1 1 auto",
+        minHeight: 0,
+        maxHeight: "none",
+        overflow: "hidden",
+        display: "flex",
+        flexDirection: "column",
+    },
+};
+
+/** Título y acciones fijos en fullscreen móvil. */
+export const responsiveDialogFullscreenChromeSx: SxProps<Theme> = {
+    [`@media (max-width: 599.95px)`]: {
+        flexShrink: 0,
     },
 };
 
