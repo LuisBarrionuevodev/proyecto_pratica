@@ -15,6 +15,8 @@ from app.security.test_database import (
 def pytest_configure(config):
     """Fija TEST_DATABASE_URL como URI efectiva para todo el proceso pytest."""
     bootstrap_pytest_database_environment()
+    os.environ.setdefault("MEDIA_STORAGE_PROVIDER", "mock")
+    os.environ.setdefault("MEDIA_S3_BUCKET", "digitaliza-media-test")
 
 
 @pytest.fixture()

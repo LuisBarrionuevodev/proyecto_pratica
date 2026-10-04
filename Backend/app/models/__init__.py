@@ -50,6 +50,8 @@ from .ruta_item import RutaItem
 from .ruta_pool_dia import RutaPoolDia
 from .solicitud_carnet_manipulador import SolicitudCarnetManipulador
 from .notificacion_resultado_reinspeccion import NotificacionResultadoReinspeccion
+from .archivo import Archivo
+from .ruta_item_archivo import RutaItemArchivo
 __all__ = [
     "actuaciones_inspector",
     "notificacion_motivo",
@@ -107,4 +109,6 @@ __all__ = [
     "RutaPoolDia",
     "SolicitudCarnetManipulador",
     "NotificacionResultadoReinspeccion",
+    "Archivo",
+    "RutaItemArchivo",
 ]

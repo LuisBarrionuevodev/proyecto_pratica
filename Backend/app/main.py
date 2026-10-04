@@ -37,6 +37,7 @@ from app.domains.rutas_trabajo.routes import rutas_trabajo as rutas_trabajo_bp
 from app.domains.rutas_trabajo.routes.ruta_pool_dia import ruta_pool_dia as ruta_pool_dia_bp
 from app.domains.indicadores.routes import indicadores_api as indicadores_api_bp
 from app.domains.catalogos.routes import catalogos as catalogos_bp
+from app.domains.media.routes import media_bp
 from app.domains.usuarios.security.jwt import init_jwt
 from app.domains.usuarios.services.users_service import ensure_dev_admin_seed
 
@@ -133,6 +134,7 @@ def create_app(config_override: dict | None = None):
     app.register_blueprint(ruta_pool_dia_bp, url_prefix="/ruta-pool-dia")
     app.register_blueprint(indicadores_api_bp, url_prefix="/api/indicadores")
     app.register_blueprint(catalogos_bp, url_prefix="/catalogos")
+    app.register_blueprint(media_bp)
 
     # Seed opcional de admin solo en desarrollo.
     if os.getenv("FLASK_ENV", "development").lower() == "development":
@@ -344,5 +346,25 @@ def create_app(config_override: dict | None = None):
                 app.logger.exception("audit-inspectores-actuaciones fall?")
                 raise click.Abort()
         click.echo(json.dumps(report, ensure_ascii=True, indent=2))
+
+    @app.cli.command("cleanup-pending-media")
+    @click.option(
+        "--older-than-hours",
+        type=int,
+        default=24,
+        show_default=True,
+        help="Antigüedad mínima en horas de archivos PENDING a limpiar.",
+    )
+    def cleanup_pending_media_cli(older_than_hours: int) -> None:
+        """Elimina objetos PENDING abandonados y marca metadata como DELETED."""
+        from app.domains.media.services.cleanup_pending_media_service import cleanup_pending_media
+
+        with app.app_context():
+            try:
+                n = cleanup_pending_media(older_than_hours=older_than_hours)
+            except Exception:
+                app.logger.exception("cleanup-pending-media falló")
+                raise click.Abort()
+        click.echo(json.dumps({"deleted_pending": n}, ensure_ascii=True))
 
     return app
