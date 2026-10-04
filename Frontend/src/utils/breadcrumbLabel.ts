@@ -4,6 +4,7 @@ import {
   actuacionesLabelForRole,
   completarTrabajosLabelForRole,
   indicadoresLabelForRole,
+  mapaLabelForRole,
   type AppRole,
 } from "../auth/roles";
 
@@ -25,6 +26,9 @@ export function resolveBreadcrumbLabel(pathname: string, role?: AppRole | null):
   }
   if (pathname === "/dashboard" && role === "relevador") {
     return indicadoresLabelForRole("relevador");
+  }
+  if (pathname === "/mapa" && role === "relevador") {
+    return mapaLabelForRole("relevador");
   }
   return routeLabels[pathname] ?? "Vista";
 }

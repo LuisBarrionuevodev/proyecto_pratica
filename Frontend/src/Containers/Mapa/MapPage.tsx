@@ -11,7 +11,10 @@ import { alertBaseStyles } from "../CargarActuaciones/styles/cargarActuacionesSt
 import { functionalPageShellSx } from "../../styles/functionalPageShell";
 import { MapaCanvas } from "./Components/MapaCanvas";
 import { MapaFiltrosUnificados } from "./Components/MapaFiltrosUnificados";
-import { MapaModoTabs, type MapaModo } from "./Components/MapaModoTabs";
+import { MapaFiltrosRangoFechas } from "./Components/MapaFiltrosRangoFechas";
+import { MapaModoTabs, type MapaModo, type MapaModoInspector } from "./Components/MapaModoTabs";
+import { useAppSession } from "../../auth/AppSessionProvider";
+import { normalizeAppRole } from "../../auth/roles";
 import { PanelResumenOperativo } from "./Components/PanelResumenOperativo";
 import { useMapaOperativo, type MapaOperativoLoadOptions } from "./hooks/useMapaOperativo";
 import { MapaDomiciliosGeolocalizacionView } from "./views/MapaDomiciliosGeolocalizacion";
@@ -20,6 +23,11 @@ function parseMapaModo(raw: string | null): MapaModo {
   if (raw === "realizados") return "realizados";
   if (raw === "geolocalizacion" || raw === "pendientes") return "geolocalizacion";
   return "geolocalizacion";
+}
+
+function parseInspectorMapaModo(raw: string | null): MapaModoInspector {
+  if (raw === "realizados") return "realizados";
+  return "trabajos";
 }
 
 type FiltrosRealizadosSnapshot = {
@@ -39,10 +47,17 @@ type FiltrosRealizadosSnapshot = {
  * Vista mapa DIGITALIZA: Geolocalización de domicilios (PR6C) y Realizados operativos.
  */
 const MapPage = () => {
+  const { role: sessionRole } = useAppSession();
+  const isInspectorMapa = normalizeAppRole(sessionRole) === "relevador";
+
   const [searchParams, setSearchParams] = useSearchParams();
   const defaultRange = useMemo(() => getOperativoMonthToDateRange(), []);
 
   const modo = useMemo(() => parseMapaModo(searchParams.get("modo")), [searchParams]);
+  const modoInspector = useMemo(
+    () => parseInspectorMapaModo(searchParams.get("modo")),
+    [searchParams]
+  );
   const [fechaDesde, setFechaDesde] = useState(defaultRange.desde);
   const [fechaHasta, setFechaHasta] = useState(defaultRange.hasta);
   const [distritoId, setDistritoId] = useState("");
@@ -64,7 +79,8 @@ const MapPage = () => {
     { value: "", label: "Todos los distritos" },
   ]);
 
-  const { features, meta, loading, error, infoMessage, loadRealizados } = useMapaOperativo();
+  const { features, meta, loading, error, infoMessage, loadRealizados, loadPendientes } =
+    useMapaOperativo();
 
   const filtrosUiRef = useRef<FiltrosRealizadosSnapshot>({
     from: fechaDesde,
@@ -119,6 +135,7 @@ const MapPage = () => {
   );
 
   useEffect(() => {
+    if (isInspectorMapa) return;
     const load = async () => {
       try {
         const resp = await fetchInspectores();
@@ -128,9 +145,10 @@ const MapPage = () => {
       }
     };
     void load();
-  }, []);
+  }, [isInspectorMapa]);
 
   useEffect(() => {
+    if (isInspectorMapa) return;
     const load = async () => {
       try {
         const items = await fetchRubrosCatalogoCached();
@@ -143,9 +161,10 @@ const MapPage = () => {
       }
     };
     void load();
-  }, []);
+  }, [isInspectorMapa]);
 
   useEffect(() => {
+    if (isInspectorMapa) return;
     let cancelled = false;
     void fetchDistritosCatalogo()
       .then((resp) => {
@@ -163,7 +182,36 @@ const MapPage = () => {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [isInspectorMapa]);
+
+  const cargarInspectorOperativo = useCallback(
+    (opts?: MapaOperativoLoadOptions) => {
+      if (modoInspector === "trabajos") {
+        void loadPendientes({ from: fechaDesde, to: fechaHasta }, opts);
+        return;
+      }
+      void loadRealizados(
+        {
+          from: fechaDesde,
+          to: fechaHasta,
+          distritoId: "",
+          inspectorId: "",
+          tipo: "TODOS",
+          ejecucion: "TODOS",
+          origen: "TODOS",
+          motivoNoRealizado: "TODAS",
+          rubroId: "",
+        },
+        opts
+      );
+    },
+    [modoInspector, fechaDesde, fechaHasta, loadPendientes, loadRealizados]
+  );
+
+  useEffect(() => {
+    if (!isInspectorMapa) return;
+    cargarInspectorOperativo();
+  }, [isInspectorMapa, modoInspector, fechaDesde, fechaHasta, cargarInspectorOperativo]);
 
   useEffect(() => {
     if (distritoOptions.length <= 1) return;
@@ -173,9 +221,18 @@ const MapPage = () => {
   }, [distritoOptions, distritoId]);
 
   useEffect(() => {
+    if (isInspectorMapa) return;
     if (modo !== "realizados") return;
     void cargarRealizadosConSnapshotUi();
-  }, [modo, fechaDesde, fechaHasta, distritoId, inspectorId, cargarRealizadosConSnapshotUi]);
+  }, [
+    isInspectorMapa,
+    modo,
+    fechaDesde,
+    fechaHasta,
+    distritoId,
+    inspectorId,
+    cargarRealizadosConSnapshotUi,
+  ]);
 
   const loadRealizadosFromRef = useCallback(
     (opts?: MapaOperativoLoadOptions) => {
@@ -301,6 +358,54 @@ const MapPage = () => {
     [setSearchParams]
   );
 
+  const handleModoInspectorChange = useCallback(
+    (m: MapaModoInspector) => {
+      setMapExpanded(false);
+      setSearchParams(
+        (prev) => {
+          const next = new URLSearchParams(prev);
+          if (m === "trabajos") {
+            next.delete("modo");
+          } else {
+            next.set("modo", m);
+          }
+          return next;
+        },
+        { replace: true }
+      );
+    },
+    [setSearchParams]
+  );
+
+  const handleInspectorAplicar = useCallback(() => {
+    cargarInspectorOperativo();
+  }, [cargarInspectorOperativo]);
+
+  const handleInspectorRefrescar = useCallback(() => {
+    cargarInspectorOperativo({ forceNetwork: true });
+  }, [cargarInspectorOperativo]);
+
+  const handleInspectorLimpiar = useCallback(() => {
+    const range = getOperativoMonthToDateRange();
+    setFechaDesde(range.desde);
+    setFechaHasta(range.hasta);
+    if (modoInspector === "trabajos") {
+      void loadPendientes({ from: range.desde, to: range.hasta });
+    } else {
+      void loadRealizados({
+        from: range.desde,
+        to: range.hasta,
+        distritoId: "",
+        inspectorId: "",
+        tipo: "TODOS",
+        ejecucion: "TODOS",
+        origen: "TODOS",
+        motivoNoRealizado: "TODAS",
+        rubroId: "",
+      });
+    }
+  }, [modoInspector, loadPendientes, loadRealizados]);
+
   const refrescarOperativoDesdeFormulario = useCallback(() => {
     queueMicrotask(() => {
       void cargarRealizadosConSnapshotUi({ forceNetwork: true });
@@ -334,6 +439,78 @@ const MapPage = () => {
       loadRealizadosFromRef();
     }
   }, [modo, patchFiltrosUiRef, loadRealizadosFromRef]);
+
+  if (isInspectorMapa) {
+    return (
+      <Stack sx={functionalPageShellSx} data-inspector-mapa="true">
+        {error && (
+          <Alert severity="error" sx={alertBaseStyles}>
+            {error}
+          </Alert>
+        )}
+        {infoMessage && (
+          <Alert severity="info" sx={alertBaseStyles}>
+            {infoMessage}
+          </Alert>
+        )}
+
+        <MapaModoTabs
+          modo={modo}
+          onModoChange={handleModoChange}
+          variant="inspector"
+          modoInspector={modoInspector}
+          onModoInspectorChange={handleModoInspectorChange}
+        />
+
+        <MapaFiltrosRangoFechas
+          fechaDesde={fechaDesde}
+          fechaHasta={fechaHasta}
+          onFechaDesdeChange={handleFechaDesdeChange}
+          onFechaHastaChange={handleFechaHastaChange}
+          onAplicar={handleInspectorAplicar}
+          onRefrescar={handleInspectorRefrescar}
+          onLimpiar={handleInspectorLimpiar}
+        />
+
+        <Grid
+          container
+          spacing={2}
+          sx={{
+            alignItems: "stretch",
+            ...(mapExpanded ? { minHeight: { xs: "72vh", md: "min(92vh, 960px)" } } : {}),
+          }}
+        >
+          {!mapExpanded && (
+            <Grid
+              size={{ xs: 12, md: 4 }}
+              sx={{ order: { xs: 2, md: 1 }, display: "flex", flexDirection: "column" }}
+            >
+              <PanelResumenOperativo features={features} meta={meta} isInspectorView />
+            </Grid>
+          )}
+          <Grid
+            size={{ xs: 12, md: mapExpanded ? 12 : 8 }}
+            sx={{
+              order: { xs: 1, md: 2 },
+              display: "flex",
+              flexDirection: "column",
+              alignSelf: "stretch",
+              minHeight: mapExpanded ? { xs: "72vh", md: "min(92vh, 960px)" } : { xs: 420 },
+            }}
+          >
+            <MapaCanvas
+              features={features}
+              loading={loading}
+              mapExpanded={mapExpanded}
+              fillParentHeight={!mapExpanded}
+              onToggleExpand={() => setMapExpanded((e) => !e)}
+              emptyMessage={infoMessage}
+            />
+          </Grid>
+        </Grid>
+      </Stack>
+    );
+  }
 
   return (
     <Stack sx={functionalPageShellSx}>

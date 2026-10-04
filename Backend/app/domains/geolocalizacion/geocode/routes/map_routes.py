@@ -30,6 +30,7 @@ from app.domains.geolocalizacion.geocode.services.osm_static_map_proxy_service i
 )
 
 from . import geolocalizacion_map
+from .map_operativo_scope import resolve_map_operativo_inspector_scope
 
 _CENTER_RE = re.compile(r"^-?\d{1,3}(\.\d+)?,-?\d{1,3}(\.\d+)?$")
 _SIZE_RE = re.compile(r"^(\d{1,4})x(\d{1,4})$")
@@ -264,10 +265,15 @@ def map_operativo_pendientes():
     Mapa operativo — pendientes: cola de iniciadores + ítems EN_PROCESO (ruta publicada).
 
     Query: desde, hasta (ISO date), opcional distrito_id, tipo (filtro UI), inspector_id.
+    Inspector (relevador): solo ítems ASIGNADO/EN_PROCESO de su ruta publicada (sin cola global).
     """
     params = request.args.to_dict()
+    inspector_id, solo_ruta, scope_err = resolve_map_operativo_inspector_scope(
+        params.get("inspector_id")
+    )
+    if scope_err is not None:
+        return scope_err
     distrito_id = int(params["distrito_id"]) if params.get("distrito_id") else None
-    inspector_id = int(params["inspector_id"]) if params.get("inspector_id") else None
     try:
         items = list_mapa_operativo_pendientes_geo(
             desde=params.get("desde") or params.get("from"),
@@ -275,6 +281,7 @@ def map_operativo_pendientes():
             distrito_id=distrito_id,
             tipo=params.get("tipo"),
             inspector_id=inspector_id,
+            solo_items_ruta_inspector=solo_ruta,
         )
     except ValueError as exc:
         return jsonify({"detail": str(exc)}), 400
@@ -297,8 +304,12 @@ def map_operativo_realizados():
     ``motivo_no_realizado``, ``definicion``, ``rubro_id``.
     """
     params = request.args.to_dict()
+    inspector_id, _solo_ruta, scope_err = resolve_map_operativo_inspector_scope(
+        params.get("inspector_id")
+    )
+    if scope_err is not None:
+        return scope_err
     distrito_id = int(params["distrito_id"]) if params.get("distrito_id") else None
-    inspector_id = int(params["inspector_id"]) if params.get("inspector_id") else None
     rubro_id = int(params["rubro_id"]) if params.get("rubro_id") else None
     ejecucion = params.get("ejecucion") or params.get("estado_ejecucion")
     try:

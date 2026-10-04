@@ -32,6 +32,13 @@ _RELEVADOR_INDICADORES_GET_PATHS: Final[frozenset[str]] = frozenset(
     }
 )
 
+_RELEVADOR_MAP_OPERATIVO_GET_PATHS: Final[frozenset[str]] = frozenset(
+    {
+        "/map/operativo/pendientes",
+        "/map/operativo/realizados",
+    }
+)
+
 _RELEVADOR_DENIED: Final[tuple[re.Pattern[str], ...]] = (
     re.compile(r"^/actuaciones/pendientes(?:/.*)?$"),
     re.compile(r"^/api/admin(?:/.*)?$"),
@@ -80,6 +87,11 @@ def relevador_may_access(method: str, path: str) -> bool:
 
     if p.startswith("/api/indicadores"):
         if p in _RELEVADOR_INDICADORES_GET_PATHS:
+            return m in ("GET", "HEAD", "OPTIONS")
+        return False
+
+    if p.startswith("/map") or p.startswith("/api/map"):
+        if p in _RELEVADOR_MAP_OPERATIVO_GET_PATHS:
             return m in ("GET", "HEAD", "OPTIONS")
         return False
 

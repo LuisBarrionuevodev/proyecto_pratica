@@ -4,6 +4,7 @@ import {
   actuacionesLabelForRole,
   completarTrabajosLabelForRole,
   indicadoresLabelForRole,
+  mapaLabelForRole,
   isMenuPathVisibleForRole,
   resolveMenuLabelForRole,
   type AppRole,
@@ -26,6 +27,9 @@ export function getVisibleHomeCards(role: AppRole): InicioAccesoItem[] {
     }
     if (item.to === "/dashboard") {
       return { ...item, title: indicadoresLabelForRole(role) };
+    }
+    if (item.to === "/mapa") {
+      return { ...item, title: mapaLabelForRole(role) };
     }
     return item;
   });

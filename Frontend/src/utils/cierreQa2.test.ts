@@ -62,6 +62,7 @@ describe("CIERRE-QA-2 C/D — Permisos unificados sin flicker", () => {
     expect(canAccessModule("relevador", "/cargarActuacion")).toBe(false);
     expect(canAccessModule("relevador", "/rutasTrabajo")).toBe(false);
     expect(canAccessModule("relevador", "/dashboard")).toBe(true);
+    expect(canAccessModule("relevador", "/mapa")).toBe(true);
   });
 
   it("admin ve Gestión Usuarios en nav e inicio juntos", () => {
@@ -77,11 +78,12 @@ describe("CIERRE-QA-2 C/D — Permisos unificados sin flicker", () => {
     expect(home).not.toContain("/gestionDeUsuarios");
     expect(home).not.toContain("/rutasTrabajo");
     expect(nav).not.toContain("/gestionDeUsuarios");
-    expect(home).toHaveLength(4);
+    expect(home).toHaveLength(5);
     expect(home).toContain("/perfil");
     expect(home).toContain("/completarTrabajos");
     expect(home).toContain("/actuaciones");
     expect(home).toContain("/dashboard");
+    expect(home).toContain("/mapa");
   });
 
   it("Inicio default deny: skeleton mientras carga", () => {

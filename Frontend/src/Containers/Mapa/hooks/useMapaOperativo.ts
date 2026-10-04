@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from "react";
 
 import {
+  getMapOperativoPendientesFC,
   getMapOperativoRealizadosFC,
   type MapOperativoMeta,
   type MapPointFeature,
@@ -60,6 +61,47 @@ export function useMapaOperativo() {
   };
 
   const loadSeqRef = useRef(0);
+
+  const loadPendientes = useCallback(
+    async (p: Pick<MapaOperativoLoadParams, "from" | "to">, opts?: MapaOperativoLoadOptions) => {
+      const seq = ++loadSeqRef.current;
+      setFeatures([]);
+      setMeta(null);
+      setInfoMessage(null);
+      setLoading(true);
+      setError(null);
+      try {
+        if (!p.from?.trim() || !p.to?.trim()) {
+          if (seq !== loadSeqRef.current) return;
+          setError("Elegí fecha desde y hasta.");
+          setFeatures([]);
+          return;
+        }
+        const fc = await getMapOperativoPendientesFC({
+          desde: p.from,
+          hasta: p.to,
+          ...(opts?.forceNetwork ? { _: Date.now() } : {}),
+        });
+        if (seq !== loadSeqRef.current) return;
+        const feats = fc.features ?? [];
+        setFeatures(feats);
+        setMeta(fc.meta ?? null);
+        if (feats.length === 0) {
+          setInfoMessage("No hay trabajos asignados en el período.");
+        }
+      } catch (e: unknown) {
+        if (seq !== loadSeqRef.current) return;
+        const err = e as { response?: { data?: { detail?: string } } };
+        setError(err?.response?.data?.detail ?? "No se pudieron cargar los trabajos asignados.");
+        setFeatures([]);
+      } finally {
+        if (seq === loadSeqRef.current) {
+          setLoading(false);
+        }
+      }
+    },
+    []
+  );
 
   const loadRealizados = useCallback(async (p: MapaOperativoLoadParams, opts?: MapaOperativoLoadOptions) => {
     const seq = ++loadSeqRef.current;
@@ -123,6 +165,7 @@ export function useMapaOperativo() {
     infoMessage,
     setInfoMessage,
     loadRealizados,
+    loadPendientes,
     setFeatures,
   };
 }

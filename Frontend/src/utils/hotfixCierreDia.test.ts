@@ -16,7 +16,7 @@ describe("INSPECTOR.3 — rol relevador / Completar mis trabajos", () => {
     expect(isPathAllowedForRole("relevador", "/rutasTrabajo")).toBe(false);
     expect(isPathAllowedForRole("relevador", "/dashboard")).toBe(true);
     expect(isPathAllowedForRole("relevador", "/gestionDeUsuarios")).toBe(false);
-    expect(isPathAllowedForRole("relevador", "/mapa")).toBe(false);
+    expect(isPathAllowedForRole("relevador", "/mapa")).toBe(true);
     expect(isPathAllowedForRole("relevador", "/cargarActuacion")).toBe(false);
     expect(isPathAllowedForRole("relevador", "/relevamientos")).toBe(false);
   });

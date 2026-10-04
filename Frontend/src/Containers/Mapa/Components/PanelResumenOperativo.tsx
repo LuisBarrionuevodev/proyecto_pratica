@@ -208,15 +208,23 @@ export type PanelResumenOperativoProps = {
 
   meta: MapOperativoMeta | null;
 
+  isInspectorView?: boolean;
+
 };
 
 
 
 /** Columna izquierda del modo operativo en MapPage. */
 
-export function PanelResumenOperativo({ features, meta }: PanelResumenOperativoProps) {
+export function PanelResumenOperativo({
+  features,
+  meta,
+  isInspectorView = false,
+}: PanelResumenOperativoProps) {
 
   const byTipoReal = countTipoIniciador(features);
+  const totalOperativos = meta?.total_operativos ?? features.length;
+  const hideEjecucionRows = isInspectorView && meta == null;
 
 
 
@@ -294,19 +302,19 @@ export function PanelResumenOperativo({ features, meta }: PanelResumenOperativoP
 
           <Typography variant="h3" sx={mapaOperativoHeroValueSx}>
 
-            {meta?.total_operativos ?? 0}
+            {isInspectorView ? totalOperativos : (meta?.total_operativos ?? 0)}
 
           </Typography>
 
           <Stack spacing={0.35} sx={{ mt: 1 }}>
 
-            {metricRow("Realizados", meta?.realizados ?? 0)}
+            {!hideEjecucionRows ? metricRow("Realizados", meta?.realizados ?? 0) : null}
 
-            {metricRow("No realizados", meta?.no_realizados ?? 0)}
+            {!hideEjecucionRows ? metricRow("No realizados", meta?.no_realizados ?? 0) : null}
 
             {metricRow("Con ubicación", meta?.total_dibujables ?? features.length)}
 
-            {metricRow("Sin ubicación", meta?.total_sin_geocode ?? 0)}
+            {!hideEjecucionRows ? metricRow("Sin ubicación", meta?.total_sin_geocode ?? 0) : null}
 
           </Stack>
 
@@ -368,25 +376,18 @@ export function PanelResumenOperativo({ features, meta }: PanelResumenOperativoP
 
 
 
-      <AppButton
-
-        dsVariant="secondary"
-
-        dsSize="md"
-
-        fullWidth
-
-        sx={{ mt: 2 }}
-
-        disabled={features.length === 0}
-
-        onClick={() => downloadCsv(features, "mapa_realizados.csv")}
-
-      >
-
-        Descargar reporte CSV
-
-      </AppButton>
+      {!isInspectorView ? (
+        <AppButton
+          dsVariant="secondary"
+          dsSize="md"
+          fullWidth
+          sx={{ mt: 2 }}
+          disabled={features.length === 0}
+          onClick={() => downloadCsv(features, "mapa_realizados.csv")}
+        >
+          Descargar reporte CSV
+        </AppButton>
+      ) : null}
 
     </Paper>
 

@@ -9,6 +9,7 @@ export const ROLE_LABELS: Record<AppRole, string> = {
 export const COMPLETAR_TRABAJOS_PATH = "/completarTrabajos";
 export const ACTUACIONES_PATH = "/actuaciones";
 export const DASHBOARD_PATH = "/dashboard";
+export const MAPA_PATH = "/mapa";
 
 /** Rutas permitidas para RELEVADOR (nav + acceso directo). */
 export const RELEVADOR_ALLOWED_PATHS: readonly string[] = [
@@ -16,6 +17,7 @@ export const RELEVADOR_ALLOWED_PATHS: readonly string[] = [
   ACTUACIONES_PATH,
   COMPLETAR_TRABAJOS_PATH,
   DASHBOARD_PATH,
+  MAPA_PATH,
   "/perfil",
 ];
 
@@ -24,6 +26,7 @@ export const RELEVADOR_INICIO_PATHS: readonly string[] = [
   ACTUACIONES_PATH,
   COMPLETAR_TRABAJOS_PATH,
   DASHBOARD_PATH,
+  MAPA_PATH,
   "/perfil",
 ];
 
@@ -39,6 +42,10 @@ export function indicadoresLabelForRole(role: AppRole): string {
   return role === "relevador" ? "Mis indicadores" : "Indicadores";
 }
 
+export function mapaLabelForRole(role: AppRole): string {
+  return role === "relevador" ? "Mi mapa" : "Mapa";
+}
+
 export function resolveMenuLabelForRole(role: AppRole, path: string, defaultText: string): string {
   if (path === COMPLETAR_TRABAJOS_PATH) {
     return completarTrabajosLabelForRole(role);
@@ -48,6 +55,9 @@ export function resolveMenuLabelForRole(role: AppRole, path: string, defaultText
   }
   if (path === DASHBOARD_PATH) {
     return indicadoresLabelForRole(role);
+  }
+  if (path === MAPA_PATH) {
+    return mapaLabelForRole(role);
   }
   return defaultText;
 }

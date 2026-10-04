@@ -459,6 +459,7 @@ def list_mapa_operativo_pendientes_geo(
     distrito_id: Optional[int] = None,
     tipo: Optional[str] = None,
     inspector_id: Optional[int] = None,
+    solo_items_ruta_inspector: bool = False,
 ) -> list[dict[str, Any]]:
     """
     Lista puntos para mapa «pendientes»: backlog planificable + ítems EN_PROCESO en rutas publicadas.
@@ -470,6 +471,8 @@ def list_mapa_operativo_pendientes_geo(
         tipo: filtro UI (TODOS, DENUNCIAS, …) → ``IniciadorRuta.tipo_iniciador``.
         inspector_id: si viene, restringe la rama **en ruta** a ítems cuyo grupo incluye ese inspector.
             No aplica a la cola ``PENDIENTE`` (aún sin grupo asignado).
+        solo_items_ruta_inspector: si True (Inspector autenticado), omite la cola global y solo
+            devuelve ítems ``ASIGNADO``/``EN_PROCESO`` en rutas ``PUBLICADA`` del inspector.
 
     Retorno:
         Lista de dicts con lat/lng y metadatos para armar GeoJSON.
@@ -481,24 +484,31 @@ def list_mapa_operativo_pendientes_geo(
     d_hasta = _parse_date(hasta)
     if d_desde is None or d_hasta is None:
         raise ValueError("Parámetros desde y hasta (fechas ISO) son obligatorios.")
+    if solo_items_ruta_inspector and inspector_id is None:
+        raise ValueError("inspector_id es obligatorio para mapa de trabajos del inspector.")
     tipo_db = _map_tipo_filtro_front(tipo)
 
     points: list[dict[str, Any]] = []
 
-    q_backlog = IniciadorRuta.query.filter(
-        IniciadorRuta.deleted_at.is_(None),
-        IniciadorRuta.estado_iniciador == "PENDIENTE",
-        IniciadorRuta.fecha_origen >= d_desde,
-        IniciadorRuta.fecha_origen <= d_hasta,
-        ~_borrador_item_exists_clause(),
-    )
-    if tipo_db is not None:
-        q_backlog = q_backlog.filter(IniciadorRuta.tipo_iniciador == tipo_db)
+    if not solo_items_ruta_inspector:
+        q_backlog = IniciadorRuta.query.filter(
+            IniciadorRuta.deleted_at.is_(None),
+            IniciadorRuta.estado_iniciador == "PENDIENTE",
+            IniciadorRuta.fecha_origen >= d_desde,
+            IniciadorRuta.fecha_origen <= d_hasta,
+            ~_borrador_item_exists_clause(),
+        )
+        if tipo_db is not None:
+            q_backlog = q_backlog.filter(IniciadorRuta.tipo_iniciador == tipo_db)
 
-    for ini in q_backlog.all():
-        pt = _map_point_desde_iniciador_backlog(ini, distrito_id=distrito_id)
-        if pt:
-            points.append(pt)
+        for ini in q_backlog.all():
+            pt = _map_point_desde_iniciador_backlog(ini, distrito_id=distrito_id)
+            if pt:
+                points.append(pt)
+
+    estados_ruta_item = ("EN_PROCESO",)
+    if solo_items_ruta_inspector:
+        estados_ruta_item = ("ASIGNADO", "EN_PROCESO")
 
     q_ruta = (
         db.session.query(RutaItem, IniciadorRuta, RutaTrabajo, OrdenTrabajo)
@@ -513,7 +523,7 @@ def list_mapa_operativo_pendientes_geo(
         )
         .filter(
             RutaItem.deleted_at.is_(None),
-            RutaItem.estado_ruta_item == "EN_PROCESO",
+            RutaItem.estado_ruta_item.in_(estados_ruta_item),
             RutaTrabajo.estado_ruta == "PUBLICADA",
             RutaTrabajo.fecha >= d_desde,
             RutaTrabajo.fecha <= d_hasta,
@@ -528,6 +538,8 @@ def list_mapa_operativo_pendientes_geo(
             RutaGrupoInspector.inspector_id == inspector_id,
         )
         q_ruta = q_ruta.filter(ins_match)
+    elif solo_items_ruta_inspector:
+        return []
 
     for item, ini, ruta, ot in q_ruta.all():
         efectivo = resolve_domicilio_efectivo_para_iniciador(ini, apply_backfill=True, try_sync=False)
