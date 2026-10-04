@@ -21,8 +21,23 @@ from app.domains.actuaciones.presenters.actuacion_presenters import (
 from app.domains.actuaciones.services.actuacion_reencolado_service import (
     build_actuacion_editable_flags_por_actuacion_id,
 )
+from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
+from app.models import User
 
 from . import actuacion
+
+
+def _expose_telefono_solicitud_carnet_en_listado(export_context: bool) -> bool:
+    """
+    Teléfono de carnet solo en contexto de exportación administrativa (no grilla/mapa).
+    Inspectores (rol relevador) nunca reciben el número en listados masivos.
+    """
+    if not export_context:
+        return False
+    user = User.query.get(get_current_user_id())
+    if not user:
+        return False
+    return str(getattr(user, "role", "") or "").strip().lower() != "relevador"
 
 
 @actuacion.get("/")
@@ -90,6 +105,7 @@ def listar_actuaciones():
         iniciador_map = build_iniciador_ruta_por_actuacion_id(act_ids)
         batch = build_actuacion_grid_batch_maps(items_raw, iniciador_map)
         editable_map = build_actuacion_editable_flags_por_actuacion_id(act_ids)
+        expose_telefono = _expose_telefono_solicitud_carnet_en_listado(filters.export_context)
         items_dto = [
             actuacion_to_grid_row(
                 act,
@@ -97,7 +113,7 @@ def listar_actuaciones():
                 iniciador_desde_ruta=iniciador_map.get(int(act.id)),
                 batch=batch,
                 editable_override=editable_map.get(int(act.id)),
-                expose_telefono_solicitud_carnet=False,
+                expose_telefono_solicitud_carnet=expose_telefono,
             )
             for act in items_raw
         ]

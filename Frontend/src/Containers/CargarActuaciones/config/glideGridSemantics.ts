@@ -32,6 +32,21 @@ export type GlideCellVisualState =
 /**
  * Fondos/texto de celda Glide según estado (dark y light).
  */
+/**
+ * Tema de celda para dropdowns Glide: fuerza texto de catálogo legible (dark/light).
+ */
+export function resolveGlideDropdownCellTheme(
+  colors: SemanticColors,
+  state: GlideCellVisualState
+): { bgCell: string; textDark: string; textMedium: string; textBubble: string; baseFontStyle?: string } {
+  const base = resolveGlideCellTheme(colors, state);
+  return {
+    ...base,
+    textMedium: colors.text.primary,
+    textBubble: colors.text.primary,
+  };
+}
+
 export function resolveGlideCellTheme(
   colors: SemanticColors,
   state: GlideCellVisualState

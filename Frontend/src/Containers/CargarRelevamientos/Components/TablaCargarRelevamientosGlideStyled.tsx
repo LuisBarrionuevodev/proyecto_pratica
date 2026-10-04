@@ -60,6 +60,7 @@ import {
   glideColumnHeaderThemeOverride,
   glideGroupHeaderThemeOverride,
   resolveGlideCellTheme,
+  resolveGlideDropdownCellTheme,
   type GlideCellVisualState,
 } from "../../CargarActuaciones/config/glideGridSemantics";
 import { useDigitalizaTheme } from "../../../theme/DigitalizaThemeProvider";
@@ -661,7 +662,10 @@ const TablaCargarRelevamientosGlideStyled = ({
         else visualState = "pending";
       }
 
-      const themeOverride = resolveGlideCellTheme(themeColors, visualState);
+      const themeOverride =
+        cellType === "dropdown"
+          ? resolveGlideDropdownCellTheme(themeColors, visualState)
+          : resolveGlideCellTheme(themeColors, visualState);
 
       if (columnId === "_rowError") {
         const rowErrorRaw = hasData ? (rowData._rowError || "") : "";

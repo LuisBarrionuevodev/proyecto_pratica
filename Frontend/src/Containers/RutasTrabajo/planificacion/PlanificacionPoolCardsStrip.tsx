@@ -3,18 +3,20 @@ import { FONT_FAMILY_UI } from "../../../theme/typography";
 
 import type { IRutaTrabajo } from "../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
+import { CSS_VAR_NAMES as V } from "../../../theme/applyCssVariables";
 import { AppButton } from "../../../ui";
 import { RutaContextoLine } from "../Components/RutaContextoLine";
 import { RutasOperativaChip } from "../Components/RutasOperativaChip";
 import { planificacionPanelTitleSx, rutasInstitutionalPanelPaperSx } from "../styles/institutionalVisual";
-import type { PlanificacionPoolStripItem } from "./utils/buildPlanificacionPoolStripItems";const cardSx = {
+import type { PlanificacionPoolStripItem } from "./utils/buildPlanificacionPoolStripItems";
+const cardSx = {
   flex: "0 0 auto",
   minWidth: 220,
   maxWidth: 320,
   p: 1,
   borderRadius: "10px",
   border: `1px solid ${GLASS_COLORS.borderMedium}`,
-  bgcolor: "rgba(255,255,255,0.04)",
+  bgcolor: `var(${V.surfacePanel})`,
 } as const;
 
 export type PlanificacionPoolCardsStripProps = {

@@ -3,13 +3,15 @@ import { FONT_FAMILY_UI } from "../../../../theme/typography";
 
 import type { IRutaIniciadorPendienteRow } from "../../../../api/rutasTrabajoApi";
 import { GLASS_COLORS } from "../../../../styles/GlassStyles";
+import { useDigitalizaTheme } from "../../../../theme/DigitalizaThemeProvider";
 import { AppButton } from "../../../../ui";
 import { EstablecimientoSecundarioLine } from "./EstablecimientoSecundarioLine";
 import {
   lineaPrincipalPendiente,
   rubroLineaPendiente,
   tipoIniciadorEtiquetaOperativa,
-} from "../utils/iniciadorDisplay";/** Ancho fijo liviano para popup de mapa (Leaflet + contenido). */
+} from "../utils/iniciadorDisplay";
+/** Ancho fijo liviano para popup de mapa (Leaflet + contenido). */
 const MAP_POP_CARD_WIDTH = 236;
 
 export type PlanificacionMapaGeopuntoOperativaCardProps = {
@@ -28,6 +30,7 @@ export function PlanificacionMapaGeopuntoOperativaCard({
   agregando = false,
   onAgregarAlPool,
 }: PlanificacionMapaGeopuntoOperativaCardProps) {
+  const { mode, colors } = useDigitalizaTheme();
   const direccion = lineaPrincipalPendiente(row);
   const rubro = rubroLineaPendiente(row);
   const tipo = tipoIniciadorEtiquetaOperativa(row)?.trim() || "—";
@@ -52,6 +55,20 @@ export function PlanificacionMapaGeopuntoOperativaCard({
     wordBreak: "break-word" as const,
   };
 
+  const shellSx =
+    mode === "light"
+      ? {
+          border: `1px solid ${colors.border.default}`,
+          backgroundColor: colors.surface.tableRowEven,
+          color: colors.text.primary,
+          boxShadow: colors.shadow.panel,
+        }
+      : {
+          border: `1px solid ${GLASS_COLORS.borderMedium}`,
+          backgroundColor: GLASS_COLORS.cardBg,
+          backdropFilter: "blur(8px)",
+        };
+
   return (
     <Box
       sx={{
@@ -60,9 +77,7 @@ export function PlanificacionMapaGeopuntoOperativaCard({
         px: 0.75,
         py: 0.65,
         borderRadius: "8px",
-        border: `1px solid rgba(255,255,255,0.12)`,
-        backgroundColor: "rgba(26,29,34,0.92)",
-        backdropFilter: "blur(8px)",
+        ...shellSx,
       }}
     >
       <Stack spacing={0.45}>

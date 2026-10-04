@@ -141,8 +141,10 @@ const labelMutedSx = {
 } as const;
 
 const modalChipSx = {
-  bgcolor: `var(${V.actionSelected})`,
+  bgcolor: `var(${V.surfacePanelSubtle})`,
   color: GLASS_COLORS.textPrimary,
+  border: `1px solid ${GLASS_COLORS.borderMedium}`,
+  "& .MuiChip-deleteIcon": { color: GLASS_COLORS.textSecondary },
 } as const;
 
 const modalInsetPanelSx = {

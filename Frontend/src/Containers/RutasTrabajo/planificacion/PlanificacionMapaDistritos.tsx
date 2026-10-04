@@ -9,6 +9,7 @@ import type { DistritoCatalogoItem } from "../../../api/geolocalizacionApi";
 import type { IRutaIniciadorPendienteRow } from "../../../api/rutasTrabajoApi";
 import distritosGeoRaw from "../../Mapa/distritos.json";
 import { glassCard, GLASS_COLORS } from "../../../styles/GlassStyles";
+import { useDigitalizaTheme } from "../../../theme/DigitalizaThemeProvider";
 import { CSS_VAR_NAMES as V } from "../../../theme/applyCssVariables";
 import type { ICargaDistritoRow } from "./types/planificacion.types";
 import { enrichPlanificacionDistritosGeoJson } from "./utils/mergePlanificacionDistritosGeo";
@@ -94,6 +95,7 @@ export function PlanificacionMapaDistritos({
   agregandoIniciadorIds,
   usedMarkers = [],
 }: PlanificacionMapaDistritosProps) {
+  const { mode, colors } = useDigitalizaTheme();
   const geoData = useMemo(() => {
     const base = distritosGeoRaw as FeatureCollection;
     return enrichPlanificacionDistritosGeoJson(base, distritoCatalogo, cargaPorDistrito);
@@ -184,17 +186,21 @@ export function PlanificacionMapaDistritos({
               pointerEvents: "none",
             },
             "& .leaflet-popup-content-wrapper": {
-              background: "transparent",
-              boxShadow: "none",
+              background:
+                mode === "light" ? colors.surface.tableRowEven : "transparent",
+              boxShadow: mode === "light" ? colors.shadow.panel : "none",
               borderRadius: "8px",
               padding: 0,
+              color: colors.text.primary,
             },
             "& .leaflet-popup-content": {
               margin: "6px 8px",
               minWidth: "auto",
+              color: colors.text.primary,
             },
             "& .leaflet-popup-tip": {
-              background: "rgba(26,29,34,0.92)",
+              background:
+                mode === "light" ? colors.surface.tableRowEven : GLASS_COLORS.cardBg,
               boxShadow: "none",
             },
           }}

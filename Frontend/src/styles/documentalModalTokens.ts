@@ -23,9 +23,16 @@ export const docModalHeaderStackSx: SxProps<Theme> = {
 export const docModalChipSx: SxProps<Theme> = {
   height: 24,
   fontWeight: 600,
-  borderColor: "rgba(255,255,255,0.28)",
+  borderColor: GLASS_COLORS.borderMedium,
   color: DOC_MODAL_TEXT,
-  backgroundColor: "rgba(255,255,255,0.06)",
+  backgroundColor: GLASS_COLORS.hoverBg,
+};
+
+/** Texto auxiliar bajo bloques CRUD documentales (caption / hint). */
+export const docModalCaptionSx: SxProps<Theme> = {
+  color: GLASS_COLORS.textSecondary,
+  lineHeight: 1.4,
+  display: "block",
 };
 
 export const docModalTitleSx: SxProps<Theme> = {

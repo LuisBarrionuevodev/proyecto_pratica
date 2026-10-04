@@ -7,6 +7,7 @@ import {
   actuacionDocumentacionTramiteSegments,
 } from "./actuacionDocumentacionVisual";
 import { splitCommaList } from "../Components/bandejaTableCells";
+import { formatActuacionExportDetalles } from "./formatActuacionExportDetalles";
 
 export type ActuacionVisualPdfRow = {
   fechaOt: string;
@@ -15,6 +16,7 @@ export type ActuacionVisualPdfRow = {
   inspectores: string;
   actasTramite: string;
   motivos: string;
+  detalles: string;
 };
 
 function inspectoresNombres(row: IActuacionListItem): string[] {
@@ -85,7 +87,11 @@ function actasTramiteSoloPropias(row: IActuacionListItem): string {
 }
 
 /** Filas visuales alineadas a columnas compuestas de la grilla Actuaciones. */
-export function buildActuacionesVisualPdfRows(items: IActuacionListItem[]): ActuacionVisualPdfRow[] {
+export function buildActuacionesVisualPdfRows(
+  items: IActuacionListItem[],
+  options?: { exposeTelefonoEnDetalles?: boolean }
+): ActuacionVisualPdfRow[] {
+  const exposeTelefono = options?.exposeTelefonoEnDetalles ?? true;
   return items.map((row) => ({
     fechaOt: fechaOtText(row),
     tipoContraproducencia: tipoTramiteConOrigenText(row),
@@ -93,6 +99,7 @@ export function buildActuacionesVisualPdfRows(items: IActuacionListItem[]): Actu
     inspectores: inspectoresNombres(row).join(", ") || "—",
     actasTramite: actasTramiteSoloPropias(row),
     motivos: motivosPdfDisplay(row),
+    detalles: formatActuacionExportDetalles(row, { exposeTelefono }),
   }));
 }
 

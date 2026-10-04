@@ -16,6 +16,7 @@ import { AppButton } from "../../ui";
 import { DataTableMrtShell } from "../../components/dataTable/DataTableMrtShell";
 import { BANDEJA_MRT_SPINNER_LOADING_STATE, BandejaTableSpinner } from "../../components/dataTable/bandejaTableLoading";
 import { COLORS } from "../CargarActuaciones/styles/cargarActuacionesStyles";
+import { GLASS_COLORS } from "../../styles/GlassStyles";
 import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
 import {
   BandejaEllipsisCell,
@@ -246,7 +247,7 @@ export default function EstablecimientoDetallePage() {
         >
           Volver al listado
         </AppButton>
-        <Typography sx={{ color: COLORS.white, fontFamily: FONT_FAMILY_UI }}>
+        <Typography sx={{ color: GLASS_COLORS.textPrimary, fontFamily: FONT_FAMILY_UI }}>
           El identificador de la ficha no es válido. Usá el listado para abrir una ficha por su ID numérico.
         </Typography>
       </Stack>
@@ -260,7 +261,7 @@ export default function EstablecimientoDetallePage() {
           dsVariant="ghost"
           startIcon={<ArrowBackIcon />}
           onClick={() => navigate("/establecimientos")}
-          sx={{ color: "rgba(255,255,255,0.75)", alignSelf: "flex-start" }}
+          sx={{ color: GLASS_COLORS.textSecondary, alignSelf: "flex-start" }}
         >
           Volver
         </AppButton>
@@ -290,7 +291,7 @@ export default function EstablecimientoDetallePage() {
         dsVariant="ghost"
         startIcon={<ArrowBackIcon />}
         onClick={() => navigate("/establecimientos")}
-        sx={{ color: "rgba(255,255,255,0.75)", alignSelf: "flex-start" }}
+        sx={{ color: GLASS_COLORS.textSecondary, alignSelf: "flex-start" }}
       >
         Volver
       </AppButton>
@@ -318,7 +319,7 @@ export default function EstablecimientoDetallePage() {
                 fontFamily: FONT_FAMILY_UI,
                 fontWeight: 700,
                 fontSize: { xs: "16px", sm: "20px" },
-                color: COLORS.white,
+                color: GLASS_COLORS.textPrimary,
                 letterSpacing: "0.04em",
                 lineHeight: 1.25,
               }}
@@ -331,7 +332,7 @@ export default function EstablecimientoDetallePage() {
                 fontFamily: FONT_FAMILY_UI,
                 fontSize: "12px",
                 fontWeight: 600,
-                color: "rgba(255,255,255,0.75)",
+                color: GLASS_COLORS.textSecondary,
                 letterSpacing: "0.04em",
               }}
             >
@@ -358,17 +359,17 @@ export default function EstablecimientoDetallePage() {
                     fontSize: "10px",
                     fontWeight: 700,
                     letterSpacing: "0.1em",
-                    color: "rgba(255,255,255,0.45)",
+                    color: GLASS_COLORS.textMuted,
                     mb: 0.5,
                   }}
                 >
                   DOMICILIO
                 </Typography>
-                <Typography sx={{ fontSize: "15px", fontWeight: 600, color: COLORS.white, lineHeight: 1.35 }}>
+                <Typography sx={{ fontSize: "15px", fontWeight: 600, color: GLASS_COLORS.textPrimary, lineHeight: 1.35 }}>
                   {domicilioLinea}
                 </Typography>
                 {detalle.distrito_nombre?.trim() ? (
-                  <Typography sx={{ fontSize: "12px", color: "rgba(255,255,255,0.6)", mt: 0.5 }}>
+                  <Typography sx={{ fontSize: "12px", color: GLASS_COLORS.textSecondary, mt: 0.5 }}>
                     Distrito: {detalle.distrito_nombre.trim()}
                   </Typography>
                 ) : null}
@@ -386,7 +387,7 @@ export default function EstablecimientoDetallePage() {
               fontSize: "12px",
               fontWeight: 700,
               letterSpacing: "0.08em",
-              color: COLORS.white,
+              color: GLASS_COLORS.textPrimary,
             }}
           >
             Historial de actuaciones

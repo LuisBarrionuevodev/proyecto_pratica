@@ -135,6 +135,21 @@ class ActuacionesListFilters(BaseModel):
     acta_decomiso: Optional[str] = None
     page: int = 1
     page_size: int = 50
+    export_context: bool = False
+
+    @field_validator("export_context", mode="before")
+    @classmethod
+    def validate_export_context(cls, v: Any) -> bool:
+        if v is None or v is False or v == "":
+            return False
+        if v is True or v == 1:
+            return True
+        s = str(v).strip().lower()
+        if s in ("0", "false", "no"):
+            return False
+        if s in ("1", "true", "yes", "on"):
+            return True
+        raise ValueError("export_context debe ser 0 o 1")
 
     @field_validator("tipo")
     @classmethod

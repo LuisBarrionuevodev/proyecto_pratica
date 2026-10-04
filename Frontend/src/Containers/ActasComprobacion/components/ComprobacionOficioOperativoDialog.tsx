@@ -20,7 +20,7 @@ import {
   useNotifyModalApiError,
 } from "../../../components/crudDialog";
 import { useAppFeedback } from "../../../components/feedback";
-import { documentalGlassAlertSx } from "../../../styles/documentalModalTokens";
+import { docModalCaptionSx, documentalGlassAlertSx } from "../../../styles/documentalModalTokens";
 import { applyOficioAltaErrorsFromApi } from "../../../utils/oficioFormErrors";
 import { AppButton, AppSelect, AppTextField, ConfirmDialog } from "../../../ui";
 import { ComprobacionOficiosTribunalSection } from "./ComprobacionOficiosTribunalSection";
@@ -356,7 +356,7 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
           </Stack>
         )}
         {editing ? (
-          <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", mt: 0.75, display: "block" }}>
+          <Typography variant="caption" sx={{ ...docModalCaptionSx, mt: 0.75 }}>
             Una sola fecha para oficio y expediente de respuesta (mismo dato operativo).
           </Typography>
         ) : null}
@@ -470,7 +470,7 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
   return (
     <DocumentalBloque overline="Alta de oficio y expediente de respuesta" layout="grid">
       <DocumentalCrudFullSpan>
-        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.65)", lineHeight: 1.4, display: "block" }}>
+        <Typography variant="caption" sx={docModalCaptionSx}>
           Primero el expediente de respuesta y la fecha compartida; luego el oficio, la causa y el juzgado.
         </Typography>
       </DocumentalCrudFullSpan>
@@ -538,7 +538,7 @@ export const ComprobacionOficioAltaFields = memo(function ComprobacionOficioAlta
         />
       </CrudFormSlot>
       <DocumentalCrudFullSpan>
-        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", display: "block" }}>
+        <Typography variant="caption" sx={docModalCaptionSx}>
           Una sola fecha para oficio y expediente de respuesta (mismo dato operativo).
         </Typography>
         <Box sx={{ display: "flex", gap: 1, flexWrap: "wrap", pt: 0.5 }}>

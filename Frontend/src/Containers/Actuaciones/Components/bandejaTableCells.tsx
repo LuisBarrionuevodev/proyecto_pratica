@@ -25,8 +25,8 @@ export const bandejaOutlinedChipSx = {
   fontWeight: 600,
   fontSize: "0.78rem",
   color: GLASS_COLORS.textPrimary,
-  borderColor: "rgba(255,255,255,0.38)",
-  backgroundColor: "rgba(255,255,255,0.07)",
+  borderColor: GLASS_COLORS.borderMedium,
+  backgroundColor: GLASS_COLORS.hoverBg,
   "& .MuiChip-label": {
     overflow: "hidden",
     textOverflow: "ellipsis",

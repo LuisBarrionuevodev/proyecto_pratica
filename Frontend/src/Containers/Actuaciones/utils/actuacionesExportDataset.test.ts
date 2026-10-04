@@ -69,6 +69,21 @@ describe("DOCS-EXP.4 — export dataset Actuaciones", () => {
   });
 
   describe("fetchAllActuacionesForExport", () => {
+    it("pide export_context para incluir teléfono autorizado en export", async () => {
+      getActuacionesFiltered.mockResolvedValueOnce(listResponse([baseRow()]));
+
+      await fetchAllActuacionesForExport({
+        desde: "2026-01-01",
+        hasta: "2026-01-31",
+        tipo: null,
+        contraproducencia: null,
+        orden_trabajo: null,
+      });
+
+      const call = getActuacionesFiltered.mock.calls[0][0] as Record<string, unknown>;
+      expect(call.export_context).toBe(true);
+    });
+
     it("propaga q al API cuando el filtro lo incluye", async () => {
       getActuacionesFiltered.mockResolvedValueOnce(listResponse([baseRow()]));
 
@@ -194,6 +209,26 @@ describe("DOCS-EXP.4 — export dataset Actuaciones", () => {
         } as IActuacionListItem),
       ]);
       expect(row.domicilioRubro).toBe("Maipú 500 · Kiosco");
+    });
+
+    it("incluye columna Detalles en Excel", () => {
+      const [row] = buildActuacionesNormalizedExcelRows([
+        baseRow({
+          items_acta_inspeccion: [
+            { id: 6, codigo: "TIENE_HABILITACION", nombre: "Hab", valor_si_no: false },
+          ],
+          solicita_carnet_manipulador: true,
+          telefono_contacto_solicitud_carnet: "3814000000",
+        }),
+      ]);
+      expect(row.Detalles).toContain("Habilitación: No");
+      expect(row.Detalles).toContain("Carnet de manipulador solicitado: Sí");
+      expect(row.Detalles).toContain("Teléfono de contacto: 3814000000");
+    });
+
+    it("PDF visual incluye detalles", () => {
+      const [row] = buildActuacionesVisualPdfRows([baseRow({ solicita_carnet_manipulador: false })]);
+      expect(row.detalles).toContain("Carnet de manipulador solicitado: No");
     });
 
     it("no altera otros campos del Excel", () => {

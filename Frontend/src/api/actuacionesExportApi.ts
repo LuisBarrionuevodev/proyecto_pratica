@@ -31,6 +31,7 @@ export async function fetchAllActuacionesForExport(
       ...filters,
       page,
       page_size: EXPORT_PAGE_SIZE,
+      export_context: true,
     });
 
     total = response.meta.total;

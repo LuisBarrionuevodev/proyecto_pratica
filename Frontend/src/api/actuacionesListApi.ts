@@ -250,6 +250,8 @@ export interface IActuacionesListFilters {
     acta_decomiso?: string | null;
     page?: number;
     page_size?: number;
+    /** Solo exportación administrativa: habilita teléfono de carnet en filas (no usar en grilla). */
+    export_context?: boolean;
 }
 
 // ============= API FUNCTIONS =============
@@ -283,6 +285,7 @@ export const getActuacionesFiltered = async (
     if (filters?.acta_decomiso) params.acta_decomiso = filters.acta_decomiso;
     if (filters?.page) params.page = String(filters.page);
     if (filters?.page_size) params.page_size = String(filters.page_size);
+    if (filters?.export_context) params.export_context = "1";
 
     const { data } = await apiClient.get<IActuacionesListResponse>("/actuaciones", { params });
     return data;

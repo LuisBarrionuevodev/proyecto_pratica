@@ -29,12 +29,13 @@ export type ActuacionesListadoPdfModel = {
 };
 
 const COL_FLEX = {
-  fechaOt: 1.1,
-  tipo: 1.35,
-  domicilio: 1.5,
-  inspectores: 1.2,
-  actas: 1.8,
-  motivos: 1.4,
+  fechaOt: 1,
+  tipo: 1.15,
+  domicilio: 1.25,
+  inspectores: 1,
+  actas: 1.5,
+  motivos: 1.15,
+  detalles: 1.35,
 } as const;
 
 /** Filas de detalle por página (solo páginas de detalle, sin resumen). */
@@ -220,6 +221,7 @@ function TableHeaderRow() {
       <HeaderCell flex={COL_FLEX.inspectores} label="Inspectores" />
       <HeaderCell flex={COL_FLEX.actas} label="Actas y trámite (propios)" />
       <HeaderCell flex={COL_FLEX.motivos} label="Motivos (propios)" />
+      <HeaderCell flex={COL_FLEX.detalles} label="Detalles" />
     </View>
   );
 }
@@ -233,6 +235,7 @@ function DataRow({ row }: { row: ActuacionVisualPdfRow }) {
       <BodyCell flex={COL_FLEX.inspectores} value={row.inspectores} />
       <BodyCell flex={COL_FLEX.actas} value={row.actasTramite} />
       <BodyCell flex={COL_FLEX.motivos} value={row.motivos} />
+      <BodyCell flex={COL_FLEX.detalles} value={row.detalles} compact />
     </View>
   );
 }

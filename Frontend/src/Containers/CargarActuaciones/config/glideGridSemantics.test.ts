@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { darkColors, lightColors } from "../../../theme/colors";
-import { resolveGlideCellTheme } from "./glideGridSemantics";
+import { resolveGlideCellTheme, resolveGlideDropdownCellTheme } from "./glideGridSemantics";
 
 describe("glideGridSemantics", () => {
   it("resolveGlideCellTheme ok/error/pending — contraste painted", () => {
@@ -13,6 +13,12 @@ describe("glideGridSemantics", () => {
       expect(dark.baseFontStyle).toBe("700 13px");
       expect(light.baseFontStyle).toBe("700 13px");
     }
+  });
+
+  it("resolveGlideDropdownCellTheme fuerza textMedium legible", () => {
+    const dark = resolveGlideDropdownCellTheme(darkColors, "ok");
+    expect(dark.textMedium).toBe(darkColors.text.primary);
+    expect(dark.textBubble).toBe(darkColors.text.primary);
   });
 
   it("resolveGlideCellTheme ok surfaces", () => {

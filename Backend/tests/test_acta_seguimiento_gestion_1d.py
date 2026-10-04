@@ -37,3 +37,17 @@ def test_get_gestion_incluye_domicilio_rubro_contribuyente(app, client, app_ctx)
     row = lst.get_json()["items"][0]
     assert not isinstance(row.get("domicilio"), dict)
     assert row.get("telefono_contacto_solicitud_carnet") is None
+
+    lst_export = client.get(
+        f"/actuaciones?actuacion_id={act_id}&desde=2026-01-01&hasta=2026-12-31&export_context=1",
+        headers=headers,
+    )
+    assert lst_export.status_code == 200
+    row_export = lst_export.get_json()["items"][0]
+    assert row_export.get("telefono_contacto_solicitud_carnet") == "381 000-1111"
+
+    lst_plain = client.get(
+        f"/actuaciones?actuacion_id={act_id}&desde=2026-01-01&hasta=2026-12-31",
+        headers=headers,
+    )
+    assert lst_plain.get_json()["items"][0].get("telefono_contacto_solicitud_carnet") is None

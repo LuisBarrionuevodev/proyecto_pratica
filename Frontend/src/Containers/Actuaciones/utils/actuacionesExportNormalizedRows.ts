@@ -1,6 +1,7 @@
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import { contribuyenteBandejaLabel } from "../../../utils/contribuyenteBandejaText";
 import { domicilioLineaOperativo } from "../../../utils/formatDomicilioLineaVisible";
+import { formatActuacionExportDetalles } from "./formatActuacionExportDetalles";
 
 function cell(value: unknown): string | number {
   if (value === null || value === undefined) return "";
@@ -48,8 +49,10 @@ export type ActuacionNormalizedExcelRow = Record<string, string | number>;
  * Filas planas para Excel administrativo (columnas atómicas, sin chips ni JSX).
  */
 export function buildActuacionesNormalizedExcelRows(
-  items: IActuacionListItem[]
+  items: IActuacionListItem[],
+  options?: { exposeTelefonoEnDetalles?: boolean }
 ): ActuacionNormalizedExcelRow[] {
+  const exposeTelefono = options?.exposeTelefonoEnDetalles ?? true;
   return items.map((row) => {
     const { anio, mes } = parseAnioMes(row.fecha_actuacion);
     const domicilioLinea = domicilioLineaOperativo(row).trim();
@@ -88,6 +91,7 @@ export function buildActuacionesNormalizedExcelRows(
       Oficio: oficioText(row),
       "Causa oficio": cell(row.oficio_causa),
       "Resultado cumplimiento oficio": cell(row.resultado_cumplimiento_oficio),
+      Detalles: formatActuacionExportDetalles(row, { exposeTelefono }),
     };
   });
 }
