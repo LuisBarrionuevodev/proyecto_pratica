@@ -64,8 +64,46 @@ export function stripActuacionRowForListStorage(
   const copy: Record<string, unknown> = { ...row };
   delete copy.ui_policy;
   delete copy.seguimiento;
+  delete copy.domicilio;
+  delete copy.rubro;
+  delete copy.contribuyente;
   copy.telefono_contacto_solicitud_carnet = null;
   return copy as unknown as IActuacionListItem;
+}
+
+/** Validación cliente de seguimiento antes del PUT de Gestión. */
+export function validateGestionSeguimientoFields(
+  row: IActuacionListItem
+): Record<string, string> {
+  const policy = resolveActuacionGestionUiPolicy(row);
+  if (!policy?.puede_editar_seguimiento) {
+    return {};
+  }
+  const merged = mergeActuacionSeguimientoFromApiRow(row);
+  const errors: Record<string, string> = {};
+
+  if (policy.mostrar_solicitud_carnet_manipulador) {
+    const sol = merged.solicita_carnet_manipulador;
+    if (sol !== true && sol !== false) {
+      errors.solicita_carnet_manipulador = "Indique si solicita carnet de manipulador.";
+    } else if (sol === true) {
+      const tel = (merged.telefono_contacto_solicitud_carnet ?? "").trim();
+      if (!tel) {
+        errors.telefono_contacto_solicitud_carnet =
+          "Ingrese el teléfono de contacto del solicitante.";
+      }
+    }
+  }
+
+  if (policy.mostrar_subsanacion_notificacion) {
+    const subs = merged.faltas_notificacion_subsanadas;
+    if (subs !== true && subs !== false) {
+      errors.faltas_notificacion_subsanadas =
+        "Indique si se subsanaron las faltas de la notificación.";
+    }
+  }
+
+  return errors;
 }
 
 export function gestionSeguimientoDraftFromRow(row: IActuacionListItem): {
@@ -110,5 +148,19 @@ export function applyGestionSeguimientoDraftToRow(
       out.faltas_notificacion_subsanadas = subs;
     }
   }
+
+  if (out.seguimiento) {
+    const seg = { ...out.seguimiento };
+    if (policy?.mostrar_solicitud_carnet_manipulador) {
+      seg.solicita_carnet_manipulador = out.solicita_carnet_manipulador ?? null;
+      seg.telefono_contacto_solicitud_carnet =
+        out.telefono_contacto_solicitud_carnet ?? null;
+    }
+    if (policy?.mostrar_subsanacion_notificacion) {
+      seg.faltas_notificacion_subsanadas = out.faltas_notificacion_subsanadas ?? null;
+    }
+    out.seguimiento = seg;
+  }
+
   return out;
 }

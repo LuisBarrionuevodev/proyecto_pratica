@@ -16,6 +16,63 @@ from app.domains.actuaciones.utils.acta_seguimiento_policy import (
 from app.models import Actuaciones, IniciadorRuta
 
 
+def _clean_optional_str(value: Any) -> str | None:
+    if value is None:
+        return None
+    s = str(value).strip()
+    return s or None
+
+
+def build_actuacion_gestion_contexto_detalle(act: Actuaciones) -> dict[str, Any]:
+    """
+    Contexto readonly de domicilio, rubro y contribuyente para detalle autorizado de Gestión.
+
+    Parámetros:
+        act: actuación con relaciones de domicilio cargadas si existen.
+
+    Retorno:
+        Dict con claves ``domicilio``, ``rubro`` y ``contribuyente`` (valores null si faltan).
+    """
+    from app.domains.actuaciones.utils.titular_actuacion_resolver import (
+        resolve_titular_grid_fields,
+    )
+    from app.domains.domicilios.utils.domicilio_calle_ui import (
+        calle_cargada_desde_domicilio,
+        esquina_cargada_desde_domicilio,
+    )
+
+    domicilio: dict[str, Any] = {"calle": None, "numero": None, "esquina": None}
+    rubro: dict[str, Any] = {"nombre": None}
+    contribuyente: dict[str, Any] = {"apellido": None, "nombre": None}
+
+    dom = getattr(act, "domicilio", None)
+    if dom is not None:
+        calle = calle_cargada_desde_domicilio(dom) or getattr(dom, "calle", None)
+        domicilio["calle"] = _clean_optional_str(calle)
+        domicilio["numero"] = _clean_optional_str(getattr(dom, "numero", None))
+        esquina = esquina_cargada_desde_domicilio(dom)
+        domicilio["esquina"] = _clean_optional_str(esquina)
+
+        rub_obj = getattr(dom, "rubro", None)
+        if rub_obj is not None:
+            rubro["nombre"] = _clean_optional_str(getattr(rub_obj, "nombre", None))
+
+        contrib = getattr(dom, "contribuyente", None)
+        if contrib is not None:
+            contribuyente["apellido"] = _clean_optional_str(getattr(contrib, "apellido", None))
+            contribuyente["nombre"] = _clean_optional_str(getattr(contrib, "nombre", None))
+    else:
+        titular = resolve_titular_grid_fields(act)
+        contribuyente["apellido"] = titular.get("contrib_apellido")
+        contribuyente["nombre"] = titular.get("contrib_nombre")
+
+    return {
+        "domicilio": domicilio,
+        "rubro": rubro,
+        "contribuyente": contribuyente,
+    }
+
+
 def build_actuacion_gestion_ui_policy(
     act: Actuaciones,
     ini: IniciadorRuta | None,
@@ -131,4 +188,5 @@ def present_actuacion_gestion_detalle(act: Actuaciones) -> dict[str, Any]:
     )
     if seg is not None:
         row["seguimiento"] = seg
+    row.update(build_actuacion_gestion_contexto_detalle(act))
     return row

@@ -5,6 +5,7 @@ import {
   Autocomplete,
   Box,
   Chip,
+  CircularProgress,
   Collapse,
   Divider,
   IconButton,
@@ -117,7 +118,14 @@ import {
   applyGestionSeguimientoDraftToRow,
   gestionSeguimientoDraftFromRow,
   mergeActuacionSeguimientoFromApiRow,
+  validateGestionSeguimientoFields,
 } from "../utils/actuacionGestionSeguimientoPut";
+import {
+  formatGestionContribuyenteNombre,
+  formatGestionDomicilioLinea,
+  formatGestionRubroNombre,
+  gestionContextoDisplayValue,
+} from "../utils/actuacionGestionContexto";
 
 const documentacionTramiteChipModalSx = {
   ...docModalChipSx,
@@ -168,6 +176,8 @@ export type ActuacionDetalleDialogProps = {
   draft: IActuacionListItem;
   fieldErrors: Record<string, string>;
   saving: boolean;
+  /** Carga del detalle autorizado (`GET /gestion`); no debe deshabilitar campos de edición. */
+  detailLoading?: boolean;
   catalogs: ActuacionEditCatalogs;
   readOnlyColumns: string[];
   /** Opciones de calle para editor de número (p. ej. gestión domicilios); opcional en actuaciones. */
@@ -455,25 +465,78 @@ function inspectoresLinea(row: IActuacionListItem): string {
   return parts.length ? parts.join(", ") : "—";
 }
 
+function gestionSeguimientoBloqueVisible(draft: IActuacionListItem): boolean {
+  const policy = draft.ui_policy;
+  return Boolean(
+    policy?.mostrar_solicitud_carnet_manipulador || policy?.mostrar_subsanacion_notificacion
+  );
+}
+
+function BloqueDomicilioContribuyenteContexto({ draft }: { draft: IActuacionListItem }) {
+  const domicilioLinea = formatGestionDomicilioLinea(draft);
+  const rubro = formatGestionRubroNombre(draft);
+  const contribuyente = formatGestionContribuyenteNombre(draft);
+
+  const lineSx = {
+    color: DOC_MODAL_TEXT,
+    fontSize: "0.875rem",
+    fontWeight: 500,
+    lineHeight: 1.5,
+    m: 0,
+  } as const;
+
+  const labelSx = {
+    color: GLASS_COLORS.textSecondary,
+    fontSize: "0.6875rem",
+    fontWeight: 700,
+    textTransform: "uppercase" as const,
+    letterSpacing: "0.04em",
+    display: "block",
+    mb: 0.5,
+  };
+
+  return (
+    <Box sx={{ mb: 2 }}>
+      <Typography component="h3" variant="subtitle2" sx={{ ...sectionTitleSx, mt: 0, mb: 1.25 }}>
+        Domicilio del contribuyente
+      </Typography>
+      <Stack spacing={1.5}>
+        <Box>
+          <Typography component="span" sx={labelSx}>
+            Domicilio del contribuyente
+          </Typography>
+          <Typography component="p" variant="body2" sx={lineSx}>
+            {gestionContextoDisplayValue(domicilioLinea)}
+          </Typography>
+        </Box>
+        <Box>
+          <Typography component="span" sx={labelSx}>
+            Rubro
+          </Typography>
+          <Typography component="p" variant="body2" sx={lineSx}>
+            {gestionContextoDisplayValue(rubro)}
+          </Typography>
+        </Box>
+        <Box>
+          <Typography component="span" sx={labelSx}>
+            Contribuyente
+          </Typography>
+          <Typography component="p" variant="body2" sx={lineSx}>
+            {gestionContextoDisplayValue(contribuyente)}
+          </Typography>
+        </Box>
+      </Stack>
+    </Box>
+  );
+}
+
 function resultadoSeguimientoHayContenido(draft: IActuacionListItem): boolean {
   const res = draft.resultado_cumplimiento_oficio;
   const tieneResultado = res != null && String(res).trim() !== "";
-  const merged = mergeActuacionSeguimientoFromApiRow(draft);
-  const solicitaCarnet = merged.solicita_carnet_manipulador;
-  const tieneSolicitudCarnet = solicitaCarnet === true || solicitaCarnet === false;
-  const subs = merged.faltas_notificacion_subsanadas;
-  const tieneSubsanacion = subs === true || subs === false;
-  const policy = draft.ui_policy;
-  const seguimientoUi =
-    Boolean(policy?.mostrar_solicitud_carnet_manipulador) ||
-    Boolean(policy?.mostrar_subsanacion_notificacion) ||
-    tieneSolicitudCarnet ||
-    tieneSubsanacion;
   return (
     tieneResultado ||
     documentacionTramiteModalTieneContenido(draft) ||
-    tieneRestriccionesEdicion(draft) ||
-    seguimientoUi
+    tieneRestriccionesEdicion(draft)
   );
 }
 
@@ -520,15 +583,10 @@ function DocumentacionTramiteModalLectura({ draft }: { draft: IActuacionListItem
 function ResultadoSeguimientoLectura({ draft }: { draft: IActuacionListItem }) {
   const res = draft.resultado_cumplimiento_oficio;
   const tieneResultado = res != null && String(res).trim() !== "";
-  const solicitaCarnet = draft.solicita_carnet_manipulador;
-  const tieneSolicitudCarnet = solicitaCarnet === true || solicitaCarnet === false;
-  const telCarnet = (draft.telefono_contacto_solicitud_carnet ?? "").trim();
-  const subs = draft.faltas_notificacion_subsanadas;
-  const tieneSubsanacion = subs === true || subs === false;
   const showDoc = documentacionTramiteModalTieneContenido(draft);
   const showEdicion = tieneRestriccionesEdicion(draft);
 
-  if (!tieneResultado && !tieneSolicitudCarnet && !tieneSubsanacion && !showDoc && !showEdicion) {
+  if (!tieneResultado && !showDoc && !showEdicion) {
     return null;
   }
 
@@ -540,36 +598,6 @@ function ResultadoSeguimientoLectura({ draft }: { draft: IActuacionListItem }) {
         label="Resultado cumplimiento oficio"
         mode="view"
         value={dash(res)}
-      />
-    );
-  }
-  if (tieneSolicitudCarnet) {
-    bloques.push(
-      <CrudFormSlot
-        key="carnet"
-        label="Solicitud carnet manipulador"
-        mode="view"
-        value={solicitaCarnet ? "Sí" : "No"}
-      />
-    );
-    if (solicitaCarnet && telCarnet) {
-      bloques.push(
-        <CrudFormSlot
-          key="tel-carnet"
-          label="Teléfono contacto solicitud carnet"
-          mode="view"
-          value={telCarnet}
-        />
-      );
-    }
-  }
-  if (tieneSubsanacion) {
-    bloques.push(
-      <CrudFormSlot
-        key="subs"
-        label="Faltas notificadas subsanadas"
-        mode="view"
-        value={subs ? "Sí" : "No"}
       />
     );
   }
@@ -823,22 +851,26 @@ function BloqueEvidenciasEpicollect({ draft, embedded }: { draft: IActuacionList
   );
 }
 
-function ActaSeguimientoGestionEdicion({
+function ActaSeguimientoGestionFields({
   draft,
   onDraftChange,
   fieldErrors,
   saving,
+  readOnly,
 }: {
   draft: IActuacionListItem;
-  onDraftChange: (patch: Partial<IActuacionListItem> | IActuacionListItem) => void;
+  onDraftChange?: (patch: Partial<IActuacionListItem> | IActuacionListItem) => void;
   fieldErrors: Record<string, string>;
   saving: boolean;
+  readOnly: boolean;
 }) {
   const policy = draft.ui_policy;
   const showCarnet = Boolean(policy?.mostrar_solicitud_carnet_manipulador);
   const showSubs = Boolean(policy?.mostrar_subsanacion_notificacion);
   if (!showCarnet && !showSubs) return null;
-  if (!policy?.puede_editar_seguimiento) return null;
+
+  const puedeEditar = Boolean(policy?.puede_editar_seguimiento);
+  const controlsEnabled = !readOnly && puedeEditar && !saving;
 
   const merged = mergeActuacionSeguimientoFromApiRow(draft);
   const solicitaUi = boolToSolicitaCarnetUi(merged.solicita_carnet_manipulador);
@@ -854,8 +886,12 @@ function ActaSeguimientoGestionEdicion({
     telefonoCarnet?: string;
     faltasSubsanadas?: "" | "si" | "no";
   }) => {
+    if (!onDraftChange || readOnly || !puedeEditar) return;
     const base = gestionSeguimientoDraftFromRow(draft);
     const next = { ...base, ...partial };
+    if (partial.solicitaCarnet === "no") {
+      next.telefonoCarnet = "";
+    }
     onDraftChange(applyGestionSeguimientoDraftToRow(draft, next));
   };
 
@@ -875,8 +911,9 @@ function ActaSeguimientoGestionEdicion({
             exclusive
             size="small"
             value={solicitaUi}
-            disabled={saving}
+            disabled={!controlsEnabled}
             onChange={(_e, v: "" | "si" | "no" | null) => {
+              if (!controlsEnabled) return;
               const next = v ?? "";
               patchSeguimiento({
                 solicitaCarnet: next,
@@ -892,7 +929,7 @@ function ActaSeguimientoGestionEdicion({
               {fe("solicita_carnet_manipulador")}
             </Typography>
           ) : null}
-          {solicitaUi === "si" ? (
+          {solicitaUi === "si" || (readOnly && tel) ? (
             <AppTextField
               appearance="glass"
               label="Teléfono de contacto del personal solicitante"
@@ -900,8 +937,8 @@ function ActaSeguimientoGestionEdicion({
               onChange={(e) => patchSeguimiento({ telefonoCarnet: e.target.value })}
               fullWidth
               sx={{ mt: 1.5 }}
-              disabled={saving}
-              inputProps={{ maxLength: 32 }}
+              disabled={!controlsEnabled}
+              inputProps={{ maxLength: 32, readOnly: readOnly || !controlsEnabled }}
               error={Boolean(fe("telefono_contacto_solicitud_carnet"))}
               helperText={fe("telefono_contacto_solicitud_carnet") || undefined}
             />
@@ -928,8 +965,9 @@ function ActaSeguimientoGestionEdicion({
             exclusive
             size="small"
             value={subsUi}
-            disabled={saving}
+            disabled={!controlsEnabled}
             onChange={(_e, v: "" | "si" | "no" | null) => {
+              if (!controlsEnabled) return;
               patchSeguimiento({ faltasSubsanadas: v ?? "" });
             }}
           >
@@ -956,6 +994,7 @@ export function ActuacionDetalleDialog({
   draft,
   fieldErrors,
   saving,
+  detailLoading = false,
   catalogs,
   readOnlyColumns,
   canEdit = true,
@@ -976,6 +1015,7 @@ export function ActuacionDetalleDialog({
   const [epicollectOtrosExpanded, setEpicollectOtrosExpanded] = useState(false);
   const [inspectoresAddInput, setInspectoresAddInput] = useState("");
   const [oficioFieldErrors, setOficioFieldErrors] = useState<Record<string, string>>({});
+  const [seguimientoFieldErrors, setSeguimientoFieldErrors] = useState<Record<string, string>>({});
   const oficioForm = useReinspeccionOficioFormState({ mode: "edit", initialRow: draft });
   const resetOficioFormFromRow = oficioForm.resetFromRow;
 
@@ -1225,6 +1265,14 @@ export function ActuacionDetalleDialog({
       }
     }
 
+    const segErrors = validateGestionSeguimientoFields(rowForSubmit);
+    if (Object.keys(segErrors).length > 0) {
+      setSeguimientoFieldErrors(segErrors);
+      feedback.warning("Revise los datos de seguimiento de acta antes de guardar.");
+      return;
+    }
+    setSeguimientoFieldErrors({});
+
     await onSave(rowForSubmit, {
       oficioCorrectionApplied,
       actasClearedByOficioCorrection,
@@ -1364,6 +1412,7 @@ export function ActuacionDetalleDialog({
     return (
     <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Ficha de la actuación">
       <DocumentalBloque overline="Domicilio y establecimiento">
+        <BloqueDomicilioContribuyenteContexto draft={draft} />
         <Box sx={{ ...edicionGrid2ColSx, ...edicionGapBloqueAPrimerControlSx }}>
           <CrudFormSlot label="Calle" mode="view" value={dash(draft.calle)} />
           <CrudFormSlot label="Número o referencia" mode="view" value={dash(draft.numero)} />
@@ -1430,6 +1479,17 @@ export function ActuacionDetalleDialog({
             draft={draft}
             catalog={catalogs.itemsActaInspeccion ?? []}
             lockedNotif={draft.notificacion_editable === false}
+          />
+        </DocumentalBloque>
+      ) : null}
+
+      {gestionSeguimientoBloqueVisible(draft) ? (
+        <DocumentalBloque overline="Seguimiento de acta">
+          <ActaSeguimientoGestionFields
+            draft={draft}
+            fieldErrors={fieldErrors}
+            saving={saving}
+            readOnly
           />
         </DocumentalBloque>
       ) : null}
@@ -1637,6 +1697,7 @@ export function ActuacionDetalleDialog({
     return (
       <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Edición de la actuación">
         <DocumentalBloque overline="Domicilio y establecimiento">
+          <BloqueDomicilioContribuyenteContexto draft={draft} />
           {!canDom && domicilioBloqueoMotivo ? (
             <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.65)", mb: 1 }}>
               {domicilioBloqueoMotivo}
@@ -1878,12 +1939,6 @@ export function ActuacionDetalleDialog({
                 items: e("items_acta_inspeccion"),
               }}
             />
-            <ActaSeguimientoGestionEdicion
-              draft={draft}
-              onDraftChange={onDraftChange}
-              fieldErrors={fieldErrors}
-              saving={saving}
-            />
             </>
             ) : null}
 
@@ -1978,6 +2033,18 @@ export function ActuacionDetalleDialog({
             ) : null}
           </Box>
         </DocumentalBloque>
+        ) : null}
+
+        {gestionSeguimientoBloqueVisible(draft) ? (
+          <DocumentalBloque overline="Seguimiento de acta">
+            <ActaSeguimientoGestionFields
+              draft={draft}
+              onDraftChange={onDraftChange}
+              fieldErrors={{ ...fieldErrors, ...seguimientoFieldErrors }}
+              saving={saving}
+              readOnly={false}
+            />
+          </DocumentalBloque>
         ) : null}
 
         {muestraOficioResultadoEditable && oficioFormCtx ? (
@@ -2104,6 +2171,7 @@ export function ActuacionDetalleDialog({
     applyMotivosNotificacion,
     applyInspectoresNombres,
     saving,
+    seguimientoFieldErrors,
   ]);
 
   return (
@@ -2128,8 +2196,8 @@ export function ActuacionDetalleDialog({
           mode={isEditing ? "edit" : "view"}
           onEdit={canEdit ? handleStartEditing : undefined}
           onSave={handleSaveClick}
-          loading={saving}
-          canEdit={canEdit}
+          loading={saving || detailLoading}
+          canEdit={canEdit && !detailLoading}
           saveLabel="Guardar cambios"
           extraActions={
             <AppButton dsVariant="ghost" dsSize="sm" onClick={handlePrint} disabled={saving}>
@@ -2139,7 +2207,25 @@ export function ActuacionDetalleDialog({
         />
       }
     >
-      {!isEditing ? detalleVista : edicionVista}
+      <Box sx={{ position: "relative" }}>
+        {!isEditing ? detalleVista : edicionVista}
+        {detailLoading ? (
+          <Box
+            sx={{
+              position: "absolute",
+              inset: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              bgcolor: "rgba(0,0,0,0.35)",
+              borderRadius: 1,
+              zIndex: 2,
+            }}
+          >
+            <CircularProgress size={32} sx={{ color: COLORS.primary }} />
+          </Box>
+        ) : null}
+      </Box>
     </CrudGlassDialog>
   );
 }

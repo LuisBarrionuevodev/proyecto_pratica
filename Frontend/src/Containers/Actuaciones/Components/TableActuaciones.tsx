@@ -600,7 +600,8 @@ const TablaActuaciones = ({
           open
           draft={editDraft}
           fieldErrors={rowErrors[editDraft.id] ?? EMPTY_ACTUACION_FIELD_ERRORS}
-          saving={editSaving || editDetalleLoading}
+          saving={editSaving}
+          detailLoading={editDetalleLoading}
           catalogs={catalogs}
           readOnlyColumns={readOnlyColumns}
           numeroEditorLabel={numeroEditorLabel}

@@ -15,6 +15,22 @@ export interface IActuacionSeguimientoDetalle {
   notificacion_origen_numero?: string | null;
 }
 
+/** Solo en GET `/actuaciones/:id/gestion` (contexto readonly del modal). */
+export interface IActuacionGestionDomicilioDetalle {
+  calle?: string | null;
+  numero?: string | null;
+  esquina?: string | null;
+}
+
+export interface IActuacionGestionRubroDetalle {
+  nombre?: string | null;
+}
+
+export interface IActuacionGestionContribuyenteDetalle {
+  apellido?: string | null;
+  nombre?: string | null;
+}
+
 /**
  * Tipo completo para una actuación (formato grid con todas las columnas)
  */
@@ -52,6 +68,9 @@ export interface IActuacionListItem {
   faltas_notificacion_subsanadas?: boolean | null;
   ui_policy?: IActuacionGestionUiPolicy | null;
   seguimiento?: IActuacionSeguimientoDetalle | null;
+  domicilio?: IActuacionGestionDomicilioDetalle | null;
+  rubro?: IActuacionGestionRubroDetalle | null;
+  contribuyente?: IActuacionGestionContribuyenteDetalle | null;
   /** Verificar e informar: true/false; null en ratificaciones. */
   realizo_nueva_inspeccion?: boolean | null;
     doc_nro: string | null;
