@@ -48,7 +48,6 @@ export async function uploadSingleQueuedFile(
   const sha256 = await sha256HexFromFile(item.file);
   const body: UploadIntentBody = {
     categoria: item.categoria,
-    tipo_documento: item.tipoDocumento,
     filename: item.file.name,
     content_type: contentType,
     byte_size: item.file.size,

@@ -2108,19 +2108,19 @@ export function CompletarTrabajoModal({
       <CompletarBloque title="Archivos del trabajo">
         <Stack spacing={2}>
           <MediaUploadSection
-            categoria="FOTO_ACTA"
-            items={mediaQueues.fotoActa.items}
-            onAddFiles={(files, tipo) => mediaQueues.fotoActa.addFiles(files, tipo)}
-            onRemove={mediaQueues.fotoActa.removeItem}
-            onRetry={(id) => void mediaQueues.fotoActa.retryItem(id)}
+            categoria="FOTO_DOCUMENTACION_LOCAL"
+            items={mediaQueues.fotoDoc.items}
+            onAddFiles={(files) => mediaQueues.fotoDoc.addFiles(files)}
+            onRemove={mediaQueues.fotoDoc.removeItem}
+            onRetry={(id) => void mediaQueues.fotoDoc.retryItem(id)}
             disabled={saving}
           />
           <MediaUploadSection
-            categoria="FOTO_DOCUMENTACION_LOCAL"
-            items={mediaQueues.fotoDoc.items}
-            onAddFiles={(files, tipo) => mediaQueues.fotoDoc.addFiles(files, tipo)}
-            onRemove={mediaQueues.fotoDoc.removeItem}
-            onRetry={(id) => void mediaQueues.fotoDoc.retryItem(id)}
+            categoria="FOTO_ACTA"
+            items={mediaQueues.fotoActa.items}
+            onAddFiles={(files) => mediaQueues.fotoActa.addFiles(files)}
+            onRemove={mediaQueues.fotoActa.removeItem}
+            onRetry={(id) => void mediaQueues.fotoActa.retryItem(id)}
             disabled={saving}
           />
         </Stack>

@@ -23,7 +23,7 @@ export function useMediaCategoryQueue(categoria: MediaCategoria1A) {
   const [items, setItems] = useState<MediaQueuedFile[]>([]);
 
   const addFiles = useCallback(
-    (files: FileList | File[], tipoDocumento: string | null, serverCount = 0) => {
+    (files: FileList | File[], serverCount = 0) => {
       const list = Array.from(files);
       setItems((prev) => {
         const next = [...prev];
@@ -37,7 +37,7 @@ export function useMediaCategoryQueue(categoria: MediaCategoria1A) {
               localId: newLocalId(),
               file,
               categoria,
-              tipoDocumento,
+              tipoDocumento: null,
               phase: "error",
               progressPct: 0,
               errorMessage: err,
@@ -50,7 +50,7 @@ export function useMediaCategoryQueue(categoria: MediaCategoria1A) {
             localId: newLocalId(),
             file,
             categoria,
-            tipoDocumento,
+            tipoDocumento: null,
             phase: "pending",
             progressPct: 0,
             errorMessage: null,

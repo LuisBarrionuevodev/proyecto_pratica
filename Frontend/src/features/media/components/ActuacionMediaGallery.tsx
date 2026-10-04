@@ -12,6 +12,7 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { deleteArchivo, getRutaItemArchivos } from "../../../api/mediaApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import {
+  MEDIA_CATEGORY_HINTS,
   MEDIA_CATEGORY_LABELS,
   MEDIA_CATEGORY_MAX,
   MEDIA_CATEGORIA_FOTO_ACTA,
@@ -116,12 +117,21 @@ function CategoryBlock({
 
   return (
     <Box>
-      <Typography variant="subtitle2" sx={{ color: GLASS_COLORS.textPrimary, mb: 0.5 }}>
-        {MEDIA_CATEGORY_LABELS[categoria]}{" "}
-        <Typography component="span" variant="caption" sx={{ color: GLASS_COLORS.textMuted }}>
-          {serverItems.length} / {MEDIA_CATEGORY_MAX[categoria]}
-        </Typography>
-      </Typography>
+      {readOnly ? (
+        <Box sx={{ mb: 1 }}>
+          <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+            <Typography variant="subtitle2" sx={{ color: GLASS_COLORS.textPrimary }}>
+              {MEDIA_CATEGORY_LABELS[categoria]}
+            </Typography>
+            <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted }}>
+              {serverItems.length} / {MEDIA_CATEGORY_MAX[categoria]}
+            </Typography>
+          </Stack>
+          <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted, fontStyle: "italic", mt: 0.25 }}>
+            {MEDIA_CATEGORY_HINTS[categoria]}
+          </Typography>
+        </Box>
+      ) : null}
       <GalleryTiles items={serverItems} onOpen={setPreview} />
       {!readOnly ? (
         <>
@@ -129,7 +139,7 @@ function CategoryBlock({
             categoria={categoria}
             items={queue.items}
             serverCount={serverItems.length}
-            onAddFiles={(files, tipo) => queue.addFiles(files, tipo, serverItems.length)}
+            onAddFiles={(files) => queue.addFiles(files, serverItems.length)}
             onRemove={queue.removeItem}
             onRetry={(id) => {
               void queue.retryItem(id);

@@ -37,6 +37,14 @@ export const MEDIA_CATEGORY_LABELS: Record<MediaCategoria1A, string> = {
   [MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL]: "Fotos de la documentación del local",
 };
 
+/** Texto orientativo bajo el título; no restringe tipos de archivo. */
+export const MEDIA_CATEGORY_HINTS: Record<MediaCategoria1A, string> = {
+  [MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL]:
+    "Habilitación, carnet de desinfección, carnet de sanidad, remito de decomiso, etc.",
+  [MEDIA_CATEGORIA_FOTO_ACTA]:
+    "ODT, notificación, comprobación, decomiso, clausura, informe, faja, etc.",
+};
+
 export const MEDIA_CATEGORY_MAX: Record<MediaCategoria1A, number> = {
   [MEDIA_CATEGORIA_FOTO_ACTA]: MEDIA_MAX_FOTO_ACTA,
   [MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL]: MEDIA_MAX_FOTO_DOCUMENTACION_LOCAL,

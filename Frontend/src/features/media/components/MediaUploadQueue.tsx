@@ -1,4 +1,5 @@
-import { Box, Button, LinearProgress, Stack, Typography } from "@mui/material";
+import { Box, LinearProgress, Stack, Typography } from "@mui/material";
+import { AppButton } from "../../../ui";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import type { MediaQueuedFile } from "../mediaTypes";
@@ -65,14 +66,19 @@ export function MediaUploadQueue({ items, onRemove, onRetry, disabled }: Props) 
           </Box>
           <Stack direction="row" spacing={0.5}>
             {item.phase === "error" && onRetry ? (
-              <Button size="small" onClick={() => onRetry(item.localId)} disabled={disabled}>
+              <AppButton dsVariant="ghost" dsSize="sm" onClick={() => onRetry(item.localId)} disabled={disabled}>
                 Reintentar
-              </Button>
+              </AppButton>
             ) : null}
             {item.phase !== "uploading" && item.phase !== "verifying" ? (
-              <Button size="small" color="inherit" onClick={() => onRemove(item.localId)} disabled={disabled}>
+              <AppButton
+                dsVariant="danger"
+                dsSize="sm"
+                onClick={() => onRemove(item.localId)}
+                disabled={disabled}
+              >
                 Quitar
-              </Button>
+              </AppButton>
             ) : null}
           </Stack>
         </Box>

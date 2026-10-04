@@ -66,6 +66,9 @@ describe("upload flow contract", () => {
     const res = await uploadSingleQueuedFile(1, item);
     expect(res.archivoId).toBe(9);
     expect(mediaApi.postMediaUploadIntent).toHaveBeenCalled();
+    const body = vi.mocked(mediaApi.postMediaUploadIntent).mock.calls[0]?.[1] as Record<string, unknown>;
+    expect(body).toBeDefined();
+    expect("tipo_documento" in body).toBe(false);
     expect(mediaApi.postMediaComplete).toHaveBeenCalledWith(9);
     vi.unstubAllGlobals();
   });

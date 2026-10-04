@@ -353,6 +353,9 @@ describe("CompletarTrabajoModal", () => {
     );
     expect(html).toContain("Fotos de las actas");
     expect(html).toContain("Fotos de la documentación del local");
+    expect(html).toContain("comprobación, decomiso");
+    expect(html).not.toContain("Tipo de documento");
+    expect(html).toContain('dsVariant="primary"');
     expect(html).not.toContain("Foto_INSPECCION");
     expect(html).not.toMatch(/inspección.*12/i);
   });
