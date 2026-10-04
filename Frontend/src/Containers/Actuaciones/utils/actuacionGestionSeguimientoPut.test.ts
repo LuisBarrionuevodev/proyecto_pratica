@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import {
   applyGestionSeguimientoDraftToRow,
+  prepareActuacionGestionModalRow,
+  stripActuacionRowForListStorage,
   stripGestionSeguimientoDisallowedFromPut,
 } from "./actuacionGestionSeguimientoPut";
 
@@ -65,6 +67,37 @@ describe("actuacionGestionSeguimientoPut", () => {
     expect(stripped.solicita_carnet_manipulador).toBe(true);
     expect(stripped.telefono_contacto_solicitud_carnet).toBe("351");
     expect(stripped.faltas_notificacion_subsanadas).toBeUndefined();
+  });
+
+  it("prepareActuacionGestionModalRow precarga teléfono desde seguimiento", () => {
+    const detail = {
+      ...baseRow(),
+      telefono_contacto_solicitud_carnet: null,
+      ui_policy: {
+        mostrar_solicitud_carnet_manipulador: true,
+        mostrar_subsanacion_notificacion: false,
+        puede_editar_seguimiento: true,
+      },
+      seguimiento: {
+        solicita_carnet_manipulador: true,
+        telefono_contacto_solicitud_carnet: "381 123-4567",
+      },
+    } as IActuacionListItem;
+    const row = prepareActuacionGestionModalRow(detail);
+    expect(row.telefono_contacto_solicitud_carnet).toBe("381 123-4567");
+  });
+
+  it("stripActuacionRowForListStorage omite teléfono y metadatos de detalle", () => {
+    const row = {
+      ...baseRow(),
+      telefono_contacto_solicitud_carnet: "secret",
+      ui_policy: { mostrar_solicitud_carnet_manipulador: true },
+      seguimiento: { telefono_contacto_solicitud_carnet: "secret" },
+    } as IActuacionListItem;
+    const stripped = stripActuacionRowForListStorage(row);
+    expect(stripped.telefono_contacto_solicitud_carnet).toBeNull();
+    expect(stripped.ui_policy).toBeUndefined();
+    expect(stripped.seguimiento).toBeUndefined();
   });
 
   it("applyGestionSeguimientoDraftToRow respeta policy", () => {

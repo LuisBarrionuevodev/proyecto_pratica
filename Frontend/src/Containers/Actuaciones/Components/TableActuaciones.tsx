@@ -9,7 +9,10 @@ import {
   type MRT_Row,
 } from "material-react-table";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { type IActuacionListItem } from "../../../api/actuacionesListApi";
+import {
+  getActuacionGestionDetalle,
+  type IActuacionListItem,
+} from "../../../api/actuacionesListApi";
 import { deleteActuacion } from "../../../api/actuacionesApi";
 import {
   fetchInspectores,
@@ -39,6 +42,10 @@ import {
 import { ConfirmDialog } from "../../../ui";
 import { useAppFeedback } from "../../../components/feedback";
 import { submitActuacionRow } from "../utils/submitActuacionRow";
+import {
+  prepareActuacionGestionModalRow,
+  stripActuacionRowForListStorage,
+} from "../utils/actuacionGestionSeguimientoPut";
 import { notifyActuacionSaveResult } from "../utils/actuacionSaveFeedback";
 import {
   ACTUACIONES_COMPOSITE_COLUMN_IDS,
@@ -103,6 +110,7 @@ const TablaActuaciones = ({
   onAfterSave,
   readOnlyColumns = EMPTY_READ_ONLY_COLUMNS,
     exportToolbar,
+    onActuacionListPatch,
 }: TablaActuacionesProps) => {
   const [data, setData] = useState<IActuacionListItem[]>(externalData || []);
   const loading = externalLoading || false;
@@ -129,6 +137,7 @@ const TablaActuaciones = ({
   const [editDraft, setEditDraft] = useState<IActuacionListItem | null>(null);
   const [editOriginalRow, setEditOriginalRow] = useState<IActuacionListItem | null>(null);
   const [editSaving, setEditSaving] = useState(false);
+  const [editDetalleLoading, setEditDetalleLoading] = useState(false);
 
   useEffect(() => {
     if (externalData) setData(externalData);
@@ -254,6 +263,9 @@ const TablaActuaciones = ({
         }
 
         notifyActuacionSaveResult(result, feedback);
+        if (result.updatedRow) {
+          onActuacionListPatch?.(stripActuacionRowForListStorage(result.updatedRow));
+        }
         setEditDraft(null);
         setEditOriginalRow(null);
         triggerRefresh();
@@ -269,6 +281,7 @@ const TablaActuaciones = ({
     triggerRefresh,
     onBeforeSave,
     onAfterSave,
+    onActuacionListPatch,
     skipValidation,
     skipUpdate,
     feedback,
@@ -442,8 +455,26 @@ const TablaActuaciones = ({
               "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
             }}
             onClick={() => {
-              setEditDraft(domicilioRowParaEdicionCalle({ ...row.original }));
-              setEditOriginalRow({ ...row.original });
+              const id = Number(row.original.id);
+              const listRow = domicilioRowParaEdicionCalle({ ...row.original });
+              setEditDraft(listRow);
+              setEditOriginalRow(listRow);
+              setEditDetalleLoading(true);
+              void getActuacionGestionDetalle(id)
+                .then((detail) => {
+                  const modalRow = domicilioRowParaEdicionCalle(
+                    prepareActuacionGestionModalRow(detail)
+                  );
+                  setEditDraft(modalRow);
+                  setEditOriginalRow(modalRow);
+                })
+                .catch((err: unknown) => {
+                  console.error("Error cargando detalle de actuación:", err);
+                  feedback.error("No se pudo cargar el detalle de la actuación.");
+                  setEditDraft(null);
+                  setEditOriginalRow(null);
+                })
+                .finally(() => setEditDetalleLoading(false));
             }}
           >
             <VisibilityIcon />
@@ -466,7 +497,7 @@ const TablaActuaciones = ({
         )}
       </Box>
     ),
-    [hideDeleteAction]
+    [hideDeleteAction, feedback]
   );
 
   const renderTopToolbarCustomActionsCb = useCallback(
@@ -569,7 +600,7 @@ const TablaActuaciones = ({
           open
           draft={editDraft}
           fieldErrors={rowErrors[editDraft.id] ?? EMPTY_ACTUACION_FIELD_ERRORS}
-          saving={editSaving}
+          saving={editSaving || editDetalleLoading}
           catalogs={catalogs}
           readOnlyColumns={readOnlyColumns}
           numeroEditorLabel={numeroEditorLabel}

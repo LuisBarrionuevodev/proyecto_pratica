@@ -259,7 +259,7 @@ export function applyActuacionErrorsFromApi(err: unknown): FormErrorsFromApi {
 }
 
 export type SubmitActuacionRowResult =
-  | { ok: true; correccionCierre?: boolean }
+  | { ok: true; correccionCierre?: boolean; updatedRow?: IActuacionListItem }
   | { ok: false; kind: "validation"; fieldErrors: Record<string, string>; globalMessage?: string | null }
   | { ok: false; kind: "backend_fields"; fieldErrors: Record<string, string>; globalMessage?: string | null }
   | { ok: false; kind: "reingreso_blocked"; message: string }
@@ -441,7 +441,16 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
           await postQuitarActaCanalActas(id, tipo);
         }
       }
-      await updateActuacion(id, rowWithInspectores as any);
+      const updatedRow = (await updateActuacion(
+        id,
+        rowWithInspectores as any
+      )) as IActuacionListItem;
+
+      if (onAfterSave) {
+        await onAfterSave(rowWithInspectores);
+      }
+
+      return { ok: true, correccionCierre, updatedRow };
     }
 
     if (onAfterSave) {

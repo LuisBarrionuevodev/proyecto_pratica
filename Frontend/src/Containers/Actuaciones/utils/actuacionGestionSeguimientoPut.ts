@@ -50,6 +50,24 @@ export function mergeActuacionSeguimientoFromApiRow(
   };
 }
 
+/** Fila lista para el modal tras GET `/gestion` (domicilio editable + seguimiento en draft). */
+export function prepareActuacionGestionModalRow(
+  detail: IActuacionListItem
+): IActuacionListItem {
+  return mergeActuacionSeguimientoFromApiRow(detail);
+}
+
+/** Quita datos sensibles/de detalle antes de fusionar en la grilla. */
+export function stripActuacionRowForListStorage(
+  row: IActuacionListItem
+): IActuacionListItem {
+  const copy: Record<string, unknown> = { ...row };
+  delete copy.ui_policy;
+  delete copy.seguimiento;
+  copy.telefono_contacto_solicitud_carnet = null;
+  return copy as unknown as IActuacionListItem;
+}
+
 export function gestionSeguimientoDraftFromRow(row: IActuacionListItem): {
   solicitaCarnet: SolicitaCarnetUiValue;
   telefonoCarnet: string;

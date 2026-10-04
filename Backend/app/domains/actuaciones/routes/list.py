@@ -18,12 +18,6 @@ from app.domains.actuaciones.presenters.actuacion_presenters import (
     build_actuacion_grid_batch_maps,
     build_iniciador_ruta_por_actuacion_id,
 )
-from app.domains.actuaciones.presenters.actuacion_gestion_seguimiento_presenter import (
-    enrich_actuacion_grid_row_gestion_detalle,
-)
-from app.domains.actuaciones.services.actuaciones_actuacion_inspector_scope import (
-    assert_inspector_puede_acceder_actuacion,
-)
 from app.domains.actuaciones.services.actuacion_reencolado_service import (
     build_actuacion_editable_flags_por_actuacion_id,
 )
@@ -85,8 +79,6 @@ def listar_actuaciones():
 
         # Validar con Pydantic
         filters = ActuacionesListFilters.model_validate(params)
-        if filters.actuacion_id is not None:
-            assert_inspector_puede_acceder_actuacion(int(filters.actuacion_id))
 
         # Ejecutar query
         result = listar_actuaciones_con_filtros(filters)
@@ -98,27 +90,17 @@ def listar_actuaciones():
         iniciador_map = build_iniciador_ruta_por_actuacion_id(act_ids)
         batch = build_actuacion_grid_batch_maps(items_raw, iniciador_map)
         editable_map = build_actuacion_editable_flags_por_actuacion_id(act_ids)
-        detalle_individual = filters.actuacion_id is not None and len(items_raw) == 1
-        expose_tel = detalle_individual
-        items_dto = []
-        for act in items_raw:
-            row = actuacion_to_grid_row(
+        items_dto = [
+            actuacion_to_grid_row(
                 act,
                 counts_by_eo=counts_by_eo,
                 iniciador_desde_ruta=iniciador_map.get(int(act.id)),
                 batch=batch,
                 editable_override=editable_map.get(int(act.id)),
-                expose_telefono_solicitud_carnet=expose_tel,
+                expose_telefono_solicitud_carnet=False,
             )
-            if detalle_individual:
-                row = enrich_actuacion_grid_row_gestion_detalle(
-                    row,
-                    act,
-                    iniciador_map.get(int(act.id)),
-                    batch,
-                    include_telefono_en_seguimiento=True,
-                )
-            items_dto.append(row)
+            for act in items_raw
+        ]
         
         return jsonify({
             "items": items_dto,

@@ -7,6 +7,7 @@ actuacion = Blueprint("actuaciones", __name__)
 # Registrar endpoints (side-effect imports)
 from . import create  # noqa: E402,F401
 from . import update  # noqa: E402,F401
+from . import gestion_detalle  # noqa: E402,F401
 from . import delete  # noqa: E402,F401
 from . import list  # noqa: E402,F401
 from . import search  # noqa: E402,F401

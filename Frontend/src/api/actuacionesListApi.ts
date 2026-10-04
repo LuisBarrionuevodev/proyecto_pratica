@@ -267,6 +267,16 @@ export const getActuacionesFiltered = async (
     return data;
 };
 
+/** Detalle autorizado de Gestión (modal ver/editar): incluye `ui_policy` y `seguimiento` con teléfono. */
+export async function getActuacionGestionDetalle(
+    actuacionId: number
+): Promise<IActuacionListItem> {
+    const { data } = await apiClient.get<IActuacionListItem>(
+        `/actuaciones/${actuacionId}/gestion`
+    );
+    return data;
+}
+
 export const ACTA_CANAL_QUITAR_TIPOS = ["INSPECCION", "NOTIFICACION", "COMPROBACION", "CLAUSURA", "DECOMISO"] as const;
 export type ActaCanalQuitarTipo = (typeof ACTA_CANAL_QUITAR_TIPOS)[number];
 
