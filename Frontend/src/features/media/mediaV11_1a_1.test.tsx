@@ -48,9 +48,9 @@ describe("HOTFIX MEDIA.1A.1", () => {
     );
     expect(html).not.toContain("Tipo de documento");
     expect(html).toContain("Seleccionar archivos");
-    expect(html).toContain('dsVariant="primary"');
+    expect(html).toContain("MuiButton-containedPrimary");
     expect(html).toContain("Quitar");
-    expect(html).toContain('dsVariant="danger"');
+    expect(html).toContain("MuiButton-containedError");
     expect(html).toContain(MEDIA_CATEGORY_HINTS.FOTO_ACTA);
   });
 

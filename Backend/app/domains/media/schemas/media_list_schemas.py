@@ -21,10 +21,11 @@ class ArchivoListItemOut(BaseModel):
 
 
 class RutaItemArchivosListOut(BaseModel):
-    """Listado autorizado por categorías Media.1A."""
+    """Listado autorizado por categorías de galería RutaItem."""
 
     foto_acta: list[ArchivoListItemOut]
     foto_documentacion_local: list[ArchivoListItemOut]
+    foto_inspeccion: list[ArchivoListItemOut]
 
 
 class ArchivoDeleteOut(BaseModel):

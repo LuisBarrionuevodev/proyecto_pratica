@@ -43,6 +43,19 @@ def validate_content_type_allowed(content_type: str) -> str:
     return ct
 
 
+def validate_image_content_type(content_type: str) -> str:
+    """
+    Valida MIME permitido para fotos de inspección (solo imágenes).
+
+    Errores:
+        ValueError: MIME no permitido.
+    """
+    ct = (content_type or "").strip().lower()
+    if ct not in IMAGE_CONTENT_TYPES:
+        raise ValueError("content_type no permitido para fotos de inspección.")
+    return ct
+
+
 def max_bytes_for_content_type(content_type: str, *, max_image: int, max_document: int) -> int:
     """Devuelve el límite de bytes según PDF vs imagen."""
     if content_type == PDF_CONTENT_TYPE:

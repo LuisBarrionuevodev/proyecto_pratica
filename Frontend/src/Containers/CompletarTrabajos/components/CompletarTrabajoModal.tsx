@@ -2131,6 +2131,14 @@ export function CompletarTrabajoModal({
             onRetry={(id) => void mediaQueues.fotoActa.retryItem(id)}
             disabled={saving}
           />
+          <MediaUploadSection
+            categoria="FOTO_INSPECCION"
+            items={mediaQueues.fotoInspeccion.items}
+            onAddFiles={(files) => mediaQueues.fotoInspeccion.addFiles(files)}
+            onRemove={mediaQueues.fotoInspeccion.removeItem}
+            onRetry={(id) => void mediaQueues.fotoInspeccion.retryItem(id)}
+            disabled={saving}
+          />
         </Stack>
       </CompletarBloque>
       <CompletarBloque title="Observaciones">

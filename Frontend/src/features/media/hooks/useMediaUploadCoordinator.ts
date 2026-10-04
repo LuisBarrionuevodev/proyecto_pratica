@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   MEDIA_CATEGORIA_FOTO_ACTA,
   MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
-  type MediaCategoria1A,
+  MEDIA_CATEGORIA_FOTO_INSPECCION,
+  type MediaCategoria,
 } from "../mediaConstants";
 import { validateLocalMediaFile } from "../mediaFileValidation";
 import type { MediaQueuedFile } from "../mediaTypes";
@@ -44,7 +45,7 @@ export function useMediaUploadCoordinator() {
   }, [items]);
 
   const getItems = useCallback(
-    (categoria: MediaCategoria1A) => items.filter((x) => x.categoria === categoria),
+    (categoria: MediaCategoria) => items.filter((x) => x.categoria === categoria),
     [items]
   );
 
@@ -61,7 +62,7 @@ export function useMediaUploadCoordinator() {
   }, []);
 
   const addFiles = useCallback(
-    (categoria: MediaCategoria1A, files: FileList | File[], serverCount = 0) => {
+    (categoria: MediaCategoria, files: FileList | File[], serverCount = 0) => {
       const list = Array.from(files);
       setItems((prev) => {
         const next = [...prev];
@@ -196,7 +197,7 @@ export function useMediaUploadCoordinator() {
   };
 }
 
-/** Colas de Completar trabajo (documentación + actas). */
+/** Colas de Completar trabajo (documentación, actas e inspección). */
 export function useCompletarTrabajoMediaQueues() {
   const coord = useMediaUploadCoordinator();
 
@@ -212,6 +213,13 @@ export function useCompletarTrabajoMediaQueues() {
       items: coord.getItems(MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL),
       addFiles: (files: FileList | File[], serverCount = 0) =>
         coord.addFiles(MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL, files, serverCount),
+      removeItem: coord.removeItem,
+      retryItem: coord.retryItem,
+    },
+    fotoInspeccion: {
+      items: coord.getItems(MEDIA_CATEGORIA_FOTO_INSPECCION),
+      addFiles: (files: FileList | File[], serverCount = 0) =>
+        coord.addFiles(MEDIA_CATEGORIA_FOTO_INSPECCION, files, serverCount),
       removeItem: coord.removeItem,
       retryItem: coord.retryItem,
     },

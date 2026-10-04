@@ -339,7 +339,7 @@ describe("CompletarTrabajoModal", () => {
     expect(html).not.toContain("N° acta de notificación");
   });
 
-  it("MEDIA.1A: dos galerías de carga sin inspección", () => {
+  it("MEDIA.1B: tres galerías de carga sin selector de tipo", () => {
     const html = render(
       <CompletarTrabajoModal
         open
@@ -353,11 +353,11 @@ describe("CompletarTrabajoModal", () => {
     );
     expect(html).toContain("Fotos de las actas");
     expect(html).toContain("Fotos de la documentación del local");
+    expect(html).toContain("Fotos de la inspección");
     expect(html).toContain("comprobación, decomiso");
+    expect(html).toContain("irregularidades");
     expect(html).not.toContain("Tipo de documento");
-    expect(html).toContain('dsVariant="primary"');
-    expect(html).not.toContain("Foto_INSPECCION");
-    expect(html).not.toMatch(/inspección.*12/i);
+    expect((html.match(/Seleccionar archivos/g) ?? []).length).toBe(3);
   });
 
   it("reinspección por notificación mantiene flujo sin regresión de oficio", () => {

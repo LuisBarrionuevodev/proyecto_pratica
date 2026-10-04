@@ -1,9 +1,11 @@
 import {
   MEDIA_ALLOWED_MIME,
   MEDIA_CATEGORY_MAX,
+  MEDIA_CATEGORIA_FOTO_INSPECCION,
+  MEDIA_IMAGE_MIME,
   MEDIA_MAX_IMAGE_BYTES,
   MEDIA_MAX_PDF_BYTES,
-  type MediaCategoria1A,
+  type MediaCategoria,
 } from "./mediaConstants";
 
 export function maxBytesForMime(contentType: string): number {
@@ -14,12 +16,16 @@ export function maxBytesForMime(contentType: string): number {
 
 export function validateLocalMediaFile(
   file: File,
-  categoria: MediaCategoria1A,
+  categoria: MediaCategoria,
   currentCountInCategory: number
 ): string | null {
   const ct = (file.type || "").toLowerCase();
-  if (!MEDIA_ALLOWED_MIME.has(ct)) {
-    return "Tipo de archivo no permitido (solo JPEG, PNG, WebP o PDF).";
+  const allowed =
+    categoria === MEDIA_CATEGORIA_FOTO_INSPECCION ? MEDIA_IMAGE_MIME : MEDIA_ALLOWED_MIME;
+  if (!allowed.has(ct)) {
+    return categoria === MEDIA_CATEGORIA_FOTO_INSPECCION
+      ? "Tipo de archivo no permitido (solo JPEG, PNG o WebP)."
+      : "Tipo de archivo no permitido (solo JPEG, PNG, WebP o PDF).";
   }
   const maxBytes = maxBytesForMime(ct);
   if (file.size > maxBytes) {

@@ -91,15 +91,20 @@ def test_inspector_ajeno_upload_intent_403(app, client, app_ctx, scope_fixture) 
     assert resp.status_code == 403
 
 
-def test_foto_inspeccion_rechazada_media0a(app, client, app_ctx, scope_fixture) -> None:
+def test_foto_inspeccion_intent_imagen_ok_media1b(app, client, app_ctx, scope_fixture) -> None:
     d = scope_fixture
     resp = _create_intent(
         client,
         d["item_a"].id,
         d["user_a"].id,
         categoria="FOTO_INSPECCION",
+        tipo_documento=None,
+        filename="visita.jpg",
+        content_type="image/jpeg",
+        byte_size=500,
+        sha256="c" * 64,
     )
-    assert resp.status_code == 422
+    assert resp.status_code == 201
 
 
 def test_mime_no_permitido_422(app, client, app_ctx, scope_fixture) -> None:

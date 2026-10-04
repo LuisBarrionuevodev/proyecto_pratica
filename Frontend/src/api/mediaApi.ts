@@ -1,13 +1,13 @@
 import { apiClient } from "./apiClient";
 import type {
-  MediaCategoria1A,
+  MediaCategoria,
   TIPOS_DOCUMENTO_FOTO_ACTA,
   TIPOS_DOCUMENTO_FOTO_LOCAL,
 } from "../features/media/mediaConstants";
 import type { RutaItemArchivosListResponse } from "../features/media/mediaTypes";
 
 export type UploadIntentBody = {
-  categoria: MediaCategoria1A | "FOTO_INSPECCION";
+  categoria: MediaCategoria;
   tipo_documento?: string | null;
   filename: string;
   content_type: string;

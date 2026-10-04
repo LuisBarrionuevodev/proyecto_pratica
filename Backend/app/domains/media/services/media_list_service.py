@@ -9,6 +9,8 @@ from app.domains.actuaciones.services.completar_trabajo_ruta_item_access import 
 from app.domains.media.constants import (
     CATEGORIA_FOTO_ACTA,
     CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
+    CATEGORIA_FOTO_INSPECCION,
+    CATEGORIAS_MEDIA_HABILITADAS,
 )
 from app.domains.media.schemas.media_list_schemas import (
     ArchivoListItemOut,
@@ -19,7 +21,7 @@ from app.models import Archivo, RutaItemArchivo
 
 def listar_archivos_ruta_item(ruta_item_id: int) -> RutaItemArchivosListOut:
     """
-    Devuelve archivos READY no eliminados agrupados por categoría Media.1A.
+    Devuelve archivos READY no eliminados agrupados por categoría de galería RutaItem.
 
     Parámetros:
         ruta_item_id: ítem ancla.
@@ -38,15 +40,14 @@ def listar_archivos_ruta_item(ruta_item_id: int) -> RutaItemArchivosListOut:
             RutaItemArchivo.ruta_item_id == int(ruta_item_id),
             Archivo.status == "READY",
             Archivo.deleted_at.is_(None),
-            RutaItemArchivo.categoria.in_(
-                (CATEGORIA_FOTO_ACTA, CATEGORIA_FOTO_DOCUMENTACION_LOCAL)
-            ),
+            RutaItemArchivo.categoria.in_(tuple(CATEGORIAS_MEDIA_HABILITADAS)),
         )
         .order_by(Archivo.uploaded_at.asc(), Archivo.id.asc())
         .all()
     )
     foto_acta: list[ArchivoListItemOut] = []
     foto_doc: list[ArchivoListItemOut] = []
+    foto_inspeccion: list[ArchivoListItemOut] = []
     for link, arch in rows:
         if arch.uploaded_at is None:
             continue
@@ -61,9 +62,12 @@ def listar_archivos_ruta_item(ruta_item_id: int) -> RutaItemArchivosListOut:
         )
         if link.categoria == CATEGORIA_FOTO_ACTA:
             foto_acta.append(item)
-        else:
+        elif link.categoria == CATEGORIA_FOTO_DOCUMENTACION_LOCAL:
             foto_doc.append(item)
+        elif link.categoria == CATEGORIA_FOTO_INSPECCION:
+            foto_inspeccion.append(item)
     return RutaItemArchivosListOut(
         foto_acta=foto_acta,
         foto_documentacion_local=foto_doc,
+        foto_inspeccion=foto_inspeccion,
     )

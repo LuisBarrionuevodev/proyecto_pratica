@@ -80,12 +80,12 @@ def test_delete_ajeno_403(app, client, app_ctx, scope_fixture) -> None:
     assert resp.status_code == 403
 
 
-def test_foto_inspeccion_upload_sigue_rechazada(app, client, app_ctx, scope_fixture) -> None:
+def test_list_incluye_foto_inspeccion_vacio(app, client, app_ctx, scope_fixture) -> None:
     d = scope_fixture
-    resp = _create_intent(
-        client,
-        d["item_a"].id,
-        d["user_a"].id,
-        categoria="FOTO_INSPECCION",
+    resp = client.get(
+        f"/ruta-items/{d['item_a'].id}/archivos",
+        headers=_auth_headers(d["user_a"].id),
     )
-    assert resp.status_code == 422
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["foto_inspeccion"] == []

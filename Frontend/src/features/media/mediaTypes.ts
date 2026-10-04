@@ -1,4 +1,4 @@
-import type { MediaCategoria1A } from "./mediaConstants";
+import type { MediaCategoria } from "./mediaConstants";
 
 export type MediaUploadFilePhase =
   | "pending"
@@ -11,7 +11,7 @@ export type MediaUploadFilePhase =
 export type MediaQueuedFile = {
   localId: string;
   file: File;
-  categoria: MediaCategoria1A;
+  categoria: MediaCategoria;
   tipoDocumento: string | null;
   phase: MediaUploadFilePhase;
   progressPct: number;
@@ -27,12 +27,13 @@ export type MediaArchivoListItem = {
   byte_size: number;
   uploaded_at: string;
   tipo_documento?: string | null;
-  categoria: MediaCategoria1A;
+  categoria: MediaCategoria;
 };
 
 export type RutaItemArchivosListResponse = {
   foto_acta: MediaArchivoListItem[];
   foto_documentacion_local: MediaArchivoListItem[];
+  foto_inspeccion: MediaArchivoListItem[];
 };
 
 export type MediaUploadProgress = {

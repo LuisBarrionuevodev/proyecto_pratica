@@ -3,9 +3,14 @@ import { Box, ImageList, Stack, Typography } from "@mui/material";
 import { deleteArchivo, getRutaItemArchivos } from "../../../api/mediaApi";
 import { useAppFeedback } from "../../../components/feedback";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
-import { MEDIA_1A_GALLERIES } from "../mediaConstants";
-import type { MediaArchivoListItem } from "../mediaTypes";
-import type { MediaCategoria1A } from "../mediaConstants";
+import {
+  MEDIA_CATEGORIA_FOTO_ACTA,
+  MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
+  MEDIA_CATEGORIA_FOTO_INSPECCION,
+  MEDIA_RUTA_ITEM_GALLERIES,
+} from "../mediaConstants";
+import type { MediaArchivoListItem, RutaItemArchivosListResponse } from "../mediaTypes";
+import type { MediaCategoria } from "../mediaConstants";
 import { useMediaUploadCoordinator } from "../hooks/useMediaUploadCoordinator";
 import { MediaPreviewDialog } from "./MediaPreviewDialog";
 import { MediaThumbnailTile } from "./MediaThumbnailTile";
@@ -19,20 +24,26 @@ type Props = {
 };
 
 function serverItemsForCategoria(
-  data: { foto_acta: MediaArchivoListItem[]; foto_documentacion_local: MediaArchivoListItem[] } | null,
-  categoria: MediaCategoria1A
+  data: RutaItemArchivosListResponse | null,
+  categoria: MediaCategoria
 ): MediaArchivoListItem[] {
   if (!data) return [];
-  return categoria === "FOTO_DOCUMENTACION_LOCAL" ? data.foto_documentacion_local : data.foto_acta;
+  switch (categoria) {
+    case MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL:
+      return data.foto_documentacion_local;
+    case MEDIA_CATEGORIA_FOTO_ACTA:
+      return data.foto_acta;
+    case MEDIA_CATEGORIA_FOTO_INSPECCION:
+      return data.foto_inspeccion;
+    default:
+      return [];
+  }
 }
 
 export function ActuacionMediaGallery({ rutaItemId, readOnly = false, hideTitle = false }: Props) {
   const feedback = useAppFeedback();
   const coordinator = useMediaUploadCoordinator();
-  const [data, setData] = useState<{
-    foto_acta: MediaArchivoListItem[];
-    foto_documentacion_local: MediaArchivoListItem[];
-  } | null>(null);
+  const [data, setData] = useState<RutaItemArchivosListResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<MediaArchivoListItem | null>(null);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -69,7 +80,7 @@ export function ActuacionMediaGallery({ rutaItemId, readOnly = false, hideTitle 
   }, [rutaItemId, coordinator, load, feedback]);
 
   const handleAddFiles = useCallback(
-    (categoria: MediaCategoria1A, files: FileList) => {
+    (categoria: MediaCategoria, files: FileList) => {
       const serverCount = serverItemsForCategoria(data, categoria).length;
       coordinator.addFiles(categoria, files, serverCount);
       queueMicrotask(() => {
@@ -124,7 +135,7 @@ export function ActuacionMediaGallery({ rutaItemId, readOnly = false, hideTitle 
           </Typography>
         ) : null}
         {error ? <Typography color="error">{error}</Typography> : null}
-        {MEDIA_1A_GALLERIES.map((gallery) => {
+        {MEDIA_RUTA_ITEM_GALLERIES.map((gallery) => {
           const serverItems = serverItemsForCategoria(data, gallery.categoria);
           const queueItems = coordinator.getItems(gallery.categoria);
           const localPending = queueItems.filter((x) => x.phase !== "ready").length;

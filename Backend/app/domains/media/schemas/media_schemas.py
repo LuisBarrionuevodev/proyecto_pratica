@@ -11,11 +11,15 @@ from app.domains.media.constants import (
     CATEGORIA_FOTO_ACTA,
     CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
     CATEGORIA_FOTO_INSPECCION,
-    CATEGORIAS_MEDIA_0A_HABILITADAS,
+    CATEGORIAS_MEDIA_HABILITADAS,
     TIPOS_DOCUMENTO_FOTO_ACTA,
     TIPOS_DOCUMENTO_FOTO_DOCUMENTACION_LOCAL,
 )
-from app.domains.media.utils.file_validation import normalize_sha256, validate_content_type_allowed
+from app.domains.media.utils.file_validation import (
+    normalize_sha256,
+    validate_content_type_allowed,
+    validate_image_content_type,
+)
 
 TipoDocumentoFotoActa = Literal["ACTA_INSPECCION", "ACTA_NOTIFICACION", "OTRO_ACTA"]
 TipoDocumentoFotoLocal = Literal[
@@ -42,8 +46,8 @@ class UploadIntentIn(BaseModel):
 
     @field_validator("content_type")
     @classmethod
-    def validate_ct(cls, v: str) -> str:
-        return validate_content_type_allowed(v)
+    def normalize_ct(cls, v: str) -> str:
+        return (v or "").strip().lower()
 
     @field_validator("sha256")
     @classmethod
@@ -52,17 +56,21 @@ class UploadIntentIn(BaseModel):
 
     @model_validator(mode="after")
     def validate_categoria_y_tipo(self) -> UploadIntentIn:
-        if self.categoria == CATEGORIA_FOTO_INSPECCION:
-            raise ValueError("FOTO_INSPECCION no está habilitada en esta versión.")
-        if self.categoria not in CATEGORIAS_MEDIA_0A_HABILITADAS:
+        if self.categoria not in CATEGORIAS_MEDIA_HABILITADAS:
             raise ValueError("categoria inválida.")
-        if self.tipo_documento is not None:
-            if self.categoria == CATEGORIA_FOTO_ACTA:
-                if self.tipo_documento not in TIPOS_DOCUMENTO_FOTO_ACTA:
-                    raise ValueError("tipo_documento no válido para FOTO_ACTA.")
-            elif self.categoria == CATEGORIA_FOTO_DOCUMENTACION_LOCAL:
-                if self.tipo_documento not in TIPOS_DOCUMENTO_FOTO_DOCUMENTACION_LOCAL:
-                    raise ValueError("tipo_documento no válido para FOTO_DOCUMENTACION_LOCAL.")
+        if self.categoria == CATEGORIA_FOTO_INSPECCION:
+            validate_image_content_type(self.content_type)
+            if self.tipo_documento is not None:
+                raise ValueError("tipo_documento no aplica a FOTO_INSPECCION.")
+        else:
+            validate_content_type_allowed(self.content_type)
+            if self.tipo_documento is not None:
+                if self.categoria == CATEGORIA_FOTO_ACTA:
+                    if self.tipo_documento not in TIPOS_DOCUMENTO_FOTO_ACTA:
+                        raise ValueError("tipo_documento no válido para FOTO_ACTA.")
+                elif self.categoria == CATEGORIA_FOTO_DOCUMENTACION_LOCAL:
+                    if self.tipo_documento not in TIPOS_DOCUMENTO_FOTO_DOCUMENTACION_LOCAL:
+                        raise ValueError("tipo_documento no válido para FOTO_DOCUMENTACION_LOCAL.")
         return self
 
 

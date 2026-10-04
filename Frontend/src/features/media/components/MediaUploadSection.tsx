@@ -6,13 +6,14 @@ import {
   MEDIA_CATEGORY_HINTS,
   MEDIA_CATEGORY_LABELS,
   MEDIA_CATEGORY_MAX,
-  type MediaCategoria1A,
+  mediaAcceptAttributeForCategoria,
+  type MediaCategoria,
 } from "../mediaConstants";
 import type { MediaQueuedFile } from "../mediaTypes";
 import { MediaUploadQueue } from "./MediaUploadQueue";
 
 type Props = {
-  categoria: MediaCategoria1A;
+  categoria: MediaCategoria;
   items: MediaQueuedFile[];
   serverCount?: number;
   onAddFiles: (files: FileList) => void;
@@ -62,7 +63,7 @@ export function MediaUploadSection({
           ref={inputRef}
           type="file"
           multiple
-          accept="image/jpeg,image/png,image/webp,application/pdf"
+          accept={mediaAcceptAttributeForCategoria(categoria)}
           hidden
           onChange={(e) => {
             const files = e.target.files;

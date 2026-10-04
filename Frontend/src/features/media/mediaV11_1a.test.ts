@@ -1,16 +1,18 @@
 import { describe, expect, it } from "vitest";
-import { MEDIA_CATEGORY_LABELS, MEDIA_CATEGORY_MAX } from "./mediaConstants";
+import { MEDIA_CATEGORY_LABELS, MEDIA_CATEGORY_MAX, MEDIA_RUTA_ITEM_GALLERIES } from "./mediaConstants";
 import { validateLocalMediaFile } from "./mediaFileValidation";
 import type { MediaQueuedFile } from "./mediaTypes";
-describe("MEDIA.1A categorías", () => {
-  it("expone solo acta y documentación local (sin inspección)", () => {
+describe("MEDIA galerías RutaItem", () => {
+  it("expone tres categorías con cupos 9, 7 y 12", () => {
     expect(Object.keys(MEDIA_CATEGORY_LABELS).sort()).toEqual([
       "FOTO_ACTA",
       "FOTO_DOCUMENTACION_LOCAL",
+      "FOTO_INSPECCION",
     ]);
     expect(MEDIA_CATEGORY_MAX.FOTO_ACTA).toBe(7);
     expect(MEDIA_CATEGORY_MAX.FOTO_DOCUMENTACION_LOCAL).toBe(9);
-    expect("FOTO_INSPECCION" in MEDIA_CATEGORY_MAX).toBe(false);
+    expect(MEDIA_CATEGORY_MAX.FOTO_INSPECCION).toBe(12);
+    expect(MEDIA_RUTA_ITEM_GALLERIES).toHaveLength(3);
   });
 });
 
@@ -21,6 +23,17 @@ describe("cola local", () => {
       expect(validateLocalMediaFile(file, "FOTO_ACTA", i)).toBeNull();
     }
     expect(validateLocalMediaFile(file, "FOTO_ACTA", 7)).toMatch(/máximo/);
+  });
+
+  it("FOTO_INSPECCION rechaza PDF", () => {
+    const pdf = new File(["%PDF"], "x.pdf", { type: "application/pdf" });
+    expect(validateLocalMediaFile(pdf, "FOTO_INSPECCION", 0)).toMatch(/solo JPEG/);
+  });
+
+  it("FOTO_INSPECCION cupo 12", () => {
+    const file = new File(["x"], "a.jpg", { type: "image/jpeg" });
+    expect(validateLocalMediaFile(file, "FOTO_INSPECCION", 11)).toBeNull();
+    expect(validateLocalMediaFile(file, "FOTO_INSPECCION", 12)).toMatch(/máximo/);
   });
 });
 
