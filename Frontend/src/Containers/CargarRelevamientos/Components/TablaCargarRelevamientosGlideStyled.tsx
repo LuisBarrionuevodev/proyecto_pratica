@@ -12,6 +12,7 @@ import DataEditor, {
 import "@glideapps/glide-data-grid/dist/index.css";
 import { allCells } from "@glideapps/glide-data-grid-cells";
 import "@glideapps/glide-data-grid-cells/dist/index.css";
+import "../styles/relevamientosGlideCatalogDark.css";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
 import { Box, Tooltip, Typography, CircularProgress, LinearProgress } from "@mui/material";
 import {
@@ -842,7 +843,10 @@ const TablaCargarRelevamientosGlideStyled = ({
             })}
           </Box>
 
-          <Box sx={{ ...gridContainerStyles, height: tableHeight, minHeight: tableHeight, position: "relative" }}>
+          <Box
+            data-relevamiento-glide-carga
+            sx={{ ...gridContainerStyles, height: tableHeight, minHeight: tableHeight, position: "relative" }}
+          >
             {overlayBusy ? (
               <Box
                 sx={{

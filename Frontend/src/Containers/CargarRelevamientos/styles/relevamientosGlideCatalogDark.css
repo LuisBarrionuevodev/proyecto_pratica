@@ -1,0 +1,19 @@
+/**
+ * Catálogos Glide (react-select) en carga de Relevamientos — solo dark.
+ * El menú se renderiza en #portal sin las CSS vars del DataEditor; usamos --d-text-primary.
+ */
+[data-theme="dark"] [data-relevamiento-glide-carga] {
+  --gdg-text-dark: var(--d-text-primary);
+  --gdg-text-medium: var(--d-text-primary);
+  --gdg-text-bubble: var(--d-text-primary);
+}
+
+[data-theme="dark"] body:has([data-relevamiento-glide-carga]) #portal {
+  --gdg-text-dark: var(--d-text-primary);
+  --gdg-text-medium: var(--d-text-primary);
+  --gdg-text-bubble: var(--d-text-primary);
+}
+
+[data-theme="dark"] body:has([data-relevamiento-glide-carga]) #portal [class^="gdg-"] {
+  color: var(--d-text-primary);
+}
