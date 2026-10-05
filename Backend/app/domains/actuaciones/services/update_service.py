@@ -506,9 +506,14 @@ def actualizar_actuacion(
         extraer_fragmento_seguimiento_gestion,
         validar_y_aplicar_seguimiento_gestion_put,
     )
+    from app.domains.actuaciones.services.ruta_item_observaciones_ejecucion_gestion_service import (
+        extraer_observaciones_ejecucion_gestion,
+        validar_y_aplicar_observaciones_ejecucion_gestion_put,
+    )
 
     assert_inspector_puede_acceder_actuacion(actuacion_id)
     seguimiento_put = extraer_fragmento_seguimiento_gestion(payload)
+    observaciones_put = extraer_observaciones_ejecucion_gestion(payload)
     assert_actuacion_editable_sin_intento_posterior(actuacion_id)
 
     from app.domains.actuaciones.services.oficio_circuito_service import (
@@ -597,6 +602,9 @@ def actualizar_actuacion(
         validar_y_aplicar_seguimiento_gestion_put(
             act, seguimiento_put, actor_user_id=uid
         )
+        validar_y_aplicar_observaciones_ejecucion_gestion_put(
+            actuacion_id, observaciones_put
+        )
         db.session.add(act)
         db.session.commit()
         if old_comprobacion_id is not None and old_comprobacion_id != act.comprobacion_id:
@@ -645,6 +653,9 @@ def actualizar_actuacion(
 
     validar_y_aplicar_seguimiento_gestion_put(
         act, seguimiento_put, actor_user_id=uid
+    )
+    validar_y_aplicar_observaciones_ejecucion_gestion_put(
+        actuacion_id, observaciones_put
     )
     db.session.add(act)
     log_stage(actuacion_id, "5_commit_inicio")

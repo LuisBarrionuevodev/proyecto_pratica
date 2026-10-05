@@ -39,6 +39,7 @@ import {
   buildGestionSeguimientoPutFields,
   stripGestionSeguimientoDisallowedFromPut,
 } from "./actuacionGestionSeguimientoPut";
+import { buildObservacionesEjecucionPutFields } from "./actuacionObservacionesVisitaPut";
 import {
   domicilioCalleCargadaEditable,
   domicilioEsTipoEsquina,
@@ -89,6 +90,7 @@ const ACTUACION_CANAL_PUT_OMIT_KEYS = [
   "domicilio",
   "rubro",
   "contribuyente",
+  "ruta_item_id",
 ] as const;
 
 /** Campos operativos de reinspección por oficio: dueños del POST `corregir-cierre-oficio`. */
@@ -394,10 +396,12 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
 
   const gestionUiPolicy = rowToSubmit.ui_policy ?? null;
   const seguimientoPutFields = buildGestionSeguimientoPutFields(rowToSubmit, gestionUiPolicy);
+  const observacionesPutFields = buildObservacionesEjecucionPutFields(rowToSubmit);
   const rowForCanal = stripGestionSeguimientoDisallowedFromPut(
     {
       ...sanitizeActuacionRowForCanalActasPut(rowToSubmit),
       ...seguimientoPutFields,
+      ...observacionesPutFields,
     },
     gestionUiPolicy
   );

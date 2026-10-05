@@ -121,6 +121,12 @@ import {
   validateGestionSeguimientoFields,
 } from "../utils/actuacionGestionSeguimientoPut";
 import {
+  OBSERVACIONES_VISITA_MAX_LENGTH,
+  canEditObservacionesVisita,
+  observacionesVisitaDisplayText,
+  validateObservacionesVisitaFields,
+} from "../utils/actuacionObservacionesVisitaPut";
+import {
   formatGestionContribuyenteNombre,
   formatGestionDomicilioLinea,
   formatGestionRubroNombre,
@@ -1272,10 +1278,17 @@ export function ActuacionDetalleDialog({
       }
     }
 
-    const segErrors = validateGestionSeguimientoFields(rowForSubmit);
+    const segErrors = {
+      ...validateGestionSeguimientoFields(rowForSubmit),
+      ...validateObservacionesVisitaFields(rowForSubmit),
+    };
     if (Object.keys(segErrors).length > 0) {
       setSeguimientoFieldErrors(segErrors);
-      feedback.warning("Revise los datos de seguimiento de acta antes de guardar.");
+      if (segErrors.observaciones_ejecucion) {
+        feedback.warning("Revise las observaciones de la visita antes de guardar.");
+      } else {
+        feedback.warning("Revise los datos de seguimiento de acta antes de guardar.");
+      }
       return;
     }
     setSeguimientoFieldErrors({});
@@ -1480,6 +1493,15 @@ export function ActuacionDetalleDialog({
         />
       </DocumentalBloque>
 
+      <DocumentalBloque overline="Observaciones de la visita">
+        <CrudFormSlot
+          label="Observaciones"
+          mode="view"
+          value={observacionesVisitaDisplayText(draft)}
+          sx={{ width: "100%" }}
+        />
+      </DocumentalBloque>
+
       {actasVisitaHayContenido(draft) ? (
         <DocumentalBloque overline="Actas labradas">
           <ActasVisitaLectura
@@ -1565,6 +1587,9 @@ export function ActuacionDetalleDialog({
       const msg = locked ? e(key) : e(key);
       return msg || "\u00a0";
     };
+    const puedeEditarObservacionesVisita = canEditObservacionesVisita(draft);
+    const obsVisitaError =
+      seguimientoFieldErrors.observaciones_ejecucion ?? e("observaciones_ejecucion");
 
     const tieneSnapshotEpicollectLectura = epicollectSnapshotLecturaHayContenido(draft);
     const gruposEvid = draft.epicollect_evidencias_grupos ?? [];
@@ -1912,6 +1937,35 @@ export function ActuacionDetalleDialog({
               />
             </Box>
           </Box>
+        </DocumentalBloque>
+
+        <DocumentalBloque overline="Observaciones de la visita">
+          {puedeEditarObservacionesVisita ? (
+            <AppTextField
+              appearance="glass"
+              label="Observaciones"
+              value={draft.observaciones_ejecucion ?? ""}
+              onChange={(ev) =>
+                onDraftChange({ observaciones_ejecucion: ev.target.value || null })
+              }
+              disabled={saving}
+              error={!!obsVisitaError}
+              helperText={obsVisitaError || "\u00a0"}
+              multiline
+              minRows={3}
+              maxRows={8}
+              inputProps={{ maxLength: OBSERVACIONES_VISITA_MAX_LENGTH }}
+              sx={{ width: "100%" }}
+              fullWidth
+            />
+          ) : (
+            <CrudFormSlot
+              label="Observaciones"
+              mode="view"
+              value={observacionesVisitaDisplayText(draft)}
+              sx={{ width: "100%" }}
+            />
+          )}
         </DocumentalBloque>
 
         {canEditActas ? (

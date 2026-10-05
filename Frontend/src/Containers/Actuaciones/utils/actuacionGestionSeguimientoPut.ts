@@ -112,6 +112,7 @@ export function stripActuacionRowForListStorage(
   delete copy.domicilio;
   delete copy.rubro;
   delete copy.contribuyente;
+  delete copy.observaciones_ejecucion;
   copy.telefono_contacto_solicitud_carnet = null;
   return copy as unknown as IActuacionListItem;
 }

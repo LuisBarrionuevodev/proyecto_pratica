@@ -245,6 +245,9 @@ class ActuacionGridRowIn(BaseModel):
     telefono_contacto_solicitud_carnet: Optional[str] = None
     faltas_notificacion_subsanadas: Optional[bool] = None
 
+    # Observaciones de la visita (RutaItem; Gestión / PUT canal actas)
+    observaciones_ejecucion: Optional[str] = Field(default=None, max_length=4000)
+
     # ---------- Normalizaciones (before) ----------
     @field_validator(
         "orden_trabajo_numero",
@@ -334,6 +337,16 @@ class ActuacionGridRowIn(BaseModel):
     @classmethod
     def normalize_telefono_seguimiento(cls, v: Any) -> Any:
         return _clean_str(v)
+
+    @field_validator("observaciones_ejecucion", mode="before")
+    @classmethod
+    def strip_observaciones_ejecucion(cls, v: object) -> object:
+        if v is None or v == "":
+            return None
+        if isinstance(v, str):
+            s = v.strip()
+            return s or None
+        return v
 
     @field_validator("cantidad_personas_sin_carnet_sanidad", mode="before")
     @classmethod

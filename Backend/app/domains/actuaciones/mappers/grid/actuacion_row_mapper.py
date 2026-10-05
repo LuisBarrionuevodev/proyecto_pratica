@@ -169,4 +169,7 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
     if "faltas_notificacion_subsanadas" in row.model_fields_set:
         payload["faltas_notificacion_subsanadas"] = row.faltas_notificacion_subsanadas
 
+    if "observaciones_ejecucion" in row.model_fields_set:
+        payload["observaciones_ejecucion"] = row.observaciones_ejecucion
+
     return payload

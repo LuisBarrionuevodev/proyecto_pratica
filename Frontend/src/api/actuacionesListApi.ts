@@ -73,6 +73,8 @@ export interface IActuacionListItem {
   contribuyente?: IActuacionGestionContribuyenteDetalle | null;
   /** Solo en GET gestión: ancla para archivos Media. */
   ruta_item_id?: number | null;
+  /** Observaciones de la visita (persistidas en RutaItem; GET gestión / PUT). */
+  observaciones_ejecucion?: string | null;
   /** Verificar e informar: true/false; null en ratificaciones. */
   realizo_nueva_inspeccion?: boolean | null;
     doc_nro: string | null;
