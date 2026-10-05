@@ -1,7 +1,12 @@
-import { Box, Button, TextField, Typography } from "@mui/material";
+import { Button, TextField, Typography } from "@mui/material";
 import { useState } from "react";
-import { BoxRecuperarContenidoStyles, ButtonRecuperarStyles, ErrorTextRecuperarStyles, InputRecuperarStyles } from "../../../styles/RecuperarCuentaStyles";
+import {
+  ButtonRecuperarStyles,
+  ErrorTextRecuperarStyles,
+  InputRecuperarStyles,
+} from "../../../styles/RecuperarCuentaStyles";
 import { apiClient } from "../../../api/apiClient";
+import { RecuperarCuentaStepShell } from "./RecuperarCuentaStepShell";
 
 interface EmailBoxProps {
   onSuccess: () => void;
@@ -18,53 +23,32 @@ const EmailBox = ({ onSuccess, setEmailGlobal }: EmailBoxProps) => {
       setError("");
       setEmailGlobal(email);
       onSuccess();
-    } catch (e) {
-      setError(
-        "No se pudo enviar el código. Verifique el correo e intente nuevamente."
-      );
+    } catch {
+      setError("No se pudo enviar el código. Verifique el correo e intente nuevamente.");
     }
   };
 
   return (
-    <Box
-      display="flex"
-      justifyContent="center"
-      alignItems="center"
-      flexDirection="column"
+    <RecuperarCuentaStepShell
+      title="Recuperar contraseña"
+      subtitle="Ingrese su correo electrónico"
     >
-      <Typography sx={{ fontWeight: 500, fontSize: 40, color:"white" }}>
-        Recuperar Contraseña
-      </Typography>
+      <TextField
+        placeholder="Email"
+        type="email"
+        fullWidth
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        sx={InputRecuperarStyles}
+        inputProps={{ autoComplete: "email" }}
+      />
 
-      <Box
-        sx={BoxRecuperarContenidoStyles}
-      >
-        <Typography sx={{ fontSize: 20, fontWeight: 500 }}>
-          Ingrese su Correo Electrónico
-        </Typography>
+      {error ? <Typography sx={ErrorTextRecuperarStyles}>{error}</Typography> : null}
 
-        <TextField
-          placeholder="Email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          sx={InputRecuperarStyles}
-        />
-
-        {error && (
-          <Typography sx={ErrorTextRecuperarStyles}>
-            {error}
-          </Typography>
-        )}
-
-        <Button
-          onClick={handleEmail}
-          sx={ButtonRecuperarStyles}
-        >
-          Enviar
-        </Button>
-      </Box>
-    </Box>
+      <Button onClick={handleEmail} sx={ButtonRecuperarStyles} fullWidth>
+        Enviar
+      </Button>
+    </RecuperarCuentaStepShell>
   );
 };
 

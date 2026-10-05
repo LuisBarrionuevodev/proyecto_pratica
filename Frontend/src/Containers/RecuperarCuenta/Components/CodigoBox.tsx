@@ -1,72 +1,57 @@
-import { Box, Button, TextField, Typography } from "@mui/material";
+import { Button, TextField, Typography } from "@mui/material";
 import { useState } from "react";
-import { BoxRecuperarContenidoStyles, ButtonRecuperarStyles, ErrorTextRecuperarStyles, InputRecuperarStyles } from "../../../styles/RecuperarCuentaStyles";
+import {
+  ButtonRecuperarStyles,
+  ErrorTextRecuperarStyles,
+  InputRecuperarStyles,
+} from "../../../styles/RecuperarCuentaStyles";
+import { RecuperarCuentaStepShell } from "./RecuperarCuentaStepShell";
 
 interface CodigoBoxProps {
-    email: string;
-    onCodeChange: (code: string) => void;
-    onSuccess: () => void;
+  email: string;
+  onCodeChange: (code: string) => void;
+  onSuccess: () => void;
 }
 
 const CodigoBox = ({ email, onCodeChange, onSuccess }: CodigoBoxProps) => {
-    const [codigo, setCodigo] = useState("");
-    const [error, setError] = useState("");
+  const [codigo, setCodigo] = useState("");
+  const [error, setError] = useState("");
 
-    const handleCodigo = () => {
-        if (codigo.trim().length === 6) {
-            setError("");
-            onCodeChange(codigo.trim());
-            onSuccess(); // 👈 avisa al padre
-        } else {
-            setError("El código debe tener 6 dígitos");
-        }
-    };
+  const handleCodigo = () => {
+    if (codigo.trim().length === 6) {
+      setError("");
+      onCodeChange(codigo.trim());
+      onSuccess();
+    } else {
+      setError("El código debe tener 6 dígitos");
+    }
+  };
 
-    return (
-        <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            flexDirection="column"
-        >
-            <Typography sx={{ fontWeight: 500, fontSize: 40, color:"white" }}>
-                Recuperar Contraseña
-            </Typography>
+  return (
+    <RecuperarCuentaStepShell
+      title="Recuperar contraseña"
+      subtitle={
+        <>
+          Verifique el código enviado a <strong>{email}</strong>
+        </>
+      }
+    >
+      <TextField
+        placeholder="Código de verificación"
+        fullWidth
+        value={codigo}
+        onChange={(e) => setCodigo(e.target.value)}
+        sx={InputRecuperarStyles}
+        inputProps={{ inputMode: "numeric", autoComplete: "one-time-code" }}
+      />
 
-            <Box
-                sx={BoxRecuperarContenidoStyles}
-            >
+      {error ? <Typography sx={ErrorTextRecuperarStyles}>{error}</Typography> : null}
 
-                <Typography sx={{ fontWeight: 500, fontSize: 25 }}>
-                    Verifica el codigo
-                </Typography>
-
-                <Typography sx={{ fontSize: 15 }}>
-                    Enviamos un código a <strong>{email}</strong>
-                </Typography>
-
-                <TextField
-                    placeholder="Código de verificación"
-                    value={codigo}
-                    onChange={(e) => setCodigo(e.target.value)}
-                    sx={InputRecuperarStyles}
-                />
-
-                {error && (
-                    <Typography sx={ErrorTextRecuperarStyles}>
-                        {error}
-                    </Typography>
-                )}
-
-                <Button
-                    onClick={handleCodigo}
-                    sx={ButtonRecuperarStyles}
-                >
-                    Verificar
-                </Button>
-            </Box>
-        </Box>
-    );
+      <Button onClick={handleCodigo} sx={ButtonRecuperarStyles} fullWidth>
+        Verificar
+      </Button>
+    </RecuperarCuentaStepShell>
+  );
 };
 
 export default CodigoBox;

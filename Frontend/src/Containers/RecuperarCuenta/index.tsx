@@ -9,74 +9,67 @@ import CodigoBox from "./Components/CodigoBox";
 import NuevaContraseña from "./Components/NuevaContraseña";
 
 const RecuperarCuenta = () => {
-    const navigate = useNavigate();
-    useEffect(() => {
-        setBodyPublicRoute(true);
-        return () => setBodyPublicRoute(false);
-    }, []);
-    const [step, setStep] = useState<"email" | "codigo" | "contraseña">("email");
-    const [email, setEmail] = useState("");
-    const [code, setCode] = useState("");
+  const navigate = useNavigate();
+  useEffect(() => {
+    setBodyPublicRoute(true);
+    return () => setBodyPublicRoute(false);
+  }, []);
+  const [step, setStep] = useState<"email" | "codigo" | "contraseña">("email");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
 
-    return (
-        <PublicAuthScreenLayout>
-        <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            position="relative"
-            width="100%"
-            minHeight="min(420px, 70vh)"
+  return (
+    <PublicAuthScreenLayout>
+      <Box
+        sx={{
+          width: "100%",
+          minWidth: 0,
+          minHeight: { xs: 320, sm: 300 },
+          position: "relative",
+        }}
+      >
+        <Slide
+          direction="down"
+          in={step === "email"}
+          timeout={{ enter: 700, exit: 400 }}
+          mountOnEnter
+          unmountOnExit
         >
-            <Slide
-                direction="down"
-                in={step === "email"}
-                timeout={{ enter: 700, exit: 400 }}
-                mountOnEnter
-                unmountOnExit
-            >
-                <Box position="absolute">
-                    <EmailBox
-                        setEmailGlobal={setEmail}
-                        onSuccess={() => setStep("codigo")}
-                    />
-                </Box>
-            </Slide>
+          <Box sx={{ width: "100%", minWidth: 0 }}>
+            <EmailBox setEmailGlobal={setEmail} onSuccess={() => setStep("codigo")} />
+          </Box>
+        </Slide>
 
-            <Slide
-                direction="right"
-                in={step === "codigo"}
-                timeout={{ enter: 700, exit: 400 }}
-                mountOnEnter
-                unmountOnExit
-            >
-                <Box position="absolute">
-                    <CodigoBox
-                        email={email}
-                        onCodeChange={setCode}
-                        onSuccess={() => setStep("contraseña")}
-                    />
-                </Box>
-            </Slide>
+        <Slide
+          direction="right"
+          in={step === "codigo"}
+          timeout={{ enter: 700, exit: 400 }}
+          mountOnEnter
+          unmountOnExit
+        >
+          <Box sx={{ width: "100%", minWidth: 0 }}>
+            <CodigoBox
+              email={email}
+              onCodeChange={setCode}
+              onSuccess={() => setStep("contraseña")}
+            />
+          </Box>
+        </Slide>
 
-            <Slide
-                direction="left"
-                in={step === "contraseña"}
-                timeout={{ enter: 700, exit: 400 }}
-                mountOnEnter
-                unmountOnExit
-            >
-                <Box position={"absolute"}>
-                    <NuevaContraseña
-                        email={email}
-                        code={code}
-                        onSuccess={() => navigate("/")}
-                    />
-                </Box>
-            </Slide>
-        </Box>
-        </PublicAuthScreenLayout>
-    );
+        <Slide
+          direction="left"
+          in={step === "contraseña"}
+          timeout={{ enter: 700, exit: 400 }}
+          mountOnEnter
+          unmountOnExit
+        >
+          <Box sx={{ width: "100%", minWidth: 0 }}>
+            <NuevaContraseña email={email} code={code} onSuccess={() => navigate("/")} />
+          </Box>
+        </Slide>
+      </Box>
+    </PublicAuthScreenLayout>
+  );
 };
 
 export default RecuperarCuenta;

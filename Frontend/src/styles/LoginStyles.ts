@@ -36,19 +36,24 @@ export const LoginBoxInputStyles = {
     justifyItems: "center",
     flexDirection: "column",
     gap: "20px",
-
+    width: "100%",
+    maxWidth: "350px",
+    minWidth: 0,
+    alignSelf: "center",
 }
 export const InputStyles = {
     position: "relative",
     backgroundColor: auth.input,
-    width: "350px",
-    fontSize: "22px",
+    width: "100%",
+    maxWidth: "350px",
+    fontSize: { xs: "16px", sm: "22px" },
     borderRadius: "10px",
     "& .MuiInputBase-input": {
         fontFamily: FONT_FAMILY_UI,
         fontWeight: 500,
         color: auth.inputText,
         zIndex: 1,
+        fontSize: { xs: "16px", sm: "22px" },
     },
     "& .MuiInputBase-input::placeholder": {
         color: auth.inputText,
@@ -83,8 +88,10 @@ export const InputStyles = {
 
 export const ButtonStyle = {
     backgroundColor: auth.button,
-    width: "350px",
-    height: "25px",
+    width: "100%",
+    maxWidth: "350px",
+    minHeight: { xs: 44, sm: 25 },
+    height: { xs: 44, sm: 25 },
     fontFamily: FONT_FAMILY_UI,
     fontWeight: 200,
     color: "white",

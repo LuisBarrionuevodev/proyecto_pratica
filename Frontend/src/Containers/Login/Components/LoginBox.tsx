@@ -51,7 +51,14 @@ const LoginBox = (): JSX.Element => {
         <Box sx={LoginBoxGlobalStyle}>
             <Box sx={LoginBoxStyle}>
                 <Box sx={LoginLogoStyle}>
-                    <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontWeight: 500, fontSize: "35px" }}>
+                    <Typography
+                        sx={{
+                            fontFamily: FONT_FAMILY_UI,
+                            fontWeight: 500,
+                            fontSize: { xs: "1.75rem", sm: "35px" },
+                            textAlign: "center",
+                        }}
+                    >
                         Iniciar Sesión
                     </Typography>
                 </Box>
@@ -88,7 +95,8 @@ const LoginBox = (): JSX.Element => {
                     <AppButton
                         dsVariant="primary"
                         dsSize="sm"
-                        sx={[ButtonStyle, { minHeight: 25, height: 25, py: 0, boxSizing: "border-box" }]}
+                        sx={[ButtonStyle, { py: 0, boxSizing: "border-box", alignSelf: "center" }]}
+                        fullWidth
                         onClick={handleLogin}
                     >
                         Ingresar
