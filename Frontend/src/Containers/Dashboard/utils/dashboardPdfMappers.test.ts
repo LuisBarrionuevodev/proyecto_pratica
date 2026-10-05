@@ -113,7 +113,7 @@ describe("buildDashboardPdfModel", () => {
       "04/08/2026",
       "01/01/2026 al 31/01/2026"
     );
-    expect(model.title).toBe("Informe de Indicadores Operativos");
+    expect(model.title).toBe("Indicadores Digitaliza");
     expect(model.ejecutivoKpis).toHaveLength(8);
     expect(model.ejecutivoKpis.find((k) => k.label.includes("oficio realizadas"))?.value).toBe("3");
     expect(model.distritoLabel).toBe("Centro");

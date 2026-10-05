@@ -1,6 +1,7 @@
 import {
   Box,
   Button,
+  Chip,
   FormControl,
   InputLabel,
   MenuItem,
@@ -10,6 +11,7 @@ import {
   Tooltip,
   Typography,
 } from "@mui/material";
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import PictureAsPdfOutlinedIcon from "@mui/icons-material/PictureAsPdfOutlined";
 import { mergeSx } from "../../../utils/muiSx";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -19,17 +21,16 @@ import { buildDashboardExportPayload } from "../utils/buildDashboardExportPayloa
 import { functionalPageShellSx } from "../../../styles/functionalPageShell";
 import { moduleSlicesPanelPaperSx, moduleSlicesTabsSx } from "../../../styles/GlassStyles";
 import { dashboardPeriodTabsSx } from "../../../styles/DashboardStyles";
-import { TableExportBoxStyles, TableExportButtonStyles } from "../../../styles/TablasStyle";
+import { TableExportButtonStyles } from "../../../styles/TablasStyle";
 import { filtroItemStyles } from "../../Actuaciones/styles/filtroStyles";
 import { fetchDistritosCatalogo } from "../../../api/geolocalizacionApi";
 import { fetchInspectores } from "../../../api/gridApi";
-import type { Periodo } from "../../../types/periodos";
 import { useIndicadoresEjecutivo } from "../hooks/useIndicadoresEjecutivo";
 import { useIndicadoresNoRealizadas } from "../hooks/useIndicadoresNoRealizadas";
 import { useIndicadoresProductividad } from "../hooks/useIndicadoresProductividad";
 import { useIndicadoresRiesgo } from "../hooks/useIndicadoresRiesgo";
+import { useIndicadoresFiltros } from "../hooks/useIndicadoresFiltros";
 import { OperativoPeriodoLabel } from "../../../components/OperativoPeriodoLabel";
-import { periodoToDateRange } from "../utils/periodoDateRange";
 import { isDashboardSectionReady } from "../utils/dashboardSectionReady";
 import { calcTotalNoRealizadas } from "../utils/noRealizadasContraproducencias";
 import { DashboardIndicadoresPageLoader } from "./DashboardIndicadoresPageLoader";
@@ -40,15 +41,18 @@ import { DashboardNoRealizadasSection } from "./DashboardNoRealizadasSection";
 import { DashboardProductividadSectionLazy } from "./DashboardProductividadSectionLazy";
 import { DashboardRiesgoSection } from "./DashboardRiesgoSection";
 import { DashboardSectionGate } from "./DashboardSectionGate";
-import { ResponsiveFiltersPanel, ResponsiveScrollableTabs } from "../../../ui";
+import { IndicadoresMonthPickerDialog } from "./IndicadoresMonthPickerDialog";
+import { ResponsiveScrollableTabs } from "../../../ui";
 import { useAppSession } from "../../../auth/AppSessionProvider";
 import { normalizeAppRole } from "../../../auth/roles";
 
-const PERIODOS: Periodo[] = ["Semanal", "Mensual", "Trimestral", "Anual"];
-
-const dashFiltroFormSx = mergeSx(filtroItemStyles, {
-  minWidth: { xs: "100%", sm: 168 },
-  flex: { sm: "0 1 168px" },
+const dashCompactFiltroSx = mergeSx(filtroItemStyles, {
+  minWidth: 0,
+  width: { xs: "100%", sm: "auto" },
+  flex: { xs: "1 1 100%", lg: "0 0 auto" },
+  "& .MuiOutlinedInput-root": {
+    width: { xs: "100%", lg: 156 },
+  },
 });
 
 /**
@@ -63,13 +67,28 @@ const Panel = () => {
   const appRole = normalizeAppRole(sessionRole);
   const isInspectorIndicadores = appRole === "relevador";
 
-  const [periodo, setPeriodo] = useState<Periodo>("Mensual");
-  const [distritoId, setDistritoId] = useState<string>("");
-  const [inspectorId, setInspectorId] = useState<string>("");
+  const [monthPickerOpen, setMonthPickerOpen] = useState(false);
   const [distritoOptions, setDistritoOptions] = useState<{ id: number; nombre: string }[]>([]);
   const [inspectorOptions, setInspectorOptions] = useState<{ id: number; nombre: string }[]>([]);
 
-  const { desde, hasta } = useMemo(() => periodoToDateRange(periodo), [periodo]);
+  const {
+    periodos,
+    periodo,
+    setPeriodo,
+    monthOverride,
+    applyMonthSelection,
+    clearMonthOverride,
+    distritoId,
+    setDistritoId,
+    inspectorId,
+    setInspectorId,
+    indicadoresParams,
+    periodoUiLabel,
+    monthOverrideActive,
+    periodoTabIndex,
+    desde,
+    hasta,
+  } = useIndicadoresFiltros(isInspectorIndicadores);
 
   useEffect(() => {
     if (isInspectorIndicadores) return;
@@ -100,24 +119,6 @@ const Panel = () => {
       cancel = true;
     };
   }, [isInspectorIndicadores]);
-
-  const indicadoresParams = useMemo(() => {
-    const p: {
-      desde: string;
-      hasta: string;
-      distrito_id?: number;
-      inspector_id?: number;
-    } = { desde, hasta };
-    if (!isInspectorIndicadores) {
-      if (distritoId !== "") {
-        p.distrito_id = Number(distritoId);
-      }
-      if (inspectorId !== "") {
-        p.inspector_id = Number(inspectorId);
-      }
-    }
-    return p;
-  }, [desde, hasta, distritoId, inspectorId, isInspectorIndicadores]);
 
   const {
     data: ejecutivoData,
@@ -160,10 +161,14 @@ const Panel = () => {
     return i?.nombre ?? inspectorId;
   }, [inspectorId, inspectorOptions]);
 
+  const periodoLabelForExport = monthOverrideActive
+    ? periodoUiLabel
+    : `${periodo} (${desde} → ${hasta})`;
+
   const exportPayload = useMemo(
     () =>
       buildDashboardExportPayload({
-        periodoLabel: `${periodo} (${desde} → ${hasta})`,
+        periodoLabel: periodoLabelForExport,
         distritoLabel,
         inspectorLabel,
         ejecutivo: ejecutivoData ?? null,
@@ -173,9 +178,7 @@ const Panel = () => {
         productividad: productividadData ?? null,
       }),
     [
-      periodo,
-      desde,
-      hasta,
+      periodoLabelForExport,
       distritoLabel,
       inspectorLabel,
       ejecutivoData,
@@ -187,8 +190,6 @@ const Panel = () => {
   );
 
   const hasExportData = exportPayload.resumenKpis.length > 0;
-
-  const periodoTabIndex = PERIODOS.indexOf(periodo);
 
   const ejecutivoReady = isDashboardSectionReady(ejecutivoData, ejecutivoError);
   const riesgoReady = isDashboardSectionReady(riesgoData, riesgoError);
@@ -223,18 +224,9 @@ const Panel = () => {
     }
   }, [initialLoadDone, anySectionReady, isAnyLoading]);
 
-  /** Primera entrada: un solo loader global; después, layout + carga progresiva. */
   const showGlobalLoader = !initialLoadDone && !anySectionReady;
-
   const isRefreshing = initialLoadDone && isAnyLoading;
-
   const anyBlockingLoad = isAnyLoading;
-
-  const filtersSummary = (
-    <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem", lineHeight: 1.35 }}>
-      Distrito: {distritoLabel} · Inspector: {inspectorLabel}
-    </Typography>
-  );
 
   return (
     <Box
@@ -248,131 +240,175 @@ const Panel = () => {
           ...moduleSlicesPanelPaperSx,
           flexDirection: "column",
           alignItems: "stretch",
-          gap: { xs: 1.25, md: 1.5 },
+          gap: { xs: 1.25, md: 1 },
           px: { xs: 0.5, sm: 1 },
           minWidth: 0,
           maxWidth: "100%",
           overflow: "hidden",
         }}
       >
-        <ResponsiveScrollableTabs
-          withGlassBar={false}
-          value={periodoTabIndex}
-          onChange={(_, v) => setPeriodo(PERIODOS[v] ?? "Mensual")}
-          sx={mergeSx(moduleSlicesTabsSx, dashboardPeriodTabsSx, { width: "100%", minWidth: 0 })}
+        <Box
+          data-testid="dashboard-indicadores-toolbar"
+          sx={{
+            display: "flex",
+            flexDirection: { xs: "column", lg: "row" },
+            alignItems: { lg: "center" },
+            justifyContent: { lg: "space-between" },
+            gap: { xs: 1.25, lg: 1 },
+            flexWrap: "wrap",
+            minWidth: 0,
+            width: "100%",
+          }}
         >
-          {PERIODOS.map((p) => (
-            <Tab key={p} label={p} />
-          ))}
-        </ResponsiveScrollableTabs>
+          <ResponsiveScrollableTabs
+            withGlassBar={false}
+            value={periodoTabIndex}
+            onChange={(_, v) => setPeriodo(periodos[v] ?? "Mensual")}
+            sx={mergeSx(moduleSlicesTabsSx, dashboardPeriodTabsSx, {
+              width: { xs: "100%", lg: "auto" },
+              minWidth: 0,
+              flex: { lg: "1 1 auto" },
+              maxWidth: { lg: "min(520px, 55%)" },
+            })}
+          >
+            {periodos.map((p) => (
+              <Tab key={p} label={p} />
+            ))}
+          </ResponsiveScrollableTabs>
 
-        {!isInspectorIndicadores ? (
-          <ResponsiveFiltersPanel
-            activeFiltersSlot={filtersSummary}
-            surfaceSx={{
-              bgcolor: "transparent",
-              border: "none",
-              boxShadow: "none",
-              p: 0,
-              backdropFilter: "none",
-              WebkitBackdropFilter: "none",
+          <Box
+            sx={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              gap: 1,
+              width: { xs: "100%", lg: "auto" },
+              minWidth: 0,
+              justifyContent: { xs: "flex-start", lg: "flex-end" },
+              flex: { lg: "0 1 auto" },
             }}
           >
-            <Box
-              sx={{
-                ...TableExportBoxStyles,
-                p: 0,
-                flexDirection: "column",
-                flexWrap: "wrap",
-                alignItems: "stretch",
-                gap: 1.25,
-                width: "100%",
-                minWidth: 0,
-              }}
+            {!isInspectorIndicadores ? (
+              <>
+                <FormControl variant="outlined" size="small" sx={dashCompactFiltroSx}>
+                  <InputLabel id="dash-distrito-label" shrink>
+                    Distrito
+                  </InputLabel>
+                  <Select
+                    labelId="dash-distrito-label"
+                    label="Distrito"
+                    notched
+                    displayEmpty
+                    value={distritoId}
+                    onChange={(e) => setDistritoId(String(e.target.value))}
+                  >
+                    <MenuItem value="">
+                      <em>Todos</em>
+                    </MenuItem>
+                    {distritoOptions.map((d) => (
+                      <MenuItem key={d.id} value={String(d.id)}>
+                        {d.nombre}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                <FormControl variant="outlined" size="small" sx={dashCompactFiltroSx}>
+                  <InputLabel id="dash-inspector-label" shrink>
+                    Inspector
+                  </InputLabel>
+                  <Select
+                    labelId="dash-inspector-label"
+                    label="Inspector"
+                    notched
+                    displayEmpty
+                    value={inspectorId}
+                    onChange={(e) => setInspectorId(String(e.target.value))}
+                  >
+                    <MenuItem value="">
+                      <em>Todos</em>
+                    </MenuItem>
+                    {inspectorOptions.map((i) => (
+                      <MenuItem key={i.id} value={String(i.id)}>
+                        {i.nombre}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+              </>
+            ) : null}
+
+            <Button
+              variant="outlined"
+              size="small"
+              startIcon={<CalendarMonthOutlinedIcon />}
+              onClick={() => setMonthPickerOpen(true)}
+              sx={{ whiteSpace: "nowrap", flexShrink: 0 }}
             >
-              <FormControl variant="outlined" sx={dashFiltroFormSx}>
-                <InputLabel id="dash-distrito-label" shrink>
-                  Distrito
-                </InputLabel>
-                <Select
-                  labelId="dash-distrito-label"
-                  label="Distrito"
-                  notched
-                  displayEmpty
-                  value={distritoId}
-                  onChange={(e) => setDistritoId(String(e.target.value))}
-                >
-                  <MenuItem value="">
-                    <em>Todos</em>
-                  </MenuItem>
-                  {distritoOptions.map((d) => (
-                    <MenuItem key={d.id} value={String(d.id)}>
-                      {d.nombre}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-              <FormControl variant="outlined" sx={dashFiltroFormSx}>
-                <InputLabel id="dash-inspector-label" shrink>
-                  Inspector
-                </InputLabel>
-                <Select
-                  labelId="dash-inspector-label"
-                  label="Inspector"
-                  notched
-                  displayEmpty
-                  value={inspectorId}
-                  onChange={(e) => setInspectorId(String(e.target.value))}
-                >
-                  <MenuItem value="">
-                    <em>Todos</em>
-                  </MenuItem>
-                  {inspectorOptions.map((i) => (
-                    <MenuItem key={i.id} value={String(i.id)}>
-                      {i.nombre}
-                    </MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-          </ResponsiveFiltersPanel>
-        ) : null}
+              Elegir mes
+            </Button>
+
+            {monthOverrideActive ? (
+              <Chip
+                label={periodoUiLabel}
+                size="small"
+                onDelete={clearMonthOverride}
+                color="primary"
+                variant="outlined"
+                sx={{ maxWidth: { xs: "100%" } }}
+              />
+            ) : null}
+
+            {!isInspectorIndicadores ? (
+              <Tooltip
+                title={
+                  hasExportData
+                    ? "Informe PDF institucional del período seleccionado."
+                    : "Cargá indicadores antes de exportar."
+                }
+              >
+                <span>
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    startIcon={<PictureAsPdfOutlinedIcon />}
+                    disabled={!hasExportData || anyBlockingLoad}
+                    onClick={() =>
+                      downloadDashboardPdf({
+                        payload: exportPayload,
+                        desde: indicadoresParams.desde,
+                        hasta: indicadoresParams.hasta,
+                        distrito_id: indicadoresParams.distrito_id,
+                        inspector_id: indicadoresParams.inspector_id,
+                      })
+                    }
+                    sx={{
+                      ...TableExportButtonStyles,
+                      fontWeight: 700,
+                      whiteSpace: "nowrap",
+                      flexShrink: 0,
+                    }}
+                  >
+                    Exportar PDF
+                  </Button>
+                </span>
+              </Tooltip>
+            ) : null}
+          </Box>
+        </Box>
 
         {!isInspectorIndicadores ? (
-          <Tooltip
-            title={
-              hasExportData
-                ? "Informe PDF institucional del período seleccionado."
-                : "Cargá indicadores antes de exportar."
-            }
-          >
-            <span>
-              <Button
-                variant="outlined"
-                fullWidth
-                startIcon={<PictureAsPdfOutlinedIcon />}
-                disabled={!hasExportData || anyBlockingLoad}
-                onClick={() =>
-                  downloadDashboardPdf({
-                    payload: exportPayload,
-                    desde,
-                    hasta,
-                  })
-                }
-                sx={{
-                  ...TableExportButtonStyles,
-                  fontWeight: 700,
-                  width: { xs: "100%", md: "auto" },
-                  alignSelf: { md: "flex-end" },
-                  whiteSpace: "normal",
-                }}
-              >
-                Exportar PDF
-              </Button>
-            </span>
-          </Tooltip>
+          <Typography variant="caption" color="text.secondary" sx={{ fontSize: "0.75rem", lineHeight: 1.35 }}>
+            Distrito: {distritoLabel} · Inspector: {inspectorLabel}
+          </Typography>
         ) : null}
       </Paper>
+
+      <IndicadoresMonthPickerDialog
+        open={monthPickerOpen}
+        initialSelection={monthOverride}
+        onClose={() => setMonthPickerOpen(false)}
+        onApply={applyMonthSelection}
+      />
 
       <OperativoPeriodoLabel desde={desde} hasta={hasta} />
 

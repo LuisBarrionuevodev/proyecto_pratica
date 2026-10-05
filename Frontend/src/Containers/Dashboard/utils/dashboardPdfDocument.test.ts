@@ -50,6 +50,6 @@ describe("dashboardPdfMappers title", () => {
       "04/08/2026",
       "01/01/2026 al 31/01/2026"
     );
-    expect(model.title).toBe("Informe de Indicadores Operativos");
+    expect(model.title).toBe("Indicadores Digitaliza");
   });
 });

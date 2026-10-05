@@ -14,6 +14,8 @@ export type DownloadDashboardPdfOptions = {
   payload: DashboardExportPayload;
   desde: string;
   hasta: string;
+  distrito_id?: number;
+  inspector_id?: number;
 };
 
 function formatGeneradoEl(isoDate: string): string {
@@ -33,7 +35,7 @@ export async function downloadDashboardPdf(options: DownloadDashboardPdfOptions)
   registerDocumentosPdfFonts();
 
   const generadoEl = formatGeneradoEl(fechaLocalHoyIso());
-  const periodoLine = `${formatExportDatePreview(options.desde)} al ${formatExportDatePreview(options.hasta)}`;
+  const periodoLine = `Período: ${formatExportDatePreview(options.desde)} al ${formatExportDatePreview(options.hasta)}`;
   const model = buildDashboardPdfModel(
     options.payload,
     options.desde,

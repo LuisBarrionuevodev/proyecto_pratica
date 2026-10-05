@@ -229,7 +229,7 @@ export function buildDashboardPdfModel(
   );
 
   return {
-    title: "Informe de Indicadores Operativos",
+    title: "Indicadores Digitaliza",
     periodoLine,
     distritoLabel: payload.meta.distritoLabel,
     inspectorLabel: payload.meta.inspectorLabel,
