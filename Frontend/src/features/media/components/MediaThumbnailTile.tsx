@@ -45,9 +45,26 @@ export function MediaThumbnailTile({ item, onOpen, onDelete, deleting }: Props) 
     };
   }, [item.archivo_id, isImg]);
 
+  const ariaLabel = isImg
+    ? `Ver imagen: ${item.original_filename}`
+    : `Abrir PDF: ${item.original_filename}`;
+
   return (
-    <ImageListItem sx={{ cursor: "pointer" }} onClick={onOpen}>
+    <ImageListItem
+      sx={{ cursor: "pointer" }}
+      onClick={onOpen}
+      aria-label={ariaLabel}
+    >
       <Box
+        role="button"
+        tabIndex={0}
+        aria-label={ariaLabel}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onOpen();
+          }
+        }}
         sx={{
           height: 96,
           display: "flex",
@@ -104,14 +121,12 @@ export function MediaThumbnailTile({ item, onOpen, onDelete, deleting }: Props) 
           </Box>
         ) : null}
       </Box>
-      <ImageListItemBar
-        title={item.original_filename}
-        subtitle={
-          isImg
-            ? `${(item.byte_size / 1024).toFixed(0)} KB`
-            : "PDF · Abrir documento"
-        }
-      />
+      {!isImg ? (
+        <ImageListItemBar
+          title={item.original_filename}
+          subtitle="PDF · Abrir documento"
+        />
+      ) : null}
     </ImageListItem>
   );
 }

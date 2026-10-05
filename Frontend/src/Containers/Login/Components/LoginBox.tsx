@@ -2,7 +2,6 @@ import { Alert, Box, Typography } from "@mui/material";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
 import { AppButton, AppTextField } from "../../../ui";
 import { ButtonStyle, InputStyles, LoginBoxGlobalStyle, LoginBoxInputStyles, LoginBoxStyle, LoginLogoStyle } from "../../../styles/LoginStyles";
-import TextDigitaliza from "../../../assets/TextDigitaliza.svg"
 import type { JSX } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
@@ -51,28 +50,6 @@ const LoginBox = (): JSX.Element => {
     return (
         <Box sx={LoginBoxGlobalStyle}>
             <Box sx={LoginBoxStyle}>
-                <Box
-                    sx={{
-                        ...LoginLogoStyle,
-                        alignItems: "center",
-                        width: "100%",
-                        pt: 0.5,
-                    }}
-                >
-                    <Box
-                        component="img"
-                        src={TextDigitaliza}
-                        alt="Digitaliza"
-                        sx={{
-                            width: { xs: 210, sm: 240, md: 250 },
-                            height: "auto",
-                            display: "block",
-                            mx: "auto",
-                            objectFit: "contain",
-                        }}
-                    />
-                </Box>
-
                 <Box sx={LoginLogoStyle}>
                     <Typography sx={{ fontFamily: FONT_FAMILY_UI, fontWeight: 500, fontSize: "35px" }}>
                         Iniciar Sesión

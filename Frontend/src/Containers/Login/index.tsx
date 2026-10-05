@@ -1,8 +1,9 @@
 import type { JSX } from "react";
 import { useEffect } from "react";
 import LoginBox from "./Components/LoginBox";
-import { Box, Slide } from "@mui/material";
+import { Slide } from "@mui/material";
 import { setBodyPublicRoute } from "../../theme/bodyRouteClass";
+import { PublicAuthScreenLayout } from "../../components/auth/PublicAuthScreenLayout";
 
 const Login = (): JSX.Element => {
     useEffect(() => {
@@ -11,23 +12,18 @@ const Login = (): JSX.Element => {
     }, []);
 
     return (
-        <Box
-            display="flex"
-            justifyContent="center"
-            alignItems="center"
-            minHeight="100vh"
-        >
+        <PublicAuthScreenLayout>
             <Slide
                 direction="down"
                 in={true}
                 appear
                 timeout={1000}
             >
-                <Box>
+                <div>
                     <LoginBox />
-                </Box>
+                </div>
             </Slide>
-        </Box>
+        </PublicAuthScreenLayout>
     )
 }
 

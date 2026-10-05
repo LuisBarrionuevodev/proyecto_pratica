@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { setBodyPublicRoute } from "../../theme/bodyRouteClass";
 import Slide from "@mui/material/Slide";
 import { useNavigate } from "react-router-dom";
+import { PublicAuthScreenLayout } from "../../components/auth/PublicAuthScreenLayout";
 import EmailBox from "./Components/EmailBox";
 import CodigoBox from "./Components/CodigoBox";
 import NuevaContraseña from "./Components/NuevaContraseña";
@@ -18,13 +19,14 @@ const RecuperarCuenta = () => {
     const [code, setCode] = useState("");
 
     return (
+        <PublicAuthScreenLayout>
         <Box
             display="flex"
             justifyContent="center"
             alignItems="center"
             position="relative"
             width="100%"
-            minHeight="500px"
+            minHeight="min(420px, 70vh)"
         >
             <Slide
                 direction="down"
@@ -73,6 +75,7 @@ const RecuperarCuenta = () => {
                 </Box>
             </Slide>
         </Box>
+        </PublicAuthScreenLayout>
     );
 };
 

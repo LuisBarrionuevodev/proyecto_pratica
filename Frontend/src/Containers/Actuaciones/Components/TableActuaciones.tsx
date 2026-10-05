@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Alert, Box, Typography, IconButton, Tooltip } from "@mui/material";
+import { Alert, Box, Typography, IconButton, Tooltip, useMediaQuery, useTheme } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
@@ -32,6 +32,7 @@ import { AnimatedTable, useTableRefresh } from "../../../animations";
 import { mergeMrtBodyCellPropsWithActuacionesPreset } from "../../../styles/mrtGlassDataTablePreset";
 import { domicilioRowParaEdicionCalle } from "../../../utils/domicilioCalleUi";
 import { ActuacionDetalleDialog, type ActuacionSaveOptions } from "./ActuacionDetalleDialog";
+import { ActuacionesGestionMobileCardList } from "./ActuacionesGestionMobileCardList";
 
 import {
   loadingStyles,
@@ -112,6 +113,8 @@ const TablaActuaciones = ({
     exportToolbar,
     onActuacionListPatch,
 }: TablaActuacionesProps) => {
+  const theme = useTheme();
+  const isDesktopTable = useMediaQuery(theme.breakpoints.up("sm"));
   const [data, setData] = useState<IActuacionListItem[]>(externalData || []);
   const loading = externalLoading || false;
 
@@ -446,6 +449,30 @@ const TablaActuaciones = ({
     [rowErrors]
   );
 
+  const handleOpenRowDetalle = useCallback(
+    (original: IActuacionListItem) => {
+      const id = Number(original.id);
+      const listRow = domicilioRowParaEdicionCalle({ ...original });
+      setEditDraft(listRow);
+      setEditOriginalRow(listRow);
+      setEditDetalleLoading(true);
+      void getActuacionGestionDetalle(id)
+        .then((detail) => {
+          const modalRow = domicilioRowParaEdicionCalle(prepareActuacionGestionModalRow(detail));
+          setEditDraft(modalRow);
+          setEditOriginalRow(modalRow);
+        })
+        .catch((err: unknown) => {
+          console.error("Error cargando detalle de actuación:", err);
+          feedback.error("No se pudo cargar el detalle de la actuación.");
+          setEditDraft(null);
+          setEditOriginalRow(null);
+        })
+        .finally(() => setEditDetalleLoading(false));
+    },
+    [feedback]
+  );
+
   const renderRowActionsCb = useCallback(
     ({ row }: { row: MRT_Row<IActuacionListItem> }) => (
       <Box sx={{ display: "flex", gap: "0.5rem" }}>
@@ -456,28 +483,7 @@ const TablaActuaciones = ({
               transition: "color 0.2s ease, background-color 0.2s ease",
               "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
             }}
-            onClick={() => {
-              const id = Number(row.original.id);
-              const listRow = domicilioRowParaEdicionCalle({ ...row.original });
-              setEditDraft(listRow);
-              setEditOriginalRow(listRow);
-              setEditDetalleLoading(true);
-              void getActuacionGestionDetalle(id)
-                .then((detail) => {
-                  const modalRow = domicilioRowParaEdicionCalle(
-                    prepareActuacionGestionModalRow(detail)
-                  );
-                  setEditDraft(modalRow);
-                  setEditOriginalRow(modalRow);
-                })
-                .catch((err: unknown) => {
-                  console.error("Error cargando detalle de actuación:", err);
-                  feedback.error("No se pudo cargar el detalle de la actuación.");
-                  setEditDraft(null);
-                  setEditOriginalRow(null);
-                })
-                .finally(() => setEditDetalleLoading(false));
-            }}
+            onClick={() => handleOpenRowDetalle(row.original)}
           >
             <VisibilityIcon />
           </IconButton>
@@ -499,7 +505,7 @@ const TablaActuaciones = ({
         )}
       </Box>
     ),
-    [hideDeleteAction, feedback]
+    [hideDeleteAction, handleOpenRowDetalle]
   );
 
   const renderTopToolbarCustomActionsCb = useCallback(
@@ -592,10 +598,24 @@ const TablaActuaciones = ({
           Esos campos no se pueden editar desde esta vista (el servidor también rechaza el cambio).
         </Alert>
       )}
-      <AnimatedTable isRefreshing={isRefreshing}>
-        <MaterialReactTable table={table} />
-      </AnimatedTable>
-      <GridLegend />
+      {exportToolbar && !isDesktopTable ? (
+        <Box sx={{ mb: 1.5, minWidth: 0 }}>{exportToolbar}</Box>
+      ) : null}
+
+      {isDesktopTable ? (
+        <AnimatedTable isRefreshing={isRefreshing}>
+          <MaterialReactTable table={table} />
+        </AnimatedTable>
+      ) : (
+        <ActuacionesGestionMobileCardList
+          rows={data}
+          loading={loading}
+          hideRowActions={hideRowActions}
+          listadoServidor={listadoServidor}
+          onOpenDetalle={handleOpenRowDetalle}
+        />
+      )}
+      {isDesktopTable ? <GridLegend /> : null}
 
       {editDraft && (
         <ActuacionDetalleDialog
