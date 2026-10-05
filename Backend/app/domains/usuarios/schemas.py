@@ -5,7 +5,7 @@ from typing import Literal, Optional
 from pydantic import BaseModel, EmailStr, Field, field_validator, model_validator
 
 
-RoleType = Literal["admin", "usuario", "relevador"]
+RoleType = Literal["admin", "usuario", "relevador", "relevamiento"]
 
 
 class LoginRequest(BaseModel):
@@ -56,7 +56,7 @@ class AdminUserCreateRequest(BaseModel):
     def validate_inspector_for_role(self) -> "AdminUserCreateRequest":
         if self.role == "relevador" and self.inspector_id is None:
             raise ValueError("El rol Inspector requiere inspector_id.")
-        if self.role != "relevador" and self.inspector_id is not None:
+        if self.role not in ("relevador",) and self.inspector_id is not None:
             raise ValueError("inspector_id solo aplica al rol Inspector.")
         return self
 

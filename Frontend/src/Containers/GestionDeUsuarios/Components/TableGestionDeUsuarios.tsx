@@ -38,7 +38,7 @@ type Usuario = {
   id: number;
   username: string;
   email: string;
-  role: "admin" | "usuario" | "relevador";
+  role: "admin" | "usuario" | "relevador" | "relevamiento";
   is_active?: boolean;
   inspector_id?: number | null;
   inspector_nombre?: string | null;

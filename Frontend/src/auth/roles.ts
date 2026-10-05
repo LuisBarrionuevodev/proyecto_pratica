@@ -1,17 +1,20 @@
-export type AppRole = "admin" | "usuario" | "relevador";
+export type AppRole = "admin" | "usuario" | "relevador" | "relevamiento";
 
 export const ROLE_LABELS: Record<AppRole, string> = {
   admin: "Administrador",
   usuario: "Usuario",
   relevador: "Inspector",
+  relevamiento: "Relevamiento",
 };
 
 export const COMPLETAR_TRABAJOS_PATH = "/completarTrabajos";
 export const ACTUACIONES_PATH = "/actuaciones";
 export const DASHBOARD_PATH = "/dashboard";
 export const MAPA_PATH = "/mapa";
+export const CARGAR_RELEVAMIENTO_PATH = "/cargarRelevamiento";
+export const GESTION_RELEVAMIENTOS_PATH = "/relevamientos";
 
-/** Rutas permitidas para RELEVADOR (nav + acceso directo). */
+/** Rutas permitidas para Inspector (`relevador`). */
 export const RELEVADOR_ALLOWED_PATHS: readonly string[] = [
   "/inicio",
   ACTUACIONES_PATH,
@@ -21,12 +24,27 @@ export const RELEVADOR_ALLOWED_PATHS: readonly string[] = [
   "/perfil",
 ];
 
-/** Cards de Inicio visibles para RELEVADOR (incluye Mi perfil). */
+/** Rutas permitidas para perfil Relevamiento (carga/gestión). */
+export const RELEVAMIENTO_ALLOWED_PATHS: readonly string[] = [
+  "/inicio",
+  CARGAR_RELEVAMIENTO_PATH,
+  GESTION_RELEVAMIENTOS_PATH,
+  "/perfil",
+];
+
+/** Cards de Inicio visibles para Inspector (`relevador`). */
 export const RELEVADOR_INICIO_PATHS: readonly string[] = [
   ACTUACIONES_PATH,
   COMPLETAR_TRABAJOS_PATH,
   DASHBOARD_PATH,
   MAPA_PATH,
+  "/perfil",
+];
+
+/** Cards de Inicio visibles para perfil Relevamiento. */
+export const RELEVAMIENTO_INICIO_PATHS: readonly string[] = [
+  CARGAR_RELEVAMIENTO_PATH,
+  GESTION_RELEVAMIENTOS_PATH,
   "/perfil",
 ];
 
@@ -46,6 +64,14 @@ export function mapaLabelForRole(role: AppRole): string {
   return role === "relevador" ? "Mi mapa" : "Mapa";
 }
 
+export function cargarRelevamientoLabelForRole(role: AppRole): string {
+  return role === "relevamiento" ? "Cargar relevamientos" : "Cargar relevamientos y denuncias";
+}
+
+export function gestionRelevamientosLabelForRole(role: AppRole): string {
+  return role === "relevamiento" ? "Gestión de relevamientos" : "Relevamientos y denuncias";
+}
+
 export function resolveMenuLabelForRole(role: AppRole, path: string, defaultText: string): string {
   if (path === COMPLETAR_TRABAJOS_PATH) {
     return completarTrabajosLabelForRole(role);
@@ -59,7 +85,23 @@ export function resolveMenuLabelForRole(role: AppRole, path: string, defaultText
   if (path === MAPA_PATH) {
     return mapaLabelForRole(role);
   }
+  if (path === CARGAR_RELEVAMIENTO_PATH) {
+    return cargarRelevamientoLabelForRole(role);
+  }
+  if (path === GESTION_RELEVAMIENTOS_PATH) {
+    return gestionRelevamientosLabelForRole(role);
+  }
   return defaultText;
+}
+
+/**
+ * Ruta de destino tras login según perfil.
+ */
+export function postLoginPathForRole(role: AppRole): string {
+  if (role === "relevamiento") {
+    return CARGAR_RELEVAMIENTO_PATH;
+  }
+  return "/inicio";
 }
 
 /**
@@ -80,6 +122,10 @@ export function isPathAllowedForRole(role: AppRole, path: string): boolean {
     return RELEVADOR_ALLOWED_PATHS.some((allowed) => p === allowed);
   }
 
+  if (role === "relevamiento") {
+    return RELEVAMIENTO_ALLOWED_PATHS.some((allowed) => p === allowed);
+  }
+
   return false;
 }
 
@@ -96,10 +142,13 @@ export function isMenuPathVisibleForRole(role: AppRole, path: string): boolean {
   if (role === "relevador") {
     return RELEVADOR_ALLOWED_PATHS.includes(path);
   }
+  if (role === "relevamiento") {
+    return RELEVAMIENTO_ALLOWED_PATHS.includes(path);
+  }
   return true;
 }
 
 export function normalizeAppRole(raw: string | null | undefined): AppRole {
-  if (raw === "admin" || raw === "relevador") return raw;
+  if (raw === "admin" || raw === "relevador" || raw === "relevamiento") return raw;
   return "usuario";
 }

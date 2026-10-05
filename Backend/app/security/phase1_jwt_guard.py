@@ -217,10 +217,13 @@ def register_phase1_jwt_guard(app: Flask) -> None:
             return jsonify({"detail": "Autenticación requerida o token inválido."}), 401
 
         from app.domains.usuarios.security.decorators import resolve_user_from_identity
-        from app.domains.usuarios.security.role_permissions import role_may_access_endpoint
+        from app.domains.usuarios.security.role_permissions import (
+            role_may_access_endpoint,
+            role_requires_endpoint_allowlist,
+        )
 
         user = resolve_user_from_identity()
-        if user and user.is_active and user.role == "relevador":
+        if user and user.is_active and role_requires_endpoint_allowlist(user.role):
             if not role_may_access_endpoint(user.role, request.method, path):
                 return jsonify({"detail": "No tiene permisos para esta acción"}), 403
 

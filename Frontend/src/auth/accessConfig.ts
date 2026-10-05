@@ -2,7 +2,9 @@ import { menuSections, type MenuSection } from "../constants/menuItems";
 import { INICIO_ACCESOS, type InicioAccesoItem } from "../Containers/Inicio/inicioAccesosData";
 import {
   actuacionesLabelForRole,
+  cargarRelevamientoLabelForRole,
   completarTrabajosLabelForRole,
+  gestionRelevamientosLabelForRole,
   indicadoresLabelForRole,
   mapaLabelForRole,
   isMenuPathVisibleForRole,
@@ -30,6 +32,12 @@ export function getVisibleHomeCards(role: AppRole): InicioAccesoItem[] {
     }
     if (item.to === "/mapa") {
       return { ...item, title: mapaLabelForRole(role) };
+    }
+    if (item.to === "/cargarRelevamiento") {
+      return { ...item, title: cargarRelevamientoLabelForRole(role) };
+    }
+    if (item.to === "/relevamientos") {
+      return { ...item, title: gestionRelevamientosLabelForRole(role) };
     }
     return item;
   });

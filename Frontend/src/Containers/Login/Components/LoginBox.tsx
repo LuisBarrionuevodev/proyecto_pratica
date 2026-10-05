@@ -7,6 +7,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { apiClient } from "../../../api/apiClient";
 import { notifyAuthSessionRefresh } from "../../../auth/AppSessionProvider";
+import { normalizeAppRole, postLoginPathForRole } from "../../../auth/roles";
 import {
     consumeSessionEndFeedback,
     sessionEndUserMessage,
@@ -41,7 +42,8 @@ const LoginBox = (): JSX.Element => {
             setError("");
             setSessionInfo(null);
             notifyAuthSessionRefresh();
-            navigate("/inicio");
+            const apiRole = data?.user?.role ?? data?.role;
+            navigate(postLoginPathForRole(normalizeAppRole(apiRole)));
         } catch {
             setError("Cuenta inválida");
         }

@@ -1,4 +1,4 @@
-export type UsuarioRole = "admin" | "usuario" | "relevador";
+export type UsuarioRole = "admin" | "usuario" | "relevador" | "relevamiento";
 
 export type GestionUsuarioFormValues = {
   username: string;
@@ -14,6 +14,7 @@ export const USUARIO_ROLE_OPTIONS: { value: UsuarioRole; label: string }[] = [
   { value: "admin", label: "Administrador" },
   { value: "usuario", label: "Usuario" },
   { value: "relevador", label: "Inspector" },
+  { value: "relevamiento", label: "Relevamiento" },
 ];
 
 /** Label legible del rol (valor API sin cambiar). */
@@ -45,6 +46,7 @@ export function gestionUsuarioFormFromUser(user: {
 export function normalizeUsuarioRoleForApi(role: string): UsuarioRole {
   if (role === "admin") return "admin";
   if (role === "relevador") return "relevador";
+  if (role === "relevamiento") return "relevamiento";
   return "usuario";
 }
 
