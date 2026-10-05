@@ -13,6 +13,7 @@ import {
   actuacionGestionMobileOrigen,
   actuacionGestionMobileTitular,
 } from "../utils/actuacionGestionMobileDisplay";
+import { ActuacionesGestionListPagination } from "./ActuacionesGestionListPagination";
 
 const labelSx = {
   fontFamily: FONT_FAMILY_UI,
@@ -47,6 +48,7 @@ export type ActuacionesGestionMobileCardListProps = {
 
 /**
  * Vista móvil de Gestión de Actuaciones (misma data y modal CRUD que la tabla MRT).
+ * Con `listadoServidor`, solo muestra la página vigente devuelta por el padre.
  */
 export function ActuacionesGestionMobileCardList({
   rows,
@@ -55,17 +57,34 @@ export function ActuacionesGestionMobileCardList({
   listadoServidor,
   onOpenDetalle,
 }: ActuacionesGestionMobileCardListProps) {
-  const total = listadoServidor?.totalRowCount ?? rows.length;
-  const page = listadoServidor?.page ?? 1;
-  const pageSize = listadoServidor?.pageSize ?? rows.length;
-  const pageCount = Math.max(1, Math.ceil(total / pageSize));
+  const paginationBar =
+    listadoServidor != null ? (
+      <ActuacionesGestionListPagination
+        page={listadoServidor.page}
+        pageSize={listadoServidor.pageSize}
+        totalRowCount={listadoServidor.totalRowCount}
+        loading={loading}
+        onPageChange={listadoServidor.onPageChange}
+      />
+    ) : null;
 
   return (
     <Stack spacing={1.5} sx={{ width: "100%", minWidth: 0 }} data-testid="actuaciones-gestion-mobile-cards">
+      {paginationBar}
+
       {loading && rows.length === 0 ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
           <CircularProgress size={32} sx={{ color: GLASS_COLORS.textSecondary }} />
         </Box>
+      ) : null}
+
+      {!loading && rows.length === 0 ? (
+        <Typography
+          variant="body2"
+          sx={{ color: GLASS_COLORS.textMuted, fontFamily: FONT_FAMILY_UI, textAlign: "center", py: 2 }}
+        >
+          Sin actuaciones en esta página.
+        </Typography>
       ) : null}
 
       {rows.map((row) => (
@@ -78,6 +97,8 @@ export function ActuacionesGestionMobileCardList({
             flexDirection: "column",
             gap: 1,
             minWidth: 0,
+            opacity: loading ? 0.72 : 1,
+            pointerEvents: loading ? "none" : "auto",
           }}
         >
           <Box sx={{ minWidth: 0 }}>
@@ -117,39 +138,7 @@ export function ActuacionesGestionMobileCardList({
         </Box>
       ))}
 
-      {listadoServidor && total > pageSize ? (
-        <Box
-          sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 1,
-            flexWrap: "wrap",
-          }}
-        >
-          <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, fontFamily: FONT_FAMILY_UI }}>
-            Página {page} de {pageCount} · {total} actuaciones
-          </Typography>
-          <Box sx={{ display: "flex", gap: 1 }}>
-            <AppButton
-              dsVariant="secondary"
-              dsSize="sm"
-              disabled={loading || page <= 1}
-              onClick={() => listadoServidor.onPageChange(page - 1, pageSize)}
-            >
-              Anterior
-            </AppButton>
-            <AppButton
-              dsVariant="secondary"
-              dsSize="sm"
-              disabled={loading || page >= pageCount}
-              onClick={() => listadoServidor.onPageChange(page + 1, pageSize)}
-            >
-              Siguiente
-            </AppButton>
-          </Box>
-        </Box>
-      ) : null}
+      {paginationBar}
     </Stack>
   );
 }

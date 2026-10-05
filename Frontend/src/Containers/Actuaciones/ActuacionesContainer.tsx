@@ -81,9 +81,13 @@ const ActuacionesContainer = (): JSX.Element => {
 
   const handleFiltrarTodos = useCallback(
     (filtros: IActuacionesListFilters) => {
-      void buscar(filtros);
+      void buscar({
+        ...filtros,
+        page: 1,
+        page_size: meta?.page_size ?? filtros.page_size ?? 50,
+      });
     },
-    [buscar]
+    [buscar, meta]
   );
 
   const handleRefreshListaActuaciones = useCallback(() => {

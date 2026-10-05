@@ -18,4 +18,10 @@ describe("V1.1-RESP-ACT.1 gestión responsive", () => {
     expect(cards).toContain("onOpenDetalle");
     expect(cards).toContain("Ver / editar");
   });
+
+  it("cards delegan paginación a ActuacionesGestionListPagination", () => {
+    const cards = read("src/Containers/Actuaciones/Components/ActuacionesGestionMobileCardList.tsx");
+    expect(cards).toContain("ActuacionesGestionListPagination");
+    expect(cards).toContain("listadoServidor");
+  });
 });
