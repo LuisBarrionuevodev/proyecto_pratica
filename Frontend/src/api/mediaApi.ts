@@ -55,5 +55,16 @@ export async function deleteArchivo(archivoId: number): Promise<{ archivo_id: nu
   return data;
 }
 
+export async function postFinalizarFotosPorAhora(rutaItemId: number): Promise<{
+  ruta_item_id: number;
+  fotos_pendientes_cerradas_at: string;
+  already_closed?: boolean;
+}> {
+  const { data } = await apiClient.post(
+    `/ruta-items/${rutaItemId}/fotos/finalizar-por-ahora`
+  );
+  return data;
+}
+
 export type TipoDocumentoFotoActa = (typeof TIPOS_DOCUMENTO_FOTO_ACTA)[number];
 export type TipoDocumentoFotoLocal = (typeof TIPOS_DOCUMENTO_FOTO_LOCAL)[number];

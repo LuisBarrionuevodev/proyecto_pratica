@@ -19,7 +19,7 @@ _RELEVADOR_ACTUACION_GESTION_RX: Final[re.Pattern[str]] = re.compile(
     r"^/actuaciones/\d+(?:/gestion)?$"
 )
 _RELEVADOR_MEDIA_RX: Final[re.Pattern[str]] = re.compile(
-    r"^/(?:ruta-items/\d+/archivos(?:/.*)?|archivos/\d+/(?:complete|download-url))$"
+    r"^/(?:ruta-items/\d+/archivos(?:/.*)?|ruta-items/\d+/fotos/finalizar-por-ahora|archivos/\d+/(?:complete|download-url))$"
 )
 _PROFILE_RX: Final[re.Pattern[str]] = re.compile(r"^/api/profile(?:/.*)?$")
 _RUBROS_CATALOGO_RX: Final[re.Pattern[str]] = re.compile(r"^/catalogos/rubros(?:/.*)?$")

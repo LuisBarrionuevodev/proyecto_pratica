@@ -55,10 +55,10 @@ export function MediaUploadQueue({ items, onRemove, onRetry, disabled }: Props) 
           </Box>
           <Box sx={{ flex: 1, minWidth: 0 }}>
             <Typography variant="body2" noWrap sx={{ color: GLASS_COLORS.textPrimary }}>
-              {item.file.name}
+              {item.file?.name ?? "Archivo"}
             </Typography>
             <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted }}>
-              {(item.file.size / 1024).toFixed(0)} KB · {phaseLabel(item, allowIndividualRetry)}
+              {((item.file?.size ?? 0) / 1024).toFixed(0)} KB · {phaseLabel(item, allowIndividualRetry)}
               {item.phase === "uploading" ? ` ${item.progressPct}%` : ""}
             </Typography>
             {item.phase === "uploading" ? (

@@ -49,6 +49,7 @@ def list_completar_trabajo_pendientes(
     )
     base = completar_trabajo_pendientes_ruta_item_base_query().filter(
         RutaTrabajo.fecha == fecha,
+        RutaItem.fotos_pendientes_cerradas_at.is_(None),
         or_(
             RutaItem.estado_ruta_item == "EN_PROCESO",
             and_(RutaItem.estado_ruta_item == "FINALIZADO", pending_media),

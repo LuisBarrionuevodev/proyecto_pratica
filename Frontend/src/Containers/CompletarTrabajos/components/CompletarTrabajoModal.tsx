@@ -127,6 +127,10 @@ import { useCompletarTrabajoMediaQueues } from "../../../features/media/hooks/us
 import { useRutaItemReadyArchivos } from "../../../features/media/hooks/useRutaItemReadyArchivos";
 import { MediaUploadProgress } from "../../../features/media/components/MediaUploadProgress";
 import { MediaUploadSection } from "../../../features/media/components/MediaUploadSection";
+import { MediaUploadPanelErrorBoundary } from "../../../features/media/components/MediaUploadPanelErrorBoundary";
+import { postFinalizarFotosPorAhora } from "../../../api/mediaApi";
+import { ConfirmDialog } from "../../../ui";
+import { safeFilesFromFileList } from "../../../features/media/utils/safeFileSelection";
 import type { MediaArchivoListItem, RutaItemArchivosListResponse } from "../../../features/media/mediaTypes";
 
 const modalAuxInputSx = {
@@ -508,6 +512,9 @@ export function CompletarTrabajoModal({
   const mediaQueues = useCompletarTrabajoMediaQueues(openedRutaItemId);
   const readyArchivos = useRutaItemReadyArchivos(openedRutaItemId, Boolean(open && openedRutaItemId != null));
   const [mediaSelectionError, setMediaSelectionError] = useState<string | null>(null);
+  const [emptyQueueHint, setEmptyQueueHint] = useState<string | null>(null);
+  const [finalizeConfirmOpen, setFinalizeConfirmOpen] = useState(false);
+  const [finalizingPorAhora, setFinalizingPorAhora] = useState(false);
   const [detalleLoading, setDetalleLoading] = useState(false);
   const [detalleError, setDetalleError] = useState<string | null>(null);
   const [inspectoresGrupo, setInspectoresGrupo] = useState<ICompletarTrabajoInspectorGrupo[]>([]);
@@ -765,8 +772,12 @@ export function CompletarTrabajoModal({
     (
       addFn: (files: FileList | File[], serverCount: number) => MediaQuotaAddResult,
       serverKey: "foto_acta" | "foto_documentacion_local" | "foto_inspeccion",
-      files: FileList
+      files: FileList | File[]
     ) => {
+      const fileList = Array.isArray(files) ? files : safeFilesFromFileList(files);
+      if (fileList.length === 0) {
+        return;
+      }
       if (openedRutaItemId == null) {
         setMediaSelectionError(
           "No se pudo asociar la cola de fotos a este trabajo. Cerrá y volvé a abrir el modal."
@@ -775,7 +786,8 @@ export function CompletarTrabajoModal({
       }
       try {
         setMediaSelectionError(null);
-        const result = addFn(files, serverReadyForCategoria(serverKey));
+        setEmptyQueueHint(null);
+        const result = addFn(fileList, serverReadyForCategoria(serverKey));
         notifyMediaQuotaAdd(result);
       } catch (err) {
         console.error("Error al seleccionar fotos:", err);
@@ -1096,6 +1108,23 @@ export function CompletarTrabajoModal({
     [feedback, handleCierreFailed, mediaQueues, onClose, onSuccess, resolvedRow?.tipo_iniciador]
   );
 
+  const handleConfirmFinalizarPorAhora = useCallback(async () => {
+    if (!resolvedRow || finalizingPorAhora) return;
+    setFinalizingPorAhora(true);
+    try {
+      await postFinalizarFotosPorAhora(resolvedRow.ruta_item_id);
+      mediaQueues.clearForActiveRutaItem();
+      feedback.success("Podés agregar fotos más tarde desde Mis trabajos.");
+      onSuccess(resolvedRow.ruta_item_id);
+      setFinalizeConfirmOpen(false);
+      onClose();
+    } catch {
+      feedback.error("No se pudo finalizar por ahora. Intentá de nuevo.");
+    } finally {
+      setFinalizingPorAhora(false);
+    }
+  }, [resolvedRow, finalizingPorAhora, mediaQueues, feedback, onSuccess, onClose]);
+
   const handleClose = useCallback(() => {
     if (saving) return;
     onClose();
@@ -1114,9 +1143,24 @@ export function CompletarTrabajoModal({
     setFieldErrors({});
 
     if (uiPolicy?.solo_evidencias_pendientes) {
+      const uploadable = mediaQueues.uploadableCount ?? 0;
+      if (uploadable <= 0) {
+        setEmptyQueueHint("Seleccioná fotos para subir.");
+        return;
+      }
+      setEmptyQueueHint(null);
       setSaving(true);
       try {
         await mediaQueues.uploadAll(resolvedRow.ruta_item_id, 1);
+        const stillUploadable = mediaQueues.allItems.some(
+          (x) => x.phase === "pending" || x.phase === "error"
+        );
+        if (stillUploadable) {
+          feedback.warning(
+            "No se pudieron subir todas las fotos. Reintentá cuando tengas mejor conexión."
+          );
+          return;
+        }
         feedback.success("Fotos subidas correctamente.");
         mediaQueues.clearForActiveRutaItem();
         onSuccess(resolvedRow.ruta_item_id);
@@ -1409,6 +1453,7 @@ export function CompletarTrabajoModal({
   ).length;
 
   return (
+    <>
     <CrudGlassDialog
       open={open && row != null}
       onClose={handleDialogClose}
@@ -1429,7 +1474,12 @@ export function CompletarTrabajoModal({
         <CrudDialogActions
           mode="edit"
           onSave={() => void handleSubmit()}
-          loading={saving}
+          loading={saving || finalizingPorAhora}
+          saveDisabled={
+            soloEvidenciasUi &&
+            (mediaQueues.uploadableCount ?? 0) <= 0 &&
+            !mediaQueues.session.active
+          }
           saveLabel={
             soloEvidenciasUi
               ? "SUBIR FOTOS PENDIENTES"
@@ -1438,6 +1488,18 @@ export function CompletarTrabajoModal({
                 : mediaQueues.hasPendingUpload
                   ? "Guardar trabajo y subir fotos"
                   : "Guardar trabajo"
+          }
+          extraActions={
+            soloEvidenciasUi && !mediaQueues.session.active ? (
+              <AppButton
+                dsVariant="ghost"
+                dsSize="sm"
+                onClick={() => setFinalizeConfirmOpen(true)}
+                disabled={saving || finalizingPorAhora}
+              >
+                FINALIZAR POR AHORA
+              </AppButton>
+            ) : null
           }
         />
       }
@@ -2330,6 +2392,11 @@ export function CompletarTrabajoModal({
       </>
       )}
       <CompletarBloque title={soloEvidenciasUi ? "Fotos pendientes" : "Archivos del trabajo"}>
+        <MediaUploadPanelErrorBoundary
+          resetKey={openedRutaItemId ?? "none"}
+          rutaItemId={openedRutaItemId}
+          onClosePanel={handleClose}
+        >
         <Stack spacing={2}>
           {readyArchivos.error ? (
             <Alert severity="warning" sx={{ borderRadius: 2 }}>
@@ -2339,6 +2406,11 @@ export function CompletarTrabajoModal({
           {mediaSelectionError ? (
             <Alert severity="error" sx={{ borderRadius: 2 }} onClose={() => setMediaSelectionError(null)}>
               {mediaSelectionError}
+            </Alert>
+          ) : null}
+          {emptyQueueHint ? (
+            <Alert severity="info" sx={{ borderRadius: 2 }} onClose={() => setEmptyQueueHint(null)}>
+              {emptyQueueHint}
             </Alert>
           ) : null}
           <MediaUploadSection
@@ -2383,6 +2455,7 @@ export function CompletarTrabajoModal({
             disabled={saving}
           />
         </Stack>
+        </MediaUploadPanelErrorBoundary>
       </CompletarBloque>
       {!soloEvidenciasUi && (
       <CompletarBloque title="Observaciones">
@@ -2409,5 +2482,23 @@ export function CompletarTrabajoModal({
       )}
       </Stack>
     </CrudGlassDialog>
+    <ConfirmDialog
+      open={finalizeConfirmOpen}
+      onClose={() => {
+        if (finalizingPorAhora) return;
+        setFinalizeConfirmOpen(false);
+      }}
+      onConfirm={() => void handleConfirmFinalizarPorAhora()}
+      title="Finalizar por ahora"
+      confirmLabel="FINALIZAR POR AHORA"
+      loading={finalizingPorAhora}
+    >
+      <Typography variant="body2" component="div" sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+        <span>El trabajo ya está guardado.</span>
+        <span>No se subirán más fotos por ahora.</span>
+        <span>Podrás agregar fotos después desde Mis trabajos.</span>
+      </Typography>
+    </ConfirmDialog>
+    </>
   );
 }

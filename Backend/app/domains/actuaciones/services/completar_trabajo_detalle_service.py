@@ -81,9 +81,13 @@ def get_completar_trabajo_detalle(*, ruta_item_id: int) -> dict[str, Any]:
         raise ValueError("El ítem está eliminado.")
     solo_evidencias = False
     if item.estado_ruta_item != "EN_PROCESO":
-        if item.estado_ruta_item == "FINALIZADO" and (
-            ruta_item_tiene_archivos_pending(int(item.id))
-            or bool(getattr(item, "evidencias_pendientes_abiertas", False))
+        if (
+            item.estado_ruta_item == "FINALIZADO"
+            and getattr(item, "fotos_pendientes_cerradas_at", None) is None
+            and (
+                ruta_item_tiene_archivos_pending(int(item.id))
+                or bool(getattr(item, "evidencias_pendientes_abiertas", False))
+            )
         ):
             solo_evidencias = True
         else:

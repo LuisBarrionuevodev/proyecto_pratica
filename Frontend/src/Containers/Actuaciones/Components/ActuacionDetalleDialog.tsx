@@ -2280,7 +2280,7 @@ export function ActuacionDetalleDialog({
             <>
               {showInspectorModePicker && puedeInspectorDatos ? (
                 <AppButton dsVariant="primary" dsSize="sm" onClick={() => handleStartEditing()} disabled={saving}>
-                  Editar datos y fotos
+                  Editar datos
                 </AppButton>
               ) : null}
               {showInspectorModePicker && puedeInspectorFotos ? (
@@ -2290,7 +2290,7 @@ export function ActuacionDetalleDialog({
                   onClick={() => setPhotosOnlyMode(true)}
                   disabled={saving}
                 >
-                  Gestionar fotos
+                  Cargar más fotos
                 </AppButton>
               ) : null}
               {inspectorSelfService && (photosOnlyMode || formEditingActive) ? (
@@ -2307,9 +2307,15 @@ export function ActuacionDetalleDialog({
                   Volver
                 </AppButton>
               ) : null}
-              <AppButton dsVariant="ghost" dsSize="sm" onClick={handlePrint} disabled={saving}>
-                Imprimir
-              </AppButton>
+              {inspectorSelfService ? (
+                <AppButton dsVariant="ghost" dsSize="sm" onClick={handleClose} disabled={saving}>
+                  Eliminar de la vista Inspector
+                </AppButton>
+              ) : (
+                <AppButton dsVariant="ghost" dsSize="sm" onClick={handlePrint} disabled={saving}>
+                  Imprimir
+                </AppButton>
+              )}
             </>
           }
         />

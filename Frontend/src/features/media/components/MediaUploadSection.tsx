@@ -11,6 +11,7 @@ import {
 } from "../mediaConstants";
 import type { MediaArchivoListItem, MediaQueuedFile } from "../mediaTypes";
 import { MediaThumbnailTile } from "./MediaThumbnailTile";
+import { safeFilesFromFileList } from "../utils/safeFileSelection";
 import { MediaUploadQueue } from "./MediaUploadQueue";
 
 type Props = {
@@ -19,7 +20,7 @@ type Props = {
   serverCount?: number;
   /** Miniaturas READY del servidor (solo lectura en flujo de continuación). */
   readyServerItems?: MediaArchivoListItem[];
-  onAddFiles: (files: FileList) => void;
+  onAddFiles: (files: FileList | File[]) => void;
   onRemove: (localId: string) => void;
   onRetry?: (localId: string) => void;
   disabled?: boolean;
@@ -50,9 +51,10 @@ export function MediaUploadSection({
   const used = readyCount + localPending;
 
   const handleFileChange = (files: FileList | null) => {
-    if (!files || files.length === 0) return;
+    const list = safeFilesFromFileList(files);
+    if (list.length === 0) return;
     try {
-      onAddFiles(files);
+      onAddFiles(list);
     } catch (err) {
       console.error("Error al agregar archivos a la cola:", err);
     }

@@ -17,6 +17,8 @@ export type CrudDialogActionsProps = {
   deleteLabel?: string;
   /** Acciones secundarias en la misma fila (p. ej. Imprimir). */
   extraActions?: ReactNode;
+  /** Deshabilita Guardar sin ocultar el botón. */
+  saveDisabled?: boolean;
   /** @deprecated Cierre solo con la X del header. */
   onClose?: () => void;
   /** @deprecated */
@@ -45,6 +47,7 @@ export function CrudDialogActions({
   saveLabel = "Guardar cambios",
   deleteLabel = "Eliminar",
   extraActions,
+  saveDisabled = false,
 }: CrudDialogActionsProps) {
   const busy = loading;
 
@@ -68,7 +71,7 @@ export function CrudDialogActions({
             dsSize="sm"
             onClick={() => onSave?.()}
             loading={busy}
-            disabled={busy || !onSave}
+            disabled={busy || !onSave || saveDisabled}
           >
             {saveLabel}
           </AppButton>

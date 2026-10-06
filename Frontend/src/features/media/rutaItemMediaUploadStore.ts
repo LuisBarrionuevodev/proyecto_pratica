@@ -22,9 +22,13 @@ function newLocalId(): string {
 }
 
 function previewForFile(file: File): string | null {
-  const ct = (file.type || "").toLowerCase();
-  if (ct.startsWith("image/")) {
-    return URL.createObjectURL(file);
+  try {
+    const ct = (file.type || "").toLowerCase();
+    if (ct.startsWith("image/")) {
+      return URL.createObjectURL(file);
+    }
+  } catch {
+    return null;
   }
   return null;
 }
@@ -74,6 +78,7 @@ export type RutaItemMediaUploadSnapshot = {
   hasPendingUpload: boolean;
   hasRetryableUpload: boolean;
   retryableCount: number;
+  uploadableCount: number;
 };
 
 const EMPTY_SNAPSHOT: RutaItemMediaUploadSnapshot = {
@@ -82,6 +87,7 @@ const EMPTY_SNAPSHOT: RutaItemMediaUploadSnapshot = {
   hasPendingUpload: false,
   hasRetryableUpload: false,
   retryableCount: 0,
+  uploadableCount: 0,
 };
 
 function computeFlags(items: MediaQueuedFile[]) {
@@ -96,7 +102,8 @@ function computeFlags(items: MediaQueuedFile[]) {
   const retryableCount = items.filter(
     (x) => x.phase === "pending" || x.phase === "error"
   ).length;
-  return { hasPendingUpload, hasRetryableUpload, retryableCount };
+  const uploadableCount = retryableCount;
+  return { hasPendingUpload, hasRetryableUpload, retryableCount, uploadableCount };
 }
 
 export function getRutaItemMediaUploadSnapshot(
@@ -107,11 +114,12 @@ export function getRutaItemMediaUploadSnapshot(
   if (!b) return EMPTY_SNAPSHOT;
   const flags = computeFlags(b.items);
   return {
-    items: b.items,
-    session: b.session,
+    items: b.items ?? [],
+    session: b.session ?? INITIAL_SESSION,
     hasPendingUpload: flags.hasPendingUpload,
     hasRetryableUpload: flags.hasRetryableUpload,
     retryableCount: flags.retryableCount,
+    uploadableCount: flags.uploadableCount,
   };
 }
 

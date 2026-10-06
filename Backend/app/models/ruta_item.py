@@ -98,6 +98,10 @@ class RutaItem(db.Model):
         default=False,
         server_default=db.text("0"),
     )
+    fotos_pendientes_cerradas_at = db.Column(db.DateTime, nullable=True, index=True)
+    fotos_pendientes_cerradas_by_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True
+    )
 
     ruta_trabajo = db.relationship("RutaTrabajo", back_populates="items")
     ruta_grupo = db.relationship("RutaGrupo", back_populates="items")
@@ -106,6 +110,9 @@ class RutaItem(db.Model):
     actuacion = db.relationship("Actuaciones")
     ejecutado_por_user = db.relationship("User", foreign_keys=[ejecutado_por_user_id])
     created_by_user = db.relationship("User", foreign_keys=[created_by_user_id])
+    fotos_pendientes_cerradas_by_user = db.relationship(
+        "User", foreign_keys=[fotos_pendientes_cerradas_by_user_id]
+    )
 
     __table_args__ = (
         db.UniqueConstraint("ruta_trabajo_id", "iniciador_ruta_id", name="uq_ruta_item_ruta_iniciador"),

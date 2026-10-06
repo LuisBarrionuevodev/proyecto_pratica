@@ -7,3 +7,4 @@ from . import complete as _complete  # noqa: F401,E402
 from . import download_url as _download_url  # noqa: F401,E402
 from . import list_archivos as _list_archivos  # noqa: F401,E402
 from . import delete_archivo as _delete_archivo  # noqa: F401,E402
+from . import finalizar_fotos_por_ahora as _finalizar_fotos_por_ahora  # noqa: F401,E402

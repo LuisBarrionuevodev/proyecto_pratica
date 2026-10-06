@@ -85,7 +85,7 @@ export function ActuacionMediaGallery({ rutaItemId, readOnly = false, hideTitle 
   }, [rutaItemId, coordinator, load, feedback]);
 
   const handleAddFiles = useCallback(
-    (categoria: MediaCategoria, files: FileList) => {
+    (categoria: MediaCategoria, files: FileList | File[]) => {
       const serverCount = serverItemsForCategoria(data, categoria).length;
       coordinator.addFiles(categoria, files, serverCount);
       queueMicrotask(() => {

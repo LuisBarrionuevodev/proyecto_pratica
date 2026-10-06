@@ -312,6 +312,7 @@ export function useCompletarTrabajoMediaQueues(rutaItemId: number | null | undef
     hasPendingUpload: snapshot.hasPendingUpload,
     hasRetryableUpload: snapshot.hasRetryableUpload,
     retryableCount: snapshot.retryableCount,
+    uploadableCount: snapshot.uploadableCount,
     uploadAll,
     retryAllPending,
     clearForActiveRutaItem,
