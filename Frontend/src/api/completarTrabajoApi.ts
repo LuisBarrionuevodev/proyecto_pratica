@@ -250,6 +250,8 @@ export interface ICompletarTrabajoCierreBody {
   solicita_carnet_manipulador?: boolean | null;
   telefono_contacto_solicitud_carnet?: string | null;
   faltas_notificacion_subsanadas?: boolean | null;
+  idempotency_key?: string | null;
+  evidencias_pendientes_al_cierre?: boolean | null;
 }
 
 export const postCompletarTrabajoCerrar = async (

@@ -73,11 +73,11 @@ def load_media_storage_config() -> MediaStorageConfig:
         presigned_ttl_seconds=_int_env("MEDIA_PRESIGNED_URL_TTL_SECONDS", 600),
         max_image_bytes=_int_env("MEDIA_MAX_IMAGE_BYTES", 10_485_760),
         max_document_bytes=_int_env("MEDIA_MAX_DOCUMENT_BYTES", 15_728_640),
-        max_foto_acta_per_ruta_item=_int_env("MEDIA_MAX_FOTO_ACTA_PER_RUTA_ITEM", 7),
+        max_foto_acta_per_ruta_item=_int_env("MEDIA_MAX_FOTO_ACTA_PER_RUTA_ITEM", 10),
         max_foto_documentacion_local_per_ruta_item=_int_env(
-            "MEDIA_MAX_FOTO_DOCUMENTACION_LOCAL_PER_RUTA_ITEM", 9
+            "MEDIA_MAX_FOTO_DOCUMENTACION_LOCAL_PER_RUTA_ITEM", 10
         ),
         max_foto_inspeccion_per_ruta_item=_int_env(
-            "MEDIA_MAX_FOTO_INSPECCION_PER_RUTA_ITEM", 12
+            "MEDIA_MAX_FOTO_INSPECCION_PER_RUTA_ITEM", 20
         ),
     )

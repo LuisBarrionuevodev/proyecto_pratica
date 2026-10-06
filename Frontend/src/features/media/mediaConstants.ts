@@ -10,9 +10,9 @@ export type MediaCategoria =
 /** Alias histórico: todas las galerías RutaItem (1A + 1B). */
 export type MediaCategoria1A = MediaCategoria;
 
-export const MEDIA_MAX_FOTO_ACTA = 7;
-export const MEDIA_MAX_FOTO_DOCUMENTACION_LOCAL = 9;
-export const MEDIA_MAX_FOTO_INSPECCION = 12;
+export const MEDIA_MAX_FOTO_ACTA = 10;
+export const MEDIA_MAX_FOTO_DOCUMENTACION_LOCAL = 10;
+export const MEDIA_MAX_FOTO_INSPECCION = 20;
 
 export const MEDIA_MAX_IMAGE_BYTES = 10_485_760;
 export const MEDIA_MAX_PDF_BYTES = 15_728_640;

@@ -8,6 +8,7 @@ import {
 import { validateLocalMediaFile } from "../mediaFileValidation";
 import type { MediaQueuedFile } from "../mediaTypes";
 import { uploadQueuedFilesWithConcurrency } from "../mediaUploadPipeline";
+import { sliceFilesToAvailableQuota, type MediaQuotaAddResult } from "../../../Containers/CompletarTrabajos/utils/completarTrabajoMediaQuota";
 
 function newLocalId(): string {
   return `mq-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -62,27 +63,27 @@ export function useMediaUploadCoordinator() {
   }, []);
 
   const addFiles = useCallback(
-    (categoria: MediaCategoria, files: FileList | File[], serverCount = 0) => {
+    (
+      categoria: MediaCategoria,
+      files: FileList | File[],
+      serverCount = 0
+    ): MediaQuotaAddResult => {
       const list = Array.from(files);
+      const quota = sliceFilesToAvailableQuota(
+        list,
+        categoria,
+        serverCount,
+        itemsRef.current
+      );
+      let addedCount = 0;
       setItems((prev) => {
         const next = [...prev];
         let slotCount =
           serverCount +
           next.filter((x) => x.categoria === categoria && x.phase !== "error").length;
-        for (const file of list) {
+        for (const file of quota.accepted) {
           const err = validateLocalMediaFile(file, categoria, slotCount);
           if (err) {
-            next.push({
-              localId: newLocalId(),
-              file,
-              categoria,
-              tipoDocumento: null,
-              phase: "error",
-              progressPct: 0,
-              errorMessage: err,
-              archivoId: null,
-              previewUrl: previewForFile(file),
-            });
             continue;
           }
           next.push({
@@ -97,10 +98,17 @@ export function useMediaUploadCoordinator() {
             previewUrl: previewForFile(file),
           });
           slotCount += 1;
+          addedCount += 1;
         }
         itemsRef.current = next;
         return next;
       });
+      return {
+        accepted: quota.accepted.slice(0, addedCount),
+        added: addedCount,
+        skipped: list.length - addedCount,
+        quotaFull: list.length > addedCount && addedCount > 0,
+      };
     },
     []
   );

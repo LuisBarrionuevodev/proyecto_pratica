@@ -156,7 +156,7 @@ def test_imagen_tamano_excedido_422(app, client, app_ctx, scope_fixture) -> None
 
 def test_foto_acta_octavo_archivo_422(app, client, app_ctx, scope_fixture) -> None:
     d = scope_fixture
-    for i in range(7):
+    for i in range(10):
         content = pdf_bytes_variant(i)
         r = _create_intent(
             client,
@@ -168,7 +168,7 @@ def test_foto_acta_octavo_archivo_422(app, client, app_ctx, scope_fixture) -> No
             sha256=hashlib.sha256(content).hexdigest(),
         )
         assert r.status_code == 201
-    overflow = pdf_bytes_variant(7)
+    overflow = pdf_bytes_variant(10)
     r8 = _create_intent(
         client,
         d["item_a"].id,
@@ -184,7 +184,7 @@ def test_foto_acta_octavo_archivo_422(app, client, app_ctx, scope_fixture) -> No
 
 def test_foto_documentacion_local_decimo_archivo_422(app, client, app_ctx, scope_fixture) -> None:
     d = scope_fixture
-    for i in range(9):
+    for i in range(10):
         content = pdf_bytes_variant(100 + i)
         r = _create_intent(
             client,
@@ -197,7 +197,7 @@ def test_foto_documentacion_local_decimo_archivo_422(app, client, app_ctx, scope
             sha256=hashlib.sha256(content).hexdigest(),
         )
         assert r.status_code == 201
-    overflow = pdf_bytes_variant(200)
+    overflow = pdf_bytes_variant(110)
     r10 = _create_intent(
         client,
         d["item_a"].id,
@@ -214,7 +214,7 @@ def test_foto_documentacion_local_decimo_archivo_422(app, client, app_ctx, scope
 
 def test_cupos_independientes_entre_categorias(app, client, app_ctx, scope_fixture) -> None:
     d = scope_fixture
-    for i in range(7):
+    for i in range(10):
         content = pdf_bytes_variant(300 + i)
         assert (
             _create_intent(
@@ -228,7 +228,7 @@ def test_cupos_independientes_entre_categorias(app, client, app_ctx, scope_fixtu
             ).status_code
             == 201
         )
-    for i in range(9):
+    for i in range(10):
         content = pdf_bytes_variant(400 + i)
         assert (
             _create_intent(
@@ -243,7 +243,7 @@ def test_cupos_independientes_entre_categorias(app, client, app_ctx, scope_fixtu
             ).status_code
             == 201
         )
-    extra_acta = pdf_bytes_variant(307)
+    extra_acta = pdf_bytes_variant(310)
     assert (
         _create_intent(
             client,
@@ -256,7 +256,7 @@ def test_cupos_independientes_entre_categorias(app, client, app_ctx, scope_fixtu
         ).status_code
         == 422
     )
-    extra_doc = pdf_bytes_variant(409)
+    extra_doc = pdf_bytes_variant(410)
     assert (
         _create_intent(
             client,

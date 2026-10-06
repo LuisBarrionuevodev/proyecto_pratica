@@ -9,6 +9,8 @@ export type SubmitCompletarTrabajoCierreOptions = {
   incluirInspeccionNormal?: boolean;
   /** Sustituye inspectores del grupo; solo enviar si el usuario los editó en el modal. */
   inspectoresExplicitos?: string[];
+  idempotencyKey?: string;
+  evidenciasPendientesAlCierre?: boolean;
 };
 
 /**
@@ -18,7 +20,7 @@ export async function submitCompletarTrabajoCierreFromRow(
   row: ICompletarTrabajoPendienteRow,
   values: Record<string, unknown>,
   options?: SubmitCompletarTrabajoCierreOptions
-): Promise<void> {
+): Promise<ICompletarTrabajoPendienteRow> {
   const body = buildCompletarTrabajoCierreBodyFromInline(row, values, {
     includeTipoActuacion: options?.includeTipoActuacion === true,
     omitPrecargadoPr2: options?.omitPrecargadoPr2 === true,
@@ -26,6 +28,11 @@ export async function submitCompletarTrabajoCierreFromRow(
     ...(options?.inspectoresExplicitos !== undefined
       ? { inspectoresExplicitos: options.inspectoresExplicitos }
       : {}),
+    ...(options?.idempotencyKey ? { idempotencyKey: options.idempotencyKey } : {}),
+    ...(options?.evidenciasPendientesAlCierre
+      ? { evidenciasPendientesAlCierre: true }
+      : {}),
   });
-  await postCompletarTrabajoCerrar(row.ruta_item_id, body);
+  const { item } = await postCompletarTrabajoCerrar(row.ruta_item_id, body);
+  return item;
 }

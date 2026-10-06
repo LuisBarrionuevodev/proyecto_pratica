@@ -74,7 +74,7 @@ describe("runCompletarTrabajoFinalizeFlow", () => {
       uploadPendingMedia: upload,
       submitCierre: cierre,
     });
-    expect(result).toBe("validation_failed");
+    expect(result.flow).toBe("validation_failed");
     expect(upload).not.toHaveBeenCalled();
     expect(cierre).not.toHaveBeenCalled();
   });
@@ -88,7 +88,7 @@ describe("runCompletarTrabajoFinalizeFlow", () => {
       uploadPendingMedia: upload,
       submitCierre: cierre,
     });
-    expect(result).toBe("success");
+    expect(result.flow).toBe("success");
     expect(upload).toHaveBeenCalledTimes(1);
     expect(cierre).toHaveBeenCalledTimes(1);
     expect(cierre.mock.invocationCallOrder[0]).toBeLessThan(upload.mock.invocationCallOrder[0]);
@@ -102,7 +102,7 @@ describe("runCompletarTrabajoFinalizeFlow", () => {
       uploadPendingMedia: upload,
       submitCierre: cierre,
     });
-    expect(result).toBe("success");
+    expect(result.flow).toBe("success");
     expect(cierre).toHaveBeenCalled();
   });
 
@@ -114,21 +114,20 @@ describe("runCompletarTrabajoFinalizeFlow", () => {
       uploadPendingMedia: vi.fn().mockResolvedValue(false),
       submitCierre: cierre,
     });
-    expect(result).toBe("success_evidencias_pendientes");
+    expect(result.flow).toBe("success_evidencias_pendientes");
     expect(cierre).toHaveBeenCalledTimes(1);
   });
 
   it("error de cierre: no sube", async () => {
     const upload = vi.fn();
     const cierre = vi.fn().mockRejectedValue(new Error("422"));
-    await expect(
-      runCompletarTrabajoFinalizeFlow({
-        validate: () => ({ canSubmit: true, fieldErrors: {} }),
-        hasPendingUpload: () => true,
-        uploadPendingMedia: upload,
-        submitCierre: cierre,
-      })
-    ).rejects.toThrow("422");
+    const result = await runCompletarTrabajoFinalizeFlow({
+      validate: () => ({ canSubmit: true, fieldErrors: {} }),
+      hasPendingUpload: () => true,
+      uploadPendingMedia: upload,
+      submitCierre: cierre,
+    });
+    expect(result.flow).toBe("cierre_failed");
     expect(upload).not.toHaveBeenCalled();
   });
 });
@@ -157,7 +156,7 @@ describe("upload-intent contract", () => {
       },
       submitCierre: vi.fn(),
     });
-    expect(result).toBe("validation_failed");
+    expect(result.flow).toBe("validation_failed");
     expect(intent).not.toHaveBeenCalled();
   });
 });

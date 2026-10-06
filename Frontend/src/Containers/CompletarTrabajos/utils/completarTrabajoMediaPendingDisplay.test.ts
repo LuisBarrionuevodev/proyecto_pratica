@@ -13,12 +13,12 @@ describe("completarTrabajoMediaPendingDisplay", () => {
       ...baseRow,
       trabajo_guardado_evidencias_pendientes: true,
       media_resumen: {
-        foto_acta: { ready: 1, pending: 2, max: 7, pendientes: 6 },
+        foto_acta: { ready: 3, pending: 2, max: 10, pendientes: 7 },
         tiene_evidencias_pendientes: true,
       },
     } as ICompletarTrabajoPendienteRow;
     expect(rowTieneEvidenciasPendientes(row)).toBe(true);
     const lines = lineasEvidenciasPendientes(row.media_resumen ?? null);
-    expect(lines[0]).toContain("Actas: 2 pendientes de 7");
+    expect(lines[0]).toContain("Actas: 3 / 10");
   });
 });

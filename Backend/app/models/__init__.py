@@ -52,6 +52,7 @@ from .solicitud_carnet_manipulador import SolicitudCarnetManipulador
 from .notificacion_resultado_reinspeccion import NotificacionResultadoReinspeccion
 from .archivo import Archivo
 from .ruta_item_archivo import RutaItemArchivo
+from .completar_trabajo_cierre_idempotency import CompletarTrabajoCierreIdempotency
 __all__ = [
     "actuaciones_inspector",
     "notificacion_motivo",
@@ -111,4 +112,5 @@ __all__ = [
     "NotificacionResultadoReinspeccion",
     "Archivo",
     "RutaItemArchivo",
+    "CompletarTrabajoCierreIdempotency",
 ]

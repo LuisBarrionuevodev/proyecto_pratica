@@ -92,6 +92,12 @@ class RutaItem(db.Model):
         onupdate=db.func.current_timestamp(),
     )
     deleted_at = db.Column(db.DateTime, nullable=True, index=True)
+    evidencias_pendientes_abiertas = db.Column(
+        db.Boolean(),
+        nullable=False,
+        default=False,
+        server_default=db.text("0"),
+    )
 
     ruta_trabajo = db.relationship("RutaTrabajo", back_populates="items")
     ruta_grupo = db.relationship("RutaGrupo", back_populates="items")

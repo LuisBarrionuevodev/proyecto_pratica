@@ -115,6 +115,8 @@ export type BuildCierreBodyOptions = {
    * o hubo cambio geográfico real vs la fila baseline (reinspección sin edición no manda domicilio).
    */
   explicitUserFields?: Set<string>;
+  idempotencyKey?: string;
+  evidenciasPendientesAlCierre?: boolean;
 };
 
 function parseCantidadPersonasSinCarnet(value: string): number | undefined {
@@ -329,6 +331,9 @@ export function buildCompletarTrabajoCierreBody(
     if (subs === "si") body.faltas_notificacion_subsanadas = true;
     if (subs === "no") body.faltas_notificacion_subsanadas = false;
   }
+
+  if (options?.idempotencyKey) body.idempotency_key = options.idempotencyKey;
+  if (options?.evidenciasPendientesAlCierre) body.evidencias_pendientes_al_cierre = true;
 
   return body;
 }

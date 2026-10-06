@@ -34,14 +34,14 @@ export function lineasEvidenciasPendientes(resumen: MediaResumenRow | null): str
   const actas = resumen.foto_acta;
   const docs = resumen.foto_documentacion_local;
   const insp = resumen.foto_inspeccion;
-  if (actas && actas.pending > 0) {
-    lines.push(`Actas: ${actas.pending} pendientes de ${actas.max}`);
+  if (actas) {
+    lines.push(`Actas: ${actas.ready} / ${actas.max}`);
   }
-  if (docs && docs.pending > 0) {
-    lines.push(`Documentación: ${docs.pending} pendientes de ${docs.max}`);
+  if (docs) {
+    lines.push(`Documentación: ${docs.ready} / ${docs.max}`);
   }
-  if (insp && insp.pending > 0) {
-    lines.push(`Inspección: ${insp.pending} pendientes de ${insp.max}`);
+  if (insp) {
+    lines.push(`Inspección: ${insp.ready} / ${insp.max}`);
   }
   return lines;
 }

@@ -127,8 +127,13 @@ def completar_carga_archivo(archivo_id: int) -> CompleteUploadOut:
         raise MediaDomainError(MEDIA_SHA_MISMATCH, "El hash SHA-256 no coincide con lo declarado.")
 
     now = datetime.utcnow()
+    from app.domains.media.services.media_evidencias_pendientes_service import (
+        maybe_clear_evidencias_pendientes_abiertas,
+    )
+
     arch.status = "READY"
     arch.uploaded_at = now
+    maybe_clear_evidencias_pendientes_abiertas(int(arch.id))
     db.session.commit()
 
     log_upload_complete_ok(archivo_id=int(arch.id), categoria=categoria)

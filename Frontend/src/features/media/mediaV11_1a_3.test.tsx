@@ -6,9 +6,9 @@ import { vi } from "vitest";
 describe("MEDIA.1B configuración galerías", () => {
   it("expone tres galerías en orden doc / actas / inspección", () => {
     expect(MEDIA_RUTA_ITEM_GALLERIES).toHaveLength(3);
-    expect(MEDIA_RUTA_ITEM_GALLERIES[0].cupo).toBe(9);
-    expect(MEDIA_RUTA_ITEM_GALLERIES[1].cupo).toBe(7);
-    expect(MEDIA_RUTA_ITEM_GALLERIES[2].cupo).toBe(12);
+    expect(MEDIA_RUTA_ITEM_GALLERIES[0].cupo).toBe(10);
+    expect(MEDIA_RUTA_ITEM_GALLERIES[1].cupo).toBe(10);
+    expect(MEDIA_RUTA_ITEM_GALLERIES[2].cupo).toBe(20);
     expect(MEDIA_RUTA_ITEM_GALLERIES[2].categoria).toBe("FOTO_INSPECCION");
   });
 });

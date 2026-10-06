@@ -117,7 +117,7 @@ def test_retry_intent_does_not_consume_extra_cupo(app, client, app_ctx, scope_fi
 def test_quota_error_has_code(app, client, app_ctx, scope_fixture) -> None:
     d = scope_fixture
     with app.test_client() as client:
-        for i in range(7):
+        for i in range(10):
             content = pdf_bytes_variant(500 + i)
             sha = hashlib.sha256(content).hexdigest()
             resp = client.post(
@@ -133,7 +133,7 @@ def test_quota_error_has_code(app, client, app_ctx, scope_fixture) -> None:
                 f"/archivos/{data['archivo_id']}/complete",
                 headers=_auth_headers(d["user_a"].id),
             )
-        overflow_content = pdf_bytes_variant(507)
+        overflow_content = pdf_bytes_variant(510)
         overflow = _create_intent(
             client,
             d["item_a"].id,

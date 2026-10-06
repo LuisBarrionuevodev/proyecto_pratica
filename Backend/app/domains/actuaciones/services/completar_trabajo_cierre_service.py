@@ -418,6 +418,7 @@ def cerrar_completar_trabajo_por_ruta_item(
     ruta_item_id: int,
     payload: CompletarTrabajoCierreCompletoIn,
     ejecutado_por_user_id: int,
+    evidencias_pendientes_abiertas: bool = False,
 ) -> dict:
     """
     Cierra operativamente un trabajo del día: actuación + ruta_item + iniciador (una transacción).
@@ -681,6 +682,9 @@ def cerrar_completar_trabajo_por_ruta_item(
 
         if bucket == ContrapBucket.NONE:
             promover_iniciador_reinspeccion_oficio_segun_tipo(ini, payload.tipo_actuacion)
+
+        if evidencias_pendientes_abiertas:
+            item.evidencias_pendientes_abiertas = True
 
         ini.updated_at = now
         db.session.add(act)

@@ -56,8 +56,18 @@ import {
 } from "../../Actuaciones/utils/actuacionSaveFeedback";
 import { scrollActuacionFormToFirstFieldError } from "../../Actuaciones/utils/actuacionFormScroll";
 import { commitActaNumInputValue } from "../../Actuaciones/validations/actuacionFormNormalize";
-import { submitCompletarTrabajoCierreFromRow } from "../completion/submitCompletarTrabajoCierre";
-import { runCompletarTrabajoFinalizeFlow } from "../utils/completarTrabajoFinalizeFlow";
+import {
+  submitCompletarTrabajoCierreFromRow,
+  type SubmitCompletarTrabajoCierreOptions,
+} from "../completion/submitCompletarTrabajoCierre";
+import {
+  CIERRE_NETWORK_MESSAGE,
+  isLikelyNetworkCierreError,
+  runCompletarTrabajoFinalizeFlow,
+  type CompletarTrabajoFinalizeFlowOutcome,
+} from "../utils/completarTrabajoFinalizeFlow";
+import { newCompletarTrabajoCierreIdempotencyKey } from "../utils/completarTrabajoCierreIdempotency";
+import type { MediaQuotaAddResult } from "../utils/completarTrabajoMediaQuota";
 import { emitGestionNotificacionReinspeccionRefresh } from "../../GestionNotificacion/gestionNotificacionReinspeccionRefresh";
 import type { CompletarTrabajoCatalogs } from "../hooks/completarTrabajoCatalogsCache";
 import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";
@@ -508,6 +518,7 @@ export function CompletarTrabajoModal({
   const [inspectoresAddInput, setInspectoresAddInput] = useState("");
   const [notifMotivosAddInput, setNotifMotivosAddInput] = useState("");
   const baselineInspectoresRef = useRef<string[]>([]);
+  const cierreIdempotencyKeyRef = useRef<string>("");
 
   useEffect(() => {
     if (!open || Object.keys(fieldErrors).length === 0) return;
@@ -527,6 +538,7 @@ export function CompletarTrabajoModal({
       setFaltasNotificacionSubsanadas("");
       return;
     }
+    cierreIdempotencyKeyRef.current = newCompletarTrabajoCierreIdempotencyKey();
     let cancelled = false;
     setResolvedRow(null);
     setDetalleLoading(true);
@@ -712,6 +724,60 @@ export function CompletarTrabajoModal({
   const visitaRealizada = !contraproducencia.trim();
   const esNoPermiteInspeccion = esNoPermiteInspeccionContraproducencia(contraproducencia);
   const displayRow = resolvedRow ?? row;
+  const soloEvidenciasUi = uiPolicy?.solo_evidencias_pendientes === true;
+
+  const notifyMediaQuotaAdd = useCallback(
+    (result: MediaQuotaAddResult) => {
+      if (result.added > 0 && result.skipped > 0) {
+        feedback.info(
+          `Se agregaron ${result.added} fotos. El cupo de esta categoría está completo.`
+        );
+      } else if (result.added === 0 && result.skipped > 0) {
+        feedback.warning("El cupo de esta categoría está completo.");
+      }
+    },
+    [feedback]
+  );
+
+  const serverReadyForCategoria = useCallback(
+    (key: "foto_acta" | "foto_documentacion_local" | "foto_inspeccion") =>
+      resolvedRow?.media_resumen?.[key]?.ready ?? 0,
+    [resolvedRow?.media_resumen]
+  );
+
+  const applyCierreConfirmado = useCallback((item: ICompletarTrabajoPendienteRow) => {
+    setResolvedRow(item);
+    setUiPolicy((prev) => ({
+      ...(prev ?? {
+        recurso_logico: "actuacion",
+        ancla_operativa: "ruta_item_id",
+        orden_trabajo_y_fecha_readonly: true,
+        inspectores_readonly: true,
+        previas_visible: false,
+        post_cierre: "",
+      }),
+      solo_evidencias_pendientes: true,
+      cierre_alfanumerico_readonly: true,
+    }));
+  }, []);
+
+  const recoverCierreTrasErrorRed = useCallback(
+    async (rutaItemId: number): Promise<boolean> => {
+      try {
+        const det = await getCompletarTrabajoDetalle(rutaItemId);
+        if (det.ui_policy.solo_evidencias_pendientes) {
+          setResolvedRow(det.row);
+          setUiPolicy(det.ui_policy);
+          feedback.info("El trabajo ya estaba guardado. Continuá con las evidencias pendientes.");
+          return true;
+        }
+      } catch {
+        /* detalle no disponible */
+      }
+      return false;
+    },
+    [feedback]
+  );
   const tipoActuacionOficioEfectivo = useMemo(() => {
     const fromState = tipoActuacionOficio.trim();
     const fromRow = tipoActuacionInicialReinspeccionOficio(displayRow?.tipo_actuacion);
@@ -928,9 +994,49 @@ export function CompletarTrabajoModal({
     [mediaQueues.hasPendingUpload, uploadMediaAfterCierre]
   );
 
+  const submitCierreOperativo = useCallback(
+    async (values: Record<string, unknown>, opts?: SubmitCompletarTrabajoCierreOptions) => {
+      if (!resolvedRow) {
+        throw new Error("Sin fila de trabajo para cerrar.");
+      }
+      const item = await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
+        ...opts,
+        idempotencyKey: cierreIdempotencyKeyRef.current,
+        evidenciasPendientesAlCierre: mediaQueues.hasPendingUpload,
+      });
+      applyCierreConfirmado(item);
+    },
+    [resolvedRow, mediaQueues.hasPendingUpload, applyCierreConfirmado]
+  );
+
+  const handleCierreFailed = useCallback(
+    async (outcome: CompletarTrabajoFinalizeFlowOutcome, rutaItemId: number) => {
+      if (isLikelyNetworkCierreError(outcome.cierreError)) {
+        const recovered = await recoverCierreTrasErrorRed(rutaItemId);
+        if (recovered) return;
+        feedback.error(CIERRE_NETWORK_MESSAGE);
+        return;
+      }
+      const e = outcome.cierreError;
+      if (e != null) {
+        const { fieldErrors: nextFe, generalMessage, severity } =
+          applyCompletarTrabajoFieldErrorsFromApi(e);
+        setFieldErrors(nextFe);
+        if (generalMessage) {
+          feedback[severity](generalMessage);
+          return;
+        }
+      }
+      feedback.error(CIERRE_NETWORK_MESSAGE);
+    },
+    [feedback, recoverCierreTrasErrorRed]
+  );
+
   const handlePostFinalizeResult = useCallback(
-    (flow: Awaited<ReturnType<typeof runCierreThenMedia>>, rutaItemId: number) => {
+    (outcome: CompletarTrabajoFinalizeFlowOutcome, rutaItemId: number) => {
+      const flow = outcome.flow;
       if (flow === "cierre_failed") {
+        void handleCierreFailed(outcome, rutaItemId);
         return;
       }
       if (resolvedRow?.tipo_iniciador === "REINSPECCION_NOTIFICACION") {
@@ -938,13 +1044,13 @@ export function CompletarTrabajoModal({
       }
       if (flow === "success_evidencias_pendientes") {
         feedback.warning("Trabajo guardado. Quedan evidencias pendientes de carga.");
-      } else {
-        feedback.success("Trabajo completado correctamente.");
+        return;
       }
+      feedback.success("Trabajo completado correctamente.");
       onSuccess(rutaItemId);
       onClose();
     },
-    [feedback, onClose, onSuccess, resolvedRow?.tipo_iniciador]
+    [feedback, handleCierreFailed, onClose, onSuccess, resolvedRow?.tipo_iniciador]
   );
 
   const handleClose = useCallback(() => {
@@ -1026,7 +1132,7 @@ export function CompletarTrabajoModal({
             observaciones_ejecucion: observacionesEjecucion.trim(),
             ...ACTA_KEYS_EMPTY,
           };
-          await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
+          await submitCierreOperativo(values, {
             includeTipoActuacion: true,
             omitPrecargadoPr2: false,
             inspectoresExplicitos: resolveInspectoresExplicitos(inspectoresList, inspectoresDirty),
@@ -1069,7 +1175,7 @@ export function CompletarTrabajoModal({
               observaciones_ejecucion: observacionesEjecucion.trim(),
               ...ACTA_KEYS_EMPTY,
             };
-            await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
+            await submitCierreOperativo(values, {
               includeTipoActuacion: true,
               omitPrecargadoPr2: false,
               incluirInspeccionNormal: false,
@@ -1235,7 +1341,7 @@ export function CompletarTrabajoModal({
       }
 
       const flow = await runCierreThenMedia(async () => {
-        await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
+        await submitCierreOperativo(values, {
           omitPrecargadoPr2: !esFlujoVerificarInformarUi,
           includeTipoActuacion: esFlujoVerificarInformarUi,
           inspectoresExplicitos: resolveInspectoresExplicitos(inspectoresList, inspectoresDirty),
@@ -1275,11 +1381,13 @@ export function CompletarTrabajoModal({
           onSave={() => void handleSubmit()}
           loading={saving}
           saveLabel={
-            uiPolicy?.solo_evidencias_pendientes
-              ? "SUBIR EVIDENCIAS"
-              : mediaQueues.hasPendingUpload
-                ? "Guardar cierre y subir evidencias"
-                : "Guardar cierre"
+            soloEvidenciasUi
+              ? "SUBIR EVIDENCIAS PENDIENTES"
+              : saving && !mediaQueues.session.active
+                ? "Guardando trabajo…"
+                : mediaQueues.hasPendingUpload
+                  ? "Guardar trabajo y subir evidencias"
+                  : "Guardar trabajo"
           }
         />
       }
@@ -1361,7 +1469,18 @@ export function CompletarTrabajoModal({
         </CompletarBloque>
       )}
 
-      {displayRow && !detalleLoading && (
+      {soloEvidenciasUi && (
+        <Alert severity="info" sx={{ borderRadius: 2 }}>
+          <Typography variant="subtitle2" sx={{ fontWeight: 700 }}>
+            TRABAJO GUARDADO
+          </Typography>
+          <Typography variant="body2">
+            Quedan evidencias pendientes de carga. Subí las fotos faltantes cuando tengas conexión.
+          </Typography>
+        </Alert>
+      )}
+
+      {displayRow && !detalleLoading && !soloEvidenciasUi && (
         <CompletarBloque title="Datos generales">
         <Box sx={{ ...col, width: "100%" }}>
           <Typography variant="caption" sx={{ ...labelMutedSx, display: "block" }}>
@@ -1421,7 +1540,7 @@ export function CompletarTrabajoModal({
         </CompletarBloque>
       )}
 
-      {displayRow && esReinspeccionOficioGenericoUi && (
+      {displayRow && !soloEvidenciasUi && esReinspeccionOficioGenericoUi && (
         <CompletarBloque title="Cierre por oficio">
         <Box sx={col}>
           <AppSelect
@@ -1457,7 +1576,7 @@ export function CompletarTrabajoModal({
         </CompletarBloque>
       )}
 
-      {displayRow && esFlujoCumplimientoRatificacionUi && (
+      {displayRow && !soloEvidenciasUi && esFlujoCumplimientoRatificacionUi && (
         <CompletarBloque title={esRatificacionOficio(displayRow.tipo_iniciador) ? "Cierre de ratificación" : "Cierre por oficio"}>
         <Box sx={col}>
           <AppSelect
@@ -1530,7 +1649,7 @@ export function CompletarTrabajoModal({
         </CompletarBloque>
       )}
 
-      {displayRow && esFlujoVerificarInformarUi && (
+      {displayRow && !soloEvidenciasUi && esFlujoVerificarInformarUi && (
         <CompletarBloque title="Verificar e informar">
         <Box sx={col}>
           <ReinspeccionOficioResultadoFields
@@ -1563,8 +1682,11 @@ export function CompletarTrabajoModal({
         </CompletarBloque>
       )}
 
-      {displayRow && (muestraFlujoInspeccionNormal || verificarSinInspeccionNormal) && (
+      {displayRow &&
+        (soloEvidenciasUi || muestraFlujoInspeccionNormal || verificarSinInspeccionNormal) && (
         <>
+      {!soloEvidenciasUi && (
+      <>
       <CompletarBloque title="Contraproducencia">
       <Box sx={col}>
         <AppSelect
@@ -2145,12 +2267,21 @@ export function CompletarTrabajoModal({
         </Box>
         </CompletarBloque>
       )}
-      <CompletarBloque title="Archivos del trabajo">
+      </>
+      )}
+      <CompletarBloque title={soloEvidenciasUi ? "Evidencias pendientes" : "Archivos del trabajo"}>
         <Stack spacing={2}>
           <MediaUploadSection
             categoria="FOTO_DOCUMENTACION_LOCAL"
             items={mediaQueues.fotoDoc.items}
-            onAddFiles={(files) => mediaQueues.fotoDoc.addFiles(files)}
+            serverCount={serverReadyForCategoria("foto_documentacion_local")}
+            onAddFiles={(files) => {
+              const result = mediaQueues.fotoDoc.addFiles(
+                files,
+                serverReadyForCategoria("foto_documentacion_local")
+              );
+              notifyMediaQuotaAdd(result);
+            }}
             onRemove={mediaQueues.fotoDoc.removeItem}
             onRetry={(id) => void mediaQueues.fotoDoc.retryItem(id)}
             disabled={saving}
@@ -2158,7 +2289,14 @@ export function CompletarTrabajoModal({
           <MediaUploadSection
             categoria="FOTO_ACTA"
             items={mediaQueues.fotoActa.items}
-            onAddFiles={(files) => mediaQueues.fotoActa.addFiles(files)}
+            serverCount={serverReadyForCategoria("foto_acta")}
+            onAddFiles={(files) => {
+              const result = mediaQueues.fotoActa.addFiles(
+                files,
+                serverReadyForCategoria("foto_acta")
+              );
+              notifyMediaQuotaAdd(result);
+            }}
             onRemove={mediaQueues.fotoActa.removeItem}
             onRetry={(id) => void mediaQueues.fotoActa.retryItem(id)}
             disabled={saving}
@@ -2166,13 +2304,21 @@ export function CompletarTrabajoModal({
           <MediaUploadSection
             categoria="FOTO_INSPECCION"
             items={mediaQueues.fotoInspeccion.items}
-            onAddFiles={(files) => mediaQueues.fotoInspeccion.addFiles(files)}
+            serverCount={serverReadyForCategoria("foto_inspeccion")}
+            onAddFiles={(files) => {
+              const result = mediaQueues.fotoInspeccion.addFiles(
+                files,
+                serverReadyForCategoria("foto_inspeccion")
+              );
+              notifyMediaQuotaAdd(result);
+            }}
             onRemove={mediaQueues.fotoInspeccion.removeItem}
             onRetry={(id) => void mediaQueues.fotoInspeccion.retryItem(id)}
             disabled={saving}
           />
         </Stack>
       </CompletarBloque>
+      {!soloEvidenciasUi && (
       <CompletarBloque title="Observaciones">
         <Box sx={{ ...col, width: "100%" }}>
           <AppTextField
@@ -2192,6 +2338,7 @@ export function CompletarTrabajoModal({
           />
         </Box>
       </CompletarBloque>
+      )}
         </>
       )}
       </Stack>

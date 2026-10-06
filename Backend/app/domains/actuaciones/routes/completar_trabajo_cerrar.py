@@ -9,7 +9,9 @@ from pydantic import ValidationError
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import (
     CompletarTrabajoCierreCompletoIn,
 )
-from app.domains.actuaciones.services.completar_trabajo_cierre_service import cerrar_completar_trabajo_por_ruta_item
+from app.domains.actuaciones.services.completar_trabajo_cierre_idempotency_service import (
+    cerrar_completar_trabajo_idempotente,
+)
 from app.domains.actuaciones.services.completar_trabajo_ruta_item_access import (
     RutaItemAccessError,
     assert_current_user_can_access_ruta_item,
@@ -52,12 +54,12 @@ def cerrar_completar_trabajo(ruta_item_id: int):
         assert_current_user_can_access_ruta_item(ruta_item_id)
         payload = CompletarTrabajoCierreCompletoIn.model_validate(data)
         user_id = get_current_user_id()
-        row = cerrar_completar_trabajo_por_ruta_item(
+        row = cerrar_completar_trabajo_idempotente(
             ruta_item_id=ruta_item_id,
             payload=payload,
             ejecutado_por_user_id=user_id,
         )
-        return jsonify({"item": row}), 200
+        return jsonify({"item": row, "cierre_confirmado": True}), 200
     except RutaItemAccessError as e:
         return jsonify({"detail": str(e)}), e.status_code
     except ValidationError as e:

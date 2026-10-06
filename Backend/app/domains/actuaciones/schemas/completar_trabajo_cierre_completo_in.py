@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, List, Literal, Optional
 
-from pydantic import ConfigDict, ValidationError, field_validator, model_validator
+from pydantic import ConfigDict, Field, ValidationError, field_validator, model_validator
 
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_in import CompletarTrabajoCierreIn
 from app.domains.actuaciones.schemas.item_acta_inspeccion_estado_in import (
@@ -91,6 +91,9 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
     solicita_carnet_manipulador: Optional[bool] = None
     telefono_contacto_solicitud_carnet: Optional[str] = None
     faltas_notificacion_subsanadas: Optional[bool] = None
+
+    idempotency_key: Optional[str] = Field(default=None, max_length=64)
+    evidencias_pendientes_al_cierre: Optional[bool] = None
 
     @model_validator(mode="before")
     @classmethod
