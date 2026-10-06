@@ -191,6 +191,8 @@ export type ActuacionDetalleDialogProps = {
   numeroEditorLabel?: string;
   /** Si es false, no se muestra el paso a edición (p. ej. bandejas restringidas). */
   canEdit?: boolean;
+  /** Inspector en Mis trabajos: modos «Editar datos y fotos» / «Gestionar fotos». */
+  inspectorSelfService?: boolean;
   onClose: () => void;
   onDraftChange: (patch: Partial<IActuacionListItem>) => void;
   onSave: (rowOverride?: IActuacionListItem, options?: ActuacionSaveOptions) => void | Promise<void>;
@@ -1005,6 +1007,7 @@ export function ActuacionDetalleDialog({
   catalogs,
   readOnlyColumns,
   canEdit = true,
+  inspectorSelfService = false,
   numeroEditorLabel = "Número o referencia",
   onClose,
   onDraftChange,
@@ -1018,7 +1021,19 @@ export function ActuacionDetalleDialog({
   const actaFlushRegistry = useRef<Set<() => void>>(new Set());
   const verificarInconsistentWarnedRef = useRef<number | string | null>(null);
   const [isEditing, setIsEditing] = useState(initialEditing);
+  const [photosOnlyMode, setPhotosOnlyMode] = useState(false);
   const [editBaseline, setEditBaseline] = useState<IActuacionListItem | null>(null);
+  const puedeInspectorDatos = Boolean(draft.ui_policy?.puede_editar_datos_propios);
+  const puedeInspectorFotos = Boolean(draft.ui_policy?.puede_gestionar_fotos_propias);
+  const formEditingActive = inspectorSelfService ? isEditing && !photosOnlyMode : isEditing;
+  const mediaReadOnly = inspectorSelfService
+    ? !(photosOnlyMode || (isEditing && puedeInspectorFotos))
+    : !isEditing;
+  const showInspectorModePicker =
+    inspectorSelfService &&
+    !formEditingActive &&
+    !photosOnlyMode &&
+    (puedeInspectorDatos || puedeInspectorFotos);
   const [epicollectOtrosExpanded, setEpicollectOtrosExpanded] = useState(false);
   const [inspectoresAddInput, setInspectoresAddInput] = useState("");
   const [oficioFieldErrors, setOficioFieldErrors] = useState<Record<string, string>>({});
@@ -1065,6 +1080,7 @@ export function ActuacionDetalleDialog({
   useEffect(() => {
     if (open) {
       setIsEditing(initialEditing);
+      setPhotosOnlyMode(false);
       setEditBaseline(initialEditing ? { ...draft } : null);
       setEpicollectOtrosExpanded(false);
       setInspectoresAddInput("");
@@ -2254,31 +2270,62 @@ export function ActuacionDetalleDialog({
       }
       actions={
         <CrudDialogActions
-          mode={isEditing ? "edit" : "view"}
-          onEdit={canEdit ? handleStartEditing : undefined}
-          onSave={handleSaveClick}
+          mode={formEditingActive ? "edit" : "view"}
+          onEdit={!inspectorSelfService && canEdit ? handleStartEditing : undefined}
+          onSave={formEditingActive ? handleSaveClick : undefined}
           loading={saving || detailLoading}
-          canEdit={canEdit && !detailLoading}
+          canEdit={!inspectorSelfService && canEdit && !detailLoading}
           saveLabel="Guardar cambios"
           extraActions={
-            <AppButton dsVariant="ghost" dsSize="sm" onClick={handlePrint} disabled={saving}>
-              Imprimir
-            </AppButton>
+            <>
+              {showInspectorModePicker && puedeInspectorDatos ? (
+                <AppButton dsVariant="primary" dsSize="sm" onClick={() => handleStartEditing()} disabled={saving}>
+                  Editar datos y fotos
+                </AppButton>
+              ) : null}
+              {showInspectorModePicker && puedeInspectorFotos ? (
+                <AppButton
+                  dsVariant="secondary"
+                  dsSize="sm"
+                  onClick={() => setPhotosOnlyMode(true)}
+                  disabled={saving}
+                >
+                  Gestionar fotos
+                </AppButton>
+              ) : null}
+              {inspectorSelfService && (photosOnlyMode || formEditingActive) ? (
+                <AppButton
+                  dsVariant="ghost"
+                  dsSize="sm"
+                  onClick={() => {
+                    setPhotosOnlyMode(false);
+                    setIsEditing(false);
+                    setEditBaseline(null);
+                  }}
+                  disabled={saving}
+                >
+                  Volver
+                </AppButton>
+              ) : null}
+              <AppButton dsVariant="ghost" dsSize="sm" onClick={handlePrint} disabled={saving}>
+                Imprimir
+              </AppButton>
+            </>
           }
         />
       }
     >
       <Box sx={{ position: "relative" }}>
-        <Box sx={{ display: isEditing ? "none" : "block" }} aria-hidden={isEditing}>
+        <Box sx={{ display: formEditingActive ? "none" : "block" }} aria-hidden={formEditingActive}>
           {detalleVista}
         </Box>
-        <Box sx={{ display: isEditing ? "block" : "none" }} aria-hidden={!isEditing}>
+        <Box sx={{ display: formEditingActive ? "block" : "none" }} aria-hidden={!formEditingActive}>
           {edicionVista}
         </Box>
-        <DocumentalBloque overline="Archivos de la actuación">
+        <DocumentalBloque overline="Fotos del trabajo">
           <ActuacionMediaGallery
             rutaItemId={draft.ruta_item_id}
-            readOnly={!isEditing}
+            readOnly={mediaReadOnly}
             hideTitle
           />
         </DocumentalBloque>

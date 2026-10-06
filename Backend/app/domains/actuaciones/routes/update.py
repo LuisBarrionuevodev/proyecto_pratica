@@ -19,8 +19,16 @@ from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.actuaciones.utils.circuito_operativo import (
     build_actuacion_grid_validation_context,
 )
+from app.domains.actuaciones.services.actuaciones_actuacion_inspector_scope import (
+    assert_inspector_puede_acceder_actuacion,
+)
+from app.domains.actuaciones.services.actuacion_inspector_put_policy import (
+    assert_inspector_raw_json_solo_campos_permitidos,
+)
 from app.domains.actuaciones.services.update_service import actualizar_actuacion as actualizar_actuacion_service
 from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
+from app.domains.usuarios.security.decorators import resolve_user_from_identity
+from app.domains.usuarios.services.inspector_link_service import INSPECTOR_ROLE
 from app.domains.actuaciones.services.actuacion_corregir_cierre_operativo_service import (
     CorregirCierreOperativoError,
 )
@@ -36,9 +44,20 @@ from . import actuacion
 @actuacion.put("/<int:actuacion_id>")
 def actualizar_actuacion_route(actuacion_id: int):
     """Actualiza por **CargarActuacion** (PUT con fila completa); no es flujo de oficio/expediente."""
-    data: Dict[str, Any] = request.get_json(silent=True) or {}
-
     try:
+        raw_json = request.get_json(silent=True)
+        if raw_json is not None and not isinstance(raw_json, dict):
+            return (
+                jsonify({"detail": "Validation error", "errors": {"_global": "JSON inválido"}}),
+                422,
+            )
+        data: Dict[str, Any] = dict(raw_json) if isinstance(raw_json, dict) else {}
+
+        user = resolve_user_from_identity()
+        if user is not None and user.role == INSPECTOR_ROLE:
+            assert_inspector_puede_acceder_actuacion(int(actuacion_id))
+            assert_inspector_raw_json_solo_campos_permitidos(data)
+
         data["id"] = actuacion_id
 
         validation_ctx = build_actuacion_grid_validation_context(actuacion_id)

@@ -512,6 +512,11 @@ def actualizar_actuacion(
     )
 
     assert_inspector_puede_acceder_actuacion(actuacion_id)
+    from app.domains.actuaciones.services.actuacion_inspector_put_policy import (
+        assert_inspector_payload_solo_campos_permitidos,
+    )
+
+    assert_inspector_payload_solo_campos_permitidos(payload)
     seguimiento_put = extraer_fragmento_seguimiento_gestion(payload)
     observaciones_put = extraer_observaciones_ejecucion_gestion(payload)
     assert_actuacion_editable_sin_intento_posterior(actuacion_id)

@@ -81,6 +81,7 @@ interface TablaActuacionesProps {
   enableEditing?: boolean;
   hideRowActions?: boolean;
   hideDeleteAction?: boolean;
+  inspectorSelfService?: boolean;
   skipValidation?: boolean;
   skipUpdate?: boolean;
   numeroHeader?: string;
@@ -102,6 +103,7 @@ const TablaActuaciones = ({
   enableEditing = true,
   hideRowActions = false,
   hideDeleteAction = false,
+  inspectorSelfService = false,
   skipValidation = false,
   skipUpdate = false,
   numeroHeader = "Número",
@@ -628,6 +630,7 @@ const TablaActuaciones = ({
           readOnlyColumns={readOnlyColumns}
           numeroEditorLabel={numeroEditorLabel}
           canEdit={enableEditing}
+          inspectorSelfService={inspectorSelfService}
           onClose={handleCloseEditDialog}
           onDraftChange={handleEditDraftChange}
           onSave={handleDialogSave}

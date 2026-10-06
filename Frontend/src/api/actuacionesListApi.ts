@@ -6,6 +6,8 @@ export interface IActuacionGestionUiPolicy {
   mostrar_solicitud_carnet_manipulador: boolean;
   mostrar_subsanacion_notificacion: boolean;
   puede_editar_seguimiento: boolean;
+  puede_editar_datos_propios?: boolean;
+  puede_gestionar_fotos_propias?: boolean;
 }
 
 export interface IActuacionSeguimientoDetalle {

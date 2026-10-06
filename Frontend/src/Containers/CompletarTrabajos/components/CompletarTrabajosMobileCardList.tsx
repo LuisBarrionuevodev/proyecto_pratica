@@ -108,7 +108,7 @@ export function CompletarTrabajosMobileCardList({
             {evidenciasPendientes ? (
               <Box sx={{ borderTop: `1px solid ${GLASS_COLORS.borderLight}`, pt: 1 }}>
                 <Typography sx={{ ...labelSx, color: GLASS_COLORS.primary }}>
-                  TRABAJO GUARDADO · EVIDENCIAS PENDIENTES
+                  TRABAJO GUARDADO · FOTOS PENDIENTES
                 </Typography>
                 {lineasPend.map((line) => (
                   <Typography key={line} sx={{ ...valueSx, fontSize: "0.8125rem" }}>
@@ -126,7 +126,7 @@ export function CompletarTrabajosMobileCardList({
               onClick={() => onOpenCompletarModal(row)}
               startIcon={<AssignmentTurnedInIcon />}
             >
-              {evidenciasPendientes ? "SUBIR EVIDENCIAS" : "Completar"}
+              {evidenciasPendientes ? "SUBIR FOTOS" : "Completar"}
             </AppButton>
           </Box>
         );

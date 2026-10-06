@@ -78,6 +78,8 @@ def build_actuacion_gestion_ui_policy(
     ini: IniciadorRuta | None,
     *,
     actuacion_editable: bool,
+    ruta_item_id: int | None = None,
+    inspector_session: bool = False,
 ) -> dict[str, Any]:
     """
     Política UI de seguimiento para detalle/PUT de Gestión de Actuaciones.
@@ -93,10 +95,14 @@ def build_actuacion_gestion_ui_policy(
     mostrar_carnet = contexto_solicitud_carnet_gestion(ini, act)
     mostrar_subs = contexto_subsanacion_gestion(ini, act)
     puede_editar = bool(actuacion_editable and (mostrar_carnet or mostrar_subs))
+    puede_datos = bool(inspector_session and actuacion_editable)
+    puede_fotos = bool(inspector_session and ruta_item_id is not None)
     return {
         "mostrar_solicitud_carnet_manipulador": mostrar_carnet,
         "mostrar_subsanacion_notificacion": mostrar_subs,
         "puede_editar_seguimiento": puede_editar,
+        "puede_editar_datos_propios": puede_datos,
+        "puede_gestionar_fotos_propias": puede_fotos,
     }
 
 
@@ -179,9 +185,26 @@ def present_actuacion_gestion_detalle(act: Actuaciones) -> dict[str, Any]:
     )
     row.pop("telefono_contacto_solicitud_carnet", None)
 
+    from app.domains.media.utils.ruta_item_resolver import (
+        resolve_observaciones_ejecucion_for_actuacion,
+        resolve_ruta_item_id_for_actuacion,
+    )
+    from app.domains.usuarios.security.decorators import resolve_user_from_identity
+    from app.domains.usuarios.services.inspector_link_service import INSPECTOR_ROLE
+
+    ruta_item_id = resolve_ruta_item_id_for_actuacion(act_id)
+    row["ruta_item_id"] = ruta_item_id
+    row["observaciones_ejecucion"] = resolve_observaciones_ejecucion_for_actuacion(act_id)
+
     editable = bool(row.get("actuacion_editable", True))
+    user = resolve_user_from_identity()
+    inspector_session = user is not None and user.role == INSPECTOR_ROLE
     row["ui_policy"] = build_actuacion_gestion_ui_policy(
-        act, ini, actuacion_editable=editable
+        act,
+        ini,
+        actuacion_editable=editable,
+        ruta_item_id=ruta_item_id,
+        inspector_session=inspector_session,
     )
     seg = build_actuacion_seguimiento_detalle(
         act, ini, batch, actuacion_editable=editable
@@ -189,12 +212,4 @@ def present_actuacion_gestion_detalle(act: Actuaciones) -> dict[str, Any]:
     if seg is not None:
         row["seguimiento"] = seg
     row.update(build_actuacion_gestion_contexto_detalle(act))
-    from app.domains.media.utils.ruta_item_resolver import (
-        resolve_observaciones_ejecucion_for_actuacion,
-        resolve_ruta_item_id_for_actuacion,
-    )
-
-    ruta_item_id = resolve_ruta_item_id_for_actuacion(act_id)
-    row["ruta_item_id"] = ruta_item_id
-    row["observaciones_ejecucion"] = resolve_observaciones_ejecucion_for_actuacion(act_id)
     return row

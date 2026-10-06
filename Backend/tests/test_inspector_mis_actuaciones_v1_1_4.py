@@ -46,7 +46,6 @@ def test_relevador_mutaciones_actuaciones_403(app, client, scope_fixture) -> Non
     act_id = d["act_a"].id
     for method, path in (
         ("POST", "/actuaciones"),
-        ("PUT", f"/actuaciones/{act_id}"),
         ("DELETE", f"/actuaciones/{act_id}"),
         ("GET", "/actuaciones/pendientes/summary"),
     ):
@@ -54,12 +53,29 @@ def test_relevador_mutaciones_actuaciones_403(app, client, scope_fixture) -> Non
             resp = client.delete(path, headers=headers)
         elif method == "POST":
             resp = client.post(path, headers=headers, json={})
-        elif method == "PUT":
-            resp = client.put(path, headers=headers, json={})
         else:
             resp = client.get(path, headers=headers)
         assert resp.status_code == 403
         assert resp.get_json()["detail"] == "No tiene permisos para esta acción"
+
+
+def test_relevador_put_actuacion_propia_no_bloqueado_por_rol(app, client, scope_fixture) -> None:
+    d = scope_fixture
+    token = create_access_token(identity=str(d["user_a"].id))
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    act_id = d["act_a"].id
+    resp = client.put(f"/actuaciones/{act_id}", headers=headers, json={"id": act_id, "orden_trabajo": "999"})
+    assert resp.status_code == 403
+    assert "restringida" in resp.get_json()["detail"] or "permisos" in resp.get_json()["detail"]
+
+
+def test_relevador_put_actuacion_ajena_403(app, client, scope_fixture) -> None:
+    d = scope_fixture
+    token = create_access_token(identity=str(d["user_a"].id))
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    act_id = d["act_b"].id
+    resp = client.put(f"/actuaciones/{act_id}", headers=headers, json={"id": act_id})
+    assert resp.status_code == 403
 
 
 def test_usuario_actuaciones_list_global(app, client, scope_fixture) -> None:

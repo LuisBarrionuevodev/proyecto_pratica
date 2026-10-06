@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { Box, Stack, Typography } from "@mui/material";
+import { Box, ImageList, Stack, Typography } from "@mui/material";
 import { AppButton } from "../../../ui";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import {
@@ -9,37 +9,54 @@ import {
   mediaAcceptAttributeForCategoria,
   type MediaCategoria,
 } from "../mediaConstants";
-import type { MediaQueuedFile } from "../mediaTypes";
+import type { MediaArchivoListItem, MediaQueuedFile } from "../mediaTypes";
+import { MediaThumbnailTile } from "./MediaThumbnailTile";
 import { MediaUploadQueue } from "./MediaUploadQueue";
 
 type Props = {
   categoria: MediaCategoria;
   items: MediaQueuedFile[];
   serverCount?: number;
+  /** Miniaturas READY del servidor (solo lectura en flujo de continuación). */
+  readyServerItems?: MediaArchivoListItem[];
   onAddFiles: (files: FileList) => void;
   onRemove: (localId: string) => void;
   onRetry?: (localId: string) => void;
   disabled?: boolean;
   /** Solo botón y cola; el encabezado/contador lo muestra el padre (galería CRUD). */
   embedded?: boolean;
+  /** Etiqueta de cola local (Inspector: “fotos” en lugar de “evidencias”). */
+  pendingQueueTitle?: string;
 };
 
 export function MediaUploadSection({
   categoria,
   items,
   serverCount = 0,
+  readyServerItems = [],
   onAddFiles,
   onRemove,
   onRetry,
   disabled,
   embedded = false,
+  pendingQueueTitle = "Fotos pendientes de carga",
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const label = MEDIA_CATEGORY_LABELS[categoria];
   const hint = MEDIA_CATEGORY_HINTS[categoria];
   const max = MEDIA_CATEGORY_MAX[categoria];
   const localPending = items.filter((x) => x.phase !== "ready").length;
-  const used = serverCount + localPending;
+  const readyCount = readyServerItems.length > 0 ? readyServerItems.length : serverCount;
+  const used = readyCount + localPending;
+
+  const handleFileChange = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    try {
+      onAddFiles(files);
+    } catch (err) {
+      console.error("Error al agregar archivos a la cola:", err);
+    }
+  };
 
   return (
     <Box>
@@ -58,6 +75,13 @@ export function MediaUploadSection({
           </Typography>
         </Stack>
       ) : null}
+      {readyServerItems.length > 0 ? (
+        <ImageList cols={3} gap={8} sx={{ m: 0, mb: 1 }}>
+          {readyServerItems.map((item) => (
+            <MediaThumbnailTile key={item.archivo_id} item={item} onOpen={() => undefined} />
+          ))}
+        </ImageList>
+      ) : null}
       <Stack spacing={1}>
         <input
           ref={inputRef}
@@ -66,10 +90,7 @@ export function MediaUploadSection({
           accept={mediaAcceptAttributeForCategoria(categoria)}
           hidden
           onChange={(e) => {
-            const files = e.target.files;
-            if (files && files.length > 0) {
-              onAddFiles(files);
-            }
+            handleFileChange(e.target.files);
             e.target.value = "";
           }}
         />
@@ -81,6 +102,11 @@ export function MediaUploadSection({
         >
           Seleccionar archivos
         </AppButton>
+        {localPending > 0 ? (
+          <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted }}>
+            {pendingQueueTitle} · {localPending}
+          </Typography>
+        ) : null}
         <MediaUploadQueue items={items} onRemove={onRemove} onRetry={onRetry} disabled={disabled} />
       </Stack>
     </Box>

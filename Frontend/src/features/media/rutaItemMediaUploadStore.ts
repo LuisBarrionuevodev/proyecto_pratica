@@ -22,7 +22,8 @@ function newLocalId(): string {
 }
 
 function previewForFile(file: File): string | null {
-  if (file.type.startsWith("image/")) {
+  const ct = (file.type || "").toLowerCase();
+  if (ct.startsWith("image/")) {
     return URL.createObjectURL(file);
   }
   return null;
@@ -157,38 +158,42 @@ export function addFilesForRutaItem(
   files: FileList | File[],
   serverCount = 0
 ): MediaQuotaAddResult {
-  const b = getBucket(rutaItemId);
-  const list = Array.from(files);
-  const quota = sliceFilesToAvailableQuota(list, categoria, serverCount, b.items);
-  let addedCount = 0;
-  const next = [...b.items];
-  let slotCount =
-    serverCount + next.filter((x) => x.categoria === categoria && x.phase !== "error").length;
-  for (const file of quota.accepted) {
-    const err = validateLocalMediaFile(file, categoria, slotCount);
-    if (err) continue;
-    next.push({
-      localId: newLocalId(),
-      file,
-      categoria,
-      tipoDocumento: null,
-      phase: "pending",
-      progressPct: 0,
-      errorMessage: null,
-      archivoId: null,
-      previewUrl: previewForFile(file),
-    });
-    slotCount += 1;
-    addedCount += 1;
+  try {
+    const b = getBucket(rutaItemId);
+    const list = Array.from(files);
+    const quota = sliceFilesToAvailableQuota(list, categoria, serverCount, b.items);
+    let addedCount = 0;
+    const next = [...b.items];
+    let slotCount =
+      serverCount + next.filter((x) => x.categoria === categoria && x.phase !== "error").length;
+    for (const file of quota.accepted) {
+      const err = validateLocalMediaFile(file, categoria, slotCount);
+      if (err) continue;
+      next.push({
+        localId: newLocalId(),
+        file,
+        categoria,
+        tipoDocumento: null,
+        phase: "pending",
+        progressPct: 0,
+        errorMessage: null,
+        archivoId: null,
+        previewUrl: previewForFile(file),
+      });
+      slotCount += 1;
+      addedCount += 1;
+    }
+    b.items = next;
+    emitChange();
+    return {
+      accepted: quota.accepted.slice(0, addedCount),
+      added: addedCount,
+      skipped: list.length - addedCount,
+      quotaFull: list.length > addedCount && addedCount > 0,
+    };
+  } catch {
+    return { accepted: [], added: 0, skipped: Array.from(files).length, quotaFull: false };
   }
-  b.items = next;
-  emitChange();
-  return {
-    accepted: quota.accepted.slice(0, addedCount),
-    added: addedCount,
-    skipped: list.length - addedCount,
-    quotaFull: list.length > addedCount && addedCount > 0,
-  };
 }
 
 export function removeItemForRutaItem(rutaItemId: number, localId: string): void {

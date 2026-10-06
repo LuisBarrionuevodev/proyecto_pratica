@@ -124,8 +124,10 @@ import {
   mostrarBloqueSubsanacionNotificacion,
 } from "../utils/actaSeguimientoUi";
 import { useCompletarTrabajoMediaQueues } from "../../../features/media/hooks/useMediaUploadCoordinator";
+import { useRutaItemReadyArchivos } from "../../../features/media/hooks/useRutaItemReadyArchivos";
 import { MediaUploadProgress } from "../../../features/media/components/MediaUploadProgress";
 import { MediaUploadSection } from "../../../features/media/components/MediaUploadSection";
+import type { MediaArchivoListItem, RutaItemArchivosListResponse } from "../../../features/media/mediaTypes";
 
 const modalAuxInputSx = {
   "& .MuiInputBase-input": { color: GLASS_COLORS.textPrimary },
@@ -495,13 +497,17 @@ export function CompletarTrabajoModal({
   const [realizoNuevaInspeccion, setRealizoNuevaInspeccion] = useState("");
   const [observacionesEjecucion, setObservacionesEjecucion] = useState("");
   const [saving, setSaving] = useState(false);
-  const openedRutaItemId = open && row != null ? row.ruta_item_id : null;
-  const mediaQueues = useCompletarTrabajoMediaQueues(openedRutaItemId);
   /** Claves alineadas al payload / errores 422 del backend (pydantic field names). */
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   /** Fila efectiva tras GET detalle (o fallback a `row` si el GET falla). */
   const [resolvedRow, setResolvedRow] = useState<ICompletarTrabajoPendienteRow | null>(null);
+  const mediaAnchorRow = resolvedRow ?? row;
+  const openedRutaItemId =
+    open && mediaAnchorRow != null ? mediaAnchorRow.ruta_item_id ?? null : null;
+  const mediaQueues = useCompletarTrabajoMediaQueues(openedRutaItemId);
+  const readyArchivos = useRutaItemReadyArchivos(openedRutaItemId, Boolean(open && openedRutaItemId != null));
+  const [mediaSelectionError, setMediaSelectionError] = useState<string | null>(null);
   const [detalleLoading, setDetalleLoading] = useState(false);
   const [detalleError, setDetalleError] = useState<string | null>(null);
   const [inspectoresGrupo, setInspectoresGrupo] = useState<ICompletarTrabajoInspectorGrupo[]>([]);
@@ -741,9 +747,44 @@ export function CompletarTrabajoModal({
   );
 
   const serverReadyForCategoria = useCallback(
-    (key: "foto_acta" | "foto_documentacion_local" | "foto_inspeccion") =>
-      resolvedRow?.media_resumen?.[key]?.ready ?? 0,
-    [resolvedRow?.media_resumen]
+    (key: "foto_acta" | "foto_documentacion_local" | "foto_inspeccion") => {
+      const fromApi = readyArchivos.data?.[key]?.length;
+      if (typeof fromApi === "number") return fromApi;
+      return resolvedRow?.media_resumen?.[key]?.ready ?? 0;
+    },
+    [readyArchivos.data, resolvedRow?.media_resumen]
+  );
+
+  const readyItemsForCategoria = useCallback(
+    (key: keyof RutaItemArchivosListResponse): MediaArchivoListItem[] =>
+      readyArchivos.data?.[key] ?? [],
+    [readyArchivos.data]
+  );
+
+  const handleSafeAddMediaFiles = useCallback(
+    (
+      addFn: (files: FileList | File[], serverCount: number) => MediaQuotaAddResult,
+      serverKey: "foto_acta" | "foto_documentacion_local" | "foto_inspeccion",
+      files: FileList
+    ) => {
+      if (openedRutaItemId == null) {
+        setMediaSelectionError(
+          "No se pudo asociar la cola de fotos a este trabajo. Cerrá y volvé a abrir el modal."
+        );
+        return;
+      }
+      try {
+        setMediaSelectionError(null);
+        const result = addFn(files, serverReadyForCategoria(serverKey));
+        notifyMediaQuotaAdd(result);
+      } catch (err) {
+        console.error("Error al seleccionar fotos:", err);
+        setMediaSelectionError(
+          "No se pudieron agregar las fotos seleccionadas. Las fotos ya cargadas se mantienen; intentá de nuevo."
+        );
+      }
+    },
+    [openedRutaItemId, notifyMediaQuotaAdd, serverReadyForCategoria]
   );
 
   const applyCierreConfirmado = useCallback((item: ICompletarTrabajoPendienteRow) => {
@@ -769,7 +810,7 @@ export function CompletarTrabajoModal({
         if (det.ui_policy.solo_evidencias_pendientes) {
           setResolvedRow(det.row);
           setUiPolicy(det.ui_policy);
-          feedback.info("El trabajo ya estaba guardado. Continuá con las evidencias pendientes.");
+          feedback.info("El trabajo ya estaba guardado. Continuá con las fotos pendientes.");
           return true;
         }
       } catch {
@@ -1044,7 +1085,7 @@ export function CompletarTrabajoModal({
         emitGestionNotificacionReinspeccionRefresh();
       }
       if (flow === "success_evidencias_pendientes") {
-        feedback.warning("Trabajo guardado. Quedan evidencias pendientes de carga.");
+        feedback.warning("Trabajo guardado. Quedan fotos pendientes de carga.");
         return;
       }
       feedback.success("Trabajo completado correctamente.");
@@ -1076,13 +1117,13 @@ export function CompletarTrabajoModal({
       setSaving(true);
       try {
         await mediaQueues.uploadAll(resolvedRow.ruta_item_id, 1);
-        feedback.success("Evidencias subidas correctamente.");
+        feedback.success("Fotos subidas correctamente.");
         mediaQueues.clearForActiveRutaItem();
         onSuccess(resolvedRow.ruta_item_id);
         onClose();
       } catch {
         feedback.warning(
-          "No se pudieron subir todas las evidencias. Reintentá cuando tengas mejor conexión."
+          "No se pudieron subir todas las fotos. Reintentá cuando tengas mejor conexión."
         );
       } finally {
         setSaving(false);
@@ -1391,11 +1432,11 @@ export function CompletarTrabajoModal({
           loading={saving}
           saveLabel={
             soloEvidenciasUi
-              ? "SUBIR EVIDENCIAS PENDIENTES"
+              ? "SUBIR FOTOS PENDIENTES"
               : saving && !mediaQueues.session.active
                 ? "Guardando trabajo…"
                 : mediaQueues.hasPendingUpload
-                  ? "Guardar trabajo y subir evidencias"
+                  ? "Guardar trabajo y subir fotos"
                   : "Guardar trabajo"
           }
         />
@@ -1412,14 +1453,14 @@ export function CompletarTrabajoModal({
       {showGlobalMediaRetry ? (
         <Alert severity="warning" sx={{ borderRadius: 2 }}>
           <Typography variant="body2" sx={{ mb: 1 }}>
-            Quedan {globalRetryCount} evidencias pendientes de carga.
+            Quedan {globalRetryCount} fotos pendientes de carga.
           </Typography>
           <AppButton
             dsVariant="primary"
             dsSize="sm"
             onClick={() => void mediaQueues.retryAllPending()}
           >
-            REINTENTAR EVIDENCIAS PENDIENTES
+            REINTENTAR FOTOS PENDIENTES
           </AppButton>
         </Alert>
       ) : null}
@@ -1494,7 +1535,7 @@ export function CompletarTrabajoModal({
             TRABAJO GUARDADO
           </Typography>
           <Typography variant="body2">
-            Quedan evidencias pendientes de carga. Subí las fotos faltantes cuando tengas conexión.
+            Quedan fotos pendientes de carga. Subí las fotos faltantes cuando tengas conexión.
           </Typography>
         </Alert>
       )}
@@ -2288,19 +2329,30 @@ export function CompletarTrabajoModal({
       )}
       </>
       )}
-      <CompletarBloque title={soloEvidenciasUi ? "Evidencias pendientes" : "Archivos del trabajo"}>
+      <CompletarBloque title={soloEvidenciasUi ? "Fotos pendientes" : "Archivos del trabajo"}>
         <Stack spacing={2}>
+          {readyArchivos.error ? (
+            <Alert severity="warning" sx={{ borderRadius: 2 }}>
+              {readyArchivos.error}
+            </Alert>
+          ) : null}
+          {mediaSelectionError ? (
+            <Alert severity="error" sx={{ borderRadius: 2 }} onClose={() => setMediaSelectionError(null)}>
+              {mediaSelectionError}
+            </Alert>
+          ) : null}
           <MediaUploadSection
             categoria="FOTO_DOCUMENTACION_LOCAL"
             items={mediaQueues.fotoDoc.items}
             serverCount={serverReadyForCategoria("foto_documentacion_local")}
-            onAddFiles={(files) => {
-              const result = mediaQueues.fotoDoc.addFiles(
-                files,
-                serverReadyForCategoria("foto_documentacion_local")
-              );
-              notifyMediaQuotaAdd(result);
-            }}
+            readyServerItems={readyItemsForCategoria("foto_documentacion_local")}
+            onAddFiles={(files) =>
+              handleSafeAddMediaFiles(
+                mediaQueues.fotoDoc.addFiles,
+                "foto_documentacion_local",
+                files
+              )
+            }
             onRemove={mediaQueues.fotoDoc.removeItem}
             disabled={saving}
           />
@@ -2308,13 +2360,10 @@ export function CompletarTrabajoModal({
             categoria="FOTO_ACTA"
             items={mediaQueues.fotoActa.items}
             serverCount={serverReadyForCategoria("foto_acta")}
-            onAddFiles={(files) => {
-              const result = mediaQueues.fotoActa.addFiles(
-                files,
-                serverReadyForCategoria("foto_acta")
-              );
-              notifyMediaQuotaAdd(result);
-            }}
+            readyServerItems={readyItemsForCategoria("foto_acta")}
+            onAddFiles={(files) =>
+              handleSafeAddMediaFiles(mediaQueues.fotoActa.addFiles, "foto_acta", files)
+            }
             onRemove={mediaQueues.fotoActa.removeItem}
             disabled={saving}
           />
@@ -2322,13 +2371,14 @@ export function CompletarTrabajoModal({
             categoria="FOTO_INSPECCION"
             items={mediaQueues.fotoInspeccion.items}
             serverCount={serverReadyForCategoria("foto_inspeccion")}
-            onAddFiles={(files) => {
-              const result = mediaQueues.fotoInspeccion.addFiles(
-                files,
-                serverReadyForCategoria("foto_inspeccion")
-              );
-              notifyMediaQuotaAdd(result);
-            }}
+            readyServerItems={readyItemsForCategoria("foto_inspeccion")}
+            onAddFiles={(files) =>
+              handleSafeAddMediaFiles(
+                mediaQueues.fotoInspeccion.addFiles,
+                "foto_inspeccion",
+                files
+              )
+            }
             onRemove={mediaQueues.fotoInspeccion.removeItem}
             disabled={saving}
           />

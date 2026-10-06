@@ -2,11 +2,14 @@ import type { ActuacionesExportFilters } from "../../../api/actuacionesExportApi
 import type { IActuacionesListFilters, IActuacionesListMeta } from "../../../api/actuacionesListApi";
 import type { BandejaPeriodMode } from "../../../utils/bandejaFiltroPeriodUi";
 import { monthYearToIsoRange } from "../../../utils/bandejaFiltroPeriodUi";
+import { toIsoDateLocal } from "../../../utils/dateRange";
 
 export interface ActuacionesFiltroFormState {
   periodMode: BandejaPeriodMode;
   mes: number | "";
   anio: number | "";
+  /** Inspector: día único (excluyente con desde/hasta). */
+  dia: string;
   desde: string;
   hasta: string;
   ordenTrabajo: string;
@@ -61,6 +64,10 @@ export function actuacionesMetaToListFilters(
 export function resolveActuacionesPeriod(
   form: ActuacionesFiltroFormState
 ): { desde: string; hasta: string } | null {
+  const dia = form.dia.trim();
+  if (dia) {
+    return { desde: dia, hasta: dia };
+  }
   if (form.periodMode === "month") {
     if (form.mes === "" || form.anio === "") return null;
     return monthYearToIsoRange(form.mes as number, form.anio as number);
@@ -197,10 +204,24 @@ export function actuacionesMetaHasAnchorFilters(meta: IActuacionesListMeta): boo
   );
 }
 
+export function actuacionesInspectorFiltroInicial(ref: Date = new Date()): ActuacionesFiltroFormState {
+  const hoy = toIsoDateLocal(ref);
+  return {
+    ...ACTUACIONES_FILTRO_FORM_VACIO,
+    dia: hoy,
+    periodMode: "range",
+    mes: "",
+    anio: "",
+    desde: "",
+    hasta: "",
+  };
+}
+
 export const ACTUACIONES_FILTRO_FORM_VACIO: ActuacionesFiltroFormState = {
   periodMode: "month",
   mes: "",
   anio: "",
+  dia: "",
   desde: "",
   hasta: "",
   ordenTrabajo: "",

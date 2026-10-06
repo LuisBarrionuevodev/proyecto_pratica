@@ -53,7 +53,7 @@ export function completarTrabajosLabelForRole(role: AppRole): string {
 }
 
 export function actuacionesLabelForRole(role: AppRole): string {
-  return role === "relevador" ? "Mis actuaciones" : "Actuaciones";
+  return role === "relevador" ? "Mis trabajos" : "Actuaciones";
 }
 
 export function indicadoresLabelForRole(role: AppRole): string {

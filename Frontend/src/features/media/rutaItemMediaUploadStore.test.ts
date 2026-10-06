@@ -57,6 +57,14 @@ describe("rutaItemMediaUploadStore", () => {
     expect(getRutaItemMediaUploadSnapshot(99).items).toHaveLength(0);
   });
 
+  it("acepta archivos sin MIME (galería móvil) sin lanzar error", () => {
+    const mobileLike = new File(["x"], "cam.jpg", { type: "" });
+    expect(() =>
+      addFilesForRutaItem(7, MEDIA_CATEGORIA_FOTO_ACTA, [mobileLike], 0)
+    ).not.toThrow();
+    expect(getRutaItemMediaUploadSnapshot(7).items).toHaveLength(0);
+  });
+
   it("respuestas tardías no actualizan otro rutaItemId tras cancel", async () => {
     addFilesForRutaItem(1, MEDIA_CATEGORIA_FOTO_ACTA, [fakeFile("one.jpg")], 0);
     addFilesForRutaItem(2, MEDIA_CATEGORIA_FOTO_ACTA, [fakeFile("two.jpg")], 0);

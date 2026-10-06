@@ -30,7 +30,13 @@ import { ACTUACIONES_COMPOSITE_COLUMN_IDS } from "./Components/actuacionesCompos
 import { useAppFeedback } from "../../components/feedback";
 import { ExportDataDialog } from "../../ui";
 import { applyFormErrorsFromApi } from "../../utils/parseApiError";
-import { buildActuacionesExportFiltersFromMeta, actuacionesMetaHasAnchorFilters, actuacionesMetaToListFilters } from "./utils/buildActuacionesFiltroPayload";
+import {
+  actuacionesInspectorFiltroInicial,
+  buildActuacionesExportFiltersFromMeta,
+  actuacionesMetaHasAnchorFilters,
+  actuacionesMetaToListFilters,
+  buildActuacionesFiltroPayload,
+} from "./utils/buildActuacionesFiltroPayload";
 import { exportActuacionesDataset } from "./utils/exportActuacionesDataset";
 import { TableExportBoxStyles, TableExportButtonStyles } from "../../styles/TablasStyle";
 
@@ -52,6 +58,7 @@ const ActuacionesContainer = (): JSX.Element => {
   const { role } = useAppSession();
   const appRole = normalizeAppRole(role);
   const isInspectorReadOnly = appRole === "relevador";
+  const inspectorFiltroInicial = useMemo(() => actuacionesInspectorFiltroInicial(), []);
   const [tab] = useState<"todos" | "pendientes">("todos");
 
   const [exportOpen, setExportOpen] = useState(false);
@@ -89,6 +96,12 @@ const ActuacionesContainer = (): JSX.Element => {
     },
     [buscar, meta]
   );
+
+  useEffect(() => {
+    if (!isInspectorReadOnly || hasSearched) return;
+    const payload = buildActuacionesFiltroPayload(inspectorFiltroInicial);
+    void buscar({ ...payload, page: 1, page_size: 50 });
+  }, [isInspectorReadOnly, hasSearched, buscar, inspectorFiltroInicial]);
 
   const handleRefreshListaActuaciones = useCallback(() => {
     void refrescarUltimaBusqueda();
@@ -254,6 +267,8 @@ const ActuacionesContainer = (): JSX.Element => {
               onFiltrar={handleFiltrarTodos}
               onLimpiarLista={limpiarLista}
               hideInspectorFilter={isInspectorReadOnly}
+              inspectorSimplified={isInspectorReadOnly}
+              initialForm={isInspectorReadOnly ? inspectorFiltroInicial : undefined}
             />
 
             {error && hasSearched && (
@@ -339,8 +354,9 @@ const ActuacionesContainer = (): JSX.Element => {
                   onPageChange: handleListaPageChange,
                 }}
                 enableEditing={!isInspectorReadOnly}
-                hideRowActions={isInspectorReadOnly}
+                hideRowActions={false}
                 hideDeleteAction={isInspectorReadOnly}
+                inspectorSelfService={isInspectorReadOnly}
                 exportToolbar={isInspectorReadOnly ? null : actuacionesExportToolbar}
               />
             )}

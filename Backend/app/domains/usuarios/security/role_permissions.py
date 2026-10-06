@@ -15,6 +15,12 @@ from flask import request
 _RELEVADOR_COMPLETAR_TRABAJO_RX: Final[re.Pattern[str]] = re.compile(
     r"^/actuaciones/completar-trabajo(?:/.*)?$"
 )
+_RELEVADOR_ACTUACION_GESTION_RX: Final[re.Pattern[str]] = re.compile(
+    r"^/actuaciones/\d+(?:/gestion)?$"
+)
+_RELEVADOR_MEDIA_RX: Final[re.Pattern[str]] = re.compile(
+    r"^/(?:ruta-items/\d+/archivos(?:/.*)?|archivos/\d+/(?:complete|download-url))$"
+)
 _PROFILE_RX: Final[re.Pattern[str]] = re.compile(r"^/api/profile(?:/.*)?$")
 _RUBROS_CATALOGO_RX: Final[re.Pattern[str]] = re.compile(r"^/catalogos/rubros(?:/.*)?$")
 
@@ -100,6 +106,14 @@ def relevador_may_access(method: str, path: str) -> bool:
 
     if p == "/actuaciones":
         return m in ("GET", "HEAD", "OPTIONS")
+
+    if _RELEVADOR_ACTUACION_GESTION_RX.match(p):
+        if p.endswith("/gestion"):
+            return m in ("GET", "HEAD", "OPTIONS")
+        return m in ("PUT", "HEAD", "OPTIONS")
+
+    if _RELEVADOR_MEDIA_RX.match(p):
+        return m in ("GET", "POST", "DELETE", "HEAD", "OPTIONS")
 
     if p.startswith("/actuaciones/") and not p.startswith("/actuaciones/completar-trabajo"):
         return False

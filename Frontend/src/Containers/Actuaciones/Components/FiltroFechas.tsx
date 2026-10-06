@@ -26,7 +26,9 @@ import type { IActuacionesListFilters } from "../../../api/actuacionesListApi";
 import {
   ACTUACIONES_FILTRO_FORM_VACIO,
   ACTUACIONES_TEXTO_MIN_CHARS,
+  actuacionesInspectorFiltroInicial,
   validateActuacionesFiltroForm,
+  type ActuacionesFiltroFormState,
 } from "../utils/buildActuacionesFiltroPayload";
 
 export type ActuacionesFiltroPayload = IActuacionesListFilters;
@@ -36,13 +38,24 @@ interface FiltroFechasProps {
   onLimpiarLista?: () => void;
   /** Inspector operativo: no puede filtrar por otro inspector. */
   hideInspectorFilter?: boolean;
+  /** Inspector: solo Día / Desde / Hasta (sin mes-año ni filtros avanzados). */
+  inspectorSimplified?: boolean;
+  initialForm?: ActuacionesFiltroFormState;
 }
 
 /**
  * Filtros de Actuaciones: datos + actas + período (PERF.1-A1 / A1.1).
  */
-const FiltroFechas = ({ onFiltrar, onLimpiarLista, hideInspectorFilter = false }: FiltroFechasProps) => {
-  const [form, setForm] = useState(ACTUACIONES_FILTRO_FORM_VACIO);
+const FiltroFechas = ({
+  onFiltrar,
+  onLimpiarLista,
+  hideInspectorFilter = false,
+  inspectorSimplified = false,
+  initialForm,
+}: FiltroFechasProps) => {
+  const [form, setForm] = useState<ActuacionesFiltroFormState>(
+    initialForm ?? ACTUACIONES_FILTRO_FORM_VACIO
+  );
   const [validationError, setValidationError] = useState<string | null>(null);
   const [catalogTipos, setCatalogTipos] = useState<string[]>([]);
   const [catalogInspectores, setCatalogInspectores] = useState<{ id: number; nombre: string }[]>(
@@ -93,10 +106,66 @@ const FiltroFechas = ({ onFiltrar, onLimpiarLista, hideInspectorFilter = false }
   };
 
   const handleLimpiar = () => {
-    setForm(ACTUACIONES_FILTRO_FORM_VACIO);
+    setForm(inspectorSimplified ? actuacionesInspectorFiltroInicial() : ACTUACIONES_FILTRO_FORM_VACIO);
     setValidationError(null);
     onLimpiarLista?.();
   };
+
+  if (inspectorSimplified) {
+    return (
+      <Box sx={filtroContainerStyles}>
+        <Typography sx={filtroTitleStyles}>Filtros</Typography>
+        <Box sx={filtroGridStyles}>
+          <Box sx={filtroItemStyles}>
+            <AppTextField
+              appearance="dense"
+              fullWidth
+              type="date"
+              label="Día"
+              value={form.dia}
+              onChange={(e) => patchForm({ dia: e.target.value, desde: "", hasta: "" })}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Box>
+          <Box sx={filtroItemStyles}>
+            <AppTextField
+              appearance="dense"
+              fullWidth
+              type="date"
+              label="Desde"
+              value={form.desde}
+              onChange={(e) => patchForm({ desde: e.target.value, dia: "" })}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Box>
+          <Box sx={filtroItemStyles}>
+            <AppTextField
+              appearance="dense"
+              fullWidth
+              type="date"
+              label="Hasta"
+              value={form.hasta}
+              onChange={(e) => patchForm({ hasta: e.target.value, dia: "" })}
+              InputLabelProps={{ shrink: true }}
+            />
+          </Box>
+        </Box>
+        {validationError ? (
+          <Typography color="error" variant="body2" sx={{ mt: 1 }}>
+            {validationError}
+          </Typography>
+        ) : null}
+        <Box sx={filtroButtonsStyles}>
+          <AppButton dsVariant="primary" dsSize="sm" onClick={handleFiltrar} startIcon={<SearchIcon />}>
+            Filtrar
+          </AppButton>
+          <AppButton dsVariant="ghost" dsSize="sm" onClick={handleLimpiar} startIcon={<ClearIcon />}>
+            Limpiar
+          </AppButton>
+        </Box>
+      </Box>
+    );
+  }
 
   const tipoOptions = [{ value: "", label: "Todos" }, ...catalogTipos.map((t) => ({ value: t, label: t }))];
   const inspectorOptions = [

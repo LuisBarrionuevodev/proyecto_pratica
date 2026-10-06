@@ -25,7 +25,8 @@ function newLocalId(): string {
 }
 
 function previewForFile(file: File): string | null {
-  if (file.type.startsWith("image/")) {
+  const ct = (file.type || "").toLowerCase();
+  if (ct.startsWith("image/")) {
     return URL.createObjectURL(file);
   }
   return null;
