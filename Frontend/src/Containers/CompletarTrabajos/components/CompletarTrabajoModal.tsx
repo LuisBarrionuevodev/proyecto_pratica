@@ -34,7 +34,7 @@ import { formatCrudDialogOtReference } from "../../../components/crudDialog/crud
 import { DOC_MODAL_BLOCK_STACK_SPACING } from "../../../styles/documentalModalTokens";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { CSS_VAR_NAMES as V } from "../../../theme/applyCssVariables";
-import { AppSelect, AppTextField, ResponsiveFormGrid } from "../../../ui";
+import { AppButton, AppSelect, AppTextField, ResponsiveFormGrid } from "../../../ui";
 import { useAppFeedback } from "../../../components/feedback";
 import { ActaNumFieldLazy } from "../../Actuaciones/Components/ActaNumFieldLazy";
 import {
@@ -495,7 +495,8 @@ export function CompletarTrabajoModal({
   const [realizoNuevaInspeccion, setRealizoNuevaInspeccion] = useState("");
   const [observacionesEjecucion, setObservacionesEjecucion] = useState("");
   const [saving, setSaving] = useState(false);
-  const mediaQueues = useCompletarTrabajoMediaQueues();
+  const openedRutaItemId = open && row != null ? row.ruta_item_id : null;
+  const mediaQueues = useCompletarTrabajoMediaQueues(openedRutaItemId);
   /** Claves alineadas al payload / errores 422 del backend (pydantic field names). */
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
@@ -1047,17 +1048,17 @@ export function CompletarTrabajoModal({
         return;
       }
       feedback.success("Trabajo completado correctamente.");
+      mediaQueues.clearForActiveRutaItem();
       onSuccess(rutaItemId);
       onClose();
     },
-    [feedback, handleCierreFailed, onClose, onSuccess, resolvedRow?.tipo_iniciador]
+    [feedback, handleCierreFailed, mediaQueues, onClose, onSuccess, resolvedRow?.tipo_iniciador]
   );
 
   const handleClose = useCallback(() => {
     if (saving) return;
-    mediaQueues.resetAll();
     onClose();
-  }, [saving, onClose, mediaQueues]);
+  }, [saving, onClose]);
 
   const handleDialogClose = useCallback(
     (_event: unknown, _reason: string) => {
@@ -1076,6 +1077,7 @@ export function CompletarTrabajoModal({
       try {
         await mediaQueues.uploadAll(resolvedRow.ruta_item_id, 1);
         feedback.success("Evidencias subidas correctamente.");
+        mediaQueues.clearForActiveRutaItem();
         onSuccess(resolvedRow.ruta_item_id);
         onClose();
       } catch {
@@ -1358,6 +1360,13 @@ export function CompletarTrabajoModal({
   };
 
   const col = { display: "flex", flexDirection: "column" as const, gap: 1.5 };
+  const hasUploadErrors = mediaQueues.allItems.some((x) => x.phase === "error");
+  const showGlobalMediaRetry =
+    hasUploadErrors && !mediaQueues.session.active && !saving && openedRutaItemId != null;
+  const globalRetryCount = mediaQueues.allItems.filter(
+    (x) => x.phase === "pending" || x.phase === "error"
+  ).length;
+
   return (
     <CrudGlassDialog
       open={open && row != null}
@@ -1399,11 +1408,21 @@ export function CompletarTrabajoModal({
         items={
           mediaQueues.session.items.length > 0 ? mediaQueues.session.items : mediaQueues.allItems
         }
-        onRetry={(id) => {
-          mediaQueues.retryItem(id);
-          if (resolvedRow) void mediaQueues.uploadAll(resolvedRow.ruta_item_id, 1);
-        }}
       />
+      {showGlobalMediaRetry ? (
+        <Alert severity="warning" sx={{ borderRadius: 2 }}>
+          <Typography variant="body2" sx={{ mb: 1 }}>
+            Quedan {globalRetryCount} evidencias pendientes de carga.
+          </Typography>
+          <AppButton
+            dsVariant="primary"
+            dsSize="sm"
+            onClick={() => void mediaQueues.retryAllPending()}
+          >
+            REINTENTAR EVIDENCIAS PENDIENTES
+          </AppButton>
+        </Alert>
+      ) : null}
       {row && detalleLoading && !resolvedRow && (
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2 }}>
           <LinearProgress sx={{ borderRadius: 1 }} />
@@ -2283,7 +2302,6 @@ export function CompletarTrabajoModal({
               notifyMediaQuotaAdd(result);
             }}
             onRemove={mediaQueues.fotoDoc.removeItem}
-            onRetry={(id) => void mediaQueues.fotoDoc.retryItem(id)}
             disabled={saving}
           />
           <MediaUploadSection
@@ -2298,7 +2316,6 @@ export function CompletarTrabajoModal({
               notifyMediaQuotaAdd(result);
             }}
             onRemove={mediaQueues.fotoActa.removeItem}
-            onRetry={(id) => void mediaQueues.fotoActa.retryItem(id)}
             disabled={saving}
           />
           <MediaUploadSection
@@ -2313,7 +2330,6 @@ export function CompletarTrabajoModal({
               notifyMediaQuotaAdd(result);
             }}
             onRemove={mediaQueues.fotoInspeccion.removeItem}
-            onRetry={(id) => void mediaQueues.fotoInspeccion.retryItem(id)}
             disabled={saving}
           />
         </Stack>

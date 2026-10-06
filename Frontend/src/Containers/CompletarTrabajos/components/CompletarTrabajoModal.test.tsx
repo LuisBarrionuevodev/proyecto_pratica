@@ -6,6 +6,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 import type { ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
 import { CompletarTrabajoModal } from "./CompletarTrabajoModal";
 
+vi.mock("../../../features/media/components/MediaUploadProgress", () => ({
+  MediaUploadProgress: () => null,
+}));
+
 vi.mock("../../../components/feedback", () => ({
   useAppFeedback: () => ({
     warning: vi.fn(),
@@ -87,7 +91,7 @@ describe("CompletarTrabajoModal", () => {
       />
     );
     expect(html).toContain("Completar trabajo");
-    expect(html).toContain("Guardar cierre");
+    expect(html).toContain("Guardar trabajo");
     expect(html).not.toContain("Cancelar");
   });
 

@@ -15,10 +15,20 @@ export function putFileToPresignedUrl(
   uploadUrl: string,
   file: File,
   contentType: string,
-  onProgress?: (p: XhrUploadProgress) => void
+  onProgress?: (p: XhrUploadProgress) => void,
+  abortSignal?: AbortSignal
 ): Promise<void> {
   return new Promise((resolve, reject) => {
+    if (abortSignal?.aborted) {
+      reject(new DOMException("Aborted", "AbortError"));
+      return;
+    }
     const xhr = new XMLHttpRequest();
+    const onAbort = () => {
+      xhr.abort();
+      reject(new DOMException("Aborted", "AbortError"));
+    };
+    abortSignal?.addEventListener("abort", onAbort, { once: true });
     xhr.open("PUT", uploadUrl, true);
     xhr.setRequestHeader("Content-Type", contentType);
     xhr.upload.onprogress = (ev) => {
@@ -27,10 +37,18 @@ export function putFileToPresignedUrl(
       }
     };
     xhr.onload = () => {
+      abortSignal?.removeEventListener("abort", onAbort);
       if (xhr.status >= 200 && xhr.status < 300) resolve();
       else reject(new Error(`Error de subida (${xhr.status})`));
     };
-    xhr.onerror = () => reject(new Error("Error de red al subir el archivo."));
+    xhr.onerror = () => {
+      abortSignal?.removeEventListener("abort", onAbort);
+      reject(new Error("Error de red al subir el archivo."));
+    };
+    xhr.onabort = () => {
+      abortSignal?.removeEventListener("abort", onAbort);
+      reject(new DOMException("Aborted", "AbortError"));
+    };
     xhr.send(file);
   });
 }
@@ -43,8 +61,12 @@ export type UploadSingleResult = { archivoId: number };
 export async function uploadSingleQueuedFile(
   rutaItemId: number,
   item: MediaQueuedFile,
-  onProgress?: (pct: number) => void
+  onProgress?: (pct: number) => void,
+  abortSignal?: AbortSignal
 ): Promise<UploadSingleResult> {
+  if (abortSignal?.aborted) {
+    throw new DOMException("Aborted", "AbortError");
+  }
   if (item.phase === "ready" && item.archivoId != null) {
     return { archivoId: item.archivoId };
   }
@@ -65,11 +87,17 @@ export async function uploadSingleQueuedFile(
   if (!intent.upload_url) {
     throw new Error("No se recibió URL de subida.");
   }
-  await putFileToPresignedUrl(intent.upload_url, item.file, contentType, (p) => {
-    if (p.total > 0 && onProgress) {
-      onProgress(Math.min(100, Math.round((p.loaded / p.total) * 100)));
-    }
-  });
+  await putFileToPresignedUrl(
+    intent.upload_url,
+    item.file,
+    contentType,
+    (p) => {
+      if (p.total > 0 && onProgress) {
+        onProgress(Math.min(100, Math.round((p.loaded / p.total) * 100)));
+      }
+    },
+    abortSignal
+  );
   await postMediaComplete(archivoId);
   return { archivoId };
 }
@@ -84,6 +112,8 @@ export async function uploadQueuedFilesWithConcurrency(
   items: MediaQueuedFile[],
   options: {
     concurrency?: number;
+    abortSignal?: AbortSignal;
+    isStale?: () => boolean;
     onItemPhase?: (
       localId: string,
       phase: MediaQueuedFile["phase"],
@@ -115,22 +145,37 @@ export async function uploadQueuedFilesWithConcurrency(
   const failedIds: string[] = [];
 
   const runOne = async (item: MediaQueuedFile) => {
+    if (options.isStale?.()) return;
+    if (item.phase === "ready") return;
     options.onItemPhase?.(item.localId, "preparing", 0);
     let archivoId: number | null = item.archivoId;
     try {
+      if (options.isStale?.()) return;
       options.onItemPhase?.(item.localId, "uploading", 0, { archivoId });
       bytesLoadedById.set(item.localId, 0);
-      const result = await uploadSingleQueuedFile(rutaItemId, item, (pct) => {
-        options.onItemPhase?.(item.localId, "uploading", pct, { archivoId: archivoId ?? undefined });
-        bytesLoadedById.set(item.localId, Math.round((pct / 100) * item.file.size));
-        emitGlobalBytes();
-      });
+      const result = await uploadSingleQueuedFile(
+        rutaItemId,
+        item,
+        (pct) => {
+          if (options.isStale?.()) return;
+          options.onItemPhase?.(item.localId, "uploading", pct, {
+            archivoId: archivoId ?? undefined,
+          });
+          bytesLoadedById.set(item.localId, Math.round((pct / 100) * item.file.size));
+          emitGlobalBytes();
+        },
+        options.abortSignal
+      );
       archivoId = result.archivoId;
       options.onItemPhase?.(item.localId, "verifying", 100, { archivoId });
       bytesLoadedById.set(item.localId, item.file.size);
       emitGlobalBytes();
       options.onItemPhase?.(item.localId, "ready", 100, { archivoId });
     } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") {
+        return;
+      }
+      if (options.isStale?.()) return;
       const msg = mediaErrorMessageFromUnknown(e);
       options.onItemPhase?.(item.localId, "error", 0, {
         errorMessage: msg,
@@ -148,6 +193,8 @@ export async function uploadQueuedFilesWithConcurrency(
     }
   });
   await Promise.all(workers);
+  if (options.isStale?.()) return;
+  if (options.abortSignal?.aborted) return;
   if (failedIds.length > 0) {
     throw new Error("Uno o más archivos no pudieron subirse.");
   }

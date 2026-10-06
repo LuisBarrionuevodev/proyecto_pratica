@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import {
   MEDIA_CATEGORIA_FOTO_ACTA,
   MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
@@ -9,6 +9,16 @@ import { validateLocalMediaFile } from "../mediaFileValidation";
 import type { MediaQueuedFile } from "../mediaTypes";
 import { uploadQueuedFilesWithConcurrency } from "../mediaUploadPipeline";
 import { sliceFilesToAvailableQuota, type MediaQuotaAddResult } from "../../../Containers/CompletarTrabajos/utils/completarTrabajoMediaQuota";
+import {
+  addFilesForRutaItem,
+  cancelUploadForRutaItem,
+  clearRutaItemMediaUploadState,
+  getRutaItemMediaUploadSnapshot,
+  removeItemForRutaItem,
+  retryAllRetryableForRutaItem,
+  subscribeRutaItemMediaUploadStore,
+  uploadAllForRutaItem,
+} from "../rutaItemMediaUploadStore";
 
 function newLocalId(): string {
   return `mq-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
@@ -212,37 +222,99 @@ export function useMediaUploadCoordinator() {
   };
 }
 
-/** Colas de Completar trabajo (documentación, actas e inspección). */
-export function useCompletarTrabajoMediaQueues() {
-  const coord = useMediaUploadCoordinator();
+/**
+ * Colas de Completar trabajo aisladas por `rutaItemId` (MEDIA.2C).
+ */
+export function useCompletarTrabajoMediaQueues(rutaItemId: number | null | undefined) {
+  const prevRutaItemIdRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    const prev = prevRutaItemIdRef.current;
+    const next = rutaItemId ?? null;
+    if (prev != null && prev !== next) {
+      cancelUploadForRutaItem(prev);
+    }
+    prevRutaItemIdRef.current = next;
+  }, [rutaItemId]);
+
+  const snapshot = useSyncExternalStore(
+    subscribeRutaItemMediaUploadStore,
+    () => getRutaItemMediaUploadSnapshot(rutaItemId),
+    () => getRutaItemMediaUploadSnapshot(rutaItemId)
+  );
+
+  const activeId = rutaItemId ?? null;
+
+  const getItems = useCallback(
+    (categoria: MediaCategoria) =>
+      snapshot.items.filter((x) => x.categoria === categoria),
+    [snapshot.items]
+  );
+
+  const addFiles = useCallback(
+    (categoria: MediaCategoria, files: FileList | File[], serverCount = 0) => {
+      if (activeId == null) {
+        return { accepted: [], added: 0, skipped: 0, quotaFull: false } satisfies MediaQuotaAddResult;
+      }
+      return addFilesForRutaItem(activeId, categoria, files, serverCount);
+    },
+    [activeId]
+  );
+
+  const removeItem = useCallback(
+    (localId: string) => {
+      if (activeId == null) return;
+      removeItemForRutaItem(activeId, localId);
+    },
+    [activeId]
+  );
+
+  const uploadAll = useCallback(
+    async (expectedRutaItemId: number, concurrency = 1) => {
+      if (activeId == null || activeId !== expectedRutaItemId) return;
+      await uploadAllForRutaItem(activeId, concurrency);
+    },
+    [activeId]
+  );
+
+  const retryAllPending = useCallback(async () => {
+    if (activeId == null) return;
+    retryAllRetryableForRutaItem(activeId);
+    await uploadAllForRutaItem(activeId, 1);
+  }, [activeId]);
+
+  const clearForActiveRutaItem = useCallback(() => {
+    if (activeId == null) return;
+    clearRutaItemMediaUploadState(activeId);
+  }, [activeId]);
 
   return {
+    rutaItemId: activeId,
     fotoActa: {
-      items: coord.getItems(MEDIA_CATEGORIA_FOTO_ACTA),
+      items: getItems(MEDIA_CATEGORIA_FOTO_ACTA),
       addFiles: (files: FileList | File[], serverCount = 0) =>
-        coord.addFiles(MEDIA_CATEGORIA_FOTO_ACTA, files, serverCount),
-      removeItem: coord.removeItem,
-      retryItem: coord.retryItem,
+        addFiles(MEDIA_CATEGORIA_FOTO_ACTA, files, serverCount),
+      removeItem,
     },
     fotoDoc: {
-      items: coord.getItems(MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL),
+      items: getItems(MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL),
       addFiles: (files: FileList | File[], serverCount = 0) =>
-        coord.addFiles(MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL, files, serverCount),
-      removeItem: coord.removeItem,
-      retryItem: coord.retryItem,
+        addFiles(MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL, files, serverCount),
+      removeItem,
     },
     fotoInspeccion: {
-      items: coord.getItems(MEDIA_CATEGORIA_FOTO_INSPECCION),
+      items: getItems(MEDIA_CATEGORIA_FOTO_INSPECCION),
       addFiles: (files: FileList | File[], serverCount = 0) =>
-        coord.addFiles(MEDIA_CATEGORIA_FOTO_INSPECCION, files, serverCount),
-      removeItem: coord.removeItem,
-      retryItem: coord.retryItem,
+        addFiles(MEDIA_CATEGORIA_FOTO_INSPECCION, files, serverCount),
+      removeItem,
     },
-    hasPendingUpload: coord.hasPendingUpload,
-    uploadAll: coord.uploadAll,
-    resetAll: coord.resetAll,
-    session: coord.session,
-    allItems: coord.allItems,
-    retryItem: coord.retryItem,
+    hasPendingUpload: snapshot.hasPendingUpload,
+    hasRetryableUpload: snapshot.hasRetryableUpload,
+    retryableCount: snapshot.retryableCount,
+    uploadAll,
+    retryAllPending,
+    clearForActiveRutaItem,
+    session: snapshot.session,
+    allItems: snapshot.items,
   };
 }
