@@ -16,6 +16,7 @@ from app import create_app
 from app.security.test_database import (
     MISSING_TEST_URL_MESSAGE,
     PRODUCTION_STAGING_MESSAGE,
+    PYTEST_ORIGINAL_DEV_DATABASE_URI_ENV,
     SAME_AS_DEV_MESSAGE,
     DatabaseTestConfigError,
     assert_pytest_allowed_in_current_deployment,
@@ -56,16 +57,39 @@ def test_d_valid_test_vs_dev_allowed():
     assert uri == TEST_URI
 
 
+def test_bootstrap_stores_database_url_when_sqlalchemy_uri_unset(monkeypatch):
+    """Solo DATABASE_URL en .env: guardar dev antes de pisar SQLALCHEMY con test."""
+    monkeypatch.setenv("TEST_DATABASE_URL", TEST_URI)
+    monkeypatch.setenv("DATABASE_URL", DEV_URI)
+    monkeypatch.setenv("PYTEST_SKIP_DOTENV", "1")
+    monkeypatch.delenv("SQLALCHEMY_DATABASE_URI", raising=False)
+    monkeypatch.delenv(PYTEST_ORIGINAL_DEV_DATABASE_URI_ENV, raising=False)
+
+    bootstrap_pytest_database_environment()
+
+    assert os.environ.get(PYTEST_ORIGINAL_DEV_DATABASE_URI_ENV) == DEV_URI
+    assert os.environ["SQLALCHEMY_DATABASE_URI"] == TEST_URI
+
+
 def test_e_create_app_testing_uses_test_database_uri(app):
     """TESTING=True: configure_app_for_testing fija digitaliza_test."""
     assert database_name_from_uri(app.config["SQLALCHEMY_DATABASE_URI"]) == "digitaliza_test"
 
 
-def test_f_create_app_without_testing_override_uses_env_test_uri():
-    """Tests legacy con create_app() sin TESTING usan SQLALCHEMY_DATABASE_URI del bootstrap."""
-    assert database_name_from_uri(os.environ["SQLALCHEMY_DATABASE_URI"]) == "digitaliza_test"
+def test_f_create_app_without_testing_uses_development_database_url():
+    """Sin TESTING, create_app resuelve DATABASE_URL (dev); pytest usa TEST_DATABASE_URL aparte."""
+    dev_uri = (
+        os.environ.get(PYTEST_ORIGINAL_DEV_DATABASE_URI_ENV)
+        or os.environ.get("DATABASE_URL")
+        or DEV_URI
+    )
     legacy_app = create_app()
-    assert database_name_from_uri(legacy_app.config["SQLALCHEMY_DATABASE_URI"]) == "digitaliza_test"
+    assert database_name_from_uri(legacy_app.config["SQLALCHEMY_DATABASE_URI"]) == database_name_from_uri(
+        dev_uri
+    )
+    assert database_name_from_uri(legacy_app.config["SQLALCHEMY_DATABASE_URI"]) != database_name_from_uri(
+        os.environ["TEST_DATABASE_URL"]
+    )
 
 
 def test_g_production_environment_aborts(monkeypatch):
@@ -76,7 +100,8 @@ def test_g_production_environment_aborts(monkeypatch):
 
 
 def test_h_staging_environment_aborts(monkeypatch):
-    monkeypatch.setenv("FLASK_ENV", "staging")
+    monkeypatch.setenv("ENVIRONMENT", "staging")
+    monkeypatch.delenv("FLASK_ENV", raising=False)
     with pytest.raises(DatabaseTestConfigError) as exc:
         assert_pytest_allowed_in_current_deployment()
     assert PRODUCTION_STAGING_MESSAGE in str(exc.value)

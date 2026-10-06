@@ -79,17 +79,19 @@ describe("runCompletarTrabajoFinalizeFlow", () => {
     expect(cierre).not.toHaveBeenCalled();
   });
 
-  it("valida → sube → cierra cuando todo ok", async () => {
+  it("valida → cierra → sube cuando todo ok", async () => {
     const upload = vi.fn().mockResolvedValue(true);
     const cierre = vi.fn().mockResolvedValue(undefined);
     const result = await runCompletarTrabajoFinalizeFlow({
       validate: () => ({ canSubmit: true, fieldErrors: {} }),
+      hasPendingUpload: () => true,
       uploadPendingMedia: upload,
       submitCierre: cierre,
     });
     expect(result).toBe("success");
     expect(upload).toHaveBeenCalledTimes(1);
     expect(cierre).toHaveBeenCalledTimes(1);
+    expect(cierre.mock.invocationCallOrder[0]).toBeLessThan(upload.mock.invocationCallOrder[0]);
   });
 
   it("sin archivos pendientes: upload ok y cierra directo", async () => {
@@ -104,33 +106,30 @@ describe("runCompletarTrabajoFinalizeFlow", () => {
     expect(cierre).toHaveBeenCalled();
   });
 
-  it("error de subida: no cierra", async () => {
-    const cierre = vi.fn();
+  it("cierre ok y falla subida: trabajo guardado con evidencias pendientes", async () => {
+    const cierre = vi.fn().mockResolvedValue(undefined);
     const result = await runCompletarTrabajoFinalizeFlow({
       validate: () => ({ canSubmit: true, fieldErrors: {} }),
+      hasPendingUpload: () => true,
       uploadPendingMedia: vi.fn().mockResolvedValue(false),
       submitCierre: cierre,
     });
-    expect(result).toBe("upload_failed");
-    expect(cierre).not.toHaveBeenCalled();
+    expect(result).toBe("success_evidencias_pendientes");
+    expect(cierre).toHaveBeenCalledTimes(1);
   });
 
-  it("error de cierre tras upload: no vuelve a subir", async () => {
-    const upload = vi.fn().mockResolvedValue(true);
+  it("error de cierre: no sube", async () => {
+    const upload = vi.fn();
     const cierre = vi.fn().mockRejectedValue(new Error("422"));
-    const result = await runCompletarTrabajoFinalizeFlow({
-      validate: () => ({ canSubmit: true, fieldErrors: {} }),
-      uploadPendingMedia: upload,
-      submitCierre: cierre,
-    });
-    expect(result).toBe("cierre_failed");
-    expect(upload).toHaveBeenCalledTimes(1);
-    const retry = await runCompletarTrabajoFinalizeFlow({
-      validate: () => ({ canSubmit: true, fieldErrors: {} }),
-      uploadPendingMedia: vi.fn().mockResolvedValue(true),
-      submitCierre: vi.fn().mockResolvedValue(undefined),
-    });
-    expect(retry).toBe("success");
+    await expect(
+      runCompletarTrabajoFinalizeFlow({
+        validate: () => ({ canSubmit: true, fieldErrors: {} }),
+        hasPendingUpload: () => true,
+        uploadPendingMedia: upload,
+        submitCierre: cierre,
+      })
+    ).rejects.toThrow("422");
+    expect(upload).not.toHaveBeenCalled();
   });
 });
 

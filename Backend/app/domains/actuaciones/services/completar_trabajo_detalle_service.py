@@ -23,6 +23,10 @@ from app.domains.actuaciones.presenters.completar_trabajo_presenters import (
 from app.domains.actuaciones.services.completar_trabajo_tipo_iniciador import (
     tipo_actuacion_esperado_para_iniciador,
 )
+from app.domains.media.services.media_ruta_item_resumen_service import (
+    build_media_resumen_ruta_item,
+    ruta_item_tiene_archivos_pending,
+)
 
 
 def get_completar_trabajo_detalle(*, ruta_item_id: int) -> dict[str, Any]:
@@ -75,10 +79,16 @@ def get_completar_trabajo_detalle(*, ruta_item_id: int) -> dict[str, Any]:
         raise ValueError("La ruta debe estar PUBLICADA para ver el detalle de completar trabajo.")
     if item.deleted_at is not None:
         raise ValueError("El ítem está eliminado.")
+    solo_evidencias = False
     if item.estado_ruta_item != "EN_PROCESO":
-        raise ValueError(
-            f"El ítem no está EN_PROCESO (estado actual: {item.estado_ruta_item})."
-        )
+        if item.estado_ruta_item == "FINALIZADO" and ruta_item_tiene_archivos_pending(
+            int(item.id)
+        ):
+            solo_evidencias = True
+        else:
+            raise ValueError(
+                f"El ítem no está EN_PROCESO (estado actual: {item.estado_ruta_item})."
+            )
 
     grupo = item.ruta_grupo
     inspectores_grupo: list[dict[str, Any]] = []
@@ -102,8 +112,16 @@ def get_completar_trabajo_detalle(*, ruta_item_id: int) -> dict[str, Any]:
         except KeyError:
             tipo_esperado = None
 
-    return ruta_item_completar_trabajo_detalle(
+    detalle = ruta_item_completar_trabajo_detalle(
         item,
         inspectores_grupo=inspectores_grupo,
         tipo_actuacion_esperado=tipo_esperado,
     )
+    if solo_evidencias:
+        detalle["ui_policy"] = {
+            **detalle.get("ui_policy", {}),
+            "solo_evidencias_pendientes": True,
+            "cierre_alfanumerico_readonly": True,
+        }
+    detalle["media_resumen"] = build_media_resumen_ruta_item(int(item.id))
+    return detalle

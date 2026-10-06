@@ -180,6 +180,10 @@ def bootstrap_pytest_database_environment() -> str:
     assert_pytest_allowed_in_current_deployment()
     test_url = require_test_database_url()
     dev_uri = (os.getenv("SQLALCHEMY_DATABASE_URI") or "").strip()
+    if not dev_uri:
+        from app.security.deployment_config import resolve_sqlalchemy_database_uri
+
+        dev_uri = resolve_sqlalchemy_database_uri().strip()
     if dev_uri:
         os.environ.setdefault(PYTEST_ORIGINAL_DEV_DATABASE_URI_ENV, dev_uri)
     validate_test_database_url(test_url, dev_uri=dev_uri or development_database_uri())

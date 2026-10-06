@@ -1,4 +1,5 @@
 import { postMediaComplete, postMediaUploadIntent, type UploadIntentBody } from "../../api/mediaApi";
+import { mediaErrorMessageFromUnknown } from "./mediaApiErrors";
 import { sha256HexFromFile } from "./sha256File";
 import type { MediaQueuedFile } from "./mediaTypes";
 
@@ -37,13 +38,16 @@ export function putFileToPresignedUrl(
 export type UploadSingleResult = { archivoId: number };
 
 /**
- * Flujo intent → PUT → complete para un archivo local.
+ * Flujo intent → PUT → complete para un archivo local (idempotente por SHA en servidor).
  */
 export async function uploadSingleQueuedFile(
   rutaItemId: number,
   item: MediaQueuedFile,
   onProgress?: (pct: number) => void
 ): Promise<UploadSingleResult> {
+  if (item.phase === "ready" && item.archivoId != null) {
+    return { archivoId: item.archivoId };
+  }
   const contentType = (item.file.type || "application/octet-stream").toLowerCase();
   const sha256 = await sha256HexFromFile(item.file);
   const body: UploadIntentBody = {
@@ -54,16 +58,23 @@ export async function uploadSingleQueuedFile(
     sha256,
   };
   const intent = await postMediaUploadIntent(rutaItemId, body);
+  const archivoId = intent.archivo_id;
+  if (intent.status === "READY") {
+    return { archivoId };
+  }
+  if (!intent.upload_url) {
+    throw new Error("No se recibió URL de subida.");
+  }
   await putFileToPresignedUrl(intent.upload_url, item.file, contentType, (p) => {
     if (p.total > 0 && onProgress) {
       onProgress(Math.min(100, Math.round((p.loaded / p.total) * 100)));
     }
   });
-  await postMediaComplete(intent.archivo_id);
-  return { archivoId: intent.archivo_id };
+  await postMediaComplete(archivoId);
+  return { archivoId };
 }
 
-const DEFAULT_CONCURRENCY = 2;
+export const MOBILE_UPLOAD_CONCURRENCY = 1;
 
 /**
  * Sube archivos pendientes o en error (no re-sube READY).
@@ -82,7 +93,11 @@ export async function uploadQueuedFilesWithConcurrency(
     onGlobalProgress?: (pct: number) => void;
   }
 ): Promise<void> {
-  const toUpload = items.filter((x) => x.phase === "pending" || (x.phase === "error" && !x.archivoId));
+  const toUpload = items.filter(
+    (x) =>
+      x.phase !== "ready" &&
+      (x.phase === "pending" || (x.phase === "error" && x.archivoId != null) || (x.phase === "error" && !x.archivoId))
+  );
   if (toUpload.length === 0) return;
   const totalBytes = toUpload.reduce((s, f) => s + f.file.size, 0);
   const bytesLoadedById = new Map<string, number>();
@@ -94,32 +109,33 @@ export async function uploadQueuedFilesWithConcurrency(
     }
     options.onGlobalProgress(Math.min(100, Math.round((sum / totalBytes) * 100)));
   };
-  const concurrency = options.concurrency ?? DEFAULT_CONCURRENCY;
+  const concurrency = options.concurrency ?? MOBILE_UPLOAD_CONCURRENCY;
   let index = 0;
 
   const failedIds: string[] = [];
 
   const runOne = async (item: MediaQueuedFile) => {
     options.onItemPhase?.(item.localId, "preparing", 0);
+    let archivoId: number | null = item.archivoId;
     try {
-      options.onItemPhase?.(item.localId, "uploading", 0);
+      options.onItemPhase?.(item.localId, "uploading", 0, { archivoId });
       bytesLoadedById.set(item.localId, 0);
       const result = await uploadSingleQueuedFile(rutaItemId, item, (pct) => {
-        options.onItemPhase?.(item.localId, "uploading", pct);
-        bytesLoadedById.set(
-          item.localId,
-          Math.round((pct / 100) * item.file.size)
-        );
+        options.onItemPhase?.(item.localId, "uploading", pct, { archivoId: archivoId ?? undefined });
+        bytesLoadedById.set(item.localId, Math.round((pct / 100) * item.file.size));
         emitGlobalBytes();
       });
-      options.onItemPhase?.(item.localId, "verifying", 100);
-      item.archivoId = result.archivoId;
+      archivoId = result.archivoId;
+      options.onItemPhase?.(item.localId, "verifying", 100, { archivoId });
       bytesLoadedById.set(item.localId, item.file.size);
       emitGlobalBytes();
-      options.onItemPhase?.(item.localId, "ready", 100, { archivoId: result.archivoId });
+      options.onItemPhase?.(item.localId, "ready", 100, { archivoId });
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Error al subir";
-      options.onItemPhase?.(item.localId, "error", 0, { errorMessage: msg, archivoId: null });
+      const msg = mediaErrorMessageFromUnknown(e);
+      options.onItemPhase?.(item.localId, "error", 0, {
+        errorMessage: msg,
+        archivoId: archivoId ?? item.archivoId,
+      });
       failedIds.push(item.localId);
       item.errorMessage = msg;
     }

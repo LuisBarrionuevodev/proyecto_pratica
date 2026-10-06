@@ -52,6 +52,7 @@ class RutaItemArchivo(db.Model):
         default=datetime.utcnow,
         server_default=db.func.now(),
     )
+    content_sha256 = db.Column(db.String(64), nullable=True, index=True)
 
     archivo = db.relationship("Archivo", back_populates="ruta_item_links")
     ruta_item = db.relationship("RutaItem", backref=db.backref("archivos_vinculo", lazy="dynamic"))
@@ -59,4 +60,11 @@ class RutaItemArchivo(db.Model):
     __table_args__ = (
         db.UniqueConstraint("ruta_item_id", "archivo_id", name="uq_ruta_item_archivo_pair"),
         db.Index("ix_ruta_item_archivo_item_categoria", "ruta_item_id", "categoria"),
+        db.Index(
+            "uq_ruta_item_archivo_item_cat_sha",
+            "ruta_item_id",
+            "categoria",
+            "content_sha256",
+            unique=True,
+        ),
     )

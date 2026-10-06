@@ -19,10 +19,12 @@ describe("flujo global de carga", () => {
     const cierre = vi.fn();
     await runCompletarTrabajoFinalizeFlow({
       validate: () => ({ canSubmit: true, fieldErrors: {} }),
+      hasPendingUpload: () => true,
       uploadPendingMedia: upload,
       submitCierre: cierre,
     });
     expect(upload).toHaveBeenCalledTimes(1);
     expect(cierre).toHaveBeenCalledTimes(1);
+    expect(cierre.mock.invocationCallOrder[0]).toBeLessThan(upload.mock.invocationCallOrder[0]);
   });
 });

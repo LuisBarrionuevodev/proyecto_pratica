@@ -5,6 +5,13 @@ from __future__ import annotations
 from datetime import datetime
 
 from app.database import db
+from app.domains.media.errors import (
+    MEDIA_OBJECT_MISSING,
+    MEDIA_SHA_MISMATCH,
+    MEDIA_SIZE_EXCEEDED,
+    MEDIA_STATE_INVALID,
+    MediaDomainError,
+)
 from app.domains.media.schemas.media_schemas import CompleteUploadOut
 from app.domains.media.services.media_access_service import get_archivo_link_for_access
 from app.domains.media.services.media_storage_service import MediaStorageService
@@ -16,11 +23,11 @@ from app.domains.media.utils.media_observability import (
     log_upload_complete_ok,
     log_upload_complete_rejected,
 )
-from app.models import Archivo
+from app.models import Archivo, RutaItemArchivo
 
 
 def _reject_archivo(arch: Archivo, storage: MediaStorageService, *, cause: str) -> None:
-    """Marca REJECTED, borra objeto y no deja el archivo disponible."""
+    """Marca REJECTED, borra objeto y libera clave de idempotencia en el vínculo."""
     try:
         storage.delete_object(arch.object_key)
     except Exception as exc:
@@ -33,6 +40,10 @@ def _reject_archivo(arch: Archivo, storage: MediaStorageService, *, cause: str) 
         )
     arch.status = "REJECTED"
     arch.uploaded_at = None
+    db.session.query(RutaItemArchivo).filter(RutaItemArchivo.archivo_id == int(arch.id)).update(
+        {RutaItemArchivo.content_sha256: None},
+        synchronize_session=False,
+    )
     log_upload_complete_rejected(archivo_id=int(arch.id), cause=cause)
 
 
@@ -40,57 +51,80 @@ def completar_carga_archivo(archivo_id: int) -> CompleteUploadOut:
     """
     Confirma que el objeto subido al bucket es válido y pasa a READY.
 
+    Idempotente: si ya está READY, responde éxito sin revalidar.
+
     Parámetros:
-        archivo_id: PK del registro PENDING.
+        archivo_id: PK del registro.
 
     Retorno:
         CompleteUploadOut.
 
     Errores:
-        ValueError: validación fallida (422 en ruta).
+        MediaDomainError: validación fallida.
         MediaAccessError / RutaItemAccessError: autorización.
     """
     arch, link = get_archivo_link_for_access(int(archivo_id))
     categoria = link.categoria if link else None
+
+    if arch.status == "READY":
+        uploaded = arch.uploaded_at or datetime.utcnow()
+        return CompleteUploadOut(
+            archivo_id=int(arch.id),
+            status="READY",
+            uploaded_at=uploaded,
+        )
+
     if arch.status != "PENDING":
-        raise ValueError("Solo se pueden confirmar archivos en estado PENDING.")
+        raise MediaDomainError(
+            MEDIA_STATE_INVALID,
+            f"Solo se pueden confirmar archivos PENDING (estado actual: {arch.status}).",
+        )
 
     storage = MediaStorageService()
     head = storage.head_object(arch.object_key)
     if head is None:
         _reject_archivo(arch, storage, cause="object_missing")
         db.session.commit()
-        raise ValueError("No se encontró el archivo en el storage.")
+        raise MediaDomainError(MEDIA_OBJECT_MISSING, "No se encontró el archivo en el storage.")
 
     if head.content_length != int(arch.byte_size):
         _reject_archivo(arch, storage, cause="size_mismatch")
         db.session.commit()
-        raise ValueError("El tamaño del archivo no coincide con lo declarado.")
+        raise MediaDomainError(
+            MEDIA_SIZE_EXCEEDED,
+            "El tamaño del archivo no coincide con lo declarado.",
+        )
 
     head_ct = (head.content_type or "").split(";", 1)[0].strip().lower()
     if head_ct and head_ct != arch.content_type:
         _reject_archivo(arch, storage, cause="mime_mismatch")
         db.session.commit()
-        raise ValueError("El tipo MIME del archivo no coincide con lo declarado.")
+        raise MediaDomainError(
+            "MEDIA_MIME_UNSUPPORTED",
+            "El tipo MIME del archivo no coincide con lo declarado.",
+        )
 
     body = storage.get_object_bytes(arch.object_key)
     if body is None:
         _reject_archivo(arch, storage, cause="read_failed")
         db.session.commit()
-        raise ValueError("No se pudo leer el archivo para validación.")
+        raise MediaDomainError(MEDIA_OBJECT_MISSING, "No se pudo leer el archivo para validación.")
 
     try:
         verify_magic_bytes(arch.content_type, body)
     except ValueError:
         _reject_archivo(arch, storage, cause="magic_bytes_invalid")
         db.session.commit()
-        raise
+        raise MediaDomainError(
+            "MEDIA_MIME_UNSUPPORTED",
+            "El contenido del archivo no coincide con el tipo declarado.",
+        )
 
     digest = sha256_hex(body)
     if digest != arch.sha256.lower():
         _reject_archivo(arch, storage, cause="sha256_mismatch")
         db.session.commit()
-        raise ValueError("El hash SHA-256 no coincide con lo declarado.")
+        raise MediaDomainError(MEDIA_SHA_MISMATCH, "El hash SHA-256 no coincide con lo declarado.")
 
     now = datetime.utcnow()
     arch.status = "READY"

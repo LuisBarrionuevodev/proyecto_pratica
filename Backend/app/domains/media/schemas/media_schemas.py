@@ -78,8 +78,9 @@ class UploadIntentOut(BaseModel):
     """Respuesta de intención de carga."""
 
     archivo_id: int
-    upload_url: str
+    upload_url: str = ""
     expires_at: datetime
+    status: Literal["PENDING", "READY"] = "PENDING"
 
 
 class CompleteUploadOut(BaseModel):

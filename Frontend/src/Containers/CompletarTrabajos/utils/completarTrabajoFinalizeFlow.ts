@@ -1,17 +1,18 @@
 export type CompletarTrabajoFinalizeFlowResult =
   | "validation_failed"
-  | "upload_failed"
   | "cierre_failed"
-  | "success";
+  | "success"
+  | "success_evidencias_pendientes";
 
 export type CompletarTrabajoFinalizeFlowDeps = {
   validate: () => { canSubmit: boolean; fieldErrors: Record<string, string> };
-  uploadPendingMedia: () => Promise<boolean>;
   submitCierre: () => Promise<void>;
+  uploadPendingMedia: () => Promise<boolean>;
+  hasPendingUpload?: () => boolean;
 };
 
 /**
- * Orden estricto: validar → subir evidencia pendiente → cerrar trabajo.
+ * Orden estricto: validar → cerrar trabajo (alfanumérico) → subir evidencias pendientes.
  */
 export async function runCompletarTrabajoFinalizeFlow(
   deps: CompletarTrabajoFinalizeFlowDeps
@@ -20,14 +21,14 @@ export async function runCompletarTrabajoFinalizeFlow(
   if (!validation.canSubmit) {
     return "validation_failed";
   }
+  await deps.submitCierre();
+  const pending = deps.hasPendingUpload?.() ?? true;
+  if (!pending) {
+    return "success";
+  }
   const uploaded = await deps.uploadPendingMedia();
   if (!uploaded) {
-    return "upload_failed";
+    return "success_evidencias_pendientes";
   }
-  try {
-    await deps.submitCierre();
-    return "success";
-  } catch {
-    return "cierre_failed";
-  }
+  return "success";
 }

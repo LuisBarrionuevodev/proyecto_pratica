@@ -6,6 +6,7 @@ from flask_jwt_extended import jwt_required
 from app.domains.actuaciones.services.completar_trabajo_ruta_item_access import RutaItemAccessError
 from app.domains.media.routes import media_bp
 from app.domains.media.services.media_access_service import MediaAccessError
+from app.domains.media.errors import MediaDomainError, media_error_json
 from app.domains.media.services.media_complete_service import completar_carga_archivo
 
 
@@ -26,5 +27,7 @@ def completar_archivo_route(archivo_id: int):
         return jsonify({"detail": str(e)}), e.status_code
     except MediaAccessError as e:
         return jsonify({"detail": str(e)}), e.status_code
+    except MediaDomainError as e:
+        return jsonify(media_error_json(e)), 422
     except ValueError as e:
         return jsonify({"detail": str(e)}), 422

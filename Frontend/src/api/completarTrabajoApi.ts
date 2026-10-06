@@ -74,6 +74,8 @@ export interface ICompletarTrabajoPendienteRow {
   identity_mode?: "COMPLETE_HISTORICAL" | "COMPLETE_EXISTING" | null;
   /** Solo en merge cliente → POST; no viene del listado. */
   inspectores?: string[];
+  media_resumen?: ICompletarTrabajoMediaResumen;
+  trabajo_guardado_evidencias_pendientes?: boolean;
 }
 
 export interface ICompletarTrabajoPendientesMeta {
@@ -159,7 +161,24 @@ export interface ICompletarTrabajoUiPolicy {
   mostrar_solicitud_carnet_manipulador?: boolean;
   mostrar_subsanacion_notificacion?: boolean;
   tipo_iniciador?: string | null;
+  solo_evidencias_pendientes?: boolean;
+  cierre_alfanumerico_readonly?: boolean;
 }
+
+export type ICompletarTrabajoMediaResumenCategoria = {
+  ready: number;
+  pending: number;
+  max: number;
+  pendientes: number;
+};
+
+export type ICompletarTrabajoMediaResumen = {
+  foto_acta?: ICompletarTrabajoMediaResumenCategoria;
+  foto_documentacion_local?: ICompletarTrabajoMediaResumenCategoria;
+  foto_inspeccion?: ICompletarTrabajoMediaResumenCategoria;
+  tiene_evidencias_pendientes?: boolean;
+  evidencias_pendientes_total?: number;
+};
 
 /** Respuesta GET detalle (fase 1) para armar el formulario. */
 export interface ICompletarTrabajoDetalleResponse {

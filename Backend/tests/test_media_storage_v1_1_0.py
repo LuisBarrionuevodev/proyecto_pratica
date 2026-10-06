@@ -24,6 +24,15 @@ PDF_BYTES = b"%PDF-1.4\n%\xe2\xe3\xcf\xd3\n" + b"x" * 200
 PDF_SHA = hashlib.sha256(PDF_BYTES).hexdigest()
 
 
+def pdf_bytes_variant(index: int) -> bytes:
+    """Contenido PDF distinto por índice (cupos: un SHA-256 por archivo)."""
+    return PDF_BYTES + bytes([index & 0xFF])
+
+
+def pdf_sha_variant(index: int) -> str:
+    return hashlib.sha256(pdf_bytes_variant(index)).hexdigest()
+
+
 def _auth_headers(user_id: int) -> dict[str, str]:
     token = create_access_token(identity=str(user_id))
     return {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
@@ -148,27 +157,35 @@ def test_imagen_tamano_excedido_422(app, client, app_ctx, scope_fixture) -> None
 def test_foto_acta_octavo_archivo_422(app, client, app_ctx, scope_fixture) -> None:
     d = scope_fixture
     for i in range(7):
+        content = pdf_bytes_variant(i)
         r = _create_intent(
             client,
             d["item_a"].id,
             d["user_a"].id,
             categoria=CATEGORIA_FOTO_ACTA,
             filename=f"acta{i}.pdf",
+            byte_size=len(content),
+            sha256=hashlib.sha256(content).hexdigest(),
         )
         assert r.status_code == 201
+    overflow = pdf_bytes_variant(7)
     r8 = _create_intent(
         client,
         d["item_a"].id,
         d["user_a"].id,
         categoria=CATEGORIA_FOTO_ACTA,
         filename="acta8.pdf",
+        byte_size=len(overflow),
+        sha256=hashlib.sha256(overflow).hexdigest(),
     )
     assert r8.status_code == 422
+    assert r8.get_json().get("code") == "MEDIA_QUOTA_EXCEEDED"
 
 
 def test_foto_documentacion_local_decimo_archivo_422(app, client, app_ctx, scope_fixture) -> None:
     d = scope_fixture
     for i in range(9):
+        content = pdf_bytes_variant(100 + i)
         r = _create_intent(
             client,
             d["item_a"].id,
@@ -176,8 +193,11 @@ def test_foto_documentacion_local_decimo_archivo_422(app, client, app_ctx, scope
             categoria=CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
             tipo_documento="HABILITACION",
             filename=f"hab{i}.pdf",
+            byte_size=len(content),
+            sha256=hashlib.sha256(content).hexdigest(),
         )
         assert r.status_code == 201
+    overflow = pdf_bytes_variant(200)
     r10 = _create_intent(
         client,
         d["item_a"].id,
@@ -185,13 +205,17 @@ def test_foto_documentacion_local_decimo_archivo_422(app, client, app_ctx, scope
         categoria=CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
         tipo_documento="OTRO_DOCUMENTO_LOCAL",
         filename="hab10.pdf",
+        byte_size=len(overflow),
+        sha256=hashlib.sha256(overflow).hexdigest(),
     )
     assert r10.status_code == 422
+    assert r10.get_json().get("code") == "MEDIA_QUOTA_EXCEEDED"
 
 
 def test_cupos_independientes_entre_categorias(app, client, app_ctx, scope_fixture) -> None:
     d = scope_fixture
     for i in range(7):
+        content = pdf_bytes_variant(300 + i)
         assert (
             _create_intent(
                 client,
@@ -199,10 +223,13 @@ def test_cupos_independientes_entre_categorias(app, client, app_ctx, scope_fixtu
                 d["user_a"].id,
                 categoria=CATEGORIA_FOTO_ACTA,
                 filename=f"a{i}.pdf",
+                byte_size=len(content),
+                sha256=hashlib.sha256(content).hexdigest(),
             ).status_code
             == 201
         )
     for i in range(9):
+        content = pdf_bytes_variant(400 + i)
         assert (
             _create_intent(
                 client,
@@ -211,9 +238,12 @@ def test_cupos_independientes_entre_categorias(app, client, app_ctx, scope_fixtu
                 categoria=CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
                 tipo_documento="CARNET_MANIPULADOR",
                 filename=f"d{i}.pdf",
+                byte_size=len(content),
+                sha256=hashlib.sha256(content).hexdigest(),
             ).status_code
             == 201
         )
+    extra_acta = pdf_bytes_variant(307)
     assert (
         _create_intent(
             client,
@@ -221,9 +251,12 @@ def test_cupos_independientes_entre_categorias(app, client, app_ctx, scope_fixtu
             d["user_a"].id,
             categoria=CATEGORIA_FOTO_ACTA,
             filename="extra_acta.pdf",
+            byte_size=len(extra_acta),
+            sha256=hashlib.sha256(extra_acta).hexdigest(),
         ).status_code
         == 422
     )
+    extra_doc = pdf_bytes_variant(409)
     assert (
         _create_intent(
             client,
@@ -232,6 +265,8 @@ def test_cupos_independientes_entre_categorias(app, client, app_ctx, scope_fixtu
             categoria=CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
             tipo_documento="CERTIFICADO_DESINFECCION",
             filename="extra_doc.pdf",
+            byte_size=len(extra_doc),
+            sha256=hashlib.sha256(extra_doc).hexdigest(),
         ).status_code
         == 422
     )

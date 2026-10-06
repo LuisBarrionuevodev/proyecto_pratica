@@ -124,7 +124,6 @@ export function useMediaUploadCoordinator() {
               phase: "pending" as const,
               progressPct: 0,
               errorMessage: null,
-              archivoId: null,
             }
           : x
       );
@@ -138,22 +137,24 @@ export function useMediaUploadCoordinator() {
   );
 
   const uploadAll = useCallback(
-    async (rutaItemId: number): Promise<void> => {
+    async (rutaItemId: number, concurrency = 1): Promise<void> => {
       const current = itemsRef.current;
-      const snapshot = current.filter(
-        (x) => x.phase === "pending" || (x.phase === "error" && !x.archivoId)
-      );
+      const snapshot = current.filter((x) => x.phase === "pending" || x.phase === "error");
       if (snapshot.length === 0) return;
       setSession({ active: true, globalPct: 0, items: [...current] });
       try {
         await uploadQueuedFilesWithConcurrency(rutaItemId, current, {
+          concurrency,
           onItemPhase: (localId, phase, progressPct, meta) => {
             patchItem(localId, {
               phase,
               progressPct: progressPct ?? 0,
               ...(meta?.archivoId != null ? { archivoId: meta.archivoId } : {}),
               ...(phase === "error"
-                ? { errorMessage: meta?.errorMessage ?? "Error al subir", archivoId: null }
+                ? {
+                    errorMessage: meta?.errorMessage ?? "Error al subir",
+                    ...(meta?.archivoId != null ? { archivoId: meta.archivoId } : {}),
+                  }
                 : { errorMessage: null }),
             });
           },

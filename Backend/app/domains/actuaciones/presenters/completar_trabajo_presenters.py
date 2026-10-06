@@ -20,6 +20,7 @@ from app.domains.actuaciones.utils.acta_seguimiento_policy import (
     contexto_subsanacion_reinspeccion_notificacion,
 )
 from app.domains.actuaciones.services.completar_trabajo_contraproducencia import ContrapBucket
+from app.domains.media.services.media_ruta_item_resumen_service import build_media_resumen_ruta_item
 
 # Campos de `actuacion_to_grid_row` necesarios para edición inline de cierre (sin previas en UI).
 _COMPLETAR_GRID_EXTRA_KEYS: tuple[str, ...] = (
@@ -297,7 +298,14 @@ def ruta_item_completar_trabajo_to_row(item: RutaItem) -> Dict[str, Any]:
         out[k] = base.get(k)
     out = _enrich_notificacion_origen_reinspeccion(out, item)
     out = _enrich_contrib_prefill_oficio(out, item)
-    return _enrich_identity_verificar_informar(out, item)
+    out = _enrich_identity_verificar_informar(out, item)
+    media_resumen = build_media_resumen_ruta_item(int(item.id))
+    out["media_resumen"] = media_resumen
+    out["trabajo_guardado_evidencias_pendientes"] = bool(
+        item.estado_ruta_item == "FINALIZADO"
+        and media_resumen.get("tiene_evidencias_pendientes")
+    )
+    return out
 
 
 def ruta_item_completar_trabajo_detalle(

@@ -9,6 +9,7 @@ from pydantic import ValidationError
 from app.domains.actuaciones.services.completar_trabajo_ruta_item_access import RutaItemAccessError
 from app.domains.media.routes import media_bp
 from app.domains.media.schemas.media_schemas import UploadIntentIn
+from app.domains.media.errors import MediaDomainError, media_error_json
 from app.domains.media.services.media_upload_intent_service import crear_upload_intent
 from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
 from app.shared.errors import pydantic_errors_to_cell_map
@@ -38,5 +39,7 @@ def crear_upload_intent_route(ruta_item_id: int):
         return jsonify({"detail": str(e)}), e.status_code
     except ValidationError as e:
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
+    except MediaDomainError as e:
+        return jsonify(media_error_json(e)), 422
     except ValueError as e:
         return jsonify({"detail": str(e)}), 422

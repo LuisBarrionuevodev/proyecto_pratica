@@ -19,6 +19,7 @@ export type UploadIntentResponse = {
   archivo_id: number;
   upload_url: string;
   expires_at: string;
+  status?: "PENDING" | "READY";
 };
 
 export async function postMediaUploadIntent(

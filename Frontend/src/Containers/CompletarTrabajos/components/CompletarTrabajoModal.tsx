@@ -57,6 +57,7 @@ import {
 import { scrollActuacionFormToFirstFieldError } from "../../Actuaciones/utils/actuacionFormScroll";
 import { commitActaNumInputValue } from "../../Actuaciones/validations/actuacionFormNormalize";
 import { submitCompletarTrabajoCierreFromRow } from "../completion/submitCompletarTrabajoCierre";
+import { runCompletarTrabajoFinalizeFlow } from "../utils/completarTrabajoFinalizeFlow";
 import { emitGestionNotificacionReinspeccionRefresh } from "../../GestionNotificacion/gestionNotificacionReinspeccionRefresh";
 import type { CompletarTrabajoCatalogs } from "../hooks/completarTrabajoCatalogsCache";
 import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";
@@ -905,18 +906,46 @@ export function CompletarTrabajoModal({
     [cat.motivosComprobacion]
   );
 
-  const uploadPendingMediaIfAny = useCallback(async (): Promise<boolean> => {
+  const uploadMediaAfterCierre = useCallback(async (): Promise<boolean> => {
     if (!resolvedRow || !mediaQueues.hasPendingUpload) return true;
     try {
-      await mediaQueues.uploadAll(resolvedRow.ruta_item_id);
+      await mediaQueues.uploadAll(resolvedRow.ruta_item_id, 1);
       return true;
     } catch {
-      feedback.error(
-        "No se pudieron subir todos los archivos. Revise los fallidos e intente de nuevo."
-      );
       return false;
     }
-  }, [resolvedRow, mediaQueues, feedback]);
+  }, [resolvedRow, mediaQueues]);
+
+  const runCierreThenMedia = useCallback(
+    async (submitCierre: () => Promise<void>) => {
+      return runCompletarTrabajoFinalizeFlow({
+        validate: () => ({ canSubmit: true, fieldErrors: {} }),
+        submitCierre,
+        hasPendingUpload: () => mediaQueues.hasPendingUpload,
+        uploadPendingMedia: uploadMediaAfterCierre,
+      });
+    },
+    [mediaQueues.hasPendingUpload, uploadMediaAfterCierre]
+  );
+
+  const handlePostFinalizeResult = useCallback(
+    (flow: Awaited<ReturnType<typeof runCierreThenMedia>>, rutaItemId: number) => {
+      if (flow === "cierre_failed") {
+        return;
+      }
+      if (resolvedRow?.tipo_iniciador === "REINSPECCION_NOTIFICACION") {
+        emitGestionNotificacionReinspeccionRefresh();
+      }
+      if (flow === "success_evidencias_pendientes") {
+        feedback.warning("Trabajo guardado. Quedan evidencias pendientes de carga.");
+      } else {
+        feedback.success("Trabajo completado correctamente.");
+      }
+      onSuccess(rutaItemId);
+      onClose();
+    },
+    [feedback, onClose, onSuccess, resolvedRow?.tipo_iniciador]
+  );
 
   const handleClose = useCallback(() => {
     if (saving) return;
@@ -935,6 +964,23 @@ export function CompletarTrabajoModal({
   const handleSubmit = async () => {
     if (!resolvedRow || detalleLoading) return;
     setFieldErrors({});
+
+    if (uiPolicy?.solo_evidencias_pendientes) {
+      setSaving(true);
+      try {
+        await mediaQueues.uploadAll(resolvedRow.ruta_item_id, 1);
+        feedback.success("Evidencias subidas correctamente.");
+        onSuccess(resolvedRow.ruta_item_id);
+        onClose();
+      } catch {
+        feedback.warning(
+          "No se pudieron subir todas las evidencias. Reintentá cuando tengas mejor conexión."
+        );
+      } finally {
+        setSaving(false);
+      }
+      return;
+    }
 
     if (esFlujoCumplimientoRatificacion(resolvedRow.tipo_iniciador, tipoActuacionOficioEfectivo)) {
       const preSubmitErrors: Record<string, string> = {};
@@ -968,32 +1014,25 @@ export function CompletarTrabajoModal({
         return;
       }
       setSaving(true);
-      if (!(await uploadPendingMediaIfAny())) {
-        setSaving(false);
-        return;
-      }
       try {
-        const usaContraReencolado = resultadoCumplimientoOficio === "NO_CUMPLE" && contraTrim;
-        const values: Record<string, unknown> = {
-          contraproducencia: usaContraReencolado ? contraTrim : "",
-          tipo_actuacion: tipoCierre,
-          ...(usaContraReencolado
-            ? {}
-            : { resultado_cumplimiento_oficio: resultadoCumplimientoOficio }),
-          observaciones_ejecucion: observacionesEjecucion.trim(),
-          ...ACTA_KEYS_EMPTY,
-        };
-        await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
-          includeTipoActuacion: true,
-          omitPrecargadoPr2: false,
-          inspectoresExplicitos: resolveInspectoresExplicitos(inspectoresList, inspectoresDirty),
+        const flow = await runCierreThenMedia(async () => {
+          const usaContraReencolado = resultadoCumplimientoOficio === "NO_CUMPLE" && contraTrim;
+          const values: Record<string, unknown> = {
+            contraproducencia: usaContraReencolado ? contraTrim : "",
+            tipo_actuacion: tipoCierre,
+            ...(usaContraReencolado
+              ? {}
+              : { resultado_cumplimiento_oficio: resultadoCumplimientoOficio }),
+            observaciones_ejecucion: observacionesEjecucion.trim(),
+            ...ACTA_KEYS_EMPTY,
+          };
+          await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
+            includeTipoActuacion: true,
+            omitPrecargadoPr2: false,
+            inspectoresExplicitos: resolveInspectoresExplicitos(inspectoresList, inspectoresDirty),
+          });
         });
-        if (resolvedRow.tipo_iniciador === "REINSPECCION_NOTIFICACION") {
-          emitGestionNotificacionReinspeccionRefresh();
-        }
-        feedback.success("Trabajo completado correctamente.");
-        onSuccess(resolvedRow.ruta_item_id);
-        onClose();
+        handlePostFinalizeResult(flow, resolvedRow.ruta_item_id);
       } catch (e) {
         const { fieldErrors: nextFe, generalMessage, severity } = applyCompletarTrabajoFieldErrorsFromApi(e);
         setFieldErrors(nextFe);
@@ -1021,27 +1060,23 @@ export function CompletarTrabajoModal({
 
       if (realizoNuevaInspeccion === "no") {
         setSaving(true);
-        if (!(await uploadPendingMediaIfAny())) {
-          setSaving(false);
-          return;
-        }
         try {
-          const values: Record<string, unknown> = {
-            tipo_actuacion: tipoCierre,
-            realizo_nueva_inspeccion: "no",
-            contraproducencia,
-            observaciones_ejecucion: observacionesEjecucion.trim(),
-            ...ACTA_KEYS_EMPTY,
-          };
-          await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
-            includeTipoActuacion: true,
-            omitPrecargadoPr2: false,
-            incluirInspeccionNormal: false,
-            inspectoresExplicitos: resolveInspectoresExplicitos(inspectoresList, inspectoresDirty),
+          const flow = await runCierreThenMedia(async () => {
+            const values: Record<string, unknown> = {
+              tipo_actuacion: tipoCierre,
+              realizo_nueva_inspeccion: "no",
+              contraproducencia,
+              observaciones_ejecucion: observacionesEjecucion.trim(),
+              ...ACTA_KEYS_EMPTY,
+            };
+            await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
+              includeTipoActuacion: true,
+              omitPrecargadoPr2: false,
+              incluirInspeccionNormal: false,
+              inspectoresExplicitos: resolveInspectoresExplicitos(inspectoresList, inspectoresDirty),
+            });
           });
-          feedback.success("Trabajo completado correctamente.");
-          onSuccess(resolvedRow.ruta_item_id);
-          onClose();
+          handlePostFinalizeResult(flow, resolvedRow.ruta_item_id);
         } catch (e) {
           const { fieldErrors: nextFe, generalMessage, severity } = applyCompletarTrabajoFieldErrorsFromApi(e);
           setFieldErrors(nextFe);
@@ -1103,10 +1138,6 @@ export function CompletarTrabajoModal({
       return;
     }
     setSaving(true);
-    if (!(await uploadPendingMediaIfAny())) {
-      setSaving(false);
-      return;
-    }
     try {
       const titularPayload: Record<string, unknown> =
         titularModo === "persona"
@@ -1203,17 +1234,14 @@ export function CompletarTrabajoModal({
         });
       }
 
-      await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
-        omitPrecargadoPr2: !esFlujoVerificarInformarUi,
-        includeTipoActuacion: esFlujoVerificarInformarUi,
-        inspectoresExplicitos: resolveInspectoresExplicitos(inspectoresList, inspectoresDirty),
+      const flow = await runCierreThenMedia(async () => {
+        await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
+          omitPrecargadoPr2: !esFlujoVerificarInformarUi,
+          includeTipoActuacion: esFlujoVerificarInformarUi,
+          inspectoresExplicitos: resolveInspectoresExplicitos(inspectoresList, inspectoresDirty),
+        });
       });
-      if (resolvedRow.tipo_iniciador === "REINSPECCION_NOTIFICACION") {
-        emitGestionNotificacionReinspeccionRefresh();
-      }
-      feedback.success("Trabajo completado correctamente.");
-      onSuccess(resolvedRow.ruta_item_id);
-      onClose();
+      handlePostFinalizeResult(flow, resolvedRow.ruta_item_id);
     } catch (e) {
       const { fieldErrors: nextFe, generalMessage, severity } = applyCompletarTrabajoFieldErrorsFromApi(e);
       setFieldErrors(nextFe);
@@ -1247,9 +1275,11 @@ export function CompletarTrabajoModal({
           onSave={() => void handleSubmit()}
           loading={saving}
           saveLabel={
-            mediaQueues.hasPendingUpload
-              ? "FINALIZAR TRABAJO Y SUBIR ARCHIVOS"
-              : "Guardar cierre"
+            uiPolicy?.solo_evidencias_pendientes
+              ? "SUBIR EVIDENCIAS"
+              : mediaQueues.hasPendingUpload
+                ? "Guardar cierre y subir evidencias"
+                : "Guardar cierre"
           }
         />
       }
@@ -1263,7 +1293,7 @@ export function CompletarTrabajoModal({
         }
         onRetry={(id) => {
           mediaQueues.retryItem(id);
-          if (resolvedRow) void mediaQueues.uploadAll(resolvedRow.ruta_item_id);
+          if (resolvedRow) void mediaQueues.uploadAll(resolvedRow.ruta_item_id, 1);
         }}
       />
       {row && detalleLoading && !resolvedRow && (

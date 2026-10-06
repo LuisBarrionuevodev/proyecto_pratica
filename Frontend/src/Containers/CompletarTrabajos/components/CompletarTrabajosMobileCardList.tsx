@@ -12,6 +12,11 @@ import {
   completarTrabajoOrigenTipoSegments,
   completarTrabajoTitularLinea,
 } from "../utils/completarTrabajosListDisplay";
+import {
+  lineasEvidenciasPendientes,
+  mediaResumenFromRow,
+  rowTieneEvidenciasPendientes,
+} from "../utils/completarTrabajoMediaPendingDisplay";
 
 export type CompletarTrabajosMobileCardListProps = {
   rows: ICompletarTrabajoPendienteRow[];
@@ -66,6 +71,8 @@ export function CompletarTrabajosMobileCardList({
       {rows.map((row) => {
         const otRef = formatCrudDialogOtReference(row.orden_trabajo_numero) ?? "OT —";
         const origen = completarTrabajoOrigenTipoSegments(row).join(" · ") || "—";
+        const evidenciasPendientes = rowTieneEvidenciasPendientes(row);
+        const lineasPend = lineasEvidenciasPendientes(mediaResumenFromRow(row));
         return (
           <Box
             key={row.ruta_item_id}
@@ -98,6 +105,19 @@ export function CompletarTrabajosMobileCardList({
               <Typography sx={valueSx}>{completarTrabajoEstadoLabel(row)}</Typography>
             </Box>
 
+            {evidenciasPendientes ? (
+              <Box sx={{ borderTop: `1px solid ${GLASS_COLORS.borderLight}`, pt: 1 }}>
+                <Typography sx={{ ...labelSx, color: GLASS_COLORS.primary }}>
+                  TRABAJO GUARDADO · EVIDENCIAS PENDIENTES
+                </Typography>
+                {lineasPend.map((line) => (
+                  <Typography key={line} sx={{ ...valueSx, fontSize: "0.8125rem" }}>
+                    {line}
+                  </Typography>
+                ))}
+              </Box>
+            ) : null}
+
             <AppButton
               dsVariant="primary"
               dsSize="sm"
@@ -106,7 +126,7 @@ export function CompletarTrabajosMobileCardList({
               onClick={() => onOpenCompletarModal(row)}
               startIcon={<AssignmentTurnedInIcon />}
             >
-              Completar
+              {evidenciasPendientes ? "SUBIR EVIDENCIAS" : "Completar"}
             </AppButton>
           </Box>
         );

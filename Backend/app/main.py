@@ -45,7 +45,7 @@ migrate = Migrate()
 
 
 def create_app(config_override: dict | None = None):
-    load_dotenv()
+    load_dotenv(override=False)
 
     app = Flask(__name__)
 
