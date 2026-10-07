@@ -76,20 +76,27 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
     const [uploading, setUploading] = useState(false);
     const uploadInFlightRef = useRef(false);
 
-    const load = useCallback(async () => {
-      if (!rutaItemId) return;
-      try {
-        setError(null);
-        const res = await getRutaItemArchivos(rutaItemId);
-        setData(res);
-      } catch {
-        setError("No se pudieron cargar los archivos.");
-      }
-    }, [rutaItemId]);
+    const refreshGalleryFromServer = useCallback(
+      async (options?: { silent?: boolean }) => {
+        if (!rutaItemId) return;
+        try {
+          if (!options?.silent) {
+            setError(null);
+          }
+          const res = await getRutaItemArchivos(rutaItemId);
+          setData(res);
+        } catch {
+          if (!options?.silent) {
+            setError("No se pudieron cargar los archivos.");
+          }
+        }
+      },
+      [rutaItemId]
+    );
 
     useEffect(() => {
-      void load();
-    }, [load]);
+      void refreshGalleryFromServer();
+    }, [refreshGalleryFromServer]);
 
     useEffect(() => {
       resetUploadQueue();
@@ -101,13 +108,14 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
 
       uploadInFlightRef.current = true;
       setUploading(true);
+      setError(null);
       try {
         const { outcome, refreshFailed } = await runManualMediaSave({
           rutaItemId,
           uploadAll: coordinator.uploadAll,
-          getQueueItems: () => coordinator.allItems,
+          getQueueItems: coordinator.getLatestQueueItems,
           clearUploadedFromQueue: coordinator.clearUploadedFromQueue,
-          reloadServer: load,
+          reloadServer: () => refreshGalleryFromServer({ silent: true }),
         });
 
         if (outcome === "success") {
@@ -124,7 +132,7 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
         uploadInFlightRef.current = false;
         setUploading(false);
       }
-    }, [coordinator, feedback, load, manualSave, rutaItemId]);
+    }, [coordinator, feedback, manualSave, refreshGalleryFromServer, rutaItemId]);
 
     const runAutoUploadAfterAdd = useCallback(async () => {
       if (manualSave || !rutaItemId) return;
@@ -160,7 +168,7 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
       setDeletingId(archivoId);
       try {
         await deleteArchivo(archivoId);
-        await load();
+        await refreshGalleryFromServer();
         feedback.success("Archivo eliminado.");
       } catch {
         feedback.error("No se pudo eliminar el archivo.");

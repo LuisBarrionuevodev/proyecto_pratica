@@ -1,6 +1,5 @@
 import EditIcon from "@mui/icons-material/Edit";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
-import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { Box, CircularProgress, Stack, Typography } from "@mui/material";
 
@@ -50,7 +49,6 @@ export type ActuacionesGestionMobileCardListProps = {
   inspectorSelfService?: boolean;
   onOpenInspectorEdit?: (row: IActuacionListItem) => void;
   onOpenInspectorFotos?: (row: IActuacionListItem) => void;
-  onDismissInspectorRow?: (row: IActuacionListItem) => void;
 };
 
 /**
@@ -66,7 +64,6 @@ export function ActuacionesGestionMobileCardList({
   inspectorSelfService = false,
   onOpenInspectorEdit,
   onOpenInspectorFotos,
-  onDismissInspectorRow,
 }: ActuacionesGestionMobileCardListProps) {
   const paginationBar =
     listadoServidor != null ? (
@@ -156,16 +153,6 @@ export function ActuacionesGestionMobileCardList({
                   startIcon={<PhotoCameraIcon />}
                 >
                   Cargar más fotos
-                </AppButton>
-                <AppButton
-                  dsVariant="ghost"
-                  dsSize="sm"
-                  fullWidth
-                  disabled={loading}
-                  onClick={() => onDismissInspectorRow?.(row)}
-                  startIcon={<VisibilityOffIcon />}
-                >
-                  Eliminar de la vista Inspector
                 </AppButton>
               </Stack>
             ) : (

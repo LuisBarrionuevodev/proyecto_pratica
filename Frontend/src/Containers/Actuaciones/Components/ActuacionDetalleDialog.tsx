@@ -2316,15 +2316,11 @@ export function ActuacionDetalleDialog({
                   Volver
                 </AppButton>
               ) : null}
-              {inspectorSelfService ? (
-                <AppButton dsVariant="ghost" dsSize="sm" onClick={handleClose} disabled={saving}>
-                  Eliminar de la vista Inspector
-                </AppButton>
-              ) : (
+              {!inspectorSelfService ? (
                 <AppButton dsVariant="ghost" dsSize="sm" onClick={handlePrint} disabled={saving}>
                   Imprimir
                 </AppButton>
-              )}
+              ) : null}
             </>
           }
         />

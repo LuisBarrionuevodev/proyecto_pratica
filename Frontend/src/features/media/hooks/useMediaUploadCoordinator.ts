@@ -62,7 +62,9 @@ export function useMediaUploadCoordinator() {
   );
 
   const patchItem = useCallback((localId: string, patch: Partial<MediaQueuedFile>) => {
-    setItems((prev) => prev.map((x) => (x.localId === localId ? { ...x, ...patch } : x)));
+    const next = itemsRef.current.map((x) => (x.localId === localId ? { ...x, ...patch } : x));
+    itemsRef.current = next;
+    setItems(next);
     setSession((prev) =>
       prev.active
         ? {
@@ -189,12 +191,12 @@ export function useMediaUploadCoordinator() {
   );
 
   const clearUploadedFromQueue = useCallback(() => {
-    setItems((prev) => {
-      prev.forEach((x) => {
-        if (x.phase === "ready" && x.previewUrl) URL.revokeObjectURL(x.previewUrl);
-      });
-      return prev.filter((x) => x.phase !== "ready");
+    const next = itemsRef.current.filter((x) => {
+      if (x.phase === "ready" && x.previewUrl) URL.revokeObjectURL(x.previewUrl);
+      return x.phase !== "ready";
     });
+    itemsRef.current = next;
+    setItems(next);
   }, []);
 
   const resetAll = useCallback(() => {
@@ -207,9 +209,12 @@ export function useMediaUploadCoordinator() {
     setSession(INITIAL_SESSION);
   }, []);
 
+  const getLatestQueueItems = useCallback(() => itemsRef.current, []);
+
   return {
     items,
     allItems: items,
+    getLatestQueueItems,
     getItems,
     addFiles,
     removeItem,

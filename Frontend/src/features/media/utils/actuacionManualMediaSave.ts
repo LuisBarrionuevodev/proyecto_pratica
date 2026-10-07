@@ -8,9 +8,26 @@ export function countUploadableQueueItems(items: MediaQueuedFile[]): number {
   ).length;
 }
 
+/** True si quedó algún archivo de la cola que no terminó READY tras el pipeline. */
+export function hasIncompleteUploadInQueue(items: MediaQueuedFile[]): boolean {
+  return items.some(
+    (x) =>
+      x.phase === "pending" ||
+      x.phase === "preparing" ||
+      x.phase === "uploading" ||
+      x.phase === "verifying" ||
+      x.phase === "error"
+  );
+}
+
+export type ManualMediaSaveResult = {
+  outcome: ManualMediaSaveOutcome;
+  refreshFailed: boolean;
+};
+
 /**
  * Guardado manual Mis trabajos: sube cola, limpia READY local y refresca servidor.
- * No lanza por fallo de refresh tras subida exitosa (evita falso error).
+ * El refresh fallido no convierte un upload exitoso en `partial`.
  */
 export async function runManualMediaSave(params: {
   rutaItemId: number;
@@ -18,19 +35,20 @@ export async function runManualMediaSave(params: {
   getQueueItems: () => MediaQueuedFile[];
   clearUploadedFromQueue: () => void;
   reloadServer: () => Promise<void>;
-}): Promise<{ outcome: ManualMediaSaveOutcome; refreshFailed: boolean }> {
+}): Promise<ManualMediaSaveResult> {
   if (countUploadableQueueItems(params.getQueueItems()) === 0) {
     return { outcome: "empty", refreshFailed: false };
   }
 
   await params.uploadAll(params.rutaItemId);
 
-  const after = params.getQueueItems();
-  if (countUploadableQueueItems(after) > 0 || after.some((x) => x.phase === "error")) {
+  const afterUpload = params.getQueueItems();
+  if (hasIncompleteUploadInQueue(afterUpload)) {
     return { outcome: "partial", refreshFailed: false };
   }
 
   params.clearUploadedFromQueue();
+
   let refreshFailed = false;
   try {
     await params.reloadServer();
@@ -38,4 +56,9 @@ export async function runManualMediaSave(params: {
     refreshFailed = true;
   }
   return { outcome: "success", refreshFailed };
+}
+
+/** Cierra el modal de fotos Inspector solo tras éxito operativo de subida. */
+export function shouldCloseInspectorFotosModalAfterSave(outcome: ManualMediaSaveOutcome): boolean {
+  return outcome === "success";
 }

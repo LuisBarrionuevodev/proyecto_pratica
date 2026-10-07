@@ -8,6 +8,7 @@ import {
   type ActuacionMediaGalleryHandle,
 } from "../../../features/media/components/ActuacionMediaGallery";
 import { MediaUploadPanelErrorBoundary } from "../../../features/media/components/MediaUploadPanelErrorBoundary";
+import { shouldCloseInspectorFotosModalAfterSave } from "../../../features/media/utils/actuacionManualMediaSave";
 import { AppButton, ConfirmDialog } from "../../../ui";
 import {
   CrudDialogActions,
@@ -62,7 +63,7 @@ export function InspectorCargarFotosDialog({
     setSaving(true);
     try {
       const outcome = await gallery.saveQueuedPhotos();
-      if (outcome === "success") {
+      if (shouldCloseInspectorFotosModalAfterSave(outcome)) {
         feedback.success("Fotos guardadas correctamente.");
         onClose();
       }

@@ -3,7 +3,6 @@ import { Alert, Box, Typography, IconButton, Tooltip, useMediaQuery, useTheme } 
 import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
-import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   MaterialReactTable,
@@ -242,12 +241,6 @@ const TablaActuaciones = ({
     setFotosDraft(null);
     setFotosDetalleLoading(false);
   }, []);
-
-  const handleDismissInspectorRow = useCallback((row: IActuacionListItem) => {
-    setData((prev) => prev.filter((item) => item.id !== row.id));
-    if (editDraft?.id === row.id) handleCloseEditDialog();
-    if (fotosDraft?.id === row.id) handleCloseFotosDialog();
-  }, [editDraft?.id, fotosDraft?.id, handleCloseEditDialog, handleCloseFotosDialog]);
 
   const loadActuacionDetalle = useCallback(
     async (
@@ -571,17 +564,6 @@ const TablaActuaciones = ({
                 <PhotoCameraIcon />
               </IconButton>
             </Tooltip>
-            <Tooltip title="Eliminar de la vista Inspector">
-              <IconButton
-                sx={{
-                  color: COLORS.white,
-                  "&:hover": { color: COLORS.white, backgroundColor: "rgba(255,255,255,0.08)" },
-                }}
-                onClick={() => handleDismissInspectorRow(row.original)}
-              >
-                <VisibilityOffIcon />
-              </IconButton>
-            </Tooltip>
           </>
         ) : (
           <>
@@ -616,14 +598,7 @@ const TablaActuaciones = ({
         )}
       </Box>
     ),
-    [
-      handleDismissInspectorRow,
-      handleOpenInspectorEdit,
-      handleOpenInspectorFotos,
-      handleOpenRowDetalle,
-      hideDeleteAction,
-      inspectorSelfService,
-    ]
+    [handleOpenInspectorEdit, handleOpenInspectorFotos, handleOpenRowDetalle, hideDeleteAction, inspectorSelfService]
   );
 
   const renderTopToolbarCustomActionsCb = useCallback(
@@ -734,7 +709,6 @@ const TablaActuaciones = ({
           onOpenDetalle={handleOpenRowDetalle}
           onOpenInspectorEdit={handleOpenInspectorEdit}
           onOpenInspectorFotos={handleOpenInspectorFotos}
-          onDismissInspectorRow={handleDismissInspectorRow}
         />
       )}
       {isDesktopTable ? <GridLegend /> : null}

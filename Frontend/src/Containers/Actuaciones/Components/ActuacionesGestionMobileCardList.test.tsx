@@ -50,13 +50,12 @@ describe("ActuacionesGestionMobileCardList inspector", () => {
           onOpenDetalle={vi.fn()}
           onOpenInspectorEdit={vi.fn()}
           onOpenInspectorFotos={vi.fn()}
-          onDismissInspectorRow={vi.fn()}
         />
       </ThemeProvider>
     );
     expect(html).toContain("Editar datos");
     expect(html).toContain("Cargar más fotos");
-    expect(html).toContain("Eliminar de la vista Inspector");
+    expect(html).not.toContain("Eliminar de la vista Inspector");
     expect(html).not.toContain("Imprimir");
     expect(html).not.toContain("Ver / editar");
   });
