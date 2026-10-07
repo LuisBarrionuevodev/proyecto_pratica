@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
 import {
   MEDIA_CATEGORIA_FOTO_ACTA,
   MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
@@ -238,17 +238,29 @@ export function useCompletarTrabajoMediaQueues(rutaItemId: number | null | undef
     prevRutaItemIdRef.current = next;
   }, [rutaItemId]);
 
-  const snapshot = useSyncExternalStore(
-    subscribeRutaItemMediaUploadStore,
-    () => getRutaItemMediaUploadSnapshot(rutaItemId),
-    () => getRutaItemMediaUploadSnapshot(rutaItemId)
-  );
-
   const activeId = rutaItemId ?? null;
 
-  const getItems = useCallback(
-    (categoria: MediaCategoria) =>
-      snapshot.items.filter((x) => x.categoria === categoria),
+  const getSnapshot = useCallback(
+    () => getRutaItemMediaUploadSnapshot(activeId),
+    [activeId]
+  );
+
+  const snapshot = useSyncExternalStore(
+    subscribeRutaItemMediaUploadStore,
+    getSnapshot,
+    getSnapshot
+  );
+
+  const fotoActaItems = useMemo(
+    () => snapshot.items.filter((x) => x.categoria === MEDIA_CATEGORIA_FOTO_ACTA),
+    [snapshot.items]
+  );
+  const fotoDocItems = useMemo(
+    () => snapshot.items.filter((x) => x.categoria === MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL),
+    [snapshot.items]
+  );
+  const fotoInspeccionItems = useMemo(
+    () => snapshot.items.filter((x) => x.categoria === MEDIA_CATEGORIA_FOTO_INSPECCION),
     [snapshot.items]
   );
 
@@ -289,34 +301,68 @@ export function useCompletarTrabajoMediaQueues(rutaItemId: number | null | undef
     clearRutaItemMediaUploadState(activeId);
   }, [activeId]);
 
-  return {
-    rutaItemId: activeId,
-    fotoActa: {
-      items: getItems(MEDIA_CATEGORIA_FOTO_ACTA),
-      addFiles: (files: FileList | File[], serverCount = 0) =>
-        addFiles(MEDIA_CATEGORIA_FOTO_ACTA, files, serverCount),
+  const addFotoActaFiles = useCallback(
+    (files: FileList | File[], serverCount = 0) =>
+      addFiles(MEDIA_CATEGORIA_FOTO_ACTA, files, serverCount),
+    [addFiles]
+  );
+  const addFotoDocFiles = useCallback(
+    (files: FileList | File[], serverCount = 0) =>
+      addFiles(MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL, files, serverCount),
+    [addFiles]
+  );
+  const addFotoInspeccionFiles = useCallback(
+    (files: FileList | File[], serverCount = 0) =>
+      addFiles(MEDIA_CATEGORIA_FOTO_INSPECCION, files, serverCount),
+    [addFiles]
+  );
+
+  return useMemo(
+    () => ({
+      rutaItemId: activeId,
+      fotoActa: {
+        items: fotoActaItems,
+        addFiles: addFotoActaFiles,
+        removeItem,
+      },
+      fotoDoc: {
+        items: fotoDocItems,
+        addFiles: addFotoDocFiles,
+        removeItem,
+      },
+      fotoInspeccion: {
+        items: fotoInspeccionItems,
+        addFiles: addFotoInspeccionFiles,
+        removeItem,
+      },
+      hasPendingUpload: snapshot.hasPendingUpload,
+      hasRetryableUpload: snapshot.hasRetryableUpload,
+      retryableCount: snapshot.retryableCount,
+      uploadableCount: snapshot.uploadableCount,
+      uploadAll,
+      retryAllPending,
+      clearForActiveRutaItem,
+      session: snapshot.session,
+      allItems: snapshot.items,
+    }),
+    [
+      activeId,
+      addFotoActaFiles,
+      addFotoDocFiles,
+      addFotoInspeccionFiles,
+      clearForActiveRutaItem,
+      fotoActaItems,
+      fotoDocItems,
+      fotoInspeccionItems,
       removeItem,
-    },
-    fotoDoc: {
-      items: getItems(MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL),
-      addFiles: (files: FileList | File[], serverCount = 0) =>
-        addFiles(MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL, files, serverCount),
-      removeItem,
-    },
-    fotoInspeccion: {
-      items: getItems(MEDIA_CATEGORIA_FOTO_INSPECCION),
-      addFiles: (files: FileList | File[], serverCount = 0) =>
-        addFiles(MEDIA_CATEGORIA_FOTO_INSPECCION, files, serverCount),
-      removeItem,
-    },
-    hasPendingUpload: snapshot.hasPendingUpload,
-    hasRetryableUpload: snapshot.hasRetryableUpload,
-    retryableCount: snapshot.retryableCount,
-    uploadableCount: snapshot.uploadableCount,
-    uploadAll,
-    retryAllPending,
-    clearForActiveRutaItem,
-    session: snapshot.session,
-    allItems: snapshot.items,
-  };
+      retryAllPending,
+      snapshot.hasPendingUpload,
+      snapshot.hasRetryableUpload,
+      snapshot.retryableCount,
+      snapshot.uploadableCount,
+      snapshot.items,
+      snapshot.session,
+      uploadAll,
+    ]
+  );
 }

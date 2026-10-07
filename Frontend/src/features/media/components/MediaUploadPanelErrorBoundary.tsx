@@ -31,14 +31,12 @@ export class MediaUploadPanelErrorBoundary extends Component<Props, State> {
     }
   }
 
-  componentDidCatch(error: unknown, info: ErrorInfo): void {
+  componentDidCatch(error: unknown, _info: ErrorInfo): void {
+    const kind = error instanceof Error ? error.name : "Error";
     console.error("[MediaUploadPanel]", {
       action: "render",
-      message: error instanceof Error ? error.message : String(error),
-      rutaItemId: this.props.rutaItemId,
-      categoria: null,
-      fileCount: null,
-      componentStack: info.componentStack,
+      errorKind: kind,
+      rutaItemId: this.props.rutaItemId ?? null,
     });
   }
 

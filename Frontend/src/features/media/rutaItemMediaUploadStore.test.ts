@@ -65,6 +65,33 @@ describe("rutaItemMediaUploadStore", () => {
     expect(getRutaItemMediaUploadSnapshot(7).items).toHaveLength(0);
   });
 
+  it("getRutaItemMediaUploadSnapshot mantiene referencia estable sin mutación (useSyncExternalStore)", () => {
+    addFilesForRutaItem(10, MEDIA_CATEGORIA_FOTO_ACTA, [fakeFile("a.jpg")], 0);
+    const first = getRutaItemMediaUploadSnapshot(10);
+    const second = getRutaItemMediaUploadSnapshot(10);
+    expect(first).toBe(second);
+    expect(first.items).toHaveLength(1);
+  });
+
+  it("agregar archivos no duplica la cola en lecturas consecutivas", () => {
+    const rutaItemId = 11;
+    const files = [fakeFile("one.jpg"), fakeFile("two.jpg")];
+    addFilesForRutaItem(rutaItemId, MEDIA_CATEGORIA_FOTO_ACTA, files, 0);
+    const snap = getRutaItemMediaUploadSnapshot(rutaItemId);
+    expect(snap.items).toHaveLength(2);
+    expect(getRutaItemMediaUploadSnapshot(rutaItemId).items).toBe(snap.items);
+  });
+
+  it("addFiles sin ítems aceptados no invalida snapshot ni emite cambio vacío", () => {
+    addFilesForRutaItem(12, MEDIA_CATEGORIA_FOTO_ACTA, [fakeFile("x.jpg")], 0);
+    const before = getRutaItemMediaUploadSnapshot(12);
+    const mobileLike = new File(["x"], "cam.jpg", { type: "" });
+    addFilesForRutaItem(12, MEDIA_CATEGORIA_FOTO_ACTA, [mobileLike], 0);
+    const after = getRutaItemMediaUploadSnapshot(12);
+    expect(after).toBe(before);
+    expect(after.items).toHaveLength(1);
+  });
+
   it("respuestas tardías no actualizan otro rutaItemId tras cancel", async () => {
     addFilesForRutaItem(1, MEDIA_CATEGORIA_FOTO_ACTA, [fakeFile("one.jpg")], 0);
     addFilesForRutaItem(2, MEDIA_CATEGORIA_FOTO_ACTA, [fakeFile("two.jpg")], 0);

@@ -44,7 +44,30 @@ type RutaItemUploadBucket = {
   session: RutaItemMediaUploadSessionState;
   uploadEpoch: number;
   abortController: AbortController | null;
+  /** Referencia estable para `useSyncExternalStore` mientras no haya mutación. */
+  cachedSnapshot: RutaItemMediaUploadSnapshot | null;
 };
+
+function invalidateBucketSnapshot(b: RutaItemUploadBucket): void {
+  b.cachedSnapshot = null;
+}
+
+function notifyStoreChange(bucket?: RutaItemUploadBucket): void {
+  if (bucket) invalidateBucketSnapshot(bucket);
+  emitChange();
+}
+
+function buildSnapshotForBucket(b: RutaItemUploadBucket): RutaItemMediaUploadSnapshot {
+  const flags = computeFlags(b.items);
+  return {
+    items: b.items,
+    session: b.session,
+    hasPendingUpload: flags.hasPendingUpload,
+    hasRetryableUpload: flags.hasRetryableUpload,
+    retryableCount: flags.retryableCount,
+    uploadableCount: flags.uploadableCount,
+  };
+}
 
 const buckets = new Map<number, RutaItemUploadBucket>();
 const listeners = new Set<() => void>();
@@ -61,6 +84,7 @@ function getBucket(rutaItemId: number): RutaItemUploadBucket {
       session: { ...INITIAL_SESSION },
       uploadEpoch: 0,
       abortController: null,
+      cachedSnapshot: null,
     };
     buckets.set(rutaItemId, b);
   }
@@ -112,15 +136,9 @@ export function getRutaItemMediaUploadSnapshot(
   if (rutaItemId == null) return EMPTY_SNAPSHOT;
   const b = buckets.get(rutaItemId);
   if (!b) return EMPTY_SNAPSHOT;
-  const flags = computeFlags(b.items);
-  return {
-    items: b.items ?? [],
-    session: b.session ?? INITIAL_SESSION,
-    hasPendingUpload: flags.hasPendingUpload,
-    hasRetryableUpload: flags.hasRetryableUpload,
-    retryableCount: flags.retryableCount,
-    uploadableCount: flags.uploadableCount,
-  };
+  if (b.cachedSnapshot) return b.cachedSnapshot;
+  b.cachedSnapshot = buildSnapshotForBucket(b);
+  return b.cachedSnapshot;
 }
 
 export function cancelUploadForRutaItem(rutaItemId: number): void {
@@ -130,7 +148,7 @@ export function cancelUploadForRutaItem(rutaItemId: number): void {
   b.abortController = null;
   b.uploadEpoch += 1;
   b.session = { ...b.session, active: false };
-  emitChange();
+  notifyStoreChange(b);
 }
 
 export function clearRutaItemMediaUploadState(rutaItemId: number): void {
@@ -157,7 +175,7 @@ function patchItemInBucket(
       items: b.session.items.map((x) => (x.localId === localId ? { ...x, ...patch } : x)),
     };
   }
-  emitChange();
+  notifyStoreChange(b);
 }
 
 export function addFilesForRutaItem(
@@ -191,8 +209,16 @@ export function addFilesForRutaItem(
       slotCount += 1;
       addedCount += 1;
     }
+    if (addedCount === 0) {
+      return {
+        accepted: [],
+        added: 0,
+        skipped: list.length,
+        quotaFull: quota.quotaFull,
+      };
+    }
     b.items = next;
-    emitChange();
+    notifyStoreChange(b);
     return {
       accepted: quota.accepted.slice(0, addedCount),
       added: addedCount,
@@ -215,7 +241,7 @@ export function removeItemForRutaItem(rutaItemId: number, localId: string): void
       items: b.session.items.filter((x) => x.localId !== localId),
     };
   }
-  emitChange();
+  notifyStoreChange(b);
 }
 
 export function retryAllRetryableForRutaItem(rutaItemId: number): void {
@@ -232,7 +258,7 @@ export function retryAllRetryableForRutaItem(rutaItemId: number): void {
           }
         : x
   );
-  emitChange();
+  notifyStoreChange(b);
 }
 
 export async function uploadAllForRutaItem(
@@ -252,7 +278,7 @@ export async function uploadAllForRutaItem(
   if (snapshot.length === 0) return;
 
   b.session = { active: true, globalPct: 0, items: [...current] };
-  emitChange();
+  notifyStoreChange(b);
 
   const isStale = () => {
     const live = buckets.get(rutaItemId);
@@ -282,7 +308,7 @@ export async function uploadAllForRutaItem(
         if (isStale()) return;
         const live = getBucket(rutaItemId);
         live.session = { ...live.session, globalPct: pct };
-        emitChange();
+        notifyStoreChange(live);
       },
     });
   } finally {
@@ -290,7 +316,7 @@ export async function uploadAllForRutaItem(
       const live = getBucket(rutaItemId);
       live.session = { ...live.session, active: false };
       live.abortController = null;
-      emitChange();
+      notifyStoreChange(live);
     }
   }
 }

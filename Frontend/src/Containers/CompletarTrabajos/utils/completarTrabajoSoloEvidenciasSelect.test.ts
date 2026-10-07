@@ -36,6 +36,17 @@ describe("completarTrabajo solo fotos pendientes — selección", () => {
     expect(getRutaItemMediaUploadSnapshot(99).items).toHaveLength(0);
   });
 
+  it("dos lecturas tras selección comparten la misma referencia de snapshot", () => {
+    const rutaItemId = 42;
+    addFilesForRutaItem(rutaItemId, MEDIA_CATEGORIA_FOTO_ACTA, [
+      new File(["x"], "galeria.jpg", { type: "image/jpeg" }),
+    ], 0);
+    const a = getRutaItemMediaUploadSnapshot(rutaItemId);
+    const b = getRutaItemMediaUploadSnapshot(rutaItemId);
+    expect(a).toBe(b);
+    expect(a.items).toHaveLength(1);
+  });
+
   it("cola vacía: uploadAll no deja ítems en error ni muta READY del store", async () => {
     const rutaItemId = 55;
     const snap = getRutaItemMediaUploadSnapshot(rutaItemId);
