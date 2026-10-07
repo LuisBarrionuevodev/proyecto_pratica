@@ -4,8 +4,12 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import type { MediaQueuedFile } from "../mediaTypes";
 
-function phaseLabel(item: MediaQueuedFile, allowIndividualRetry: boolean): string {
-  if (item.phase === "pending") return "Pendiente de carga";
+function phaseLabel(
+  item: MediaQueuedFile,
+  allowIndividualRetry: boolean,
+  pendingLabel: string
+): string {
+  if (item.phase === "pending") return pendingLabel;
   if (item.phase === "error" && !allowIndividualRetry) return "No se pudo subir";
   const map: Record<MediaQueuedFile["phase"], string> = {
     pending: "Pendiente de carga",
@@ -23,9 +27,16 @@ type Props = {
   onRemove: (localId: string) => void;
   onRetry?: (localId: string) => void;
   disabled?: boolean;
+  pendingPhaseLabel?: string;
 };
 
-export function MediaUploadQueue({ items, onRemove, onRetry, disabled }: Props) {
+export function MediaUploadQueue({
+  items,
+  onRemove,
+  onRetry,
+  disabled,
+  pendingPhaseLabel = "Pendiente de carga",
+}: Props) {
   if (items.length === 0) return null;
   const allowIndividualRetry = Boolean(onRetry);
   return (
@@ -58,7 +69,8 @@ export function MediaUploadQueue({ items, onRemove, onRetry, disabled }: Props) 
               {item.file?.name ?? "Archivo"}
             </Typography>
             <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted }}>
-              {((item.file?.size ?? 0) / 1024).toFixed(0)} KB · {phaseLabel(item, allowIndividualRetry)}
+              {((item.file?.size ?? 0) / 1024).toFixed(0)} KB ·{" "}
+              {phaseLabel(item, allowIndividualRetry, pendingPhaseLabel)}
               {item.phase === "uploading" ? ` ${item.progressPct}%` : ""}
             </Typography>
             {item.phase === "uploading" ? (

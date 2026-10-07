@@ -28,6 +28,14 @@ vi.mock("../../components/feedback", () => ({
   }),
 }));
 
+vi.mock("./components/MediaUploadProgress", () => ({
+  MediaUploadProgress: () => null,
+}));
+
+vi.mock("./mediaUploadPipeline", () => ({
+  uploadQueuedFilesWithConcurrency: vi.fn(async () => undefined),
+}));
+
 describe("ActuacionMediaGallery MEDIA.1B", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -56,6 +64,15 @@ describe("ActuacionMediaGallery MEDIA.1B", () => {
       </ThemeProvider>
     );
     expect((html.match(/Seleccionar archivos/g) ?? []).length).toBe(3);
+  });
+
+  it("modo manualSave muestra Pendiente de guardar", () => {
+    const html = renderToStaticMarkup(
+      <ThemeProvider theme={theme}>
+        <ActuacionMediaGallery rutaItemId={42} readOnly={false} hideTitle manualSave />
+      </ThemeProvider>
+    );
+    expect(html).toContain("pendientes de guardar");
   });
 
   it("en solo lectura no muestra Seleccionar archivos", () => {

@@ -1,3 +1,6 @@
+import EditIcon from "@mui/icons-material/Edit";
+import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import { Box, CircularProgress, Stack, Typography } from "@mui/material";
 
@@ -44,6 +47,10 @@ export type ActuacionesGestionMobileCardListProps = {
     onPageChange: (page: number, pageSize: number) => void;
   };
   onOpenDetalle: (row: IActuacionListItem) => void;
+  inspectorSelfService?: boolean;
+  onOpenInspectorEdit?: (row: IActuacionListItem) => void;
+  onOpenInspectorFotos?: (row: IActuacionListItem) => void;
+  onDismissInspectorRow?: (row: IActuacionListItem) => void;
 };
 
 /**
@@ -56,6 +63,10 @@ export function ActuacionesGestionMobileCardList({
   hideRowActions = false,
   listadoServidor,
   onOpenDetalle,
+  inspectorSelfService = false,
+  onOpenInspectorEdit,
+  onOpenInspectorFotos,
+  onDismissInspectorRow,
 }: ActuacionesGestionMobileCardListProps) {
   const paginationBar =
     listadoServidor != null ? (
@@ -124,16 +135,51 @@ export function ActuacionesGestionMobileCardList({
           </Box>
 
           {!hideRowActions ? (
-            <AppButton
-              dsVariant="primary"
-              dsSize="sm"
-              fullWidth
-              disabled={loading}
-              onClick={() => onOpenDetalle(row)}
-              startIcon={<VisibilityIcon />}
-            >
-              Ver / editar
-            </AppButton>
+            inspectorSelfService ? (
+              <Stack spacing={0.75}>
+                <AppButton
+                  dsVariant="primary"
+                  dsSize="sm"
+                  fullWidth
+                  disabled={loading}
+                  onClick={() => onOpenInspectorEdit?.(row)}
+                  startIcon={<EditIcon />}
+                >
+                  Editar datos
+                </AppButton>
+                <AppButton
+                  dsVariant="secondary"
+                  dsSize="sm"
+                  fullWidth
+                  disabled={loading}
+                  onClick={() => onOpenInspectorFotos?.(row)}
+                  startIcon={<PhotoCameraIcon />}
+                >
+                  Cargar más fotos
+                </AppButton>
+                <AppButton
+                  dsVariant="ghost"
+                  dsSize="sm"
+                  fullWidth
+                  disabled={loading}
+                  onClick={() => onDismissInspectorRow?.(row)}
+                  startIcon={<VisibilityOffIcon />}
+                >
+                  Eliminar de la vista Inspector
+                </AppButton>
+              </Stack>
+            ) : (
+              <AppButton
+                dsVariant="primary"
+                dsSize="sm"
+                fullWidth
+                disabled={loading}
+                onClick={() => onOpenDetalle(row)}
+                startIcon={<VisibilityIcon />}
+              >
+                Ver / editar
+              </AppButton>
+            )
           ) : null}
         </Box>
       ))}

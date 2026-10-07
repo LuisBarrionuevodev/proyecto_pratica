@@ -200,6 +200,8 @@ export type ActuacionDetalleDialogProps = {
   disablePortal?: boolean;
   /** Solo tests: abrir directamente en edición. */
   initialEditing?: boolean;
+  /** Inspector: abre modal dedicado de fotos (Mis trabajos). */
+  onRequestPhotosOnly?: () => void;
 };
 
 function opts(strings: string[]) {
@@ -1014,6 +1016,7 @@ export function ActuacionDetalleDialog({
   onSave,
   disablePortal,
   initialEditing = false,
+  onRequestPhotosOnly,
 }: ActuacionDetalleDialogProps) {
   const navigate = useNavigate();
   const feedback = useAppFeedback();
@@ -2287,7 +2290,13 @@ export function ActuacionDetalleDialog({
                 <AppButton
                   dsVariant="secondary"
                   dsSize="sm"
-                  onClick={() => setPhotosOnlyMode(true)}
+                  onClick={() => {
+                    if (onRequestPhotosOnly) {
+                      onRequestPhotosOnly();
+                    } else {
+                      setPhotosOnlyMode(true);
+                    }
+                  }}
                   disabled={saving}
                 >
                   Cargar más fotos

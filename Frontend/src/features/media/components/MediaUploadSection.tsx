@@ -28,6 +28,7 @@ type Props = {
   embedded?: boolean;
   /** Etiqueta de cola local (Inspector: “fotos” en lugar de “evidencias”). */
   pendingQueueTitle?: string;
+  pendingPhaseLabel?: string;
 };
 
 export function MediaUploadSection({
@@ -41,6 +42,7 @@ export function MediaUploadSection({
   disabled,
   embedded = false,
   pendingQueueTitle = "Fotos pendientes de carga",
+  pendingPhaseLabel = "Pendiente de carga",
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const label = MEDIA_CATEGORY_LABELS[categoria];
@@ -109,7 +111,13 @@ export function MediaUploadSection({
             {pendingQueueTitle} · {localPending}
           </Typography>
         ) : null}
-        <MediaUploadQueue items={items} onRemove={onRemove} onRetry={onRetry} disabled={disabled} />
+        <MediaUploadQueue
+          items={items}
+          onRemove={onRemove}
+          onRetry={onRetry}
+          disabled={disabled}
+          pendingPhaseLabel={pendingPhaseLabel}
+        />
       </Stack>
     </Box>
   );

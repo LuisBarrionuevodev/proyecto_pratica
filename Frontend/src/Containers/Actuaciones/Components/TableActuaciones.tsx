@@ -1,6 +1,9 @@
 import type { ReactNode } from "react";
 import { Alert, Box, Typography, IconButton, Tooltip, useMediaQuery, useTheme } from "@mui/material";
 import DeleteIcon from "@mui/icons-material/Delete";
+import EditIcon from "@mui/icons-material/Edit";
+import PhotoCameraIcon from "@mui/icons-material/PhotoCamera";
+import VisibilityOffIcon from "@mui/icons-material/VisibilityOff";
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import {
   MaterialReactTable,
@@ -33,6 +36,7 @@ import { mergeMrtBodyCellPropsWithActuacionesPreset } from "../../../styles/mrtG
 import { domicilioRowParaEdicionCalle } from "../../../utils/domicilioCalleUi";
 import { ActuacionDetalleDialog, type ActuacionSaveOptions } from "./ActuacionDetalleDialog";
 import { ActuacionesGestionMobileCardList } from "./ActuacionesGestionMobileCardList";
+import { InspectorCargarFotosDialog } from "./InspectorCargarFotosDialog";
 
 import {
   loadingStyles,
@@ -143,6 +147,9 @@ const TablaActuaciones = ({
   const [editOriginalRow, setEditOriginalRow] = useState<IActuacionListItem | null>(null);
   const [editSaving, setEditSaving] = useState(false);
   const [editDetalleLoading, setEditDetalleLoading] = useState(false);
+  const [detalleInitialEditing, setDetalleInitialEditing] = useState(false);
+  const [fotosDraft, setFotosDraft] = useState<IActuacionListItem | null>(null);
+  const [fotosDetalleLoading, setFotosDetalleLoading] = useState(false);
 
   useEffect(() => {
     if (externalData) setData(externalData);
@@ -228,7 +235,65 @@ const TablaActuaciones = ({
   const handleCloseEditDialog = useCallback(() => {
     setEditDraft(null);
     setEditOriginalRow(null);
+    setDetalleInitialEditing(false);
   }, []);
+
+  const handleCloseFotosDialog = useCallback(() => {
+    setFotosDraft(null);
+    setFotosDetalleLoading(false);
+  }, []);
+
+  const handleDismissInspectorRow = useCallback((row: IActuacionListItem) => {
+    setData((prev) => prev.filter((item) => item.id !== row.id));
+    if (editDraft?.id === row.id) handleCloseEditDialog();
+    if (fotosDraft?.id === row.id) handleCloseFotosDialog();
+  }, [editDraft?.id, fotosDraft?.id, handleCloseEditDialog, handleCloseFotosDialog]);
+
+  const loadActuacionDetalle = useCallback(
+    async (
+      original: IActuacionListItem,
+      target: "view" | "edit" | "fotos"
+    ) => {
+      const id = Number(original.id);
+      const listRow = domicilioRowParaEdicionCalle({ ...original });
+      if (target === "fotos") {
+        setFotosDraft(listRow);
+        setFotosDetalleLoading(true);
+      } else {
+        setEditDraft(listRow);
+        setEditOriginalRow(listRow);
+        setEditDetalleLoading(true);
+        setDetalleInitialEditing(target === "edit");
+      }
+
+      try {
+        const detail = await getActuacionGestionDetalle(id);
+        const modalRow = domicilioRowParaEdicionCalle(prepareActuacionGestionModalRow(detail));
+        if (target === "fotos") {
+          setFotosDraft(modalRow);
+        } else {
+          setEditDraft(modalRow);
+          setEditOriginalRow(modalRow);
+        }
+      } catch (err: unknown) {
+        console.error("Error cargando detalle de actuación:", err);
+        feedback.error("No se pudo cargar el detalle de la actuación.");
+        if (target === "fotos") {
+          setFotosDraft(null);
+        } else {
+          setEditDraft(null);
+          setEditOriginalRow(null);
+        }
+      } finally {
+        if (target === "fotos") {
+          setFotosDetalleLoading(false);
+        } else {
+          setEditDetalleLoading(false);
+        }
+      }
+    },
+    [feedback]
+  );
 
   const handleDialogSave = useCallback(
     async (
@@ -453,61 +518,112 @@ const TablaActuaciones = ({
 
   const handleOpenRowDetalle = useCallback(
     (original: IActuacionListItem) => {
-      const id = Number(original.id);
-      const listRow = domicilioRowParaEdicionCalle({ ...original });
-      setEditDraft(listRow);
-      setEditOriginalRow(listRow);
-      setEditDetalleLoading(true);
-      void getActuacionGestionDetalle(id)
-        .then((detail) => {
-          const modalRow = domicilioRowParaEdicionCalle(prepareActuacionGestionModalRow(detail));
-          setEditDraft(modalRow);
-          setEditOriginalRow(modalRow);
-        })
-        .catch((err: unknown) => {
-          console.error("Error cargando detalle de actuación:", err);
-          feedback.error("No se pudo cargar el detalle de la actuación.");
-          setEditDraft(null);
-          setEditOriginalRow(null);
-        })
-        .finally(() => setEditDetalleLoading(false));
+      void loadActuacionDetalle(original, "view");
     },
-    [feedback]
+    [loadActuacionDetalle]
   );
+
+  const handleOpenInspectorEdit = useCallback(
+    (original: IActuacionListItem) => {
+      void loadActuacionDetalle(original, "edit");
+    },
+    [loadActuacionDetalle]
+  );
+
+  const handleOpenInspectorFotos = useCallback(
+    (original: IActuacionListItem) => {
+      void loadActuacionDetalle(original, "fotos");
+    },
+    [loadActuacionDetalle]
+  );
+
+  const handleRequestPhotosOnlyFromDetalle = useCallback(() => {
+    if (!editDraft) return;
+    const row = editDraft;
+    handleCloseEditDialog();
+    void loadActuacionDetalle(row, "fotos");
+  }, [editDraft, handleCloseEditDialog, loadActuacionDetalle]);
 
   const renderRowActionsCb = useCallback(
     ({ row }: { row: MRT_Row<IActuacionListItem> }) => (
       <Box sx={{ display: "flex", gap: "0.5rem" }}>
-        <Tooltip title="Ver detalle">
-          <IconButton
-            sx={{
-              color: COLORS.white,
-              transition: "color 0.2s ease, background-color 0.2s ease",
-              "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
-            }}
-            onClick={() => handleOpenRowDetalle(row.original)}
-          >
-            <VisibilityIcon />
-          </IconButton>
-        </Tooltip>
+        {inspectorSelfService ? (
+          <>
+            <Tooltip title="Editar datos">
+              <IconButton
+                sx={{
+                  color: COLORS.white,
+                  "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
+                }}
+                onClick={() => handleOpenInspectorEdit(row.original)}
+              >
+                <EditIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Cargar más fotos">
+              <IconButton
+                sx={{
+                  color: COLORS.white,
+                  "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
+                }}
+                onClick={() => handleOpenInspectorFotos(row.original)}
+              >
+                <PhotoCameraIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Eliminar de la vista Inspector">
+              <IconButton
+                sx={{
+                  color: COLORS.white,
+                  "&:hover": { color: COLORS.white, backgroundColor: "rgba(255,255,255,0.08)" },
+                }}
+                onClick={() => handleDismissInspectorRow(row.original)}
+              >
+                <VisibilityOffIcon />
+              </IconButton>
+            </Tooltip>
+          </>
+        ) : (
+          <>
+            <Tooltip title="Ver detalle">
+              <IconButton
+                sx={{
+                  color: COLORS.white,
+                  transition: "color 0.2s ease, background-color 0.2s ease",
+                  "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
+                }}
+                onClick={() => handleOpenRowDetalle(row.original)}
+              >
+                <VisibilityIcon />
+              </IconButton>
+            </Tooltip>
 
-        {!hideDeleteAction && (
-          <Tooltip title="Eliminar">
-            <IconButton
-              sx={{
-                color: COLORS.white,
-                transition: "color 0.2s ease, background-color 0.2s ease",
-                "&:hover": { color: "#ff4444", backgroundColor: "rgba(255, 68, 68, 0.15)" },
-              }}
-              onClick={() => setDeleteConfirmActuacionId(Number(row.original.id))}
-            >
-              <DeleteIcon />
-            </IconButton>
-          </Tooltip>
+            {!hideDeleteAction && (
+              <Tooltip title="Eliminar">
+                <IconButton
+                  sx={{
+                    color: COLORS.white,
+                    transition: "color 0.2s ease, background-color 0.2s ease",
+                    "&:hover": { color: "#ff4444", backgroundColor: "rgba(255, 68, 68, 0.15)" },
+                  }}
+                  onClick={() => setDeleteConfirmActuacionId(Number(row.original.id))}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Tooltip>
+            )}
+          </>
         )}
       </Box>
     ),
-    [hideDeleteAction, handleOpenRowDetalle]
+    [
+      handleDismissInspectorRow,
+      handleOpenInspectorEdit,
+      handleOpenInspectorFotos,
+      handleOpenRowDetalle,
+      hideDeleteAction,
+      inspectorSelfService,
+    ]
   );
 
   const renderTopToolbarCustomActionsCb = useCallback(
@@ -614,7 +730,11 @@ const TablaActuaciones = ({
           loading={loading}
           hideRowActions={hideRowActions}
           listadoServidor={listadoServidor}
+          inspectorSelfService={inspectorSelfService}
           onOpenDetalle={handleOpenRowDetalle}
+          onOpenInspectorEdit={handleOpenInspectorEdit}
+          onOpenInspectorFotos={handleOpenInspectorFotos}
+          onDismissInspectorRow={handleDismissInspectorRow}
         />
       )}
       {isDesktopTable ? <GridLegend /> : null}
@@ -631,11 +751,24 @@ const TablaActuaciones = ({
           numeroEditorLabel={numeroEditorLabel}
           canEdit={enableEditing}
           inspectorSelfService={inspectorSelfService}
+          initialEditing={detalleInitialEditing}
+          onRequestPhotosOnly={
+            inspectorSelfService ? handleRequestPhotosOnlyFromDetalle : undefined
+          }
           onClose={handleCloseEditDialog}
           onDraftChange={handleEditDraftChange}
           onSave={handleDialogSave}
         />
       )}
+
+      {fotosDraft ? (
+        <InspectorCargarFotosDialog
+          open
+          draft={fotosDraft}
+          detailLoading={fotosDetalleLoading}
+          onClose={handleCloseFotosDialog}
+        />
+      ) : null}
 
       <ConfirmDialog
         open={deleteConfirmActuacionId !== null}
