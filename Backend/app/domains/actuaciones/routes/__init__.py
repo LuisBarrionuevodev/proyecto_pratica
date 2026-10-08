@@ -27,6 +27,7 @@ from . import oficio_from_acta  # noqa: E402,F401
 from . import list_oficios_comprobacion  # noqa: E402,F401
 from . import completar_trabajo_pendientes  # noqa: E402,F401
 from . import completar_trabajo_pendientes_resumen  # noqa: E402,F401
+from . import completar_trabajo_fotos_pendientes_count  # noqa: E402,F401
 from . import completar_trabajo_cerrar  # noqa: E402,F401
 from . import completar_trabajo_detalle  # noqa: E402,F401
 from . import epicollect_import  # noqa: E402,F401

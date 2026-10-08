@@ -2,14 +2,15 @@ from __future__ import annotations
 
 from datetime import date
 
-from sqlalchemy import and_, exists, or_
-
 from app.domains.actuaciones.presenters.completar_trabajo_presenters import ruta_item_completar_trabajo_to_row
+from app.domains.actuaciones.services.completar_trabajo_pendiente_filters import (
+    ruta_item_pendiente_completar_trabajo_clause,
+)
 from app.domains.actuaciones.services.completar_trabajo_pendientes_query import (
     apply_completar_trabajo_inspector_scope,
     completar_trabajo_pendientes_ruta_item_base_query,
 )
-from app.models import Archivo, RutaItem, RutaItemArchivo, RutaTrabajo
+from app.models import RutaItem, RutaTrabajo
 
 
 def list_completar_trabajo_pendientes(
@@ -39,21 +40,9 @@ def list_completar_trabajo_pendientes(
     Errores:
         Ninguno; lista vacía si no hay coincidencias.
     """
-    pending_media = exists().where(
-        and_(
-            RutaItemArchivo.ruta_item_id == RutaItem.id,
-            RutaItemArchivo.archivo_id == Archivo.id,
-            Archivo.status == "PENDING",
-            Archivo.deleted_at.is_(None),
-        )
-    )
     base = completar_trabajo_pendientes_ruta_item_base_query().filter(
         RutaTrabajo.fecha == fecha,
-        RutaItem.fotos_pendientes_cerradas_at.is_(None),
-        or_(
-            RutaItem.estado_ruta_item == "EN_PROCESO",
-            and_(RutaItem.estado_ruta_item == "FINALIZADO", pending_media),
-        ),
+        ruta_item_pendiente_completar_trabajo_clause(),
     )
     base = apply_completar_trabajo_inspector_scope(base, inspector_id_effective).order_by(
         RutaItem.id.asc()

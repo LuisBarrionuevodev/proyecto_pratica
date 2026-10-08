@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from datetime import date
 
-from sqlalchemy import case, func
+from sqlalchemy import and_, case, func, or_
 
 from app.database import db
 from app.domains.actuaciones.presenters.completar_trabajo_presenters import (
     dia_resumen_completar_trabajo_pendientes,
+)
+from app.domains.actuaciones.services.completar_trabajo_pendiente_filters import (
+    pending_archivo_exists_correlated,
 )
 from app.domains.actuaciones.services.completar_trabajo_pendientes_query import (
     apply_completar_trabajo_inspector_scope,
@@ -35,8 +38,21 @@ def list_completar_trabajo_pendientes_resumen_por_dia(
     """
     hoy = date.today()
 
+    pending_media = pending_archivo_exists_correlated()
+    fotos_pendientes_tras_cierre = and_(
+        RutaItem.estado_ruta_item == "FINALIZADO",
+        RutaItem.fotos_pendientes_cerradas_at.is_(None),
+        or_(
+            pending_media,
+            RutaItem.evidencias_pendientes_abiertas.is_(True),
+        ),
+    )
     pendientes_expr = func.sum(
-        case((RutaItem.estado_ruta_item == "EN_PROCESO", 1), else_=0)
+        case(
+            (RutaItem.estado_ruta_item == "EN_PROCESO", 1),
+            (fotos_pendientes_tras_cierre, 1),
+            else_=0,
+        )
     ).label("pendientes_cierre")
     items_expr = func.count(RutaItem.id).label("items_con_actuacion")
 
@@ -54,6 +70,7 @@ def list_completar_trabajo_pendientes_resumen_por_dia(
             RutaTrabajo.estado_ruta == "PUBLICADA",
             RutaTrabajo.fecha >= fecha_desde,
             RutaTrabajo.fecha <= fecha_hasta,
+            RutaItem.fotos_pendientes_cerradas_at.is_(None),
         )
     )
     aggregate = apply_completar_trabajo_inspector_scope(aggregate, inspector_id_effective)

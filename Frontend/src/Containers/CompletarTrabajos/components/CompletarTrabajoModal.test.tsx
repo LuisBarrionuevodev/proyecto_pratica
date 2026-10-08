@@ -3,6 +3,10 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { describe, expect, it, vi } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
 
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+
 import type { ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
 import { CompletarTrabajoModal } from "./CompletarTrabajoModal";
 
@@ -341,6 +345,45 @@ describe("CompletarTrabajoModal", () => {
     expect(html).toContain("¿Realizó nueva inspección?");
     expect(html).not.toContain("N° acta de inspección");
     expect(html).not.toContain("N° acta de notificación");
+  });
+
+  it("MEDIA.2D: ratificación con cumplimiento muestra tres galerías (CUMPLE y NO_CUMPLE)", () => {
+    for (const resultado of ["CUMPLE", "NO_CUMPLE"] as const) {
+      for (const tipo of [
+        { ini: "RATIFICACION_CLAUSURA_OFICIO", act: "RATIFICACION DE CLAUSURA" },
+        { ini: "RATIFICACION_DECOMISO_OFICIO", act: "RATIFICACION DE DECOMISO" },
+      ]) {
+        const html = render(
+          <CompletarTrabajoModal
+            open
+            disablePortal
+            row={buildRow({
+              tipo_iniciador: tipo.ini,
+              tipo_actuacion: tipo.act,
+              resultado_cumplimiento_oficio: resultado,
+            })}
+            catalogs={catalogs}
+            catalogsReady
+            onClose={() => undefined}
+            onSuccess={() => undefined}
+          />
+        );
+        expect(html).toContain("Fotos de las actas");
+        expect(html).toContain("Fotos de la documentación del local");
+        expect(html).toContain("Fotos de la inspección");
+        expect((html.match(/Seleccionar archivos/g) ?? []).length).toBe(3);
+      }
+    }
+  });
+
+  it("MEDIA.2D: no alerta ni botón superior duplicados de reintento global", () => {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const src = readFileSync(join(here, "CompletarTrabajoModal.tsx"), "utf8");
+    expect(src).not.toContain("showGlobalMediaRetry");
+    expect(src).not.toContain("REINTENTAR FOTOS PENDIENTES");
+    expect(src).not.toMatch(
+      /soloEvidenciasUi[\s\S]{0,400}Alert[\s\S]{0,200}Trabajo guardado/i
+    );
   });
 
   it("MEDIA.1B: tres galerías de carga sin selector de tipo", () => {

@@ -188,6 +188,13 @@ export interface ICompletarTrabajoDetalleResponse {
   ui_policy: ICompletarTrabajoUiPolicy;
 }
 
+export const getInspectorFotosPendientesCount = async (): Promise<number> => {
+  const { data } = await apiClient.get<{ count: number }>(
+    "/actuaciones/completar-trabajo/pendientes/fotos-inspector"
+  );
+  return data.count ?? 0;
+};
+
 export const getCompletarTrabajoDetalle = async (
   rutaItemId: number
 ): Promise<ICompletarTrabajoDetalleResponse> => {

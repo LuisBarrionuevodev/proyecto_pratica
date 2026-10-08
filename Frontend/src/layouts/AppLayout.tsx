@@ -7,6 +7,7 @@ import { InstitutionalViewHeaderBar } from "./InstitutionalViewHeaderBar";
 import NavLeft from "../Componets/NavLeft";
 import TopBar from "../Componets/TopBar";
 import { RoleRouteGuard } from "./RoleRouteGuard";
+import { InspectorFotosPendientesBanner } from "../components/InspectorFotosPendientesBanner";
 import { useAppSession } from "../auth/AppSessionProvider";
 import { TRANSITION, glassContent } from "../styles/GlassStyles";
 import { CSS_VAR_NAMES } from "../theme/applyCssVariables";
@@ -141,6 +142,7 @@ const AppLayout = () => {
                         }}
                     >
                         <InstitutionalViewHeaderBar title={currentLabel} />
+                        <InspectorFotosPendientesBanner />
 
                         <Box
                             sx={{
