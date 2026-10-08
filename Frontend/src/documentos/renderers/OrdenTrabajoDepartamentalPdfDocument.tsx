@@ -6,6 +6,7 @@ import {
   ORDEN_TRABAJO_DEPARTAMENTAL_ADDRESS_LINE,
   ORDEN_TRABAJO_DEPARTAMENTAL_CIERRE,
   ORDEN_TRABAJO_DEPARTAMENTAL_INSTRUCCIONES,
+  ORDEN_TRABAJO_DEPARTAMENTAL_LEYENDA_CAPACITACION,
   ORDEN_TRABAJO_DEPARTAMENTAL_MUNICIPALITY,
 } from "../core/institutionalCopy";
 import { PDF_DESIGN_FONT, pdfPlanilla } from "../core/pdfDesignTokens";
@@ -249,6 +250,17 @@ const styles = StyleSheet.create({
     marginTop: 2,
     marginBottom: 0,
   },
+  leyendaCapacitacion: {
+    fontFamily: PDF_DESIGN_FONT.ui,
+    fontSize: 8.75,
+    fontWeight: 700,
+    textTransform: "uppercase",
+    textAlign: "center",
+    lineHeight: 1.2,
+    marginTop: 2,
+    marginBottom: 0,
+    flexShrink: 0,
+  },
   cierre: {
     fontFamily: PDF_DESIGN_FONT.ui,
     fontSize: 9.25,
@@ -370,6 +382,9 @@ function OrdenTrabajoDepartamentalCard({ orden, logoSrc }: CardProps) {
         </View>
 
         <Text style={styles.instrucciones}>{ORDEN_TRABAJO_DEPARTAMENTAL_INSTRUCCIONES}</Text>
+        <Text style={styles.leyendaCapacitacion}>
+          {ORDEN_TRABAJO_DEPARTAMENTAL_LEYENDA_CAPACITACION}
+        </Text>
 
         <View style={styles.signatureSpace} />
         <Text style={styles.cierre}>{ORDEN_TRABAJO_DEPARTAMENTAL_CIERRE}</Text>
