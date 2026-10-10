@@ -1480,11 +1480,13 @@ export function CompletarTrabajoModal({
             notificacion_motivo_3: notifSlots.m3,
           });
         }
-        if (checklistTouchedSubmit) {
-          values.items_acta_inspeccion = checklistWriteFromEstados(
-            estadosChecklistSubmit,
-            catalogs?.itemsActaInspeccion ?? []
-          );
+        const checklistCatalogSubmit = catalogs?.itemsActaInspeccion ?? [];
+        const checklistPayload = checklistWriteFromEstados(
+          estadosChecklistSubmit,
+          checklistCatalogSubmit
+        );
+        if (checklistTouchedSubmit || checklistPayload.length > 0) {
+          values.items_acta_inspeccion = checklistPayload;
         }
         if (personasSinCarnetTouched && !esReinspeccionNotificacion) {
           const cantidad = parseInt(personasSinCarnet, 10);

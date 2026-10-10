@@ -100,17 +100,20 @@ export function itemsActaInspeccionWriteFromEstados(
   for (const [rawId, value] of Object.entries(estados)) {
     if (value === "NONE") continue;
     const itemId = Number(rawId);
-    const cat = byId.get(itemId);
-    const tipo = cat?.tipo_respuesta ?? "ESTADO";
+    if (!Number.isFinite(itemId)) continue;
+    const cat =
+      byId.get(itemId) ??
+      catalog.find((c) => c.id === itemId || String(c.id) === String(rawId));
+    const tipo = cat?.tipo_respuesta ?? (value === "SI" || value === "NO" ? "SI_NO" : "ESTADO");
 
     if (tipo === "SI_NO") {
-      if (value === "SI") out.push({ item_id: itemId, valor_si_no: true });
-      else if (value === "NO") out.push({ item_id: itemId, valor_si_no: false });
+      if (value === "SI") out.push({ item_id: cat?.id ?? itemId, valor_si_no: true });
+      else if (value === "NO") out.push({ item_id: cat?.id ?? itemId, valor_si_no: false });
       continue;
     }
 
     if (value === "BIEN" || value === "OBSERVADO") {
-      out.push({ item_id: itemId, estado: value });
+      out.push({ item_id: cat?.id ?? itemId, estado: value });
     }
   }
 

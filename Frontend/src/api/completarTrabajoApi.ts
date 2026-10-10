@@ -1,4 +1,5 @@
 import { apiClient } from "./apiClient";
+import type { ItemActaInspeccionWrite } from "../Containers/Actuaciones/utils/inspeccionChecklistSubmit";
 
 /** Fila del listado Completar trabajo, alineada al presenter backend. */
 export interface ICompletarTrabajoPendienteRow {
@@ -237,7 +238,7 @@ export interface ICompletarTrabajoCierreBody {
   razon_social?: string | null;
   observaciones_ejecucion?: string | null;
   acta_inspeccion_num?: string | null;
-  items_acta_inspeccion?: Array<{ item_id: number; estado: "BIEN" | "OBSERVADO" }> | null;
+  items_acta_inspeccion?: ItemActaInspeccionWrite[] | null;
   cantidad_personas_sin_carnet_sanidad?: number | null;
   acta_notificacion_num?: string | null;
   notificacion_motivo_1?: string | null;

@@ -288,11 +288,7 @@ export function buildCompletarTrabajoCierreBody(
     }
     if (s(f.acta_inspeccion_num)) body.acta_inspeccion_num = s(f.acta_inspeccion_num);
     if (fieldExplicit("items_acta_inspeccion", options)) {
-      body.items_acta_inspeccion = (f.items_acta_inspeccion ?? []).flatMap((item) =>
-        item.estado === "BIEN" || item.estado === "OBSERVADO"
-          ? [{ item_id: item.item_id, estado: item.estado }]
-          : []
-      );
+      body.items_acta_inspeccion = checklistItemsForCierrePayload(f.items_acta_inspeccion);
     }
     if (fieldExplicit("cantidad_personas_sin_carnet_sanidad", options)) {
       const cantidad = parseCantidadPersonasSinCarnet(f.cantidad_personas_sin_carnet_sanidad);
@@ -410,7 +406,9 @@ function normalizeChecklistItemForWrite(item: ChecklistItemReadOrWrite): ItemAct
   if (rawId == null || !Number.isFinite(Number(rawId)) || Number(rawId) < 1) {
     return null;
   }
-  const tipo = item.tipo_respuesta ?? "ESTADO";
+  const tipo =
+    item.tipo_respuesta ??
+    (item.valor_si_no === true || item.valor_si_no === false ? "SI_NO" : "ESTADO");
   if (tipo === "SI_NO") {
     if (item.valor_si_no !== true && item.valor_si_no !== false) return null;
     return { item_id: Number(rawId), valor_si_no: item.valor_si_no };
@@ -424,6 +422,13 @@ function normalizeChecklistItemForWrite(item: ChecklistItemReadOrWrite): ItemAct
 
 function checklistItemsFromRow(
   items: ChecklistItemReadOrWrite[] | null | undefined
+): ItemActaInspeccionWrite[] {
+  return checklistItemsForCierrePayload(items);
+}
+
+/** Serializa checklist al POST: conserva ESTADO (BIEN/OBSERVADO) y SI_NO (true/false). */
+function checklistItemsForCierrePayload(
+  items: ChecklistItemReadOrWrite[] | ItemActaInspeccionWrite[] | null | undefined
 ): ItemActaInspeccionWrite[] {
   const out: ItemActaInspeccionWrite[] = [];
   for (const item of items ?? []) {

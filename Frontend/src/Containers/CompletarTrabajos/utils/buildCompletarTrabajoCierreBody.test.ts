@@ -538,6 +538,47 @@ describe("buildCompletarTrabajoCierreBody checklist V2", () => {
     });
     expect(body.items_acta_inspeccion).toEqual([{ item_id: 1, estado: "BIEN" }]);
   });
+
+  it("CIERRE-INSPECCION.1C — incluye TIENE_HABILITACION Sí junto a ítems ESTADO", () => {
+    const habilitacionItemId = 12;
+    const body = buildCompletarTrabajoCierreBodyFromInline(baseRowCompletar, {
+      contraproducencia: "",
+      acta_inspeccion_num: "000123",
+      items_acta_inspeccion: [
+        { item_id: 1, estado: "BIEN" },
+        { item_id: 2, estado: "BIEN" },
+        { item_id: 3, estado: "OBSERVADO" },
+        { item_id: habilitacionItemId, valor_si_no: true },
+      ],
+    });
+    expect(body.items_acta_inspeccion).toEqual(
+      expect.arrayContaining([
+        { item_id: 1, estado: "BIEN" },
+        { item_id: 2, estado: "BIEN" },
+        { item_id: 3, estado: "OBSERVADO" },
+        { item_id: habilitacionItemId, valor_si_no: true },
+      ])
+    );
+    expect(body.items_acta_inspeccion).toHaveLength(4);
+  });
+
+  it("CIERRE-INSPECCION.1C — incluye valor_si_no false (No)", () => {
+    const habilitacionItemId = 7;
+    const body = buildCompletarTrabajoCierreBodyFromInline(baseRowCompletar, {
+      contraproducencia: "",
+      acta_inspeccion_num: "000123",
+      items_acta_inspeccion: [
+        { item_id: 1, estado: "BIEN" },
+        { item_id: habilitacionItemId, valor_si_no: false },
+      ],
+    });
+    expect(body.items_acta_inspeccion).toEqual(
+      expect.arrayContaining([
+        { item_id: 1, estado: "BIEN" },
+        { item_id: habilitacionItemId, valor_si_no: false },
+      ])
+    );
+  });
 });
 
 describe("validateReinspeccionOficioTipoActuacionRequired", () => {
