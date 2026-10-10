@@ -4,6 +4,7 @@ import type {
   TIPOS_DOCUMENTO_FOTO_ACTA,
   TIPOS_DOCUMENTO_FOTO_LOCAL,
 } from "../features/media/mediaConstants";
+import type { MediaUploadOrigin } from "../features/media/mediaUploadOrigin";
 import type { RutaItemArchivosListResponse } from "../features/media/mediaTypes";
 
 export type UploadIntentBody = {
@@ -13,6 +14,7 @@ export type UploadIntentBody = {
   content_type: string;
   byte_size: number;
   sha256: string;
+  upload_origin?: MediaUploadOrigin;
 };
 
 export type UploadIntentResponse = {

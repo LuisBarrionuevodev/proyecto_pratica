@@ -66,7 +66,7 @@ describe("classifyCompletarTrabajoDetalle", () => {
       detalle({
         ui_policy: { solo_evidencias_pendientes: true, cierre_alfanumerico_readonly: true },
         row: {
-          trabajo_guardado_evidencias_pendientes: true,
+          trabajo_guardado_evidencias_pendientes: false,
           media_resumen: { tiene_evidencias_pendientes: false, evidencias_pendientes_total: 0 },
         },
       })

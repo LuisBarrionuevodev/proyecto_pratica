@@ -43,6 +43,7 @@ class UploadIntentIn(BaseModel):
     content_type: str = Field(min_length=1, max_length=128)
     byte_size: int = Field(gt=0)
     sha256: str = Field(min_length=64, max_length=64)
+    upload_origin: Literal["COMPLETAR_TRABAJO", "MIS_TRABAJOS"] = "COMPLETAR_TRABAJO"
 
     @field_validator("content_type")
     @classmethod

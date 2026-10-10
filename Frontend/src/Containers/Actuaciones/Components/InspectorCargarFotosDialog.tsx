@@ -8,7 +8,10 @@ import {
   type ActuacionMediaGalleryHandle,
 } from "../../../features/media/components/ActuacionMediaGallery";
 import { MediaUploadPanelErrorBoundary } from "../../../features/media/components/MediaUploadPanelErrorBoundary";
-import { shouldCloseInspectorFotosModalAfterSave } from "../../../features/media/utils/actuacionManualMediaSave";
+import {
+  manualMediaSavePrimaryLabel,
+  shouldCloseInspectorFotosModalAfterSave,
+} from "../../../features/media/utils/actuacionManualMediaSave";
 import { AppButton, ConfirmDialog } from "../../../ui";
 import {
   CrudDialogActions,
@@ -38,6 +41,7 @@ export function InspectorCargarFotosDialog({
   const galleryRef = useRef<ActuacionMediaGalleryHandle | null>(null);
   const [saving, setSaving] = useState(false);
   const [discardConfirmOpen, setDiscardConfirmOpen] = useState(false);
+  const [queueStats, setQueueStats] = useState({ uploadable: 0, hasRetryable: false });
 
   const rutaItemId = draft.ruta_item_id ?? null;
 
@@ -96,7 +100,7 @@ export function InspectorCargarFotosDialog({
           <CrudDialogActions
             mode="edit"
             loading={detailLoading || uploadBusy}
-            saveLabel="GUARDAR FOTOS"
+            saveLabel={manualMediaSavePrimaryLabel(queueStats.uploadable, queueStats.hasRetryable)}
             onSave={() => void handleGuardarFotos()}
             saveDisabled={uploadBusy || rutaItemId == null}
             extraActions={
@@ -119,6 +123,7 @@ export function InspectorCargarFotosDialog({
               readOnly={false}
               hideTitle
               manualSave
+              onQueueStatsChange={setQueueStats}
             />
           </MediaUploadPanelErrorBoundary>
         </Box>

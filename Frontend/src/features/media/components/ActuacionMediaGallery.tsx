@@ -20,10 +20,17 @@ import type { MediaArchivoListItem, RutaItemArchivosListResponse } from "../medi
 import type { MediaCategoria } from "../mediaConstants";
 import { useMediaUploadCoordinator } from "../hooks/useMediaUploadCoordinator";
 import {
+  MEDIA_UPLOAD_ORIGIN_COMPLETAR_TRABAJO,
+  MEDIA_UPLOAD_ORIGIN_MIS_TRABAJOS,
+} from "../mediaUploadOrigin";
+import {
   countUploadableQueueItems,
+  MANUAL_MEDIA_PARTIAL_MESSAGE,
+  MANUAL_MEDIA_RELOAD_HINT,
   runManualMediaSave,
   type ManualMediaSaveOutcome,
 } from "../utils/actuacionManualMediaSave";
+import type { MediaUploadOrigin } from "../mediaUploadOrigin";
 import { MediaPreviewDialog } from "./MediaPreviewDialog";
 import { MediaThumbnailTile } from "./MediaThumbnailTile";
 import { MediaUploadProgress } from "./MediaUploadProgress";
@@ -35,6 +42,8 @@ type Props = {
   hideTitle?: boolean;
   /** Mis trabajos: encolar localmente y subir solo con GUARDAR FOTOS. */
   manualSave?: boolean;
+  uploadOrigin?: MediaUploadOrigin;
+  onQueueStatsChange?: (stats: { uploadable: number; hasRetryable: boolean }) => void;
 };
 
 export type ActuacionMediaGalleryHandle = {
@@ -63,11 +72,21 @@ function serverItemsForCategoria(
 
 export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Props>(
   function ActuacionMediaGallery(
-    { rutaItemId, readOnly = false, hideTitle = false, manualSave = false },
+    {
+      rutaItemId,
+      readOnly = false,
+      hideTitle = false,
+      manualSave = false,
+      uploadOrigin = manualSave ? MEDIA_UPLOAD_ORIGIN_MIS_TRABAJOS : undefined,
+      onQueueStatsChange,
+    },
     ref
   ) {
     const feedback = useAppFeedback();
-    const coordinator = useMediaUploadCoordinator();
+    const coordinator = useMediaUploadCoordinator(
+      uploadOrigin ??
+        (manualSave ? MEDIA_UPLOAD_ORIGIN_MIS_TRABAJOS : MEDIA_UPLOAD_ORIGIN_COMPLETAR_TRABAJO)
+    );
     const { resetAll: resetUploadQueue } = coordinator;
     const [data, setData] = useState<RutaItemArchivosListResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
@@ -100,7 +119,17 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
 
     useEffect(() => {
       resetUploadQueue();
+      setError(null);
     }, [rutaItemId, resetUploadQueue]);
+
+    useEffect(() => {
+      if (!onQueueStatsChange) return;
+      const uploadable = countUploadableQueueItems(coordinator.allItems);
+      const hasRetryable = coordinator.allItems.some(
+        (x) => x.phase === "error" || x.phase === "pending"
+      );
+      onQueueStatsChange({ uploadable, hasRetryable: hasRetryable && uploadable > 0 });
+    }, [coordinator.allItems, onQueueStatsChange]);
 
     const saveQueuedPhotos = useCallback(async (): Promise<ManualMediaSaveOutcome> => {
       if (!rutaItemId || uploadInFlightRef.current) return "empty";
@@ -125,7 +154,8 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
             feedback.success("Archivos subidos correctamente.");
           }
         } else if (outcome === "partial") {
-          feedback.error("Algunas fotos no se guardaron. Revisá las marcadas con error e intentá de nuevo.");
+          setError(null);
+          feedback.info(MANUAL_MEDIA_PARTIAL_MESSAGE);
         }
         return outcome;
       } finally {
@@ -213,7 +243,8 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
         ) : null}
         {manualSave ? (
           <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted }}>
-            Las fotos seleccionadas quedan pendientes de guardar hasta que presiones GUARDAR FOTOS.
+            Las fotos seleccionadas quedan pendientes hasta que presiones GUARDAR FOTOS o CONTINUAR
+            SUBIDA. {MANUAL_MEDIA_RELOAD_HINT}
           </Typography>
         ) : null}
           {error ? <Typography color="error">{error}</Typography> : null}

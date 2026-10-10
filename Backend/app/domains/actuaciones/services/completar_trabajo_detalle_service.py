@@ -23,10 +23,7 @@ from app.domains.actuaciones.presenters.completar_trabajo_presenters import (
 from app.domains.actuaciones.services.completar_trabajo_tipo_iniciador import (
     tipo_actuacion_esperado_para_iniciador,
 )
-from app.domains.media.services.media_ruta_item_resumen_service import (
-    build_media_resumen_ruta_item,
-    ruta_item_tiene_archivos_pending,
-)
+from app.domains.media.services.media_ruta_item_resumen_service import build_media_resumen_ruta_item
 
 
 def get_completar_trabajo_detalle(*, ruta_item_id: int) -> dict[str, Any]:
@@ -84,10 +81,7 @@ def get_completar_trabajo_detalle(*, ruta_item_id: int) -> dict[str, Any]:
         if (
             item.estado_ruta_item == "FINALIZADO"
             and getattr(item, "fotos_pendientes_cerradas_at", None) is None
-            and (
-                ruta_item_tiene_archivos_pending(int(item.id))
-                or bool(getattr(item, "evidencias_pendientes_abiertas", False))
-            )
+            and bool(getattr(item, "evidencias_pendientes_abiertas", False))
         ):
             solo_evidencias = True
         else:

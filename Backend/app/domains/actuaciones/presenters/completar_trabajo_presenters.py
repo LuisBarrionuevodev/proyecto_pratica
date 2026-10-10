@@ -304,10 +304,7 @@ def ruta_item_completar_trabajo_to_row(item: RutaItem) -> Dict[str, Any]:
     out["trabajo_guardado_evidencias_pendientes"] = bool(
         item.estado_ruta_item == "FINALIZADO"
         and getattr(item, "fotos_pendientes_cerradas_at", None) is None
-        and (
-            media_resumen.get("tiene_evidencias_pendientes")
-            or bool(getattr(item, "evidencias_pendientes_abiertas", False))
-        )
+        and bool(getattr(item, "evidencias_pendientes_abiertas", False))
     )
     return out
 

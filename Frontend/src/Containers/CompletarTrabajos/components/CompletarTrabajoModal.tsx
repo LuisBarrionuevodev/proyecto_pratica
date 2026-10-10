@@ -820,8 +820,10 @@ export function CompletarTrabajoModal({
     (det: import("../../../api/completarTrabajoApi").ICompletarTrabajoDetalleResponse) => {
       setResolvedRow(det.row);
       setUiPolicy(det.ui_policy);
+      void readyArchivos.reload();
+      setMediaSelectionError(null);
     },
-    []
+    [readyArchivos]
   );
   const tipoActuacionOficioEfectivo = useMemo(() => {
     const fromState = tipoActuacionOficio.trim();
@@ -1526,7 +1528,9 @@ export function CompletarTrabajoModal({
           }
           saveLabel={
             soloEvidenciasUi
-              ? "SUBIR FOTOS PENDIENTES"
+              ? mediaQueues.hasRetryableUpload || (mediaQueues.uploadableCount ?? 0) > 0
+                ? "CONTINUAR SUBIDA"
+                : "SUBIR FOTOS PENDIENTES"
               : saving && !mediaQueues.session.active
                 ? "Guardando trabajo…"
                 : mediaQueues.hasPendingUpload

@@ -62,3 +62,18 @@ export async function runManualMediaSave(params: {
 export function shouldCloseInspectorFotosModalAfterSave(outcome: ManualMediaSaveOutcome): boolean {
   return outcome === "success";
 }
+
+/** Etiqueta del botón principal en Mis trabajos / continuación de carga. */
+export function manualMediaSavePrimaryLabel(
+  uploadableCount: number,
+  hasRetryable: boolean
+): string {
+  if (uploadableCount <= 0) return "GUARDAR FOTOS";
+  return hasRetryable ? "CONTINUAR SUBIDA" : "GUARDAR FOTOS";
+}
+
+export const MANUAL_MEDIA_PARTIAL_MESSAGE =
+  "Algunas fotos no terminaron de subir. Las que ya quedaron guardadas se mantienen; tocá CONTINUAR SUBIDA para reintentar solo las faltantes.";
+
+export const MANUAL_MEDIA_RELOAD_HINT =
+  "Las fotos ya guardadas se muestran abajo. Volvé a seleccionar únicamente las que no terminaron de subir.";

@@ -23,7 +23,6 @@ export function useRutaItemReadyArchivos(rutaItemId: number | null | undefined, 
       setData(res);
     } catch {
       setError("No se pudieron cargar las fotos ya subidas.");
-      setData(null);
     } finally {
       setLoading(false);
     }

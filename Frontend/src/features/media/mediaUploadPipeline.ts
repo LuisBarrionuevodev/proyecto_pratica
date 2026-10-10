@@ -1,6 +1,7 @@
 import { postMediaComplete, postMediaUploadIntent, type UploadIntentBody } from "../../api/mediaApi";
 import { mediaErrorMessageFromUnknown } from "./mediaApiErrors";
 import { sha256HexFromFile } from "./sha256File";
+import { MEDIA_UPLOAD_ORIGIN_COMPLETAR_TRABAJO } from "./mediaUploadOrigin";
 import type { MediaQueuedFile } from "./mediaTypes";
 
 export type XhrUploadProgress = {
@@ -78,6 +79,7 @@ export async function uploadSingleQueuedFile(
     content_type: contentType,
     byte_size: item.file.size,
     sha256,
+    upload_origin: item.uploadOrigin ?? MEDIA_UPLOAD_ORIGIN_COMPLETAR_TRABAJO,
   };
   const intent = await postMediaUploadIntent(rutaItemId, body);
   const archivoId = intent.archivo_id;

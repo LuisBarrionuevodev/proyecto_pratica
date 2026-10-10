@@ -6,6 +6,10 @@ import {
   type MediaCategoria,
 } from "../mediaConstants";
 import { validateLocalMediaFile } from "../mediaFileValidation";
+import {
+  MEDIA_UPLOAD_ORIGIN_COMPLETAR_TRABAJO,
+  type MediaUploadOrigin,
+} from "../mediaUploadOrigin";
 import type { MediaQueuedFile } from "../mediaTypes";
 import { uploadQueuedFilesWithConcurrency } from "../mediaUploadPipeline";
 import { sliceFilesToAvailableQuota, type MediaQuotaAddResult } from "../../../Containers/CompletarTrabajos/utils/completarTrabajoMediaQuota";
@@ -47,7 +51,9 @@ const INITIAL_SESSION: MediaUploadSessionState = {
 /**
  * Cola y sesión de carga unificada para varias categorías (Media.1A / futuro 1B).
  */
-export function useMediaUploadCoordinator() {
+export function useMediaUploadCoordinator(
+  uploadOrigin: MediaUploadOrigin = MEDIA_UPLOAD_ORIGIN_COMPLETAR_TRABAJO
+) {
   const [items, setItems] = useState<MediaQueuedFile[]>([]);
   const itemsRef = useRef<MediaQueuedFile[]>([]);
   const [session, setSession] = useState<MediaUploadSessionState>(INITIAL_SESSION);
@@ -109,6 +115,7 @@ export function useMediaUploadCoordinator() {
             errorMessage: null,
             archivoId: null,
             previewUrl: previewForFile(file),
+            uploadOrigin,
           });
           slotCount += 1;
           addedCount += 1;
@@ -123,7 +130,7 @@ export function useMediaUploadCoordinator() {
         quotaFull: list.length > addedCount && addedCount > 0,
       };
     },
-    []
+    [uploadOrigin]
   );
 
   const removeItem = useCallback((localId: string) => {

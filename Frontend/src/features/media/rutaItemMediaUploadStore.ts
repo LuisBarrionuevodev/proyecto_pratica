@@ -5,6 +5,7 @@ import {
   type MediaCategoria,
 } from "./mediaConstants";
 import { validateLocalMediaFile } from "./mediaFileValidation";
+import { MEDIA_UPLOAD_ORIGIN_COMPLETAR_TRABAJO } from "./mediaUploadOrigin";
 import type { MediaQueuedFile } from "./mediaTypes";
 import { uploadQueuedFilesWithConcurrency } from "./mediaUploadPipeline";
 import {
@@ -205,6 +206,7 @@ export function addFilesForRutaItem(
         errorMessage: null,
         archivoId: null,
         previewUrl: previewForFile(file),
+        uploadOrigin: MEDIA_UPLOAD_ORIGIN_COMPLETAR_TRABAJO,
       });
       slotCount += 1;
       addedCount += 1;

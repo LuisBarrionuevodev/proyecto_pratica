@@ -1,7 +1,11 @@
 import { describe, expect, it, vi } from "vitest";
 import type { MediaQueuedFile } from "../mediaTypes";
 import { MEDIA_CATEGORIA_FOTO_ACTA } from "../mediaConstants";
-import { countUploadableQueueItems, runManualMediaSave } from "./actuacionManualMediaSave";
+import {
+  countUploadableQueueItems,
+  manualMediaSavePrimaryLabel,
+  runManualMediaSave,
+} from "./actuacionManualMediaSave";
 
 function pendingItem(id: string): MediaQueuedFile {
   return {
@@ -165,5 +169,10 @@ describe("actuacionManualMediaSave", () => {
         { ...pendingItem("a"), phase: "ready", archivoId: 1 },
       ])
     ).toBe(0);
+  });
+
+  it("manualMediaSavePrimaryLabel usa CONTINUAR SUBIDA con reintentos", () => {
+    expect(manualMediaSavePrimaryLabel(2, true)).toBe("CONTINUAR SUBIDA");
+    expect(manualMediaSavePrimaryLabel(0, false)).toBe("GUARDAR FOTOS");
   });
 });

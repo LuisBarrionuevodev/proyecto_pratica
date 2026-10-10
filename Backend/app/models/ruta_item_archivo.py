@@ -53,6 +53,15 @@ class RutaItemArchivo(db.Model):
         server_default=db.func.now(),
     )
     content_sha256 = db.Column(db.String(64), nullable=True, index=True)
+    upload_origin = db.Column(
+        db.Enum(
+            "COMPLETAR_TRABAJO",
+            "MIS_TRABAJOS",
+            name="ruta_item_archivo_upload_origin_enum",
+        ),
+        nullable=True,
+        server_default="COMPLETAR_TRABAJO",
+    )
 
     archivo = db.relationship("Archivo", back_populates="ruta_item_links")
     ruta_item = db.relationship("RutaItem", backref=db.backref("archivos_vinculo", lazy="dynamic"))

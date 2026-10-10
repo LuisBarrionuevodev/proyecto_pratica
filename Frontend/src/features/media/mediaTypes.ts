@@ -1,4 +1,5 @@
 import type { MediaCategoria } from "./mediaConstants";
+import type { MediaUploadOrigin } from "./mediaUploadOrigin";
 
 export type MediaUploadFilePhase =
   | "pending"
@@ -18,6 +19,7 @@ export type MediaQueuedFile = {
   errorMessage: string | null;
   archivoId: number | null;
   previewUrl: string | null;
+  uploadOrigin?: MediaUploadOrigin;
 };
 
 export type MediaArchivoListItem = {

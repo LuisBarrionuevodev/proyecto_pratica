@@ -21,6 +21,9 @@ from app.integrations.media_storage.config import (
     max_archivos_por_categoria,
 )
 from app.domains.media.utils.media_observability import log_upload_intent_created
+from app.domains.actuaciones.services.completar_trabajo_pendiente_filters import (
+    normalize_upload_origin_for_create,
+)
 from app.models import Archivo, RutaItem, RutaItemArchivo
 
 
@@ -149,12 +152,14 @@ def crear_upload_intent(
     db.session.add(arch)
     db.session.flush()
 
+    origin = normalize_upload_origin_for_create(getattr(body, "upload_origin", None))
     link = RutaItemArchivo(
         ruta_item_id=int(ruta_item_id),
         archivo_id=int(arch.id),
         categoria=body.categoria,
         tipo_documento=body.tipo_documento,
         content_sha256=sha,
+        upload_origin=origin,
     )
     db.session.add(link)
     try:

@@ -72,7 +72,7 @@ describe("ActuacionMediaGallery MEDIA.1B", () => {
         <ActuacionMediaGallery rutaItemId={42} readOnly={false} hideTitle manualSave />
       </ThemeProvider>
     );
-    expect(html).toContain("pendientes de guardar");
+    expect(html).toContain("CONTINUAR SUBIDA");
   });
 
   it("en solo lectura no muestra Seleccionar archivos", () => {

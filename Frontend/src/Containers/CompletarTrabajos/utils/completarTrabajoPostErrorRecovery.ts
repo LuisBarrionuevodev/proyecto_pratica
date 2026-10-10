@@ -23,6 +23,7 @@ export function classifyCompletarTrabajoDetalle(
 
   const resumen = det.row.media_resumen;
   const pendientes =
+    det.row.trabajo_guardado_evidencias_pendientes === true ||
     resumen?.tiene_evidencias_pendientes === true ||
     (resumen?.evidencias_pendientes_total ?? 0) > 0;
 
