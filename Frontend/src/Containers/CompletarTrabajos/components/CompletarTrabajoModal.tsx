@@ -45,7 +45,11 @@ import {
 import {
   checklistWriteFromEstados,
 } from "../utils/completarTrabajoVerificarInformarPrefill";
-import type { ChecklistUxValue } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
+import {
+  estadosMapFromRow,
+  planChecklistHydration,
+  type ChecklistUxValue,
+} from "../../Actuaciones/utils/inspeccionChecklistSubmit";
 import { NumeroEsquinaFreeEditor } from "../../Actuaciones/Components/NumeroEsquinaFreeEditor";
 import {
   MENSAJE_VALIDACION_LOCAL,
@@ -400,9 +404,7 @@ function hydrateOperativoFieldsFromRow(
   set.setTitularModo(titularModoInicialDesdeRow(row));
   set.setNombreLocal(h.nombreLocal);
   set.setActaInspeccion(h.actaInspeccion);
-  set.setChecklistEstados(h.checklistEstados);
   set.setPersonasSinCarnet(h.personasSinCarnet);
-  set.setChecklistItemsTouched(false);
   set.setPersonasSinCarnetTouched(false);
   set.setActaNotificacion(h.actaNotificacion);
   set.setNotifMotivosSeleccion(h.notifMotivosSeleccion);
@@ -489,8 +491,10 @@ export function CompletarTrabajoModal({
   const [nombreLocal, setNombreLocal] = useState("");
   const [actaInspeccion, setActaInspeccion] = useState("");
   const [checklistEstados, setChecklistEstados] = useState<Record<number, ChecklistUxValue>>({});
+  const checklistEstadosRef = useRef<Record<number, ChecklistUxValue>>({});
+  const checklistItemsTouchedRef = useRef(false);
+  const hydratedChecklistRutaItemIdRef = useRef<number | null>(null);
   const [personasSinCarnet, setPersonasSinCarnet] = useState("0");
-  const [checklistItemsTouched, setChecklistItemsTouched] = useState(false);
   const [personasSinCarnetTouched, setPersonasSinCarnetTouched] = useState(false);
   const [actaNotificacion, setActaNotificacion] = useState("");
   const [notifMotivosSeleccion, setNotifMotivosSeleccion] = useState<string[]>([]);
@@ -536,6 +540,47 @@ export function CompletarTrabajoModal({
   const [notifMotivosAddInput, setNotifMotivosAddInput] = useState("");
   const baselineInspectoresRef = useRef<string[]>([]);
   const cierreIdempotencyKeyRef = useRef<string>("");
+
+  const clearFe = useCallback((apiField: string) => {
+    setFieldErrors((prev) => {
+      if (!(apiField in prev)) return prev;
+      const next = { ...prev };
+      delete next[apiField];
+      return next;
+    });
+  }, []);
+
+  const buildOperativoSetters = useCallback((): OperativoFieldSetters => {
+    return {
+      setCalle,
+      setNumero,
+      setNumeroTipo,
+      setRubroNombre,
+      setDocNro,
+      setContribApellido,
+      setContribNombre,
+      setRazonSocial,
+      setTitularModo,
+      setNombreLocal,
+      setActaInspeccion,
+      setChecklistEstados: (v) => {
+        checklistEstadosRef.current = v;
+        setChecklistEstados(v);
+      },
+      setPersonasSinCarnet,
+      setChecklistItemsTouched: (v) => {
+        checklistItemsTouchedRef.current = v;
+      },
+      setPersonasSinCarnetTouched,
+      setActaNotificacion,
+      setNotifMotivosSeleccion,
+      setActaComprobacion,
+      setComprobacionMotivo,
+      setActaClausura,
+      setActaDecomiso,
+      setDecomisoKilos,
+    };
+  }, []);
 
   useEffect(() => {
     if (!open || Object.keys(fieldErrors).length === 0) return;
@@ -595,30 +640,7 @@ export function CompletarTrabajoModal({
     baselineInspectoresRef.current = initial;
 
     setFieldErrors({});
-    const operativoSetters: OperativoFieldSetters = {
-      setCalle,
-      setNumero,
-      setNumeroTipo,
-      setRubroNombre,
-      setDocNro,
-      setContribApellido,
-      setContribNombre,
-      setRazonSocial,
-      setTitularModo,
-      setNombreLocal,
-      setActaInspeccion,
-      setChecklistEstados,
-      setPersonasSinCarnet,
-      setChecklistItemsTouched,
-      setPersonasSinCarnetTouched,
-      setActaNotificacion,
-      setNotifMotivosSeleccion,
-      setActaComprobacion,
-      setComprobacionMotivo,
-      setActaClausura,
-      setActaDecomiso,
-      setDecomisoKilos,
-    };
+    const operativoSetters = buildOperativoSetters();
     if (esFlujoCierreOficio(resolvedRow.tipo_iniciador)) {
       const fijo = tipoActuacionFijoDesdeIniciadorOficio(resolvedRow.tipo_iniciador);
       const fromRow = tipoActuacionInicialReinspeccionOficio(resolvedRow.tipo_actuacion);
@@ -685,34 +707,49 @@ export function CompletarTrabajoModal({
     hydrateOperativoFieldsFromRow(resolvedRow, operativoSetters, catalogs?.itemsActaInspeccion ?? []);
     setInspectoresAddInput("");
     setNotifMotivosAddInput("");
-  }, [open, resolvedRow, inspectoresGrupo, tipoActuacionEsperadoRef, catalogs?.itemsActaInspeccion]);
+  }, [open, resolvedRow, inspectoresGrupo, tipoActuacionEsperadoRef, buildOperativoSetters]);
+
+  useEffect(() => {
+    if (!open || !resolvedRow) {
+      if (!open) {
+        hydratedChecklistRutaItemIdRef.current = null;
+        checklistItemsTouchedRef.current = false;
+        checklistEstadosRef.current = {};
+      }
+      return;
+    }
+    const catalog = catalogs?.itemsActaInspeccion ?? [];
+    const plan = planChecklistHydration({
+      open: true,
+      actId: resolvedRow.ruta_item_id,
+      hydratedActId: hydratedChecklistRutaItemIdRef.current,
+      touched: checklistItemsTouchedRef.current,
+      catalogLength: catalog.length,
+    });
+    if (plan === "skip" || plan === "close") return;
+    const estados = estadosMapFromRow(resolvedRow, catalog);
+    if (plan === "act_change") {
+      checklistItemsTouchedRef.current = false;
+      hydratedChecklistRutaItemIdRef.current = resolvedRow.ruta_item_id;
+      checklistEstadosRef.current = estados;
+      setChecklistEstados(estados);
+      return;
+    }
+    if (plan === "catalog_late") {
+      checklistEstadosRef.current = estados;
+      setChecklistEstados(estados);
+    }
+  }, [
+    open,
+    resolvedRow,
+    resolvedRow?.ruta_item_id,
+    resolvedRow?.items_acta_inspeccion,
+    catalogs?.itemsActaInspeccion,
+  ]);
 
   useEffect(() => {
     if (open) return;
-    const operativoSetters: OperativoFieldSetters = {
-      setCalle,
-      setNumero,
-      setNumeroTipo,
-      setRubroNombre,
-      setDocNro,
-      setContribApellido,
-      setContribNombre,
-      setRazonSocial,
-      setTitularModo,
-      setNombreLocal,
-      setActaInspeccion,
-      setChecklistEstados,
-      setPersonasSinCarnet,
-      setChecklistItemsTouched,
-      setPersonasSinCarnetTouched,
-      setActaNotificacion,
-      setNotifMotivosSeleccion,
-      setActaComprobacion,
-      setComprobacionMotivo,
-      setActaClausura,
-      setActaDecomiso,
-      setDecomisoKilos,
-    };
+    const operativoSetters = buildOperativoSetters();
     setContraproducencia("");
     clearOperativoFields(operativoSetters);
     setTipoActuacionOficio("");
@@ -725,17 +762,12 @@ export function CompletarTrabajoModal({
     setInspectoresAddInput("");
     setNotifMotivosAddInput("");
     baselineInspectoresRef.current = [];
-  }, [open]);
+    hydratedChecklistRutaItemIdRef.current = null;
+    checklistItemsTouchedRef.current = false;
+    checklistEstadosRef.current = {};
+  }, [open, buildOperativoSetters]);
 
   const fe = useCallback((apiField: string) => fieldErrors[apiField], [fieldErrors]);
-  const clearFe = useCallback((apiField: string) => {
-    setFieldErrors((prev) => {
-      if (!(apiField in prev)) return prev;
-      const next = { ...prev };
-      delete next[apiField];
-      return next;
-    });
-  }, []);
 
   const contraHint = useMemo(() => getContraproducenciaUxHint(contraproducencia), [contraproducencia]);
   const visitaRealizada = !contraproducencia.trim();
@@ -928,30 +960,7 @@ export function CompletarTrabajoModal({
     if (!open || !resolvedRow) return;
     if (!esReinspeccionOficioGenerico(resolvedRow.tipo_iniciador)) return;
     if (!esFlujoVerificarInformar(resolvedRow.tipo_iniciador, tipoActuacionOficioEfectivo)) return;
-    const operativoSetters: OperativoFieldSetters = {
-      setCalle,
-      setNumero,
-      setNumeroTipo,
-      setRubroNombre,
-      setDocNro,
-      setContribApellido,
-      setContribNombre,
-      setRazonSocial,
-      setTitularModo,
-      setNombreLocal,
-      setActaInspeccion,
-      setChecklistEstados,
-      setPersonasSinCarnet,
-      setChecklistItemsTouched,
-      setPersonasSinCarnetTouched,
-      setActaNotificacion,
-      setNotifMotivosSeleccion,
-      setActaComprobacion,
-      setComprobacionMotivo,
-      setActaClausura,
-      setActaDecomiso,
-      setDecomisoKilos,
-    };
+    const operativoSetters = buildOperativoSetters();
     if (realizoNuevaInspeccion === "si") {
       hydrateOperativoFieldsFromRow(resolvedRow, operativoSetters, catalogs?.itemsActaInspeccion ?? []);
       return;
@@ -963,9 +972,10 @@ export function CompletarTrabajoModal({
     open,
     resolvedRow,
     resolvedRow?.ruta_item_id,
-    catalogs?.itemsActaInspeccion,
     tipoActuacionOficioEfectivo,
     realizoNuevaInspeccion,
+    buildOperativoSetters,
+    catalogs?.itemsActaInspeccion,
   ]);
 
   /** Inspectores del catálogo que aún no están en la lista (agregar). */
@@ -1352,6 +1362,9 @@ export function CompletarTrabajoModal({
       return;
     }
 
+    const estadosChecklistSubmit = checklistEstadosRef.current;
+    const checklistTouchedSubmit = checklistItemsTouchedRef.current;
+
     const preValidation = mergeCompletarTrabajoSubmitValidation(
       buildCompletarTrabajoValidationForm(resolvedRow, {
         contraproducencia,
@@ -1390,7 +1403,7 @@ export function CompletarTrabajoModal({
       {
         requireTieneHabilitacion:
           visitaRealizada && Boolean(String(actaInspeccion ?? "").trim()),
-        checklistEstados,
+        checklistEstados: estadosChecklistSubmit,
         checklistCatalog: cat.itemsActaInspeccion ?? [],
       }
     );
@@ -1467,9 +1480,9 @@ export function CompletarTrabajoModal({
             notificacion_motivo_3: notifSlots.m3,
           });
         }
-        if (checklistItemsTouched) {
+        if (checklistTouchedSubmit) {
           values.items_acta_inspeccion = checklistWriteFromEstados(
-            checklistEstados,
+            estadosChecklistSubmit,
             catalogs?.itemsActaInspeccion ?? []
           );
         }
@@ -2137,8 +2150,9 @@ export function CompletarTrabajoModal({
                 catalog={catalogs?.itemsActaInspeccion ?? []}
                 estados={checklistEstados}
                 onEstadosChange={(estados) => {
+                  checklistEstadosRef.current = estados;
+                  checklistItemsTouchedRef.current = true;
                   setChecklistEstados(estados);
-                  setChecklistItemsTouched(true);
                   clearFe("items_acta_inspeccion");
                 }}
                 disabled={!isValidActaInspeccionNum(actaInspeccion)}

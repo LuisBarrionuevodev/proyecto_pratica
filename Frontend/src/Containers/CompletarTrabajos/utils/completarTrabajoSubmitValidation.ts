@@ -6,6 +6,7 @@ import {
 } from "../../Actuaciones/validations/actuacionFormValidation";
 import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";
 import {
+  MSG_TIENE_HABILITACION_REQUERIDA,
   validateTieneHabilitacionObligatoria,
   type ChecklistUxValue,
 } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
@@ -41,10 +42,19 @@ export function mergeCompletarTrabajoSubmitValidation(
   }
   const canSubmit =
     base.canSubmit && Object.keys(segErrors).length === 0 && Object.keys(fieldErrors).length === 0;
+  const errorKeys = Object.keys(fieldErrors);
+  const soloHabilitacionFaltante =
+    !canSubmit &&
+    errorKeys.length === 1 &&
+    fieldErrors.items_acta_inspeccion === MSG_TIENE_HABILITACION_REQUERIDA;
   return {
     ...base,
     fieldErrors,
     canSubmit,
-    globalError: canSubmit ? base.globalError : base.globalError,
+    globalError: soloHabilitacionFaltante
+      ? MSG_TIENE_HABILITACION_REQUERIDA
+      : canSubmit
+        ? base.globalError
+        : base.globalError,
   };
 }

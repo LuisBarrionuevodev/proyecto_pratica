@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  checklistUxValueAt,
   MSG_TIENE_HABILITACION_REQUERIDA,
   validateTieneHabilitacionObligatoria,
 } from "./inspeccionChecklistSubmit";
@@ -20,5 +21,11 @@ describe("validateTieneHabilitacionObligatoria", () => {
   it("acepta SÍ y No", () => {
     expect(validateTieneHabilitacionObligatoria({ 6: "SI" }, catalog)).toBeNull();
     expect(validateTieneHabilitacionObligatoria({ 6: "NO" }, catalog)).toBeNull();
+  });
+
+  it("lee estado con clave string (serialización)", () => {
+    const estados = { "6": "SI" } as unknown as Record<number, "SI">;
+    expect(checklistUxValueAt(estados, 6)).toBe("SI");
+    expect(validateTieneHabilitacionObligatoria(estados, catalog)).toBeNull();
   });
 });

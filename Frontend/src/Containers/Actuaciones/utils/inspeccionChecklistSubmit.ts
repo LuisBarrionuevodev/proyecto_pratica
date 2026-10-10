@@ -219,6 +219,19 @@ export const MSG_TIENE_HABILITACION_REQUERIDA =
 
 const CODIGO_TIENE_HABILITACION = "TIENE_HABILITACION";
 
+/** Lee estado UX del checklist tolerando claves numéricas serializadas como string. */
+export function checklistUxValueAt(
+  estados: Record<number, ChecklistUxValue>,
+  itemId: number
+): ChecklistUxValue {
+  const direct = estados[itemId];
+  if (direct !== undefined) return direct;
+  for (const [key, value] of Object.entries(estados)) {
+    if (Number(key) === itemId) return value;
+  }
+  return "NONE";
+}
+
 /** Valida respuesta obligatoria Sí/No en «Tiene habilitación» para acta de inspección real. */
 export function validateTieneHabilitacionObligatoria(
   estados: Record<number, ChecklistUxValue>,
@@ -226,7 +239,7 @@ export function validateTieneHabilitacionObligatoria(
 ): string | null {
   const hab = catalog.find((c) => c.codigo === CODIGO_TIENE_HABILITACION);
   if (!hab) return null;
-  const v = estados[hab.id] ?? "NONE";
+  const v = checklistUxValueAt(estados, hab.id);
   if (v === "SI" || v === "NO") return null;
   return MSG_TIENE_HABILITACION_REQUERIDA;
 }
