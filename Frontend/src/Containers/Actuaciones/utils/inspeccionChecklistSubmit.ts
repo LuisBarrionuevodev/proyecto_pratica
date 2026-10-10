@@ -214,6 +214,30 @@ export function sortCatalogItems(
   return [...items].sort((a, b) => a.orden - b.orden || a.id - b.id);
 }
 
+export const MSG_TIENE_HABILITACION_REQUERIDA =
+  "Indicá si el establecimiento tiene habilitación.";
+
+const CODIGO_TIENE_HABILITACION = "TIENE_HABILITACION";
+
+/** Valida respuesta obligatoria Sí/No en «Tiene habilitación» para acta de inspección real. */
+export function validateTieneHabilitacionObligatoria(
+  estados: Record<number, ChecklistUxValue>,
+  catalog: IItemActaInspeccionCatalogItem[]
+): string | null {
+  const hab = catalog.find((c) => c.codigo === CODIGO_TIENE_HABILITACION);
+  if (!hab) return null;
+  const v = estados[hab.id] ?? "NONE";
+  if (v === "SI" || v === "NO") return null;
+  return MSG_TIENE_HABILITACION_REQUERIDA;
+}
+
+export function findCatalogItemByCodigo(
+  catalog: IItemActaInspeccionCatalogItem[],
+  codigo: string
+): IItemActaInspeccionCatalogItem | undefined {
+  return catalog.find((c) => c.codigo === codigo);
+}
+
 export type ChecklistHydrationPlan = "close" | "act_change" | "catalog_late" | "skip";
 
 /**

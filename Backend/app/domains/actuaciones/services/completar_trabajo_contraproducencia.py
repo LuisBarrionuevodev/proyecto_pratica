@@ -67,6 +67,32 @@ def es_no_permite_inspeccion_contraproducencia(nombre: str | None) -> bool:
     return _loose_key(nombre) in _NO_PERMITE_INSPECCION_ALIAS_KEYS
 
 
+_MOTIVO_COMPROBACION_NO_PERMITE_KEYS = frozenset(
+    {
+        _loose_key("NO PERMITE INSPECCION"),
+        _loose_key("No Permite la Inspección"),
+        _loose_key("NO PERMITE INSPECCIÓN"),
+    }
+)
+
+
+def motivo_comprobacion_es_no_permite_inspeccion(motivo: str | None) -> bool:
+    """True si el motivo de comprobación corresponde a «no permite inspección» (normalizado)."""
+    if not motivo or not str(motivo).strip():
+        return False
+    return _loose_key(str(motivo)) in _MOTIVO_COMPROBACION_NO_PERMITE_KEYS
+
+
+def no_permite_inspeccion_comprobacion_cierre_completo(
+    acta_comprobacion_num: str | None,
+    comprobacion_motivo: str | None,
+) -> bool:
+    """True si el cierre documenta comprobación válida para bifurcación caso B."""
+    acta = (acta_comprobacion_num or "").strip()
+    motivo = (comprobacion_motivo or "").strip()
+    return bool(acta and motivo and motivo_comprobacion_es_no_permite_inspeccion(motivo))
+
+
 _NO_EXISTE_ALIAS_KEYS = frozenset(
     {
         _loose_key("NO EXISTE"),

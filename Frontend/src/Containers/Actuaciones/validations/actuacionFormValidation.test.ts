@@ -697,7 +697,7 @@ describe("validateActuacionFormForSubmit — Completar trabajo", () => {
     expect(result.fieldErrors.notificacion_motivo_1).toBeTruthy();
   });
 
-  it("NO PERMITE INSPECCIÓN exige acta de comprobación y motivo", () => {
+  it("NO PERMITE INSPECCIÓN permite cierre sin comprobación", () => {
     const result = validateActuacionFormForSubmit(
       {
         contraproducencia: CONTRAPRODUCCION_NO_PERMITE_INSPECCION,
@@ -706,12 +706,21 @@ describe("validateActuacionFormForSubmit — Completar trabajo", () => {
       },
       ctxVisitaNo()
     );
-    expect(result.canSubmit).toBe(false);
-    expect(result.fieldErrors.acta_comprobacion_num).toBe(
-      ACTUACION_VALIDATION_MESSAGES.comprobacionNoPermiteInspeccion
+    expect(result.canSubmit).toBe(true);
+  });
+
+  it("NO PERMITE INSPECCIÓN rechaza comprobación incompleta", () => {
+    const result = validateActuacionFormForSubmit(
+      {
+        contraproducencia: CONTRAPRODUCCION_NO_PERMITE_INSPECCION,
+        acta_comprobacion_num: "100",
+        comprobacion_motivo: "",
+      },
+      ctxVisitaNo()
     );
+    expect(result.canSubmit).toBe(false);
     expect(result.fieldErrors.comprobacion_motivo).toBe(
-      ACTUACION_VALIDATION_MESSAGES.comprobacionNoPermiteInspeccion
+      ACTUACION_VALIDATION_MESSAGES.comprobacionNoPermiteIncompleta
     );
   });
 
@@ -720,7 +729,7 @@ describe("validateActuacionFormForSubmit — Completar trabajo", () => {
       {
         contraproducencia: CONTRAPRODUCCION_NO_PERMITE_INSPECCION,
         acta_comprobacion_num: "100",
-        comprobacion_motivo: "Motivo",
+        comprobacion_motivo: "No Permite la Inspección",
         doc_nro: "",
         contrib_apellido: "",
       },

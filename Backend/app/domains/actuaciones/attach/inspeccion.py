@@ -12,6 +12,10 @@ from app.models import Actuaciones, ActaInspeccionItem, Inspeccion, ItemActaInsp
 
 from app.utils.actas import acta_6
 
+from app.domains.actuaciones.utils.inspeccion_habilitacion_validation import (
+    validar_tiene_habilitacion_obligatoria,
+)
+
 from .uniqueness import (
 
     asegurar_acta_libre_para_actuacion,
@@ -411,6 +415,8 @@ def aplicar_inspeccion_checklist_desde_payload(actuacion: Actuaciones, payload: 
 
 
     requested = _normalizar_items_respuesta(payload.get("items_acta_inspeccion"))
+
+    validar_tiene_habilitacion_obligatoria(actuacion, payload, requested)
 
     validated = _validar_items_catalogo(inspeccion, requested)
 

@@ -6,9 +6,6 @@ import {
   Chip,
   CircularProgress,
   LinearProgress,
-  List,
-  ListItem,
-  ListItemText,
   Stack,
   TextField,
   ToggleButton,
@@ -91,7 +88,12 @@ import {
   tipoActuacionInicialReinspeccionOficio,
   tipoActuacionReinspeccionOficioOpts,
 } from "../utils/completarTrabajoReinspeccionOficioUi";
-import { esNoPermiteInspeccionContraproducencia } from "../utils/completarTrabajoContraproducencia";
+import {
+  AYUDA_NO_PERMITE_INSPECCION_CIERRE,
+  esMotivoComprobacionNoPermiteInspeccion,
+  esNoPermiteInspeccionContraproducencia,
+  MOTIVO_COMPROBACION_NO_PERMITE_INSPECCION,
+} from "../utils/completarTrabajoContraproducencia";
 import { actuacionCompletarTrabajoValidationContext } from "../../Actuaciones/validations/actuacionFormValidation";
 import { mergeCompletarTrabajoSubmitValidation } from "../utils/completarTrabajoSubmitValidation";
 import { filtrarContraproducenciasPorTipoIniciador } from "../utils/contraproducenciasPorTipoIniciador";
@@ -1030,10 +1032,19 @@ export function CompletarTrabajoModal({
     () => motivosNotifCatalogSorted.filter((m) => !notifMotivosSeleccion.includes(m)),
     [motivosNotifCatalogSorted, notifMotivosSeleccion]
   );
-  const motivoCompOpts = useMemo(
-    () => mergeCatalogOpts(cat.motivosComprobacion, undefined),
-    [cat.motivosComprobacion]
-  );
+  const motivoCompOpts = useMemo(() => {
+    const all = mergeCatalogOpts(cat.motivosComprobacion, comprobacionMotivo || undefined);
+    if (esNoPermiteInspeccion && !visitaRealizada && String(actaComprobacion ?? "").trim()) {
+      return all.filter((o) => esMotivoComprobacionNoPermiteInspeccion(o.value));
+    }
+    return all;
+  }, [
+    cat.motivosComprobacion,
+    comprobacionMotivo,
+    esNoPermiteInspeccion,
+    visitaRealizada,
+    actaComprobacion,
+  ]);
 
   const uploadMediaAfterCierre = useCallback(async (): Promise<boolean> => {
     if (!resolvedRow || !mediaQueues.hasPendingUpload) return true;
@@ -1375,6 +1386,12 @@ export function CompletarTrabajoModal({
         solicitaCarnetManipulador,
         telefonoSolicitudCarnet,
         faltasNotificacionSubsanadas,
+      },
+      {
+        requireTieneHabilitacion:
+          visitaRealizada && Boolean(String(actaInspeccion ?? "").trim()),
+        checklistEstados,
+        checklistCatalog: cat.itemsActaInspeccion ?? [],
       }
     );
     if (!preValidation.canSubmit) {
@@ -1896,19 +1913,12 @@ export function CompletarTrabajoModal({
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
               Cierre por negativa a la inspección
             </Typography>
-            <List dense disablePadding sx={{ listStyleType: "disc", pl: 2.25, "& .MuiListItem-root": { display: "list-item", py: 0 } }}>
-              <ListItem disableGutters>
-                <ListItemText primary="Acta de comprobación: obligatoria" />
-              </ListItem>
-              <ListItem disableGutters>
-                <ListItemText primary="Motivo de comprobación: obligatorio" />
-              </ListItem>
-              <ListItem disableGutters>
-                <ListItemText primary="Acta de clausura: opcional" />
-              </ListItem>
-            </List>
-            <Typography variant="caption" sx={{ display: "block", opacity: 0.9, mt: 0.5 }}>
-              El trabajo vuelve a pendientes con prioridad alta.
+            <Typography variant="body2" sx={{ mb: 0.5 }}>
+              Podés finalizar sin acta de comprobación o cargar acta con motivo «No Permite la Inspección».
+              Acta de clausura: opcional.
+            </Typography>
+            <Typography variant="caption" sx={{ display: "block", opacity: 0.9 }}>
+              {AYUDA_NO_PERMITE_INSPECCION_CIERRE}
             </Typography>
           </Alert>
         )}
@@ -2331,21 +2341,23 @@ export function CompletarTrabajoModal({
           <ResponsiveFormGrid sx={completarModalFormGridSx}>
             <ActaNumFieldLazy
               appearance="glass"
-              label={
-                esNoPermiteInspeccion && !visitaRealizada
-                  ? "N° acta de comprobación (obligatorio)"
-                  : "N° acta de comprobación"
-              }
+              label="N° acta de comprobación"
               value={actaComprobacion || null}
               onCommit={(v) => {
-                setActaComprobacion(v ?? "");
+                const next = v ?? "";
+                setActaComprobacion(next);
                 clearFe("acta_comprobacion_num");
+                if (
+                  esNoPermiteInspeccion &&
+                  !visitaRealizada &&
+                  next.trim() &&
+                  !comprobacionMotivo.trim()
+                ) {
+                  setComprobacionMotivo(MOTIVO_COMPROBACION_NO_PERMITE_INSPECCION);
+                }
               }}
               error={Boolean(fe("acta_comprobacion_num"))}
-              helperText={
-                fe("acta_comprobacion_num") ||
-                (esNoPermiteInspeccion && !visitaRealizada ? "Obligatorio para esta contraproducencia." : undefined)
-              }
+              helperText={fe("acta_comprobacion_num") || undefined}
             />
             <AppSelect
               appearance="glass"
@@ -2356,14 +2368,20 @@ export function CompletarTrabajoModal({
                 clearFe("comprobacion_motivo");
               }}
               fullWidth
-              disabled={!catalogsReady}
-              options={motivoCompOpts}
-              required={esNoPermiteInspeccion && !visitaRealizada}
-              error={Boolean(fe("comprobacion_motivo"))}
-              helperText={
-                fe("comprobacion_motivo") ||
-                (esNoPermiteInspeccion && !visitaRealizada ? "Obligatorio para esta contraproducencia." : undefined)
+              disabled={
+                !catalogsReady ||
+                (esNoPermiteInspeccion &&
+                  !visitaRealizada &&
+                  Boolean(String(actaComprobacion ?? "").trim()))
               }
+              options={motivoCompOpts}
+              required={
+                esNoPermiteInspeccion &&
+                !visitaRealizada &&
+                Boolean(String(actaComprobacion ?? "").trim())
+              }
+              error={Boolean(fe("comprobacion_motivo"))}
+              helperText={fe("comprobacion_motivo") || undefined}
             />
           </ResponsiveFormGrid>
           <ResponsiveFormGrid sx={completarModalFormGridSx}>

@@ -12,6 +12,7 @@ from app.domains.actuaciones.services.completar_trabajo_contraproducencia import
     es_contraproducencia_correctiva_direccion,
     es_contraproducencia_correctiva_rubro,
     es_no_permite_inspeccion_contraproducencia,
+    motivo_comprobacion_es_no_permite_inspeccion,
 )
 
 
@@ -370,24 +371,49 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
         return self
 
     @model_validator(mode="after")
-    def no_permite_inspeccion_exige_acta_comprobacion_y_motivo(self) -> "CompletarTrabajoCierreCompletoIn":
+    def no_permite_inspeccion_comprobacion_opcional_o_completa(self) -> "CompletarTrabajoCierreCompletoIn":
         if not self.contraproducencia or not es_no_permite_inspeccion_contraproducencia(
             self.contraproducencia
         ):
             return self
         acta = (self.acta_comprobacion_num or "").strip()
         motivo = (self.comprobacion_motivo or "").strip()
-        if not acta or not motivo:
-            msg = (
-                "Con contraproducencia NO PERMITE INSPECCION es obligatorio cargar acta de comprobación "
-                "y motivo de comprobación."
-            )
+        tiene_acta = bool(acta)
+        tiene_motivo = bool(motivo)
+        if not tiene_acta and not tiene_motivo:
+            return self
+        if tiene_acta != tiene_motivo:
+            msg = "Indicá número y motivo de comprobación, o dejá ambos vacíos."
             raise ValidationError.from_exception_data(
                 self.__class__.__name__,
                 [
                     {
                         "type": "value_error",
                         "loc": ("acta_comprobacion_num",),
+                        "msg": "Value error",
+                        "input": None,
+                        "ctx": {"error": msg},
+                    },
+                    {
+                        "type": "value_error",
+                        "loc": ("comprobacion_motivo",),
+                        "msg": "Value error",
+                        "input": None,
+                        "ctx": {"error": msg},
+                    },
+                ],
+            )
+        if not motivo_comprobacion_es_no_permite_inspeccion(motivo):
+            msg = (
+                'Si usás la contraproducencia «No permite inspección» con acta de comprobación, '
+                "el motivo debe ser «No Permite la Inspección»."
+            )
+            raise ValidationError.from_exception_data(
+                self.__class__.__name__,
+                [
+                    {
+                        "type": "value_error",
+                        "loc": ("comprobacion_motivo",),
                         "msg": "Value error",
                         "input": None,
                         "ctx": {"error": msg},

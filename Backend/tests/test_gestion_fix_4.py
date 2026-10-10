@@ -39,7 +39,7 @@ def test_relevamiento_no_permite_inspeccion_presenter_muestra_contrib(app_ctx) -
                 "contraproducencia": "NO PERMITE INSPECCION",
                 "tipo_actuacion": "INSPECCION",
                 "acta_comprobacion_num": f"{random.randint(100000, 999999):06d}",
-                "comprobacion_motivo": "Falta de Higiene",
+                "comprobacion_motivo": "No Permite la Inspección",
                 "contrib_apellido": "Pérez",
                 "contrib_nombre": "Juan",
                 "doc_nro": "30000000",

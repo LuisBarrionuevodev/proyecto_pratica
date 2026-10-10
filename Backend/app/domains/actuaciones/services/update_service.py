@@ -402,6 +402,13 @@ def aplicar_payload_actuacion(
     if "acta_inspeccion_num" in payload:
         attach_inspeccion(act, payload.get("acta_inspeccion_num"), crear=False)
 
+    if "items_acta_inspeccion" not in payload and "acta_inspeccion_num" in payload:
+        from app.domains.actuaciones.utils.inspeccion_habilitacion_validation import (
+            validar_tiene_habilitacion_obligatoria,
+        )
+
+        validar_tiene_habilitacion_obligatoria(act, payload, [])
+
     aplicar_inspeccion_checklist_desde_payload(act, payload)
 
     if "notificacion" in payload or "comprobacion" in payload:

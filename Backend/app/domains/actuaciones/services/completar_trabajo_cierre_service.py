@@ -35,6 +35,7 @@ from app.domains.actuaciones.services.update_service import aplicar_payload_actu
 from app.domains.actuaciones.services.completar_trabajo_contraproducencia import (
     ContrapBucket,
     motivo_no_realizado_para_ruta_item,
+    no_permite_inspeccion_comprobacion_cierre_completo,
     normalize_contraproducencia,
 )
 from app.domains.actuaciones.services.completar_trabajo_tipo_iniciador import (
@@ -644,6 +645,24 @@ def cerrar_completar_trabajo_por_ruta_item(
             ini.estado_iniciador = "CERRADO_NO_EXISTE_LOCAL"
             ini.cerrado_at = now
             ini.cerrado_motivo = "NO_EXISTE_LOCAL"
+        elif bucket == ContrapBucket.NO_PERMITE_INSPECCION:
+            assert stored_contra is not None
+            if no_permite_inspeccion_comprobacion_cierre_completo(
+                payload.acta_comprobacion_num,
+                payload.comprobacion_motivo,
+            ):
+                item.estado_ejecucion = "REALIZADO"
+                item.estado_ruta_item = "FINALIZADO"
+                item.motivo_no_realizado = None
+                ini.estado_iniciador = "CUMPLIDO"
+                ini.cerrado_at = None
+                ini.cerrado_motivo = None
+            else:
+                item.estado_ejecucion = "NO_REALIZADO"
+                item.estado_ruta_item = "FINALIZADO"
+                item.motivo_no_realizado = motivo_no_realizado_para_ruta_item(stored_contra, bucket)
+                aplicar_reencolado_iniciador(ini, now, act=act, cerrado_motivo=None)
+                reset_iniciador_reinspeccion_oficio_generico(ini)
         else:
             assert stored_contra is not None
             item.estado_ejecucion = "NO_REALIZADO"

@@ -2,6 +2,7 @@ import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import {
   esCorrectivaDireccionContraproducencia,
   esCorrectivaRubroContraproducencia,
+  esMotivoComprobacionNoPermiteInspeccion,
   esNoPermiteInspeccionContraproducencia,
 } from "../../CompletarTrabajos/utils/completarTrabajoContraproducencia";
 import { getActuacionEditableFields } from "../utils/actuacionEditRules";
@@ -30,8 +31,10 @@ import { validateGestionSeguimientoFields } from "../utils/actuacionGestionSegui
 export const ACTUACION_VALIDATION_MESSAGES = {
   contraproducenciaVisitaNoRealizada: "Elegí una contraproducencia para visita no realizada.",
   comprobacionMotivoSiHayActa: "Si cargás acta de comprobación, elegí un motivo de comprobación.",
-  comprobacionNoPermiteInspeccion:
-    'Para "No permite inspección" debe cargar acta de comprobación y motivo.',
+  comprobacionNoPermiteIncompleta:
+    "Indicá número y motivo de comprobación, o dejá ambos vacíos.",
+  comprobacionNoPermiteMotivoInvalido:
+    'Si usás la contraproducencia «No permite inspección» con acta de comprobación, el motivo debe ser «No Permite la Inspección».',
   actaInspeccionOComprobacionRequerida:
     "Debe registrar al menos un acta de inspección o comprobación.",
   rubroCorrectiva: "Debe indicar el rubro correcto.",
@@ -302,12 +305,14 @@ export function validateActuacionFormForSubmit(
       fieldErrors.comprobacion_motivo = ACTUACION_VALIDATION_MESSAGES.comprobacionMotivoSiHayActa;
     }
     if (validarReglasActasDocumentales && esNoPermiteInspeccion) {
-      const msg = ACTUACION_VALIDATION_MESSAGES.comprobacionNoPermiteInspeccion;
-      if (!actaComprobacion) {
-        fieldErrors.acta_comprobacion_num = msg;
-      }
-      if (!comprobacionMotivo) {
-        fieldErrors.comprobacion_motivo = msg;
+      const tieneActa = Boolean(actaComprobacion);
+      const tieneMotivo = Boolean(comprobacionMotivo);
+      if (tieneActa !== tieneMotivo) {
+        const msg = ACTUACION_VALIDATION_MESSAGES.comprobacionNoPermiteIncompleta;
+        if (!actaComprobacion) fieldErrors.acta_comprobacion_num = msg;
+        if (!comprobacionMotivo) fieldErrors.comprobacion_motivo = msg;
+      } else if (tieneActa && tieneMotivo && !esMotivoComprobacionNoPermiteInspeccion(comprobacionMotivo)) {
+        fieldErrors.comprobacion_motivo = ACTUACION_VALIDATION_MESSAGES.comprobacionNoPermiteMotivoInvalido;
       }
     }
   }

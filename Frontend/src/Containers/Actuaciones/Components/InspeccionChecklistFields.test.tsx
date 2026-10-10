@@ -58,7 +58,7 @@ describe("InspeccionChecklistFields", () => {
         onEstadosChange={vi.fn()}
       />
     );
-    expect(html).toContain("Tiene habilitación");
+    expect(html).toContain("Tiene habilitación *");
     expect(html).toContain("SÍ");
     expect(html).toContain("NO");
     expect(html).not.toContain("OBSERVADO");

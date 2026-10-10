@@ -133,7 +133,7 @@ def test_mapper_incluye_inspectores_cuando_vienen_en_body() -> None:
 def test_map_no_permite_inspeccion_solo_comprobacion_y_clausura() -> None:
     row = CompletarTrabajoCierreCompletoIn.model_construct(
         acta_comprobacion_num="12",
-        comprobacion_motivo="Falta de Higiene",
+        comprobacion_motivo="No Permite la Inspección",
         acta_clausura_num="99",
     )
     m = map_no_permite_inspeccion_actas_to_aplicar_payload(row)

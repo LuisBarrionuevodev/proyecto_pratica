@@ -33,6 +33,8 @@ import { detectBlockedActaClearAttempt } from "./actuacionEditRules";
 import {
   stripUntouchedInspeccionChecklistFromPut,
   stripUntouchedPersonasSinCarnetFromPut,
+  estadosMapFromRow,
+  validateTieneHabilitacionObligatoria,
 } from "./inspeccionChecklistSubmit";
 import { isReinspeccionPorNotificacion } from "./actuacionesExportPdfResumen";
 import {
@@ -336,11 +338,25 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
         oficioValidationContext,
       })
     );
-    if (!clientValidation.canSubmit) {
+    const fieldErrors = { ...clientValidation.fieldErrors };
+    const catalog = inspeccionChecklistCatalog ?? [];
+    const checklistTouched = inspeccionChecklistTouched?.items === true;
+    const tieneInspeccion = Boolean(String(rowForValidation.acta_inspeccion_num ?? "").trim());
+    const sinContra = !String(rowForValidation.contraproducencia ?? "").trim();
+    if (sinContra && tieneInspeccion && checklistTouched && catalog.length > 0) {
+      const habMsg = validateTieneHabilitacionObligatoria(
+        estadosMapFromRow(rowForValidation, catalog),
+        catalog
+      );
+      if (habMsg) fieldErrors.items_acta_inspeccion = habMsg;
+    }
+    const canSubmitClient =
+      clientValidation.canSubmit && !fieldErrors.items_acta_inspeccion;
+    if (!canSubmitClient) {
       return {
         ok: false,
         kind: "validation",
-        fieldErrors: clientValidation.fieldErrors,
+        fieldErrors,
         globalMessage: clientValidation.globalError,
       };
     }

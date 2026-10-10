@@ -23,6 +23,8 @@ const ITEM_DISPLAY_NAMES: Record<string, string> = {
   TIENE_COCINA_MESA_TRABAJO: "Cocina / cuadra",
 };
 
+const CODIGO_TIENE_HABILITACION = "TIENE_HABILITACION";
+
 /** Nombre visible del ítem (override UX sin cambiar código de catálogo). */
 export function displayItemNombre(item: IItemActaInspeccionCatalogItem): string {
   return ITEM_DISPLAY_NAMES[item.codigo] ?? item.nombre;
@@ -139,6 +141,7 @@ export const InspeccionChecklistFields = memo(function InspeccionChecklistFields
                 }}
               >
                 {displayItemNombre(item)}
+                {item.codigo === CODIGO_TIENE_HABILITACION ? " *" : ""}
               </Typography>
               {isSiNo ? (
                 <ToggleButtonGroup

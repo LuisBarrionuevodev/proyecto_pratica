@@ -467,19 +467,15 @@ def test_create_si_no_true_y_false(app_ctx, items_catalogo):
     assert resp2[id_hab] == {"estado": None, "valor_si_no": False}
 
 
-def test_sparse_sin_habilitacion(app_ctx, items_catalogo):
+def test_sparse_sin_habilitacion_rechaza(app_ctx, items_catalogo):
     id_bano = _item_id(items_catalogo, "TIENE_BANO")
-    id_hab = _item_id(items_catalogo, "TIENE_HABILITACION")
-    act = crear_actuacion_desde_payload(
-        _base_create_payload(
-            items_acta_inspeccion=[{"item_id": id_bano, "estado": "BIEN"}]
+    with pytest.raises(ValidationError):
+        crear_actuacion_desde_payload(
+            _base_create_payload(
+                contraproducencia=None,
+                items_acta_inspeccion=[{"item_id": id_bano, "estado": "BIEN"}],
+            )
         )
-    )
-    ins = Inspeccion.query.filter_by(actuacion_id=act.id).first()
-    resp = _junction_respuestas(int(ins.id))
-    assert id_hab not in resp
-    dtos = items_acta_inspeccion_read_dtos(ins)
-    assert all(d["codigo"] != "TIENE_HABILITACION" for d in dtos)
 
 
 def test_historico_sin_habilitacion_no_inferir_false(app_ctx, items_catalogo):
