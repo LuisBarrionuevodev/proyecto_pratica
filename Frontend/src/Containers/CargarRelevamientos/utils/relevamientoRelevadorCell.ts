@@ -9,7 +9,10 @@ export function parseRelevadorCellValue(value: unknown): string[] {
   }
   const s = String(value).trim();
   if (!s) return [];
-  return s.split(/[,;]/).map((p) => p.trim()).filter(Boolean);
+  if (s.includes(";")) {
+    return s.split(";").map((p) => p.trim()).filter(Boolean);
+  }
+  return [s];
 }
 
 export function formatRelevadorCellValue(nombres: string[]): string {

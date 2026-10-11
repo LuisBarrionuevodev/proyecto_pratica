@@ -31,7 +31,7 @@ def sync_relevamiento_relevadores(
     """
     ids_list = list(relevador_ids)
     if len(ids_list) != 1:
-        raise ValueError("Debe indicar exactamente un relevador.")
+        raise ValueError("El relevador es ambiguo. Seleccioná uno del catálogo.")
     relevadores = get_relevadores_o_falla(ids_list, requiere_activos=requiere_activos)
     relevamiento.relevadores = relevadores
     db.session.flush()

@@ -60,19 +60,19 @@ def crear_relevamiento_desde_payload(
     if not fecha_raw:
         fecha_raw = date.today().isoformat()
     if not relevador_ids and not relevadores_nombres:
-        raise ValueError("Relevador obligatorio.")
+        raise ValueError("Debe indicar un relevador.")
     if not calle or not numero:
         raise ValueError("Calle y número son obligatorios.")
 
     mes, anio, fecha = parse_fecha_grid(fecha_raw)
     if relevador_ids:
         if len(relevador_ids) != 1:
-            raise ValueError("Debe indicar exactamente un relevador.")
+            raise ValueError("El relevador es ambiguo. Seleccioná uno del catálogo.")
         relevadores = get_relevadores_o_falla(relevador_ids)
     else:
+        if len(relevadores_nombres) != 1:
+            raise ValueError("El relevador es ambiguo. Seleccioná uno del catálogo.")
         relevadores = resolve_relevador_nombres_o_falla(relevadores_nombres)
-        if len(relevadores) != 1:
-            raise ValueError("Debe indicar exactamente un relevador.")
     rubro = get_rubro_o_falla(rubro_nombre)
     dom_payload = {
         "calle": calle,

@@ -4,24 +4,15 @@ from __future__ import annotations
 
 from typing import Any, Iterable, List, Sequence
 
-from sqlalchemy import func
-
-from app.database import db
 from app.domains.relevamientos.utils.relevador_display import (
     relevador_etiqueta_catalogo,
-    relevador_nombres_equivalentes,
     relevador_sort_key,
 )
+from app.domains.relevamientos.utils.relevador_resolve import (
+    resolve_relevador_nombres_o_falla,
+    resolve_relevador_unico_por_nombre_celda,
+)
 from app.models import Relevador
-
-_SPACE_RE = __import__("re").compile(r"\s+")
-
-
-def _upper_norm(s: str) -> str:
-    s = s.strip().upper()
-    s = s.replace("_", " ")
-    s = _SPACE_RE.sub(" ", s)
-    return s
 
 
 def _dedupe_preserve_order(ids: Iterable[int]) -> List[int]:
@@ -78,13 +69,13 @@ def get_relevadores_o_falla(
     """
     unique_ids = _dedupe_preserve_order(relevador_ids)
     if not unique_ids:
-        raise ValueError("Debe indicar al menos un relevador.")
+        raise ValueError("Debe indicar un relevador.")
 
     rows = Relevador.query.filter(Relevador.id.in_(unique_ids)).all()
     by_id = {int(r.id): r for r in rows}
     missing = [i for i in unique_ids if i not in by_id]
     if missing:
-        raise ValueError(f"Relevador inexistente: {missing[0]}.")
+        raise ValueError("Relevador no encontrado. Seleccioná uno del catálogo.")
 
     if requiere_activos:
         inactivos = [r.nombre for r in rows if not r.activo]
@@ -92,57 +83,3 @@ def get_relevadores_o_falla(
             raise ValueError(f"Relevador inactivo: {inactivos[0]}.")
 
     return [by_id[i] for i in unique_ids]
-
-
-def resolve_relevador_nombres_o_falla(
-    nombres: Sequence[str],
-    *,
-    requiere_activos: bool = True,
-) -> List[Relevador]:
-    """
-    Resuelve nombres de relevadores contra catálogo (normalización upper/underscore).
-
-    Parámetros:
-        nombres: nombres canónicos (sin duplicados lógicos).
-        requiere_activos: rechaza inactivos para nuevas asignaciones.
-
-    Retorno:
-        Lista de ``Relevador``.
-
-    Errores:
-        ValueError: sin nombres, nombre inválido o inactivo.
-    """
-    cleaned: List[str] = []
-    seen_norm: set[str] = set()
-    for raw in nombres:
-        s = (raw or "").strip()
-        if not s:
-            continue
-        norm = _upper_norm(s)
-        if norm in seen_norm:
-            continue
-        seen_norm.add(norm)
-        cleaned.append(s)
-
-    if not cleaned:
-        raise ValueError("Debe indicar al menos un relevador.")
-
-    out: List[Relevador] = []
-    for nombre in cleaned:
-        norm = _upper_norm(nombre)
-        candidates = db.session.query(Relevador).all()
-        row = next(
-            (
-                r
-                for r in candidates
-                if _upper_norm(r.nombre) == norm
-                or relevador_nombres_equivalentes(r.nombre, nombre)
-            ),
-            None,
-        )
-        if row is None:
-            raise ValueError(f"Relevador inválido: {nombre}.")
-        if requiere_activos and not row.activo:
-            raise ValueError(f"Relevador inactivo: {row.nombre}.")
-        out.append(row)
-    return out

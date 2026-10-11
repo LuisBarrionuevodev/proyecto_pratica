@@ -16,7 +16,11 @@ from pydantic import (
 )
 
 from app.database import db
-from app.domains.relevamientos.utils.relevador_display import relevador_nombres_equivalentes
+from app.domains.relevamientos.utils.relevador_display import relevador_identity_key_from_nombre
+from app.domains.relevamientos.utils.relevador_resolve import (
+    parse_relevador_celda_a_nombres,
+    resolve_relevador_unico_por_nombre_celda,
+)
 from app.models import Relevador, Rubro
 from app.domains.relevamientos.utils.relevamiento_campos_normalizers import (
     NOMBRE_FANTASIA_MAX_LEN,
@@ -25,7 +29,6 @@ from app.domains.relevamientos.utils.relevamiento_campos_normalizers import (
 )
 
 _SPACE_RE = re.compile(r"\s+")
-_RELEVADOR_SEP_RE = re.compile(r"[;,]")
 
 
 def _clean_str(v: Any) -> Optional[str]:
@@ -93,23 +96,6 @@ def _raise_field_errors(model_name: str, field_errors: Dict[str, str]) -> None:
     raise ValidationError.from_exception_data(model_name, errs)
 
 
-def _parse_relevador_nombres(value: Any) -> List[str]:
-    if value is None or value == "":
-        return []
-    if isinstance(value, list):
-        out: List[str] = []
-        for item in value:
-            s = _clean_str(item)
-            if s:
-                out.append(s)
-        return out
-    s = _clean_str(value)
-    if not s:
-        return []
-    parts = [p.strip() for p in _RELEVADOR_SEP_RE.split(s) if p.strip()]
-    return parts or [s]
-
-
 class RelevamientoGridRowIn(BaseModel):
     """
     Fila proveniente de la grilla de Relevamientos o PUT de gestión.
@@ -175,7 +161,7 @@ class RelevamientoGridRowIn(BaseModel):
         if v is None or v == "":
             return None
         if isinstance(v, str):
-            parsed = _parse_relevador_nombres(v)
+            parsed = parse_relevador_celda_a_nombres(v)
             return parsed or None
         if isinstance(v, list):
             nombres: List[str] = []
@@ -291,7 +277,7 @@ class RelevamientoGridRowIn(BaseModel):
         if self.relevadores:
             return list(self.relevadores)
         if self.relevador:
-            return _parse_relevador_nombres(self.relevador)
+            return parse_relevador_celda_a_nombres(self.relevador)
         return []
 
     @model_validator(mode="after")
@@ -304,12 +290,12 @@ class RelevamientoGridRowIn(BaseModel):
         ids = self.relevador_ids_resueltos()
         nombres = self.relevadores_nombres_resueltos() if not ids else []
         if not ids and not nombres and not allow_missing_relevador:
-            field_errors["relevador"] = "Relevador obligatorio."
+            field_errors["relevador"] = "Debe indicar un relevador."
 
         if len(ids) > 1:
-            field_errors["relevador_ids"] = "Debe indicar exactamente un relevador."
+            field_errors["relevador_ids"] = "El relevador es ambiguo. Seleccioná uno del catálogo."
         if len(nombres) > 1:
-            field_errors["relevador"] = "Debe indicar exactamente un relevador."
+            field_errors["relevador"] = "El relevador es ambiguo. Seleccioná uno del catálogo."
         if ids and nombres:
             field_errors["relevador"] = "Indique relevador por id o por nombre, no ambos."
 
@@ -333,28 +319,21 @@ class RelevamientoGridRowIn(BaseModel):
             elif not row[1]:
                 field_errors["relevador_ids"] = f"Relevador inactivo: {row[0]}."
         elif nombres:
-            seen_norm: set[str] = set()
-            catalog_rows = db.session.query(Relevador.nombre, Relevador.activo).all()
+            catalog = db.session.query(Relevador).all()
+            seen_keys: set[tuple[str, str]] = set()
             for nombre in nombres:
-                norm = _upper_norm(nombre)
-                row = next(
-                    (
-                        r
-                        for r in catalog_rows
-                        if _upper_norm(r[0]) == norm or relevador_nombres_equivalentes(r[0], nombre)
-                    ),
-                    None,
-                )
-                if row is None:
-                    field_errors["relevador"] = f"Relevador inválido: {nombre}."
+                try:
+                    row = resolve_relevador_unico_por_nombre_celda(
+                        nombre, requiere_activos=True, catalog=catalog
+                    )
+                except ValueError as exc:
+                    field_errors["relevador"] = str(exc)
                     break
-                if not row[1]:
-                    field_errors["relevador"] = f"Relevador inactivo: {row[0]}."
-                    break
-                if norm in seen_norm:
+                key = relevador_identity_key_from_nombre(row.nombre)
+                if key in seen_keys:
                     field_errors["relevador"] = "Relevador duplicado."
                     break
-                seen_norm.add(norm)
+                seen_keys.add(key)
 
         if field_errors:
             _raise_field_errors(self.__class__.__name__, field_errors)

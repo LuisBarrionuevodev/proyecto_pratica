@@ -60,10 +60,17 @@ def relevador_etiqueta_catalogo(nombre: str) -> str:
 
 def relevador_sort_key(nombre: str) -> tuple[str, str]:
     """Clave de orden alfabético apellido, nombre."""
+    return relevador_identity_key_from_nombre(nombre)
+
+
+def relevador_identity_key_from_nombre(nombre: str) -> tuple[str, str]:
+    """Identidad normalizada (casefold + espacios) para equivalencia."""
     ap, no = relevador_partes_desde_nombre(nombre)
-    return (ap.casefold(), no.casefold())
+    return (normalize_catalog_key(ap), normalize_catalog_key(no))
 
 
 def relevador_nombres_equivalentes(a: str, b: str) -> bool:
     """True si dos variantes de nombre referencian al mismo relevador lógico."""
-    return relevador_sort_key(a) == relevador_sort_key(b) and relevador_sort_key(a) != ("", "")
+    ka = relevador_identity_key_from_nombre(a)
+    kb = relevador_identity_key_from_nombre(b)
+    return ka == kb and ka != ("", "")

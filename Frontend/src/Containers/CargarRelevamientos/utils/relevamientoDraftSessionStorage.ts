@@ -8,6 +8,7 @@ import { COLUMN_DEFINITIONS } from "../config/columnDefinitions";
 import {
   formatRelevadorCellValue,
   parseRelevadorCellValue,
+  resolveRelevadorIdsFromNombres,
   relevadorIdsToLabel,
 } from "./relevamientoRelevadorCell";
 
@@ -197,15 +198,13 @@ export function syncRelevadorIdsOnRow(
   row: GridRow,
   catalog: { id: number; nombre: string }[]
 ): GridRow {
+  const rawLabel =
+    row.Relevador === null || row.Relevador === undefined ? "" : String(row.Relevador).trim();
   const nombres = parseRelevadorCellValue(row.Relevador);
-  const ids = nombres.length
-    ? catalog
-        .filter((c) => nombres.some((n) => n.toUpperCase() === c.nombre.toUpperCase()))
-        .map((c) => c.id)
-    : [];
+  const ids = resolveRelevadorIdsFromNombres(nombres, catalog);
   return {
     ...row,
-    Relevador: formatRelevadorCellValue(nombres),
+    Relevador: rawLabel || formatRelevadorCellValue(nombres),
     _relevadorIds: ids,
   } as GridRow;
 }

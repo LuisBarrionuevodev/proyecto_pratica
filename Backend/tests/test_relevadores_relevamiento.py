@@ -9,6 +9,10 @@ from pydantic import ValidationError
 
 from app.database import db
 from app.domains.relevamientos.catalogs.relevador import listar_relevadores_catalogo
+from app.domains.relevamientos.utils.relevador_display import (
+    relevador_etiqueta_catalogo,
+    relevador_nombres_equivalentes,
+)
 from app.domains.relevamientos.presenters.relevamiento_presenter import relevamiento_to_row
 from app.domains.relevamientos.schemas.grid.relevamiento_row_in import RelevamientoGridRowIn
 from app.domains.relevamientos.services.create_service import crear_relevamiento_desde_payload
@@ -46,6 +50,21 @@ def test_catalogo_relevadores_activos(require_rel_migration) -> None:
     assert fabian.id in ids
 
 
+def test_grid_row_apellido_nombre_catalogo_ok(require_rel_migration) -> None:
+    rel = get_or_create_test_relevador()
+    rub = get_test_rubro()
+    label = relevador_etiqueta_catalogo(rel.nombre)
+    row = RelevamientoGridRowIn.model_validate(
+        {
+            "relevador": label,
+            "calle": uniq("RelApNo"),
+            "numero": "199",
+            "rubro": rub.nombre,
+        }
+    )
+    assert row.relevadores_nombres_resueltos() == [label]
+
+
 def test_crear_relevamiento_un_relevador(require_rel_migration) -> None:
     rel = get_or_create_test_relevador()
     rub = get_test_rubro()
@@ -58,7 +77,7 @@ def test_crear_relevamiento_un_relevador(require_rel_migration) -> None:
     )
     created = crear_relevamiento_desde_payload(payload)
     assert len(created.relevadores) == 1
-    assert created.relevadores[0].id == rel.id
+    assert relevador_nombres_equivalentes(created.relevadores[0].nombre, rel.nombre)
     assert created.inspector_id is None
 
 
@@ -69,7 +88,7 @@ def test_crear_relevamiento_varios_relevadores_rechazado(require_rel_migration) 
     with pytest.raises(ValidationError):
         RelevamientoGridRowIn.model_validate(
             {
-                "relevador": f"{r1.nombre}, {r2.nombre}",
+                "relevador": f"{r1.nombre}; {r2.nombre}",
                 "calle": uniq("RelN"),
                 "numero": "201",
                 "rubro": rub.nombre,
@@ -81,7 +100,7 @@ def test_crear_relevamiento_varios_relevadores_rechazado(require_rel_migration) 
         rubro=rub.nombre,
         relevadores_nombres=[r1.nombre, r2.nombre],
     )
-    with pytest.raises(ValueError, match="exactamente un relevador"):
+    with pytest.raises(ValueError, match="ambiguo"):
         crear_relevamiento_desde_payload(payload)
 
 
@@ -140,8 +159,8 @@ def test_historico_conserva_inactivo(require_rel_migration) -> None:
     db.session.add(rel)
     db.session.commit()
     row = relevamiento_to_row(created)
-    assert row["relevadores_label"] == rel.nombre
-    assert row["relevadores"][0]["nombre"] == rel.nombre
+    assert relevador_nombres_equivalentes(row["relevadores_label"] or "", rel.nombre)
+    assert relevador_nombres_equivalentes(row["relevadores"][0]["nombre"], rel.nombre)
 
 
 def test_presenter_relevadores_label(require_rel_migration) -> None:
@@ -197,7 +216,7 @@ def test_duplicado_nombres_rechazado(require_rel_migration) -> None:
     with pytest.raises(ValidationError):
         RelevamientoGridRowIn.model_validate(
             {
-                "relevador": f"{rel.nombre}, {rel.nombre}",
+                "relevador": f"{rel.nombre}; {rel.nombre}",
                 "calle": "X",
                 "numero": "1",
                 "rubro": rub.nombre,

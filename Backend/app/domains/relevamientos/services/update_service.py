@@ -94,7 +94,7 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
 
     if relevador_ids:
         if len(relevador_ids) != 1:
-            raise ValueError("Debe indicar exactamente un relevador.")
+            raise ValueError("El relevador es ambiguo. Seleccioná uno del catálogo.")
         if legacy_multi_relevador:
             if sorted(relevador_ids) != existing_relevador_ids:
                 raise ValueError(
@@ -107,7 +107,7 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
             relevadores = get_relevadores_o_falla(relevador_ids)
     elif relevadores_nombres:
         if len(relevadores_nombres) != 1:
-            raise ValueError("Debe indicar exactamente un relevador.")
+            raise ValueError("El relevador es ambiguo. Seleccioná uno del catálogo.")
         if legacy_multi_relevador:
             raise ValueError(
                 "Este relevamiento tiene varios relevadores históricos. "
@@ -118,7 +118,7 @@ def actualizar_relevamiento(relevamiento_id: int, payload: Dict[str, Any]) -> Re
         sync_relevadores = False
         relevadores = list(rel.relevadores)
     else:
-        raise ValueError("Relevador obligatorio.")
+        raise ValueError("Debe indicar un relevador.")
     rubro = get_rubro_o_falla(rubro_nombre)
     dom_payload = {"calle": calle, "numero": numero, **{k: v for k, v in domicilio.items() if k not in ("calle", "numero")}}
     numero_tipo_override = dom_payload.get("numero_tipo")
