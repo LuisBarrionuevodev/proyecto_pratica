@@ -5,6 +5,7 @@ import { Navigate } from "react-router-dom";
 import { getVisibleHomeCards } from "../../../auth/accessConfig";
 import { useAppSession } from "../../../auth/AppSessionProvider";
 import InicioAccesoCard from "./InicioAccesoCard";
+import InicioAboutCard from "./InicioAboutCard";
 
 const GAP = 2;
 const SKELETON_COUNT = 4;
@@ -26,7 +27,7 @@ export default function InicioOperacionesGrid(): JSX.Element {
       <Stack spacing={GAP}>
         <Grid container spacing={GAP}>
           {Array.from({ length: SKELETON_COUNT }, (_, i) => (
-            <Grid key={i} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+            <Grid key={i} size={{ xs: 12, sm: 6, md: 4, lg: 4 }}>
               <Skeleton variant="rounded" height={128} sx={{ borderRadius: "12px" }} />
             </Grid>
           ))}
@@ -49,11 +50,12 @@ export default function InicioOperacionesGrid(): JSX.Element {
     <Stack spacing={GAP}>
       <Grid container spacing={GAP}>
         {cards.map((item) => (
-          <Grid key={item.to} size={{ xs: 12, sm: 6, md: 4, lg: 3 }}>
+          <Grid key={item.to} size={{ xs: 12, sm: 6, md: 4, lg: 4 }}>
             <InicioAccesoCard item={item} />
           </Grid>
         ))}
       </Grid>
+      <InicioAboutCard />
     </Stack>
   );
 }

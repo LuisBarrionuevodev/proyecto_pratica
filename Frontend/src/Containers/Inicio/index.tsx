@@ -1,7 +1,7 @@
 import { type JSX, useEffect } from "react";
 import InicioOperacionesGrid from "./Components/InicioOperacionesGrid";
 import TopBar from "../../Componets/TopBar";
-import { Box, Grid, Skeleton, Typography } from "@mui/material";
+import { Box, Skeleton, Typography } from "@mui/material";
 import { GLASS_COLORS } from "../../styles/GlassStyles";
 import { useAppSession } from "../../auth/AppSessionProvider";
 import { FONT_FAMILY_UI } from "../../theme/typography";
@@ -79,34 +79,48 @@ const Inicio = (): JSX.Element => {
         <Box sx={{ p: { xs: 2, sm: 3, md: 4 } }}>
             <Box
               sx={{
+                position: "relative",
                 display: "flex",
-                flexDirection: { xs: "column", sm: "row" },
-                alignItems: { xs: "flex-start", sm: "flex-start" },
-                justifyContent: "space-between",
-                gap: { xs: 1.5, sm: 2 },
+                flexDirection: {
+                  xs: "column",
+                  sm: "row",
+                  md: "column",
+                },
+                alignItems: {
+                  xs: "flex-start",
+                  sm: "flex-start",
+                  md: "center",
+                },
+                justifyContent: { md: "center" },
+                gap: { xs: 1.5, sm: 2, md: 1 },
                 mb: { xs: 2.5, md: 3 },
+                textAlign: { md: "center" },
               }}
             >
-              <Box sx={{ maxWidth: { sm: "65%", md: "70%" } }}>
+              <Box sx={{ maxWidth: { sm: "65%", md: "42rem" }, width: { md: "100%" } }}>
                 <Typography
                   sx={{
                     fontFamily: FONT_FAMILY_UI,
-                    fontSize: { xs: "22px", sm: "26px", md: "28px" },
+                    fontSize: { xs: "22px", sm: "26px", md: "30px", lg: "32px" },
                     fontWeight: 600,
                     color: GLASS_COLORS.textPrimary,
                     mb: 0.75,
                   }}
                 >
                   {session.status === "loading" ? (
-                    <Skeleton variant="text" width={280} sx={{ fontSize: "inherit" }} />
+                    <Skeleton
+                      variant="text"
+                      width={280}
+                      sx={{ fontSize: "inherit", mx: { md: "auto" } }}
+                    />
                   ) : (
-                    <>Bienvenido, {welcomeName}</>
+                    <>Bienvenido/a, {welcomeName}</>
                   )}
                 </Typography>
                 <Typography
                   sx={{
                     fontFamily: FONT_FAMILY_UI,
-                    fontSize: { xs: "13px", sm: "14px" },
+                    fontSize: { xs: "13px", sm: "14px", md: "15px" },
                     fontWeight: 400,
                     color: GLASS_COLORS.textMuted,
                     lineHeight: 1.45,
@@ -123,19 +137,20 @@ const Inicio = (): JSX.Element => {
                   color: GLASS_COLORS.textPrimary,
                   textTransform: "capitalize",
                   whiteSpace: { sm: "nowrap" },
-                  alignSelf: { xs: "flex-start", sm: "flex-start" },
-                  pt: { sm: 0.5 },
+                  alignSelf: { xs: "flex-start", sm: "flex-start", md: "center" },
+                  pt: { sm: 0.5, md: 0.5 },
+                  position: { md: "absolute" },
+                  top: { md: 0 },
+                  right: { md: 0 },
                 }}
               >
                 {formatFechaHoy()}
               </Typography>
             </Box>
 
-            <Grid container spacing={2}>
-              <Grid size={{ xs: 12 }}>
-                <InicioOperacionesGrid />
-              </Grid>
-            </Grid>
+            <Box sx={{ maxWidth: { md: 1440, lg: 1560 }, mx: { md: "auto" }, width: "100%" }}>
+              <InicioOperacionesGrid />
+            </Box>
         </Box>
       </Box>
     </Box>

@@ -3,6 +3,7 @@ import { AppSessionProvider } from "./auth/AppSessionProvider";
 import Login from "./Containers/Login";
 import RecuperarCuenta from "./Containers/RecuperarCuenta";
 import Inicio from "./Containers/Inicio";
+import AcercaDe from "./Containers/AcercaDe";
 import Actuaciones from "./Containers/Actuaciones";
 import CargarRelevamientos from "./Containers/CargarRelevamientos";
 import CargarActuaciones from "./Containers/CargarActuaciones";
@@ -46,6 +47,7 @@ function App() {
         <Route path="/login" element={<Login />} />
         <Route path="/recuperarCuenta" element={<RecuperarCuenta />} />
         <Route path="/inicio" element={<Inicio />} />
+        <Route path="/acerca-de" element={<AcercaDe />} />
 
         {/* Rutas privadas - CON AppLayout (NavLeft + TopBar + ContentShell) */}
         <Route element={<AppLayout />}>

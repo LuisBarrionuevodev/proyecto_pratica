@@ -160,6 +160,47 @@ export const StyleTextCardSecondary = {
     lineHeight: 1.4,
 };
 
+/** Desktop: tipografía ligeramente mayor en cards de acceso (xs/sm sin cambio). */
+export const InicioAccesoCardTitleSx = {
+    ...StyleTextCard,
+    fontSize: { xs: "15px", md: "16px", lg: "17px" },
+};
+
+export const InicioAccesoCardDescriptionSx = {
+    ...StyleTextCardSecondary,
+    fontSize: { xs: "12px", md: "13px", lg: "14px" },
+    lineHeight: 1.45,
+};
+
+/** Cáscara desktop: más padding y altura mínima moderada (solo md+). */
+export const InicioCardShellGridDesktop = {
+    padding: { xs: "14px 16px", md: "18px 20px", lg: "20px 22px" },
+    minHeight: { xs: "unset", md: "148px", lg: "156px" },
+    gap: { xs: 0.75, md: 1, lg: 1.1 },
+};
+
+/** Card institucional horizontal bajo la grilla de accesos. */
+export const InicioAboutCardShell = {
+    ...InicioCardShellGrid,
+    flexDirection: { xs: "column" as const, md: "row" as const },
+    alignItems: { xs: "flex-start", md: "center" },
+    justifyContent: "space-between",
+    width: "100%",
+    padding: { xs: "14px 16px", md: "20px 24px", lg: "22px 28px" },
+    gap: { xs: 1.5, md: 3 },
+    minHeight: { xs: "unset", md: "auto" },
+};
+
+export const InicioAboutCtaSx = {
+    ...ButtonStylesInicio,
+    width: { xs: "100%", md: "auto" },
+    minWidth: { md: 200 },
+    height: { xs: 48, md: 52 },
+    fontSize: { xs: "15px", md: "16px" },
+    flexShrink: 0,
+    textAlign: "center",
+};
+
 // =============================================================================
 // BUSCADOR - Estilo prominente sobre fondo transparente (como Early Bird)
 // =============================================================================
