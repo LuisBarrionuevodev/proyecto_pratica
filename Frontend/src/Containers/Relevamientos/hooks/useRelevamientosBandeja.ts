@@ -6,10 +6,10 @@ import type {
 } from "../../../api/relevamientosListApi";
 import {
   getRelevamientosOperativosFiltered,
-  getRelevamientosRealizadosActuacionCompletadaFiltered,
+  getRelevamientosProcesadosFiltered,
 } from "../../../api/relevamientosListApi";
 
-export type RelevamientosBandejaSlice = "pendientes" | "realizados";
+export type RelevamientosBandejaSlice = "pendientes" | "procesados";
 
 interface UseRelevamientosBandeja {
   relevamientos: IRelevamientoListItem[];
@@ -23,7 +23,7 @@ interface UseRelevamientosBandeja {
 
 /**
  * Pendientes: gestion-operativa (iniciador RELEVAMIENTO pendiente).
- * Realizados: GET /relevamientos/realizados (iniciador RELEVAMIENTO CUMPLIDO con actuación).
+ * Procesados: GET /relevamientos/procesados (iniciador RELEVAMIENTO en estado terminal).
  */
 export const useRelevamientosBandeja = (slice: RelevamientosBandejaSlice): UseRelevamientosBandeja => {
   const [relevamientos, setRelevamientos] = useState<IRelevamientoListItem[]>([]);
@@ -41,7 +41,7 @@ export const useRelevamientosBandeja = (slice: RelevamientosBandejaSlice): UseRe
         const response =
           slice === "pendientes"
             ? await getRelevamientosOperativosFiltered(filters)
-            : await getRelevamientosRealizadosActuacionCompletadaFiltered(filters);
+            : await getRelevamientosProcesadosFiltered(filters);
         setRelevamientos(response.items);
         setMeta(response.meta);
       } catch (err: any) {

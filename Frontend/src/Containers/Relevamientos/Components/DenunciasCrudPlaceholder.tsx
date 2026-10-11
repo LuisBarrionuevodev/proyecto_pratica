@@ -3,7 +3,7 @@ import FiltroDenuncias from "./FiltroDenuncias";
 import TablaDenuncias from "./TableDenuncias";
 import { useDenunciasBandeja } from "../hooks/useDenunciasBandeja";
 import type { DenunciasBandejaSlice } from "../hooks/useDenunciasBandeja";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useState } from "react";
 import {
   errorAlertStyles,
   metaInfoStyles,
@@ -16,22 +16,16 @@ import { FONT_FAMILY_UI } from "../../../theme/typography";
 const DenunciasCrudPlaceholder = () => {
   const [slice, setSlice] = useState<DenunciasBandejaSlice>("pendientes");
   const { denuncias, meta, loading, error, hasSearched, buscar, limpiarLista } = useDenunciasBandeja(slice);
-  const lastEstadoRealizados = useRef<"all" | "hechas" | "no_hechas">("all");
-
   const handleFiltrar = useCallback(
-    (filters: { desde: string | null; hasta: string | null; estado: "all" | "hechas" | "no_hechas" }) => {
-      if (slice === "realizados") {
-        lastEstadoRealizados.current = filters.estado;
-      }
+    (filters: { desde: string | null; hasta: string | null }) => {
       void buscar({
         desde: filters.desde,
         hasta: filters.hasta,
-        estado: slice === "realizados" ? filters.estado : "all",
         page: 1,
         page_size: 50,
       });
     },
-    [buscar, slice]
+    [buscar]
   );
 
   const handleRefresh = useCallback(() => {
@@ -39,16 +33,15 @@ const DenunciasCrudPlaceholder = () => {
     void buscar({
       desde: meta.desde,
       hasta: meta.hasta,
-      estado: slice === "realizados" ? lastEstadoRealizados.current : "all",
       page: meta.page,
       page_size: meta.page_size,
     });
-  }, [buscar, meta, slice]);
+  }, [buscar, meta]);
 
   return (
     <Box sx={moduleContentColumnSx}>
       <FiltroDenuncias
-        variant={slice === "pendientes" ? "pendientes" : "realizados"}
+        variant={slice === "pendientes" ? "pendientes" : "procesados"}
         onFiltrar={handleFiltrar}
         onLimpiarLista={limpiarLista}
       />
@@ -62,7 +55,7 @@ const DenunciasCrudPlaceholder = () => {
           sx={glassSecondaryTabsSx}
         >
           <Tab label="Pendientes" value="pendientes" />
-          <Tab label="Realizados" value="realizados" />
+          <Tab label="Procesados" value="procesados" />
         </Tabs>
       </Paper>
 
@@ -72,7 +65,7 @@ const DenunciasCrudPlaceholder = () => {
       >
         {slice === "pendientes"
           ? "Denuncias con iniciador pendiente (gestión operativa). Pulsá Filtrar para cargar."
-          : "Historial vía gestión: filtrá por estado (cerradas, abiertas, etc.)."}
+          : "Denuncias con cierre terminal en ruta (resultado operativo). Solo lectura."}
       </Typography>
 
       {error && hasSearched && (
@@ -111,12 +104,21 @@ const DenunciasCrudPlaceholder = () => {
         </Box>
       )}
 
-      {hasSearched ? (
+      {hasSearched && !loading && meta?.total === 0 && (
+        <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary }}>
+          {slice === "procesados"
+            ? "No hay denuncias procesadas."
+            : "No hay denuncias pendientes en el rango seleccionado."}
+        </Typography>
+      )}
+
+      {hasSearched && ((meta?.total ?? 0) > 0 || loading) ? (
         <TablaDenuncias
           data={denuncias}
           loading={loading}
           onRefresh={handleRefresh}
-          readOnly={slice === "realizados"}
+          readOnly={slice === "procesados"}
+          showResultadoProcesado={slice === "procesados"}
         />
       ) : null}
     </Box>

@@ -9,6 +9,12 @@ from app.database import db
 from app.domains.domicilios.utils.domicilio_distrito_display import (
     domicilio_distrito_listado_sql_predicates,
 )
+from app.domains.iniciadores.presenters.procesados_bandeja_presenter import enrich_row_procesados_bandeja
+from app.domains.iniciadores.services.procesados_cierre_context_service import (
+    fetch_ultimo_cierre_por_iniciador,
+)
+from app.domains.iniciadores.utils.procesados_bandeja import ESTADOS_BANDEJA_PROCESADOS
+from app.domains.relevamientos.presenters.relevamiento_presenter import relevamiento_to_row
 from app.domains.relevamientos.schemas.list_filters import RelevamientosListFilters
 from app.models import (
     Domicilio,
@@ -171,6 +177,64 @@ def listar_relevamientos_realizados_actuacion_completada_con_filtros(
 
     return {
         "items": items,
+        "meta": _build_list_meta(filters, total),
+    }
+
+
+def listar_relevamientos_procesados_con_filtros(filters: RelevamientosListFilters) -> Dict[str, Any]:
+    """
+    Bandeja Procesados: relevamientos con iniciador RELEVAMIENTO en estado terminal de cierre
+    (``CUMPLIDO``, ``CERRADO_NO_EXISTE_LOCAL``, ``CERRADO``).
+
+    Fila determinística: el iniciador RELEVAMIENTO terminal de mayor ``id`` por ``relevamiento_id``.
+    """
+    procesados_subq = (
+        db.session.query(
+            IniciadorRuta.relevamiento_id.label("relevamiento_id"),
+            func.max(IniciadorRuta.id).label("iniciador_id"),
+        )
+        .filter(
+            IniciadorRuta.relevamiento_id.isnot(None),
+            IniciadorRuta.tipo_iniciador == "RELEVAMIENTO",
+            IniciadorRuta.estado_iniciador.in_(ESTADOS_BANDEJA_PROCESADOS),
+            IniciadorRuta.deleted_at.is_(None),
+        )
+        .group_by(IniciadorRuta.relevamiento_id)
+        .subquery()
+    )
+
+    query = (
+        db.session.query(Relevamiento, IniciadorRuta)
+        .join(procesados_subq, procesados_subq.c.relevamiento_id == Relevamiento.id)
+        .join(IniciadorRuta, IniciadorRuta.id == procesados_subq.c.iniciador_id)
+        .filter(Relevamiento.deleted_at.is_(None))
+    )
+
+    query = _apply_common_filters(query, filters)
+
+    total = query.count()
+    query = query.order_by(Relevamiento.id.desc())
+    offset = (filters.page - 1) * filters.page_size
+    rows = (
+        query.options(*_relevamiento_gestion_list_query_options())
+        .offset(offset)
+        .limit(filters.page_size)
+        .all()
+    )
+
+    iniciador_ids = [int(ini.id) for _, ini in rows]
+    cierre_map = fetch_ultimo_cierre_por_iniciador(iniciador_ids)
+    items_dto = [
+        enrich_row_procesados_bandeja(
+            relevamiento_to_row(rel),
+            ini,
+            cierre_map.get(int(ini.id)),
+        )
+        for rel, ini in rows
+    ]
+
+    return {
+        "items": items_dto,
         "meta": _build_list_meta(filters, total),
     }
 

@@ -34,6 +34,11 @@ from app.domains.rutas_trabajo.services.anular_iniciador_por_origen_service impo
 from app.domains.rutas_trabajo.services.iniciador_policy_service import (
     priority_for_tipo,
 )
+from app.domains.iniciadores.presenters.procesados_bandeja_presenter import enrich_row_procesados_bandeja
+from app.domains.iniciadores.services.procesados_cierre_context_service import (
+    fetch_ultimo_cierre_por_iniciador,
+)
+from app.domains.iniciadores.utils.procesados_bandeja import ESTADOS_BANDEJA_PROCESADOS
 from app.utils.iniciador_estado import es_estado_iniciador_pendiente, normalize_estado_iniciador
 
 logger = logging.getLogger(__name__)
@@ -356,6 +361,73 @@ def listar_denuncias_gestion_operativa(filters: DenunciasGestionFilters) -> dict
             "desde": filters.desde.isoformat() if filters.desde else None,
             "hasta": filters.hasta.isoformat() if filters.hasta else None,
             "estado": "operativas_pendientes",
+        },
+    }
+
+
+def listar_denuncias_gestion_procesadas(filters: DenunciasGestionFilters) -> dict:
+    """
+    Bandeja Procesados: denuncias con iniciador DENUNCIA en estado terminal de cierre.
+
+    Fila determinística: iniciador DENUNCIA terminal de mayor ``id`` por ``denuncia_id``.
+    No usa ``denuncia.estado`` como criterio principal.
+    """
+    procesados_subq = (
+        db.session.query(
+            IniciadorRuta.denuncia_id.label("denuncia_id"),
+            func.max(IniciadorRuta.id).label("iniciador_id"),
+        )
+        .filter(
+            IniciadorRuta.denuncia_id.isnot(None),
+            IniciadorRuta.tipo_iniciador == "DENUNCIA",
+            IniciadorRuta.estado_iniciador.in_(ESTADOS_BANDEJA_PROCESADOS),
+            IniciadorRuta.deleted_at.is_(None),
+        )
+        .group_by(IniciadorRuta.denuncia_id)
+        .subquery()
+    )
+
+    query = (
+        db.session.query(Denuncia, IniciadorRuta)
+        .join(procesados_subq, procesados_subq.c.denuncia_id == Denuncia.id)
+        .join(IniciadorRuta, IniciadorRuta.id == procesados_subq.c.iniciador_id)
+        .filter(Denuncia.deleted_at.is_(None))
+    )
+
+    if filters.desde:
+        query = query.filter(Denuncia.fecha >= filters.desde)
+    if filters.hasta:
+        query = query.filter(Denuncia.fecha <= filters.hasta)
+
+    total = query.count()
+    offset = (filters.page - 1) * filters.page_size
+    rows = (
+        query.order_by(Denuncia.id.desc())
+        .offset(offset)
+        .limit(filters.page_size)
+        .all()
+    )
+
+    iniciador_ids = [int(ini.id) for _, ini in rows]
+    cierre_map = fetch_ultimo_cierre_por_iniciador(iniciador_ids)
+    items = [
+        enrich_row_procesados_bandeja(
+            _denuncia_to_gestion_row(d, ini, bandeja_operativa=False),
+            ini,
+            cierre_map.get(int(ini.id)),
+        )
+        for d, ini in rows
+    ]
+
+    return {
+        "items": items,
+        "meta": {
+            "total": total,
+            "page": filters.page,
+            "page_size": filters.page_size,
+            "desde": filters.desde.isoformat() if filters.desde else None,
+            "hasta": filters.hasta.isoformat() if filters.hasta else None,
+            "estado": "procesadas",
         },
     }
 

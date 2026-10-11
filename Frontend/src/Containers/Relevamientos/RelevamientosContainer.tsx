@@ -1,10 +1,12 @@
 import type { JSX } from "react";
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { Alert, Box, Paper, Tab, Tabs, Typography } from "@mui/material";
 import TablaRelevamientos from "./Components/TableRelevamientos";
 import FiltroRelevamientos from "./Components/FiltroRelevamientos";
 import { useRelevamientosBandeja } from "./hooks/useRelevamientosBandeja";
 import type { RelevamientosBandejaSlice } from "./hooks/useRelevamientosBandeja";
+import { resultadoProcesadoMrtColumn } from "./utils/resultadoProcesadoColumn";
+import type { IRelevamientoListItem } from "../../api/relevamientosListApi";
 import {
   moduleContentColumnSx,
   metaInfoStyles,
@@ -44,6 +46,11 @@ const RelevamientosContainer = (): JSX.Element => {
     [buscar]
   );
 
+  const procesadosExtraColumns = useMemo(
+    () => [resultadoProcesadoMrtColumn<IRelevamientoListItem>()],
+    []
+  );
+
   const handleRefresh = useCallback(() => {
     if (!meta?.desde || !meta?.hasta) return;
     void buscar({
@@ -72,7 +79,7 @@ const RelevamientosContainer = (): JSX.Element => {
           sx={glassSecondaryTabsSx}
         >
           <Tab label="Pendientes" value="pendientes" />
-          <Tab label="Realizados" value="realizados" />
+          <Tab label="Procesados" value="procesados" />
         </Tabs>
       </Paper>
 
@@ -82,7 +89,7 @@ const RelevamientosContainer = (): JSX.Element => {
       >
         {slice === "pendientes"
           ? "Solo relevamientos con iniciador pendiente (editables)."
-          : "Relevamientos con actuación completada en ruta (CUMPLIDO); solo lectura en esta vista."}
+          : "Relevamientos ya cerrados (realizados, no existe local u otros cierres terminales); solo lectura."}
       </Typography>
 
       {error && hasSearched && (
@@ -141,15 +148,24 @@ const RelevamientosContainer = (): JSX.Element => {
         </Box>
       )}
 
-      {hasSearched && (
+      {hasSearched && !loading && meta?.total === 0 && (
+        <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary }}>
+          {slice === "procesados"
+            ? "No hay relevamientos procesados."
+            : "No hay relevamientos pendientes en el rango seleccionado."}
+        </Typography>
+      )}
+
+      {hasSearched && ((meta?.total ?? 0) > 0 || loading) && (
         <TablaRelevamientos
           data={relevamientos}
           loading={loading}
           onRefresh={handleRefresh}
           numeroAllowFreeSolo
           enableEditing={slice === "pendientes"}
-          hideRowActions={slice === "realizados"}
-          hideDeleteAction={slice === "realizados"}
+          hideRowActions={slice === "procesados"}
+          hideDeleteAction={slice === "procesados"}
+          extraColumns={slice === "procesados" ? procesadosExtraColumns : []}
         />
       )}
     </Box>

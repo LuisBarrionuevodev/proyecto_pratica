@@ -29,13 +29,15 @@ import {
   DARK_TABLE_CONFIG,
 } from "../../Actuaciones/styles/actuacionesTableStyles";
 import { BandejaTableSpinner } from "../../../components/dataTable/bandejaTableLoading";
+import { resultadoProcesadoMrtColumn } from "../utils/resultadoProcesadoColumn";
 
 interface TablaDenunciasProps {
   data?: IDenunciaGestionItem[];
   loading?: boolean;
   onRefresh?: () => void;
-  /** En realizados la tabla es solo lectura (sin acciones de edición/borrado). */
+  /** Bandeja Procesados: sin edición/borrado; detalle (ver) permitido. */
   readOnly?: boolean;
+  showResultadoProcesado?: boolean;
 }
 
 function denunciaCellText(value: unknown): string {
@@ -48,6 +50,7 @@ const TablaDenuncias = ({
   loading: externalLoading,
   onRefresh,
   readOnly = false,
+  showResultadoProcesado = false,
 }: TablaDenunciasProps) => {
   const feedback = useAppFeedback();
   const [data, setData] = useState<IDenunciaGestionItem[]>(externalData || []);
@@ -153,6 +156,7 @@ const TablaDenuncias = ({
 
   const columns = useMemo<MRT_ColumnDef<IDenunciaGestionItem>[]>(
     () => [
+      ...(showResultadoProcesado ? [resultadoProcesadoMrtColumn<IDenunciaGestionItem>()] : []),
       { accessorKey: "id", header: "ID", enableHiding: true, size: 80 },
       {
         accessorKey: "fecha",
@@ -185,7 +189,7 @@ const TablaDenuncias = ({
         Cell: ({ cell }) => <BandejaEllipsisCell value={denunciaCellText(cell.getValue())} />,
       },
     ],
-    []
+    [showResultadoProcesado]
   );
 
   const table = useMaterialReactTable({
@@ -197,7 +201,7 @@ const TablaDenuncias = ({
     enableSorting: true,
     enableColumnFilters: true,
     enableGlobalFilter: true,
-    enableRowActions: !readOnly,
+    enableRowActions: true,
     positionActionsColumn: "first",
     initialState: {
       density: "compact",
@@ -205,37 +209,37 @@ const TablaDenuncias = ({
         id: false,
       },
     },
-    renderRowActions: readOnly
-      ? undefined
-      : ({ row }) => (
-          <Box sx={{ display: "flex", gap: "0.5rem" }}>
-            <Tooltip title="Ver">
-              <IconButton
-                sx={{
-                  color: COLORS.white,
-                  transition: "color 0.2s ease, background-color 0.2s ease",
-                  "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
-                }}
-                onClick={() => openCrudView(row.original)}
-              >
-                <VisibilityIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title={row.original.editable === false ? "No eliminable (fuera de gestión operativa)" : "Eliminar"}>
-              <IconButton
-                sx={{
-                  color: COLORS.white,
-                  transition: "color 0.2s ease, background-color 0.2s ease",
-                  "&:hover": { color: "#ff4444", backgroundColor: "rgba(255, 68, 68, 0.15)" },
-                }}
-                disabled={row.original.editable === false}
-                onClick={() => requestDeleteRow(row.original)}
-              >
-                <DeleteIcon fontSize="small" />
-              </IconButton>
-            </Tooltip>
-          </Box>
-        ),
+    renderRowActions: ({ row }) => (
+      <Box sx={{ display: "flex", gap: "0.5rem" }}>
+        <Tooltip title="Ver">
+          <IconButton
+            sx={{
+              color: COLORS.white,
+              transition: "color 0.2s ease, background-color 0.2s ease",
+              "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
+            }}
+            onClick={() => openCrudView(row.original)}
+          >
+            <VisibilityIcon fontSize="small" />
+          </IconButton>
+        </Tooltip>
+        {!readOnly ? (
+          <Tooltip title={row.original.editable === false ? "No eliminable (fuera de gestión operativa)" : "Eliminar"}>
+            <IconButton
+              sx={{
+                color: COLORS.white,
+                transition: "color 0.2s ease, background-color 0.2s ease",
+                "&:hover": { color: "#ff4444", backgroundColor: "rgba(255, 68, 68, 0.15)" },
+              }}
+              disabled={row.original.editable === false}
+              onClick={() => requestDeleteRow(row.original)}
+            >
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Tooltip>
+        ) : null}
+      </Box>
+    ),
   });
 
   if (loading) {

@@ -18,6 +18,7 @@ from app.domains.denuncias.services.denuncias_service import (
     crear_denuncia_con_iniciador,
     eliminar_denuncia_logicamente,
     listar_denuncias_gestion_operativa,
+    listar_denuncias_gestion_procesadas,
     listar_denuncias_gestion,
     listar_denuncias,
 )
@@ -83,6 +84,26 @@ def list_denuncias_gestion_route():
 
         filters = DenunciasGestionFilters.model_validate(params)
         return jsonify(listar_denuncias_gestion(filters)), 200
+    except ValidationError as e:
+        return jsonify({"detail": "Validation error", "errors": e.errors()}), 422
+    except ValueError as e:
+        msg = str(e)
+        status = 403 if "no autorizado" in msg.lower() else 400
+        return jsonify({"detail": msg}), status
+
+
+@denuncias_api.get("/api/denuncias/gestion-procesados")
+def list_denuncias_gestion_procesados_route():
+    try:
+        raw_params = request.args.to_dict()
+        params = {k: (v if v else None) for k, v in raw_params.items()}
+        if "page" in params and params["page"]:
+            params["page"] = int(params["page"])
+        if "page_size" in params and params["page_size"]:
+            params["page_size"] = int(params["page_size"])
+
+        filters = DenunciasGestionFilters.model_validate(params)
+        return jsonify(listar_denuncias_gestion_procesadas(filters)), 200
     except ValidationError as e:
         return jsonify({"detail": "Validation error", "errors": e.errors()}), 422
     except ValueError as e:

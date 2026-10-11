@@ -42,6 +42,13 @@ export interface IRelevamientoListItem {
   distrito_codigo?: number | null;
   distrito_nombre?: string | null;
   distrito_mostrar?: string | null;
+  /** Bandeja Procesados (iniciador terminal). */
+  resultado_codigo?: string | null;
+  resultado_label?: string | null;
+  contraproducencia?: string | null;
+  motivo_no_realizado?: string | null;
+  fecha_cierre?: string | null;
+  ejecutado_at?: string | null;
 }
 
 export interface IRelevamientosListMeta {
@@ -103,9 +110,21 @@ export const getRelevamientosFiltered = async (
   return data;
 };
 
+/** Bandeja Procesados: cierres terminales vía iniciador_ruta (CUMPLIDO, NO EXISTE LOCAL, etc.). */
+export const getRelevamientosProcesadosFiltered = async (
+  filters?: IRelevamientosListFilters
+): Promise<IRelevamientosListResponse> => {
+  const params: Record<string, string> = {};
+  appendRelevamientosListParams(params, filters);
+
+  const { data } = await apiClient.get<IRelevamientosListResponse>("/relevamientos/procesados", {
+    params,
+  });
+  return data;
+};
+
 /**
- * Bandeja "Realizados": relevamientos con iniciador RELEVAMIENTO en CUMPLIDO y actuación vinculada
- * (cierre exitoso vía Completar trabajo).
+ * Legacy: solo CUMPLIDO (otros consumidores). Gestión usa ``getRelevamientosProcesadosFiltered``.
  */
 export const getRelevamientosRealizadosActuacionCompletadaFiltered = async (
   filters?: IRelevamientosListFilters

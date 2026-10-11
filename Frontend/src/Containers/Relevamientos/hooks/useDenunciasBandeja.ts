@@ -4,9 +4,9 @@ import type {
   IDenunciasGestionFilters,
   IDenunciasGestionMeta,
 } from "../../../api/denunciasApi";
-import { getDenunciasGestion, getDenunciasGestionOperativa } from "../../../api/denunciasApi";
+import { getDenunciasGestionOperativa, getDenunciasGestionProcesados } from "../../../api/denunciasApi";
 
-export type DenunciasBandejaSlice = "pendientes" | "realizados";
+export type DenunciasBandejaSlice = "pendientes" | "procesados";
 
 interface UseDenunciasBandeja {
   denuncias: IDenunciaGestionItem[];
@@ -20,7 +20,7 @@ interface UseDenunciasBandeja {
 
 /**
  * Pendientes: GET gestion-operativa (iniciador DENUNCIA pendiente).
- * Realizados: GET gestion con `estado` efectivo (hechas / no_hechas / all).
+ * Procesados: GET gestion-procesados (iniciador DENUNCIA terminal).
  */
 export const useDenunciasBandeja = (slice: DenunciasBandejaSlice): UseDenunciasBandeja => {
   const [denuncias, setDenuncias] = useState<IDenunciaGestionItem[]>([]);
@@ -35,26 +35,22 @@ export const useDenunciasBandeja = (slice: DenunciasBandejaSlice): UseDenunciasB
       setError(null);
       setHasSearched(true);
       try {
-        if (slice === "pendientes") {
-          const response = await getDenunciasGestionOperativa({
-            desde: filters.desde,
-            hasta: filters.hasta,
-            page: filters.page,
-            page_size: filters.page_size,
-          });
-          setDenuncias(response.items);
-          setMeta(response.meta);
-        } else {
-          const response = await getDenunciasGestion({
-            desde: filters.desde,
-            hasta: filters.hasta,
-            estado: filters.estado ?? "all",
-            page: filters.page,
-            page_size: filters.page_size,
-          });
-          setDenuncias(response.items);
-          setMeta(response.meta);
-        }
+        const response =
+          slice === "pendientes"
+            ? await getDenunciasGestionOperativa({
+                desde: filters.desde,
+                hasta: filters.hasta,
+                page: filters.page,
+                page_size: filters.page_size,
+              })
+            : await getDenunciasGestionProcesados({
+                desde: filters.desde,
+                hasta: filters.hasta,
+                page: filters.page,
+                page_size: filters.page_size,
+              });
+        setDenuncias(response.items);
+        setMeta(response.meta);
       } catch (err: any) {
         setError(err?.response?.data?.detail || "Error al cargar denuncias");
         setDenuncias([]);

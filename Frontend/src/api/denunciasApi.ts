@@ -43,6 +43,12 @@ export interface IDenunciaGestionItem {
   iniciador_ruta_id?: number | null;
   iniciador_estado?: string | null;
   editable?: boolean;
+  resultado_codigo?: string | null;
+  resultado_label?: string | null;
+  contraproducencia?: string | null;
+  motivo_no_realizado?: string | null;
+  fecha_cierre?: string | null;
+  ejecutado_at?: string | null;
 }
 
 export type DenunciaGestionUpdatePayload = Pick<
@@ -90,6 +96,21 @@ export const getDenunciasGestion = async (
   if (filters?.page_size) params.page_size = String(filters.page_size);
 
   const { data } = await apiClient.get<IDenunciasGestionResponse>("/api/denuncias/gestion", {
+    params,
+  });
+  return data;
+};
+
+export const getDenunciasGestionProcesados = async (
+  filters?: IDenunciasGestionFilters
+): Promise<IDenunciasGestionResponse> => {
+  const params: Record<string, string> = {};
+  if (filters?.desde) params.desde = filters.desde;
+  if (filters?.hasta) params.hasta = filters.hasta;
+  if (filters?.page) params.page = String(filters.page);
+  if (filters?.page_size) params.page_size = String(filters.page_size);
+
+  const { data } = await apiClient.get<IDenunciasGestionResponse>("/api/denuncias/gestion-procesados", {
     params,
   });
   return data;
