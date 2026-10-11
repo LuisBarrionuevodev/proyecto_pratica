@@ -806,3 +806,68 @@ describe("submitActuacionRow checklist inspección", () => {
     expect(putBody.items_acta_inspeccion).toEqual([]);
   });
 });
+
+describe("submitActuacionRow habilitación HOTFIX V1.1-CRUD-ACTUACIONES.1", () => {
+  const habCatalog = [
+    { id: 6, codigo: "TIENE_HABILITACION", nombre: "Habilitación", orden: 6, tipo_respuesta: "SI_NO" as const },
+    { id: 1, codigo: "TIENE_BANO", nombre: "Baño", orden: 1, tipo_respuesta: "ESTADO" as const },
+  ];
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+  });
+
+  it("checklist touched con NO envía valor_si_no false en PUT", async () => {
+    const original = {
+      ...baseRow,
+      items_acta_inspeccion: [{ id: 6, codigo: "TIENE_HABILITACION", valor_si_no: true }],
+    } as IActuacionListItem;
+
+    await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...original,
+        items_acta_inspeccion: [
+          { id: 6, codigo: "TIENE_HABILITACION", valor_si_no: false },
+        ],
+      },
+      originalRow: original,
+      inspeccionChecklistTouched: { items: true },
+      inspeccionChecklistCatalog: habCatalog,
+      skipValidation: true,
+      skipUpdate: false,
+    });
+
+    const putBody = mockedUpdateActuacion.mock.calls[0]![1] as Record<string, unknown>;
+    expect(putBody.items_acta_inspeccion).toEqual(
+      expect.arrayContaining([{ item_id: 6, valor_si_no: false }])
+    );
+  });
+
+  it("reinspección notificación con checklist touched no exige habilitación en cliente", async () => {
+    const original = {
+      ...baseRow,
+      tipo_actuacion: "REINSPECCION",
+      documentacion_contexto: { circuito: "REINSPECCION_NOTIFICACION", propia: {} },
+      items_acta_inspeccion: [{ id: 1, codigo: "TIENE_BANO", estado: "BIEN" }],
+    } as IActuacionListItem;
+
+    const result = await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...original,
+        items_acta_inspeccion: [{ id: 1, codigo: "TIENE_BANO", estado: "OBSERVADO" }],
+      },
+      originalRow: original,
+      inspeccionChecklistTouched: { items: true },
+      inspeccionChecklistCatalog: habCatalog,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    expect(result.ok).toBe(true);
+    expect(mockedUpdateActuacion).toHaveBeenCalledOnce();
+  });
+});

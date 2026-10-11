@@ -132,7 +132,12 @@ import {
   formatGestionRubroNombre,
   gestionContextoDisplayValue,
 } from "../utils/actuacionGestionContexto";
-import { ActuacionMediaGallery } from "../../../features/media/components/ActuacionMediaGallery";
+import {
+  ActuacionMediaGallery,
+  type ActuacionMediaGalleryHandle,
+} from "../../../features/media/components/ActuacionMediaGallery";
+import { ConfirmDialog } from "../../../ui";
+import { MEDIA_UPLOAD_ORIGIN_MIS_TRABAJOS } from "../../../features/media/mediaUploadOrigin";
 
 const documentacionTramiteChipModalSx = {
   ...docModalChipSx,
@@ -176,6 +181,8 @@ export type ActuacionSaveOptions = {
   oficioValidationContext?: ReinspeccionOficioValidationContextInput;
   inspeccionChecklistTouched?: { items?: boolean; carnets?: boolean };
   inspeccionChecklistCatalog?: IItemActaInspeccionCatalogItem[];
+  /** Mantiene el modal abierto tras PUT exitoso (p. ej. subida manual de fotos). */
+  deferDialogClose?: boolean;
 };
 
 export type ActuacionDetalleDialogProps = {
@@ -195,7 +202,10 @@ export type ActuacionDetalleDialogProps = {
   inspectorSelfService?: boolean;
   onClose: () => void;
   onDraftChange: (patch: Partial<IActuacionListItem>) => void;
-  onSave: (rowOverride?: IActuacionListItem, options?: ActuacionSaveOptions) => void | Promise<void>;
+  onSave: (
+    rowOverride?: IActuacionListItem,
+    options?: ActuacionSaveOptions
+  ) => void | Promise<void | boolean>;
   /** Solo tests SSR; evita portal de MUI Dialog. */
   disablePortal?: boolean;
   /** Solo tests: abrir directamente en edición. */
@@ -1023,6 +1033,8 @@ export function ActuacionDetalleDialog({
   const scrollContainerRef = useCrudDialogScrollContainer();
   const actaFlushRegistry = useRef<Set<() => void>>(new Set());
   const verificarInconsistentWarnedRef = useRef<number | string | null>(null);
+  const mediaGalleryRef = useRef<ActuacionMediaGalleryHandle | null>(null);
+  const [mediaDiscardConfirmOpen, setMediaDiscardConfirmOpen] = useState(false);
   const [isEditing, setIsEditing] = useState(initialEditing);
   const [photosOnlyMode, setPhotosOnlyMode] = useState(false);
   const [editBaseline, setEditBaseline] = useState<IActuacionListItem | null>(null);
@@ -1174,17 +1186,27 @@ export function ActuacionDetalleDialog({
   const muestraOficioResultadoEditable =
     isEditing && oficioFormCtx != null && editableFields.canEditResultadoOperativo;
 
-  const handleClose = useCallback(() => {
+  const tryCloseDialog = useCallback(() => {
     if (saving) return;
+    const gallery = mediaGalleryRef.current;
+    if (gallery?.isUploadInProgress()) return;
+    const pending = gallery?.pendingSaveCount() ?? 0;
+    if (formEditingActive && pending > 0) {
+      setMediaDiscardConfirmOpen(true);
+      return;
+    }
     onClose();
-  }, [saving, onClose]);
+  }, [formEditingActive, onClose, saving]);
+
+  const handleClose = useCallback(() => {
+    tryCloseDialog();
+  }, [tryCloseDialog]);
 
   const handleDialogClose = useCallback(
     (_event: unknown, _reason: string) => {
-      if (saving) return;
-      onClose();
+      tryCloseDialog();
     },
-    [saving, onClose]
+    [tryCloseDialog]
   );
 
   const handlePrint = useCallback(() => {
@@ -1312,7 +1334,7 @@ export function ActuacionDetalleDialog({
     }
     setSeguimientoFieldErrors({});
 
-    await onSave(rowForSubmit, {
+    const putOk = await onSave(rowForSubmit, {
       oficioCorrectionApplied,
       actasClearedByOficioCorrection,
       oficioValidationContext:
@@ -1327,7 +1349,15 @@ export function ActuacionDetalleDialog({
         carnets: personasSinCarnetTouchedRef.current,
       },
       inspeccionChecklistCatalog: catalogs.itemsActaInspeccion ?? [],
+      deferDialogClose: true,
     });
+    if (putOk === false) return;
+
+    const gallery = mediaGalleryRef.current;
+    if (gallery && gallery.pendingSaveCount() > 0) {
+      await gallery.saveQueuedPhotos();
+    }
+    onClose();
   }, [
     draft,
     editBaseline,
@@ -1335,6 +1365,7 @@ export function ActuacionDetalleDialog({
     feedback,
     oficioForm,
     onDraftChange,
+    onClose,
     onSave,
   ]);
 
@@ -2335,9 +2366,12 @@ export function ActuacionDetalleDialog({
         </Box>
         <DocumentalBloque overline="Fotos del trabajo">
           <ActuacionMediaGallery
+            ref={mediaGalleryRef}
             rutaItemId={draft.ruta_item_id}
             readOnly={mediaReadOnly}
             hideTitle
+            manualSave={formEditingActive}
+            uploadOrigin={MEDIA_UPLOAD_ORIGIN_MIS_TRABAJOS}
           />
         </DocumentalBloque>
         {detailLoading ? (
@@ -2357,6 +2391,20 @@ export function ActuacionDetalleDialog({
           </Box>
         ) : null}
       </Box>
+      <ConfirmDialog
+        open={mediaDiscardConfirmOpen}
+        onClose={() => setMediaDiscardConfirmOpen(false)}
+        onConfirm={() => {
+          mediaGalleryRef.current?.discardLocalQueue();
+          setMediaDiscardConfirmOpen(false);
+          onClose();
+        }}
+        title="¿Salir sin guardar las fotos seleccionadas?"
+        confirmLabel="Salir sin guardar"
+        cancelLabel="Seguir editando"
+      >
+        Las fotos elegidas todavía no se subieron.
+      </ConfirmDialog>
     </CrudGlassDialog>
   );
 }

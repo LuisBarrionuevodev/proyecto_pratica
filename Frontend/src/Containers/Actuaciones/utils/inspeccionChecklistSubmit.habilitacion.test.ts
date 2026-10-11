@@ -43,4 +43,11 @@ describe("validateTieneHabilitacionObligatoria", () => {
       ])
     );
   });
+
+  it("itemsActaInspeccionWriteFromEstados incluye NO como valor_si_no false", () => {
+    const estados = { 6: "NO" } as Record<number, "NO">;
+    expect(itemsActaInspeccionWriteFromEstados(estados, catalog)).toEqual([
+      { item_id: 6, valor_si_no: false },
+    ]);
+  });
 });

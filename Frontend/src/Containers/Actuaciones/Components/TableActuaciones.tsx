@@ -292,9 +292,9 @@ const TablaActuaciones = ({
     async (
       rowOverride?: IActuacionListItem,
       options?: ActuacionSaveOptions
-    ) => {
+    ): Promise<boolean> => {
       const row = rowOverride ?? editDraft;
-      if (!row) return;
+      if (!row) return false;
       const id = Number(row.id);
       setEditSaving(true);
       try {
@@ -306,6 +306,7 @@ const TablaActuaciones = ({
           actasClearedByOficioCorrection: options?.actasClearedByOficioCorrection ?? [],
           oficioValidationContext: options?.oficioValidationContext,
           inspeccionChecklistTouched: options?.inspeccionChecklistTouched,
+          inspeccionChecklistCatalog: options?.inspeccionChecklistCatalog,
           skipValidation,
           skipUpdate,
           onBeforeSave,
@@ -319,10 +320,10 @@ const TablaActuaciones = ({
           if (result.kind === "validation" || result.kind === "backend_fields") {
             setRowErrors((prev) => ({ ...prev, [id]: result.fieldErrors }));
             notifyActuacionSaveResult(result, feedback);
-            return;
+            return false;
           }
           notifyActuacionSaveResult(result, feedback);
-          return;
+          return false;
         }
 
         notifyActuacionSaveResult(result, feedback);
@@ -331,10 +332,15 @@ const TablaActuaciones = ({
             stripActuacionRowForListStorage(prepareActuacionGestionModalRow(result.updatedRow))
           );
         }
-        setEditDraft(null);
-        setEditOriginalRow(null);
         triggerRefresh();
         setTimeout(() => onRefresh?.(), 100);
+        if (!options?.deferDialogClose) {
+          setEditDraft(null);
+          setEditOriginalRow(null);
+        }
+        return true;
+      } catch {
+        return false;
       } finally {
         setEditSaving(false);
       }

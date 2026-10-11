@@ -2,8 +2,10 @@
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { describe, expect, it, vi, beforeEach } from "vitest";
 import { renderToStaticMarkup } from "react-dom/server";
+import { postMediaUploadIntent } from "../../api/mediaApi";
 import { ActuacionMediaGallery } from "./components/ActuacionMediaGallery";
 import { MEDIA_RUTA_ITEM_GALLERIES } from "./mediaConstants";
+import { uploadQueuedFilesWithConcurrency } from "./mediaUploadPipeline";
 
 const theme = createTheme();
 
@@ -82,5 +84,25 @@ describe("ActuacionMediaGallery MEDIA.1B", () => {
       </ThemeProvider>
     );
     expect(html).not.toContain("Seleccionar archivos");
+  });
+
+  it("manualSave no dispara upload-intent al simular microtask post-add", async () => {
+    const manualSave = true;
+    const runAutoUploadAfterAdd = async () => {
+      await uploadQueuedFilesWithConcurrency({} as never);
+    };
+    const simulateHandleAddFiles = () => {
+      if (!manualSave) {
+        queueMicrotask(() => {
+          void runAutoUploadAfterAdd();
+        });
+      }
+    };
+
+    simulateHandleAddFiles();
+    await new Promise<void>((resolve) => queueMicrotask(() => resolve()));
+
+    expect(vi.mocked(uploadQueuedFilesWithConcurrency)).not.toHaveBeenCalled();
+    expect(vi.mocked(postMediaUploadIntent)).not.toHaveBeenCalled();
   });
 });

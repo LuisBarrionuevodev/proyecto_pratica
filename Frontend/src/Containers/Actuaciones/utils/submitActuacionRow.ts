@@ -343,7 +343,13 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     const checklistTouched = inspeccionChecklistTouched?.items === true;
     const tieneInspeccion = Boolean(String(rowForValidation.acta_inspeccion_num ?? "").trim());
     const sinContra = !String(rowForValidation.contraproducencia ?? "").trim();
-    if (sinContra && tieneInspeccion && checklistTouched && catalog.length > 0) {
+    if (
+      sinContra &&
+      tieneInspeccion &&
+      checklistTouched &&
+      catalog.length > 0 &&
+      !omiteIdentidadOperativaRow(rowForValidation)
+    ) {
       const habMsg = validateTieneHabilitacionObligatoria(
         estadosMapFromRow(rowForValidation, catalog),
         catalog
