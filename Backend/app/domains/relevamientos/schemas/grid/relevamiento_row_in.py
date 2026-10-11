@@ -16,6 +16,7 @@ from pydantic import (
 )
 
 from app.database import db
+from app.domains.relevamientos.utils.relevador_display import relevador_nombres_equivalentes
 from app.models import Relevador, Rubro
 from app.domains.relevamientos.utils.relevamiento_campos_normalizers import (
     NOMBRE_FANTASIA_MAX_LEN,
@@ -333,13 +334,16 @@ class RelevamientoGridRowIn(BaseModel):
                 field_errors["relevador_ids"] = f"Relevador inactivo: {row[0]}."
         elif nombres:
             seen_norm: set[str] = set()
+            catalog_rows = db.session.query(Relevador.nombre, Relevador.activo).all()
             for nombre in nombres:
                 norm = _upper_norm(nombre)
-                row = (
-                    db.session.query(Relevador.nombre, Relevador.activo)
-                    .filter(func.replace(func.upper(Relevador.nombre), "_", " ") == norm)
-                    .limit(1)
-                    .first()
+                row = next(
+                    (
+                        r
+                        for r in catalog_rows
+                        if _upper_norm(r[0]) == norm or relevador_nombres_equivalentes(r[0], nombre)
+                    ),
+                    None,
                 )
                 if row is None:
                     field_errors["relevador"] = f"Relevador inválido: {nombre}."

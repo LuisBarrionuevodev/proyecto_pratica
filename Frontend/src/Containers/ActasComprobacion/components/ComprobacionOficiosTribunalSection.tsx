@@ -8,7 +8,12 @@ import type {
   IJuzgadoCatalogItem,
   OficioComprobacionItem,
 } from "../../../api/actuacionesPendientesApi";
-import { documentalGlassAlertSx, docModalEmptyStateSx } from "../../../styles/documentalModalTokens";
+import {
+  comprobacionOficioOperativoCardSx,
+  documentalGlassAlertSx,
+  docModalEmptyStateSx,
+  docModalCaptionSx,
+} from "../../../styles/documentalModalTokens";
 import { AppButton } from "../../../ui";
 import { humanizarEstadoIniciador } from "../utils/documentalLabelFormat";
 import {
@@ -81,7 +86,7 @@ function OficioComprobacionDetalleLectura({ item }: { item: OficioComprobacionIt
       <DocumentalFila etiqueta="Juzgado" valor={textoValor(item.tribunal)} />
       {!oficioComprobacionTieneBloqueCompleto(item) ? (
         <Box sx={{ gridColumn: "1 / -1" }}>
-          <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)" }}>
+          <Typography variant="caption" sx={docModalCaptionSx}>
             Expediente de respuesta no disponible en el listado.
           </Typography>
         </Box>
@@ -144,22 +149,10 @@ const OficioComprobacionCard = memo(function OficioComprobacionCard({
           onSelect();
         }
       }}
-      sx={{
-        cursor: "pointer",
-        borderRadius: 1.5,
-        px: 1.5,
-        py: 1.25,
-        border: selected ? "1px solid rgba(255,255,255,0.35)" : "1px solid rgba(255,255,255,0.1)",
-        backgroundColor: selected ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)",
-        transition: "border-color 0.15s, background-color 0.15s",
-        "&:hover": {
-          borderColor: "rgba(255,255,255,0.22)",
-          backgroundColor: "rgba(255,255,255,0.06)",
-        },
-      }}
+      sx={comprobacionOficioOperativoCardSx(selected)}
     >
       <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-        <Typography variant="body2" fontWeight={600} sx={{ color: "rgba(255,255,255,0.92)" }}>
+        <Typography variant="body2" fontWeight={600}>
           {oficioComprobacionEtiquetaCompacta(item)}
         </Typography>
         {chips.length > 0
@@ -184,7 +177,7 @@ const OficioComprobacionCard = memo(function OficioComprobacionCard({
             ) : null}
       </Stack>
       {subtitulo && chips.length === 0 && !item.iniciador_estado ? (
-        <Typography variant="caption" sx={{ color: "rgba(255,255,255,0.55)", display: "block", mt: 0.5 }}>
+        <Typography variant="caption" sx={{ ...docModalCaptionSx, display: "block", mt: 0.5 }}>
           {subtitulo}
         </Typography>
       ) : null}

@@ -31,6 +31,7 @@ from app.domains.catalogos.seeds.catalog_matchers import (
     exists_rubro,
 )
 from app.domains.grid.seeds.inspectores_canonicos import INSPECTORES_CANONICO
+from app.domains.relevamientos.utils.relevador_display import relevador_nombres_equivalentes
 from app.models import (
     CatalogContraproducencia,
     CatalogMotivoComprobacion,
@@ -67,8 +68,9 @@ def validate_canonical_catalogs(session: Session) -> dict[str, bool]:
         if not exists_rubro(session, nombre, index=rubro_index):
             missing.append(f"rubro:{nombre}")
 
+    relevadores_db = session.query(Relevador.nombre).all()
     for nombre in RELEVADORES_CANONICOS:
-        if not exists_nombre_catalog(session, Relevador, nombre):
+        if not any(relevador_nombres_equivalentes(row[0], nombre) for row in relevadores_db):
             missing.append(f"relevador:{nombre}")
 
     for codigo, nombre in JUZGADOS_CANONICOS:

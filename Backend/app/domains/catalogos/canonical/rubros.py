@@ -1,4 +1,4 @@
-"""29 rubros aprobados — revisión catalogos_digitaliza_revision.xlsx."""
+"""Rubros aprobados — revisión catalogos_digitaliza_revision.xlsx (+ V1.1-CATALOGOS-UX.1)."""
 
 from __future__ import annotations
 
@@ -32,4 +32,12 @@ RUBROS_CANONICOS: tuple[str, ...] = (
     "Comedor",
     "Licorería",
     "Minimercado",
+    "Hotel",
+    "Chacinados",
+    "Huevería",
+    "Bebidas",
+    "Ventas por mayor",
+    "Parrillada",
+    "Forrajería",
+    "Achuras",
 )

@@ -28,7 +28,11 @@ import {
   fetchRubrosCatalogoCached,
   rubroItemsToNombres,
 } from "../../../utils/rubrosCatalogCache";
-import { ValidationErrorsRail, type ValidationRailEntry } from "./ValidationErrorsRail";
+import {
+  ValidationErrorsRail,
+  validationRailHasContent,
+  type ValidationRailEntry,
+} from "./ValidationErrorsRail";
 
 import { titleStyles } from "../../CargarActuaciones/styles/cargarActuacionesStyles";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
@@ -761,6 +765,7 @@ const TablaCargarRelevamientosGlideStyled = ({
   }, [focusGridCell, replaceGridRows]);
   const rowsWithData = data.filter(rowHasData);
   const validationRailEntries = useMemo(() => buildValidationRailEntries(data), [data]);
+  const showValidationRail = validationRailHasContent(globalError, validationRailEntries);
 
   const tableHeight = useMemo(() => calculateRelevamientoTableHeight(data.length), [data.length]);
   const overlayBusy = isValidatingAll || isCommitting;
@@ -771,8 +776,8 @@ const TablaCargarRelevamientosGlideStyled = ({
       <Box
         sx={{
           ...wrapperStyles,
-          flexDirection: { xs: "column", lg: "row" },
-          alignItems: "flex-start",
+          flexDirection: "column",
+          alignItems: "stretch",
         }}
       >
         <Box
@@ -941,15 +946,17 @@ const TablaCargarRelevamientosGlideStyled = ({
             />
           </Box>
 
+          {showValidationRail ? (
+            <ValidationErrorsRail
+              globalError={globalError}
+              onDismissGlobal={() => setGlobalError(null)}
+              entries={validationRailEntries}
+              showEmptyHint={false}
+              onGoToRow={focusRowInGrid}
+              sx={{ width: "100%", maxWidth: "100%", alignSelf: "stretch" }}
+            />
+          ) : null}
         </Box>
-
-        <ValidationErrorsRail
-          globalError={globalError}
-          onDismissGlobal={() => setGlobalError(null)}
-          entries={validationRailEntries}
-          showEmptyHint={Boolean(batchId)}
-          onGoToRow={focusRowInGrid}
-        />
       </Box>
     </Box>
   );

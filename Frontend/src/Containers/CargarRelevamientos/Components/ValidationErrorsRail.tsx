@@ -25,6 +25,13 @@ type ValidationErrorsRailProps = {
  * Panel lateral de validación: errores globales de API y detalle por fila.
  * Scroll propio; no forma parte del flujo vertical que empuja la grilla Glide.
  */
+export function validationRailHasContent(
+  globalError: string | null,
+  entries: ValidationRailEntry[]
+): boolean {
+  return Boolean(globalError?.trim()) || entries.length > 0;
+}
+
 export function ValidationErrorsRail({
   globalError,
   onDismissGlobal,

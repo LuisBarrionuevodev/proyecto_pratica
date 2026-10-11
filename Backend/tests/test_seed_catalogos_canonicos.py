@@ -8,6 +8,7 @@ from pathlib import Path
 
 import pytest
 
+from app.domains.catalogos.canonical.normalize import normalize_ai_ci_identity
 from app.domains.catalogos.canonical.juzgados import JUZGADOS_CANONICOS
 from app.domains.catalogos.canonical.items_inspeccion import ITEMS_INSPECCION_CANONICOS
 from app.domains.catalogos.canonical.manifest import CATALOG_VERSION, EXPECTED_COUNTS
@@ -24,8 +25,35 @@ from app.models import JuzgadoCatalogo, Rubro
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 
 
-def test_i_manifest_rubros_29():
+def test_i_manifest_rubros_count():
     assert len(RUBROS_CANONICOS) == EXPECTED_COUNTS["rubros"]
+
+
+def test_rubros_canonicos_incluye_v1_1_ux(app):
+    nuevos = (
+        "Hotel",
+        "Chacinados",
+        "Huevería",
+        "Bebidas",
+        "Ventas por mayor",
+        "Parrillada",
+        "Forrajería",
+        "Achuras",
+    )
+    for nombre in nuevos:
+        assert nombre in RUBROS_CANONICOS
+
+
+def test_seed_rubros_nuevos_idempotente(app):
+    from app.database import db
+
+    with app.app_context():
+        run_canonical_catalog_seed(db.session, dry_run=False)
+        ids = {normalize_ai_ci_identity(r.nombre) for r in Rubro.query.all()}
+        for nombre in ("Hotel", "Huevería", "Achuras"):
+            assert normalize_ai_ci_identity(nombre) in ids
+        second = run_canonical_catalog_seed(db.session, dry_run=False)
+        assert sum(m["created"] for m in second.catalogs.values()) == 0
 
 
 def test_h_relevadores_10():

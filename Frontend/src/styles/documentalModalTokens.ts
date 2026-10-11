@@ -175,14 +175,50 @@ export function docModalActuacionScrollCardShellSx(borderAccent: string): SxProp
   };
 }
 
-/** Alertas dentro de `AppDialog` glass: texto legible y menos contraste brusco con el fondo. */
-export const documentalGlassAlertSx: SxProps<Theme> = {
-  bgcolor: "rgba(0,0,0,0.28)",
-  color: DOC_MODAL_TEXT,
-  border: "1px solid rgba(255,255,255,0.12)",
-  "& .MuiAlert-message": { color: DOC_MODAL_TEXT },
-  "& .MuiAlert-icon": { color: "rgba(255,255,255,0.9)" },
-};
+/** Alertas dentro de `AppDialog` glass: legibles en claro y oscuro. */
+export const documentalGlassAlertSx: SxProps<Theme> = (theme) => ({
+  bgcolor:
+    theme.palette.mode === "dark" ? "rgba(0,0,0,0.28)" : theme.palette.action.hover,
+  color: theme.palette.text.primary,
+  border: `1px solid ${theme.palette.divider}`,
+  "& .MuiAlert-message": { color: theme.palette.text.primary },
+  "& .MuiAlert-icon": {
+    color: theme.palette.mode === "dark" ? "rgba(255,255,255,0.9)" : theme.palette.warning.dark,
+  },
+});
+
+/** Card seleccionable de oficio en Comprobación (lista tribunal). */
+export function comprobacionOficioOperativoCardSx(selected: boolean): SxProps<Theme> {
+  return (theme) => ({
+    cursor: "pointer",
+    borderRadius: 1.5,
+    px: 1.5,
+    py: 1.25,
+    border: selected
+      ? `1px solid ${theme.palette.primary.main}`
+      : `1px solid ${theme.palette.divider}`,
+    backgroundColor: selected ? theme.palette.action.selected : theme.palette.background.paper,
+    color: theme.palette.text.primary,
+    transition: "border-color 0.15s, background-color 0.15s",
+    "&:hover": {
+      borderColor: theme.palette.primary.light,
+      backgroundColor: theme.palette.action.hover,
+    },
+    "& .MuiTypography-root": {
+      color: theme.palette.text.primary,
+    },
+    "& .MuiChip-root": {
+      borderColor: theme.palette.divider,
+      color: theme.palette.text.primary,
+    },
+    "& .MuiChip-colorWarning": {
+      borderColor: theme.palette.warning.main,
+      color: theme.palette.warning.dark,
+      backgroundColor:
+        theme.palette.mode === "dark" ? "rgba(234, 179, 8, 0.12)" : theme.palette.warning.light,
+    },
+  });
+}
 
 /** Advertencia inline/toast: acento amarillo institucional sobre fondo glass. */
 export const documentalGlassWarningAlertSx: SxProps<Theme> = {

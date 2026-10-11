@@ -23,6 +23,10 @@ from app.domains.catalogos.canonical.motivos import (
 )
 from app.domains.catalogos.canonical.normalize import normalize_catalog_display, normalize_catalog_key
 from app.domains.catalogos.canonical.relevadores import RELEVADORES_CANONICOS
+from app.domains.relevamientos.utils.relevador_display import (
+    relevador_etiqueta_catalogo,
+    relevador_nombres_equivalentes,
+)
 from app.domains.catalogos.canonical.rubros import RUBROS_CANONICOS
 from app.domains.catalogos.canonical.tipos_actuacion import TIPOS_ACTUACION_CANONICOS
 from app.domains.catalogos.seeds.calles_canonical_seed import apply_calles_canonicas
@@ -90,7 +94,7 @@ class CatalogSeedResult:
 
 def seed_rubros(session, *, dry_run: bool) -> tuple[int, int, int]:
     """
-    Reconcilia los 29 rubros canónicos con matcher ai_ci y precarga.
+    Reconcilia los rubros canónicos con matcher ai_ci y precarga.
 
     Returns:
         Tupla (created, updated, skipped/reused).
@@ -119,24 +123,34 @@ def seed_rubros(session, *, dry_run: bool) -> tuple[int, int, int]:
 
 
 def seed_relevadores(session, *, dry_run: bool) -> tuple[int, int, int]:
-    """Reconcilia relevadores canónicos por nombre normalizado."""
+    """Reconcilia relevadores canónicos por nombre normalizado (variantes históricas incluidas)."""
     created = updated = skipped = 0
     rows = session.query(Relevador).all()
     for nombre in RELEVADORES_CANONICOS:
-        display = normalize_catalog_display(nombre)
-        key = normalize_catalog_key(display)
-        existing = next((r for r in rows if normalize_catalog_key(r.nombre) == key), None)
+        display = relevador_etiqueta_catalogo(normalize_catalog_display(nombre))
+        existing = next((r for r in rows if relevador_nombres_equivalentes(r.nombre, display)), None)
         if existing is None:
             if not dry_run:
-                session.add(Relevador(nombre=display, activo=True))
+                new_row = Relevador(nombre=display, activo=True)
+                session.add(new_row)
+                rows.append(new_row)
             created += 1
-        elif not existing.activo:
-            if not dry_run:
-                existing.activo = True
-                session.add(existing)
-            updated += 1
         else:
-            skipped += 1
+            changed = False
+            if not existing.activo:
+                if not dry_run:
+                    existing.activo = True
+                changed = True
+            if existing.nombre != display:
+                if not dry_run:
+                    existing.nombre = display
+                changed = True
+            if changed:
+                if not dry_run:
+                    session.add(existing)
+                updated += 1
+            else:
+                skipped += 1
     return created, updated, skipped
 
 

@@ -5,7 +5,7 @@ from __future__ import annotations
 CATALOG_VERSION = "2026-09-20"
 
 EXPECTED_COUNTS = {
-    "rubros": 29,
+    "rubros": 37,
     "relevadores": 10,
     "inspectores": 24,
     "motivos_notificacion": 3,

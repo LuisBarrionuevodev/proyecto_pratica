@@ -7,6 +7,11 @@ from typing import Any, Iterable, List, Sequence
 from sqlalchemy import func
 
 from app.database import db
+from app.domains.relevamientos.utils.relevador_display import (
+    relevador_etiqueta_catalogo,
+    relevador_nombres_equivalentes,
+    relevador_sort_key,
+)
 from app.models import Relevador
 
 _SPACE_RE = __import__("re").compile(r"\s+")
@@ -38,13 +43,14 @@ def listar_relevadores_catalogo(*, solo_activos: bool = True) -> list[dict[str, 
         solo_activos: si True, filtra ``activo=True`` (alta de nuevos relevamientos).
 
     Retorno:
-        Lista de dicts ``{id, nombre}``.
+        Lista de dicts ``{id, nombre}`` con ``nombre`` en formato ``Apellido, Nombre``.
     """
     q = Relevador.query
     if solo_activos:
         q = q.filter(Relevador.activo.is_(True))
-    rows = q.order_by(Relevador.nombre.asc()).all()
-    return [{"id": int(r.id), "nombre": r.nombre} for r in rows]
+    rows = q.all()
+    rows.sort(key=lambda r: relevador_sort_key(r.nombre))
+    return [{"id": int(r.id), "nombre": relevador_etiqueta_catalogo(r.nombre)} for r in rows]
 
 
 def get_relevador_by_id(relevador_id: int) -> Relevador | None:
@@ -124,11 +130,15 @@ def resolve_relevador_nombres_o_falla(
     out: List[Relevador] = []
     for nombre in cleaned:
         norm = _upper_norm(nombre)
-        row = (
-            db.session.query(Relevador)
-            .filter(func.replace(func.upper(Relevador.nombre), "_", " ") == norm)
-            .limit(1)
-            .first()
+        candidates = db.session.query(Relevador).all()
+        row = next(
+            (
+                r
+                for r in candidates
+                if _upper_norm(r.nombre) == norm
+                or relevador_nombres_equivalentes(r.nombre, nombre)
+            ),
+            None,
         )
         if row is None:
             raise ValueError(f"Relevador inválido: {nombre}.")
