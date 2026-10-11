@@ -9,9 +9,6 @@ import {
   InicioCardShellGridDesktop,
 } from "../../../styles/InicioStyles";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
-import { CSS_VAR_NAMES } from "../../../theme/applyCssVariables";
-import mapaPreview from "../../../assets/mapa.jpg";
-import { MAPA_PATH } from "../../../auth/roles";
 
 const iconStyles = {
   fontSize: "32px",
@@ -20,14 +17,19 @@ const iconStyles = {
   mb: 0.25,
 } as const;
 
-type Props = { item: InicioAccesoItem };
+type Props = { item: InicioAccesoItem; variant?: "compact" | "desktop" };
 
 /**
  * Card de acceso rápido (misma cáscara que el resto de la grilla de 9 en Inicio).
  */
-export default function InicioAccesoCard({ item }: Props) {
+export default function InicioAccesoCard({ item, variant = "desktop" }: Props) {
   const { Icon } = item;
-  const isMapCard = item.to === MAPA_PATH;
+  const titleSx =
+    variant === "desktop" ? InicioAccesoCardTitleSx : { ...InicioAccesoCardTitleSx, fontSize: "15px" };
+  const descriptionSx =
+    variant === "desktop"
+      ? InicioAccesoCardDescriptionSx
+      : { ...InicioAccesoCardDescriptionSx, fontSize: "12px" };
   return (
     <Link
       to={item.to}
@@ -36,36 +38,14 @@ export default function InicioAccesoCard({ item }: Props) {
       <Box
         sx={{
           ...InicioCardShellGrid,
-          ...InicioCardShellGridDesktop,
+          ...(variant === "desktop" ? InicioCardShellGridDesktop : {}),
           width: "100%",
           flex: 1,
-          position: "relative",
-          overflow: "hidden",
-          ...(isMapCard
-            ? {
-                backgroundImage: `url(${mapaPreview})`,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-                "&::before": {
-                  content: '""',
-                  position: "absolute",
-                  inset: 0,
-                  borderRadius: "inherit",
-                  backgroundColor: `var(${CSS_VAR_NAMES.surfaceOverlay})`,
-                  opacity: 0.88,
-                  pointerEvents: "none",
-                },
-                "& > *": {
-                  position: "relative",
-                  zIndex: 1,
-                },
-              }
-            : {}),
         }}
       >
         <Icon sx={iconStyles} />
-        <Typography sx={InicioAccesoCardTitleSx}>{item.title}</Typography>
-        <Typography sx={InicioAccesoCardDescriptionSx}>{item.description}</Typography>
+        <Typography sx={titleSx}>{item.title}</Typography>
+        <Typography sx={descriptionSx}>{item.description}</Typography>
       </Box>
     </Link>
   );

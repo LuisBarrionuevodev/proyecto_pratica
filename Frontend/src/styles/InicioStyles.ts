@@ -1,5 +1,6 @@
 import { GLASS_COLORS } from "./GlassStyles";
 import { FONT_FAMILY_UI } from "../theme/typography";
+import { CSS_VAR_NAMES } from "../theme/applyCssVariables";
 
 // =============================================================================
 // ESTILOS GLASSMORPHISM PARA INICIO
@@ -194,11 +195,43 @@ export const InicioAboutCardShell = {
 export const InicioAboutCtaSx = {
     ...ButtonStylesInicio,
     width: { xs: "100%", md: "auto" },
-    minWidth: { md: 200 },
-    height: { xs: 48, md: 52 },
-    fontSize: { xs: "15px", md: "16px" },
+    minWidth: { md: 168 },
+    height: { xs: 44, md: 44 },
+    fontSize: { xs: "14px", md: "14px" },
+    fontWeight: 500,
     flexShrink: 0,
     textAlign: "center",
+};
+
+/** Fila desktop: card Mapa ancha con imagen a la derecha. */
+export const InicioMapaHeroShellSx = {
+    ...InicioCardShellGrid,
+    display: "flex",
+    flexDirection: "row" as const,
+    alignItems: "stretch",
+    width: "100%",
+    minHeight: { md: 196, lg: 220 },
+    padding: { md: "22px 24px", lg: "24px 28px" },
+    boxSizing: "border-box" as const,
+    position: "relative",
+    overflow: "hidden",
+    backgroundSize: "cover",
+    backgroundPosition: "right center",
+    backgroundRepeat: "no-repeat",
+    "&::before": {
+        content: '""',
+        position: "absolute",
+        inset: 0,
+        borderRadius: "inherit",
+        background: `linear-gradient(90deg, var(${CSS_VAR_NAMES.surfaceOverlay}) 0%, var(${CSS_VAR_NAMES.surfaceOverlay}) 42%, transparent 78%)`,
+        pointerEvents: "none",
+    },
+};
+
+export const InicioMapaHeroTextSx = {
+    fontFamily: FONT_FAMILY_UI,
+    fontWeight: 600,
+    lineHeight: 1.35,
 };
 
 // =============================================================================

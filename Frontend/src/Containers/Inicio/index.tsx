@@ -1,6 +1,7 @@
 import { type JSX, useEffect } from "react";
 import InicioOperacionesGrid from "./Components/InicioOperacionesGrid";
 import TopBar from "../../Componets/TopBar";
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import { Box, Skeleton, Typography } from "@mui/material";
 import { GLASS_COLORS } from "../../styles/GlassStyles";
 import { useAppSession } from "../../auth/AppSessionProvider";
@@ -129,14 +130,11 @@ const Inicio = (): JSX.Element => {
                   Accesos rápidos al operativo: rutas, relevamientos, actuaciones y mapa territorial.
                 </Typography>
               </Box>
-              <Typography
+              <Box
                 sx={{
-                  fontFamily: FONT_FAMILY_UI,
-                  fontSize: { xs: "13px", sm: "14px" },
-                  fontWeight: 500,
-                  color: GLASS_COLORS.textPrimary,
-                  textTransform: "capitalize",
-                  whiteSpace: { sm: "nowrap" },
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 0.75,
                   alignSelf: { xs: "flex-start", sm: "flex-start", md: "center" },
                   pt: { sm: 0.5, md: 0.5 },
                   position: { md: "absolute" },
@@ -144,8 +142,24 @@ const Inicio = (): JSX.Element => {
                   right: { md: 0 },
                 }}
               >
-                {formatFechaHoy()}
-              </Typography>
+                <CalendarMonthOutlinedIcon
+                  sx={{ fontSize: 18, color: GLASS_COLORS.textPrimary, flexShrink: 0 }}
+                  aria-hidden
+                />
+                <Typography
+                  component="span"
+                  sx={{
+                    fontFamily: FONT_FAMILY_UI,
+                    fontSize: { xs: "13px", sm: "14px" },
+                    fontWeight: 500,
+                    color: GLASS_COLORS.textPrimary,
+                    textTransform: "capitalize",
+                    whiteSpace: { sm: "nowrap" },
+                  }}
+                >
+                  {formatFechaHoy()}
+                </Typography>
+              </Box>
             </Box>
 
             <Box sx={{ maxWidth: { md: 1440, lg: 1560 }, mx: { md: "auto" }, width: "100%" }}>

@@ -3,16 +3,21 @@ import { Box, Grid, Skeleton, Stack } from "@mui/material";
 import { Navigate } from "react-router-dom";
 
 import { getVisibleHomeCards } from "../../../auth/accessConfig";
+import { MAPA_PATH } from "../../../auth/roles";
 import { useAppSession } from "../../../auth/AppSessionProvider";
 import InicioAccesoCard from "./InicioAccesoCard";
 import InicioAboutCard from "./InicioAboutCard";
+import InicioMapaHeroCard from "./InicioMapaHeroCard";
 
 const GAP = 2;
 const SKELETON_COUNT = 4;
 
+const MOBILE_GRID_SIZE = { xs: 12, sm: 6, md: 4, lg: 3 } as const;
+const DESKTOP_GRID_SIZE = { xs: 12, sm: 6, md: 4, lg: 4 } as const;
+
 /**
  * Accesos rápidos filtrados por rol (fuente única con NavLeft).
- * Default deny: skeleton hasta resolver sesión.
+ * Desktop (md+): fila operativa → mapa hero → Acerca de. Mobile/tablet: grilla clásica.
  */
 export default function InicioOperacionesGrid(): JSX.Element {
   const { status, role } = useAppSession();
@@ -22,12 +27,18 @@ export default function InicioOperacionesGrid(): JSX.Element {
     return getVisibleHomeCards(role);
   }, [status, role]);
 
+  const mapCard = useMemo(() => cards.find((c) => c.to === MAPA_PATH), [cards]);
+  const operationalCards = useMemo(
+    () => cards.filter((c) => c.to !== MAPA_PATH),
+    [cards]
+  );
+
   if (status === "loading") {
     return (
       <Stack spacing={GAP}>
         <Grid container spacing={GAP}>
           {Array.from({ length: SKELETON_COUNT }, (_, i) => (
-            <Grid key={i} size={{ xs: 12, sm: 6, md: 4, lg: 4 }}>
+            <Grid key={i} size={MOBILE_GRID_SIZE}>
               <Skeleton variant="rounded" height={128} sx={{ borderRadius: "12px" }} />
             </Grid>
           ))}
@@ -48,14 +59,30 @@ export default function InicioOperacionesGrid(): JSX.Element {
 
   return (
     <Stack spacing={GAP}>
-      <Grid container spacing={GAP}>
-        {cards.map((item) => (
-          <Grid key={item.to} size={{ xs: 12, sm: 6, md: 4, lg: 4 }}>
-            <InicioAccesoCard item={item} />
-          </Grid>
-        ))}
-      </Grid>
-      <InicioAboutCard />
+      <Box sx={{ display: { xs: "block", md: "none" } }}>
+        <Grid container spacing={GAP}>
+          {cards.map((item) => (
+            <Grid key={item.to} size={MOBILE_GRID_SIZE}>
+              <InicioAccesoCard item={item} variant="compact" />
+            </Grid>
+          ))}
+        </Grid>
+        <Box sx={{ mt: GAP }}>
+          <InicioAboutCard />
+        </Box>
+      </Box>
+
+      <Box sx={{ display: { xs: "none", md: "flex" }, flexDirection: "column", gap: GAP }}>
+        <Grid container spacing={GAP}>
+          {operationalCards.map((item) => (
+            <Grid key={item.to} size={DESKTOP_GRID_SIZE}>
+              <InicioAccesoCard item={item} variant="desktop" />
+            </Grid>
+          ))}
+        </Grid>
+        {mapCard ? <InicioMapaHeroCard item={mapCard} /> : null}
+        <InicioAboutCard />
+      </Box>
     </Stack>
   );
 }
