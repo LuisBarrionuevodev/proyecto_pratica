@@ -8,6 +8,8 @@ import {
 } from "../validations/normalizeActuacionApiError";
 
 export const MENSAJE_GUARDADO_OK = "Actuación guardada correctamente.";
+/** Toast al cerrar el modal «Editar actuación» tras PUT (+ fotos pendientes si hubo). */
+export const MENSAJE_EDICION_OK = "Actuación editada correctamente.";
 export const MENSAJE_CORRECCION_OK = "Actuación corregida correctamente.";
 export const MENSAJE_VALIDACION_LOCAL = "Revisá los campos marcados antes de guardar.";
 export const MENSAJE_ERROR_GRAVE = "No se pudo guardar la actuación.";

@@ -136,6 +136,7 @@ import {
   ActuacionMediaGallery,
   type ActuacionMediaGalleryHandle,
 } from "../../../features/media/components/ActuacionMediaGallery";
+import { shouldCloseInspectorFotosModalAfterSave } from "../../../features/media/utils/actuacionManualMediaSave";
 import { ConfirmDialog } from "../../../ui";
 import { MEDIA_UPLOAD_ORIGIN_MIS_TRABAJOS } from "../../../features/media/mediaUploadOrigin";
 
@@ -206,6 +207,8 @@ export type ActuacionDetalleDialogProps = {
     rowOverride?: IActuacionListItem,
     options?: ActuacionSaveOptions
   ) => void | Promise<void | boolean>;
+  /** Tras PUT diferido (+ fotos manuales): cierra sesión de edición sin reabrir el modal. */
+  onEditSaveSessionEnd?: (outcome: "success" | "aborted") => void;
   /** Solo tests SSR; evita portal de MUI Dialog. */
   disablePortal?: boolean;
   /** Solo tests: abrir directamente en edición. */
@@ -1024,6 +1027,7 @@ export function ActuacionDetalleDialog({
   onClose,
   onDraftChange,
   onSave,
+  onEditSaveSessionEnd,
   disablePortal,
   initialEditing = false,
   onRequestPhotosOnly,
@@ -1353,11 +1357,22 @@ export function ActuacionDetalleDialog({
     });
     if (putOk === false) return;
 
+    let sessionOutcome: "success" | "aborted" = "success";
     const gallery = mediaGalleryRef.current;
     if (gallery && gallery.pendingSaveCount() > 0) {
-      await gallery.saveQueuedPhotos();
+      const mediaOutcome = await gallery.saveQueuedPhotos();
+      if (!shouldCloseInspectorFotosModalAfterSave(mediaOutcome)) {
+        sessionOutcome = "aborted";
+      }
     }
-    onClose();
+
+    if (onEditSaveSessionEnd) {
+      onEditSaveSessionEnd(sessionOutcome);
+      return;
+    }
+    if (sessionOutcome === "success") {
+      onClose();
+    }
   }, [
     draft,
     editBaseline,
@@ -1366,6 +1381,7 @@ export function ActuacionDetalleDialog({
     oficioForm,
     onDraftChange,
     onClose,
+    onEditSaveSessionEnd,
     onSave,
   ]);
 

@@ -50,7 +50,10 @@ import {
   prepareActuacionGestionModalRow,
   stripActuacionRowForListStorage,
 } from "../utils/actuacionGestionSeguimientoPut";
-import { notifyActuacionSaveResult } from "../utils/actuacionSaveFeedback";
+import {
+  MENSAJE_EDICION_OK,
+  notifyActuacionSaveResult,
+} from "../utils/actuacionSaveFeedback";
 import {
   ACTUACIONES_COMPOSITE_COLUMN_IDS,
   buildActuacionesCompositeColumns,
@@ -235,7 +238,21 @@ const TablaActuaciones = ({
     setEditDraft(null);
     setEditOriginalRow(null);
     setDetalleInitialEditing(false);
+    setEditSaving(false);
   }, []);
+
+  /** Cierra edición tras PUT (+ fotos manuales); un solo toast de éxito. */
+  const handleEditSaveSessionEnd = useCallback(
+    (outcome: "success" | "aborted") => {
+      if (outcome !== "success") {
+        setEditSaving(false);
+        return;
+      }
+      feedback.success(MENSAJE_EDICION_OK);
+      handleCloseEditDialog();
+    },
+    [feedback, handleCloseEditDialog]
+  );
 
   const handleCloseFotosDialog = useCallback(() => {
     setFotosDraft(null);
@@ -297,6 +314,7 @@ const TablaActuaciones = ({
       if (!row) return false;
       const id = Number(row.id);
       setEditSaving(true);
+      let deferCloseSession = false;
       try {
         const result = await submitActuacionRow({
           id,
@@ -326,7 +344,6 @@ const TablaActuaciones = ({
           return false;
         }
 
-        notifyActuacionSaveResult(result, feedback);
         if (result.updatedRow) {
           onActuacionListPatch?.(
             stripActuacionRowForListStorage(prepareActuacionGestionModalRow(result.updatedRow))
@@ -334,15 +351,19 @@ const TablaActuaciones = ({
         }
         triggerRefresh();
         setTimeout(() => onRefresh?.(), 100);
-        if (!options?.deferDialogClose) {
-          setEditDraft(null);
-          setEditOriginalRow(null);
+        if (options?.deferDialogClose) {
+          deferCloseSession = true;
+          return true;
         }
+        notifyActuacionSaveResult(result, feedback);
+        handleCloseEditDialog();
         return true;
       } catch {
         return false;
       } finally {
-        setEditSaving(false);
+        if (!deferCloseSession) {
+          setEditSaving(false);
+        }
       }
     },
     [
@@ -356,6 +377,7 @@ const TablaActuaciones = ({
     skipValidation,
     skipUpdate,
     feedback,
+    handleCloseEditDialog,
   ]);
 
   const columns = useMemo<MRT_ColumnDef<IActuacionListItem>[]>(() => {
@@ -738,6 +760,7 @@ const TablaActuaciones = ({
           onClose={handleCloseEditDialog}
           onDraftChange={handleEditDraftChange}
           onSave={handleDialogSave}
+          onEditSaveSessionEnd={handleEditSaveSessionEnd}
         />
       )}
 
