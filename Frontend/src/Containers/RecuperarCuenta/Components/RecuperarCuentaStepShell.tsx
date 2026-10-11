@@ -57,7 +57,7 @@ export function RecuperarCuentaStepShell({
             display: "flex",
             flexDirection: "column",
             alignItems: "stretch",
-            gap: { xs: 2, sm: 2.5 },
+            gap: { xs: 1.75, sm: 2.25 },
             minWidth: 0,
           }}
         >

@@ -24,7 +24,6 @@ const RecuperarCuenta = () => {
         sx={{
           width: "100%",
           minWidth: 0,
-          minHeight: { xs: 320, sm: 300 },
           position: "relative",
         }}
       >

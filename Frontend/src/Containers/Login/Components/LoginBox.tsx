@@ -104,7 +104,10 @@ const LoginBox = (): JSX.Element => {
                         Ingresar
                     </AppButton>
 
-                    <Typography mt={2} textAlign={"center"} fontSize={14}  color="#0166FF" fontWeight={500}>¿Has olvidado tu contraseña? 
+                    <Typography
+                        sx={{ mt: { xs: 1, sm: 1.25 }, mb: 0, textAlign: "center", fontSize: 14, color: "#0166FF", fontWeight: 500 }}
+                    >
+                        ¿Has olvidado tu contraseña?
                         <Link to={"/recuperarCuenta"} style={{fontWeight:800, textDecoration: "none", color: "#0166FF", }}> Haz click aqui</Link>
                     </Typography>
                 </Box>

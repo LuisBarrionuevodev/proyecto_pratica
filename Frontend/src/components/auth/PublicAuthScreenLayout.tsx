@@ -30,7 +30,7 @@ export function PublicAuthScreenLayout({ children }: PublicAuthScreenLayoutProps
         alignItems: "center",
         justifyContent: "center",
         px: { xs: 2, sm: 3 },
-        py: { xs: 3, sm: 8 },
+        py: { xs: 2.5, sm: 6 },
         boxSizing: "border-box",
         overflowX: "hidden",
       }}
@@ -70,7 +70,7 @@ export function PublicAuthScreenLayout({ children }: PublicAuthScreenLayoutProps
       <Box
         sx={{
           width: "100%",
-          maxWidth: 520,
+          maxWidth: { xs: "100%", sm: 460 },
           zIndex: 2,
           minWidth: 0,
           flex: { xs: "0 1 auto", sm: "0 1 auto" },
