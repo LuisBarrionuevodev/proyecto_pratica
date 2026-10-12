@@ -1797,7 +1797,7 @@ export function ActuacionDetalleDialog({
         <DocumentalBloque overline="Domicilio y establecimiento">
           <BloqueDomicilioContribuyenteContexto draft={draft} />
           {!canDom && domicilioBloqueoMotivo ? (
-            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.65)", mb: 1 }}>
+            <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, mb: 1 }}>
               {domicilioBloqueoMotivo}
             </Typography>
           ) : null}

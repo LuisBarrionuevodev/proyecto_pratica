@@ -1,5 +1,6 @@
 import { Box, Typography } from "@mui/material";
 
+import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { BandejaEllipsisCell } from "../../Actuaciones/Components/bandejaTableCells";
 import type { IEstablecimientoOperativoListItem } from "../../../api/establecimientosOperativosApi";
 import { establecimientoDomicilioLineaVisible } from "../utils/establecimientoDomicilioVisible";
@@ -18,7 +19,7 @@ export function EstablecimientoListDomicilioCell({ row }: { row: IEstablecimient
     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.35, maxWidth: "100%" }}>
       <BandejaEllipsisCell value={linea} />
       {distrito ? (
-        <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)" }}>
+        <Typography sx={{ fontSize: "0.75rem", color: GLASS_COLORS.textSecondary }}>
           Distrito: {distrito}
         </Typography>
       ) : null}
@@ -36,7 +37,7 @@ export function EstablecimientoContribuyenteCell({ row }: { row: IEstablecimient
     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.35, maxWidth: "100%" }}>
       <BandejaEllipsisCell value={titulo} />
       {docLinea ? (
-        <Typography sx={{ fontSize: "0.75rem", color: "rgba(255,255,255,0.45)" }}>{docLinea}</Typography>
+        <Typography sx={{ fontSize: "0.75rem", color: GLASS_COLORS.textSecondary }}>{docLinea}</Typography>
       ) : null}
     </Box>
   );

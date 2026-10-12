@@ -126,6 +126,7 @@ import {
 import { ReinspeccionOficioResultadoFields } from "../../../shared/reinspeccionOficio/ReinspeccionOficioResultadoFields";
 import { usaInspeccionNormalReinspeccionOficio } from "../../../shared/reinspeccionOficio/usaInspeccionNormalReinspeccionOficio";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
+import { MSG_DOMICILIO_BLOQUEADO_REINSPECCION } from "../../../shared/domicilio/domicilioEditBlockedMessages";
 import {
   mostrarBloqueSolicitudCarnet,
   mostrarBloqueSubsanacionNotificacion,
@@ -173,6 +174,11 @@ const modalChipSx = {
 
 const modalInsetPanelSx = {
   bgcolor: `var(${V.surfacePanelSubtle})`,
+} as const;
+
+const completarAlertSx = {
+  borderRadius: 2,
+  "& .MuiAlert-message": { color: GLASS_COLORS.textPrimary, width: "100%" },
 } as const;
 
 const modalToggleGroupSx = {
@@ -1605,7 +1611,7 @@ export function CompletarTrabajoModal({
       )}
 
       {detalleError && resolvedRow && (
-        <Alert severity="warning" sx={{ borderRadius: 2 }}>
+        <Alert severity="warning" sx={completarAlertSx}>
           <Typography variant="body2" sx={{ mb: 0.5 }}>
             No se pudo cargar el detalle actualizado del servidor.
           </Typography>
@@ -1796,7 +1802,7 @@ export function CompletarTrabajoModal({
                 }
               />
               {contraHint === "reingreso_prioridad_alta" && (
-                <Alert severity="info" sx={{ borderRadius: 2 }}>
+                <Alert severity="info" sx={completarAlertSx}>
                   <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
                     Reingreso a pendientes
                   </Typography>
@@ -1865,6 +1871,13 @@ export function CompletarTrabajoModal({
       <>
       <CompletarBloque title="Contraproducencia">
       <Box sx={col}>
+        {esReinspeccionNotificacion ? (
+          <Alert severity="info" sx={completarAlertSx}>
+            <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary }}>
+              {MSG_DOMICILIO_BLOQUEADO_REINSPECCION}
+            </Typography>
+          </Alert>
+        ) : null}
         <AppSelect
           appearance="glass"
           label="Contraproducencia"
@@ -1880,7 +1893,7 @@ export function CompletarTrabajoModal({
           helperText={fe("contraproducencia") || undefined}
         />
         {contraHint === "cierra_sin_reingreso" && (
-          <Alert severity="warning" sx={{ borderRadius: 2 }}>
+          <Alert severity="warning" sx={completarAlertSx}>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
               Cierre del caso en esta cola
             </Typography>
@@ -1894,7 +1907,7 @@ export function CompletarTrabajoModal({
           </Alert>
         )}
         {contraHint === "correctiva_rubro_direccion" && (
-          <Alert severity="info" sx={{ borderRadius: 2 }}>
+          <Alert severity="info" sx={completarAlertSx}>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
               Corrección de datos y reingreso
             </Typography>
@@ -1910,7 +1923,7 @@ export function CompletarTrabajoModal({
           </Alert>
         )}
         {contraHint === "reingreso_prioridad_alta" && (
-          <Alert severity="info" sx={{ borderRadius: 2 }}>
+          <Alert severity="info" sx={completarAlertSx}>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
               Reingreso a pendientes
             </Typography>
@@ -1924,7 +1937,7 @@ export function CompletarTrabajoModal({
           </Alert>
         )}
         {contraHint === "no_permite_inspeccion" && (
-          <Alert severity="warning" sx={{ borderRadius: 2 }}>
+          <Alert severity="warning" sx={completarAlertSx}>
             <Typography variant="body2" sx={{ fontWeight: 600, mb: 0.5 }}>
               Cierre por negativa a la inspección
             </Typography>
@@ -1940,7 +1953,7 @@ export function CompletarTrabajoModal({
 
         {visitaRealizada &&
           (showDomicilioCalleNumeroEditable || (showIdentityVerificarInformar && identityFieldsEditable)) && (
-          <Alert severity="info" sx={{ borderRadius: 2 }}>
+          <Alert severity="info" sx={completarAlertSx}>
             <Typography variant="body2">
               {showIdentityVerificarInformar && identityFieldsEditable
                 ? "Completá documento y rubro para materializar la identidad operativa del comercio."
@@ -2455,17 +2468,17 @@ export function CompletarTrabajoModal({
         >
         <Stack spacing={2}>
           {readyArchivos.error ? (
-            <Alert severity="warning" sx={{ borderRadius: 2 }}>
+            <Alert severity="warning" sx={completarAlertSx}>
               {readyArchivos.error}
             </Alert>
           ) : null}
           {mediaSelectionError ? (
-            <Alert severity="error" sx={{ borderRadius: 2 }} onClose={() => setMediaSelectionError(null)}>
+            <Alert severity="error" sx={completarAlertSx} onClose={() => setMediaSelectionError(null)}>
               {mediaSelectionError}
             </Alert>
           ) : null}
           {emptyQueueHint ? (
-            <Alert severity="info" sx={{ borderRadius: 2 }} onClose={() => setEmptyQueueHint(null)}>
+            <Alert severity="info" sx={completarAlertSx} onClose={() => setEmptyQueueHint(null)}>
               {emptyQueueHint}
             </Alert>
           ) : null}

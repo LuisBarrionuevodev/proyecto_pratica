@@ -244,6 +244,7 @@ describe("CompletarTrabajoModal", () => {
     );
     expect(html).toContain("Notificación origen (solo lectura)");
     expect(html).toContain("Notif. 000123/2026");
+    expect(html).toContain("La actuación proviene de una reinspección y el domicilio no puede modificarse.");
     expect(html).not.toContain("N° acta de notificación");
   });
 

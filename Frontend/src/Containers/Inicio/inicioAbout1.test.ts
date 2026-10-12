@@ -10,6 +10,9 @@ describe("V1.1-INICIO-ABOUT.1A", () => {
     const acerca = read("src/Containers/AcercaDe/index.tsx");
     expect(app).toContain('path="/acerca-de"');
     expect(acerca).toContain("VOLVER AL INICIO");
+    expect(acerca).toContain("ArrowBackIcon");
+    expect(read("src/Containers/Inicio/Components/InicioAboutCard.tsx")).toContain("InfoOutlinedIcon");
+    expect(read("src/Containers/Inicio/Components/InicioAboutCard.tsx")).not.toContain("CONOCER MÁS");
   });
 
   it("desktop: tres filas (operativas, mapa hero, acerca)", () => {

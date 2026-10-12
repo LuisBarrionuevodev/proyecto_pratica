@@ -1,13 +1,15 @@
 import type { JSX } from "react";
 import { useEffect } from "react";
 import { Box, Typography } from "@mui/material";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import { Link } from "react-router-dom";
 
 import TopBar from "../../Componets/TopBar";
 import { setBodyAuthenticatedRoute } from "../../theme/bodyRouteClass";
 import { CSS_VAR_NAMES } from "../../theme/applyCssVariables";
+import { GLASS_COLORS } from "../../styles/GlassStyles";
+import { AppButton } from "../../ui";
 import {
-  acercaDeBackButtonSx,
   acercaDeBodySx,
   acercaDeContentSx,
   acercaDePageSx,
@@ -62,6 +64,18 @@ export default function AcercaDe(): JSX.Element {
         }}
       >
         <Box sx={acercaDeContentSx}>
+          <Box sx={{ alignSelf: "flex-start", mb: 2 }}>
+            <Link to="/inicio" style={{ textDecoration: "none" }}>
+              <AppButton
+                dsVariant="ghost"
+                startIcon={<ArrowBackIcon />}
+                sx={{ color: GLASS_COLORS.textSecondary, textTransform: "none" }}
+              >
+                VOLVER AL INICIO
+              </AppButton>
+            </Link>
+          </Box>
+
           <Typography component="h1" sx={acercaDeTitleSx}>
             Acerca de Digitaliza
           </Typography>
@@ -74,21 +88,6 @@ export default function AcercaDe(): JSX.Element {
               <Typography sx={acercaDeBodySx}>{section.body}</Typography>
             </Box>
           ))}
-
-          <Box
-            component={Link}
-            to="/inicio"
-            sx={{
-              ...acercaDeBackButtonSx,
-              display: "inline-flex",
-              alignItems: "center",
-              justifyContent: "center",
-              textDecoration: "none",
-              color: "inherit",
-            }}
-          >
-            VOLVER AL INICIO
-          </Box>
         </Box>
       </Box>
     </Box>
