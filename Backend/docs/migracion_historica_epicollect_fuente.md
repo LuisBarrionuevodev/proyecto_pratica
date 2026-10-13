@@ -75,6 +75,16 @@ Reglas fijadas para el ticket siguiente:
 5. Las actuaciones históricas importadas **no** generan rutas, `iniciador_ruta`, alertas, pendientes ni trabajo operativo.
 6. La carga histórica actual “solo comprobación” **no** se modifica en este ticket.
 
+## Cadenas históricas (V1.1-MIG-ACTAS.0A)
+
+El CLI genera además:
+
+- `resumen_cadenas_historicas.json`
+- `vinculos_confiables.csv`
+- `vinculos_a_revisar.csv`
+
+Cada reinspección recibe `estado_vinculo`, `tipo_origen_esperado`, `resultado_cadena_esperado` y `fuente_previa_uuid`. Solo `VINCULO_CONFIABLE` (referencia única + cronología + identidad por DNI/CUIT o domicilio+titular) habilita importación automática de cadena en el ticket siguiente.
+
 ## Decisiones del dry-run
 
 | Decisión | Uso |

@@ -91,6 +91,10 @@ OUTPUT_CSV_FIELDS: Tuple[str, ...] = (
     "ref_notificacion_previa",
     "ref_comprobacion_previa",
     "previa_ec5_uuid",
+    "fuente_previa_uuid",
+    "estado_vinculo",
+    "tipo_origen_esperado",
+    "resultado_cadena_esperado",
     "motivo_revision",
     "tiene_kilos_decomiso",
     "tiene_faja_clausura",
@@ -121,6 +125,13 @@ class RowSnapshot:
     desnaturalizacion: str
     motivo_no_realizacion: str
     expediente_claves: List[str] = field(default_factory=list)
+    doc_norm: str = ""
+    dom_norm: str = ""
+    titular_norm: str = ""
+    estado_vinculo: str = ""
+    tipo_origen_esperado: str = ""
+    resultado_cadena_esperado: str = ""
+    fuente_previa_uuid: str = ""
     decision: Decision = Decision.REVISAR
     motivo_revision: str = ""
     previa_ec5_uuid: str = ""
@@ -140,6 +151,7 @@ class InventarioResult:
     duplicados_acta: Dict[str, List[str]]
     filas: List[RowSnapshot] = field(default_factory=list)
     date_format_samples: Counter = field(default_factory=Counter)
+    cadenas: Any = None
 
 
 def sha256_file(path: Path) -> str:
@@ -316,6 +328,17 @@ def extract_row_snapshot(
     if not motivo_no:
         motivo_no = _cell(row, _first_index(by_name, "255_Describe_porque_"))
 
+    from app.domains.migracion_historica.epicollect_cadenas_historicas import (
+        normalize_documento,
+        normalize_domicilio,
+        resolve_titular_norm,
+    )
+
+    dom_raw = dom
+    doc_raw = _cell(row, _first_index(by_name, "16_DNI_del_Contribuy"))
+    nf = _cell(row, _first_index(by_name, "14_Nombre_de_Fantasa"))
+    rs = _cell(row, _first_index(by_name, "15_Razn_Socialnombre"))
+
     return RowSnapshot(
         ec5_uuid=_cell(row, _first_index(by_name, "ec5_uuid")),
         fecha_inspec=fecha,
@@ -336,6 +359,9 @@ def extract_row_snapshot(
         faja_clausura=_cell(row, _first_index(by_name, "115_Pego_Faja_de_Cla")),
         desnaturalizacion=_cell(row, _first_index(by_name, "108_Realizo_Desnatur")),
         motivo_no_realizacion=motivo_no,
+        doc_norm=normalize_documento(doc_raw),
+        dom_norm=normalize_domicilio(dom_raw),
+        titular_norm=resolve_titular_norm(nf, rs),
     )
 
 
@@ -448,30 +474,12 @@ def classify_row(
         snap.motivo_revision = "tipo_vacio"
         return snap
 
-    if _es_reinspeccion_notificacion(tipo):
-        ref = snap.ref_notificacion_previa or snap.acta_notificacion_num
-        uuid_prev, motivo = _resolver_previa(ref, notif_index, snap.ec5_uuid)
-        if uuid_prev:
-            snap.previa_ec5_uuid = uuid_prev
-            snap.decision = Decision.CANDIDATA_REINSPECCION_NOTIFICACION
-        else:
-            snap.decision = Decision.REVISAR
-            snap.motivo_revision = motivo or "reinspeccion_notif_sin_vinculo"
+    if _es_reinspeccion_notificacion(tipo) or _es_reinspeccion_oficio(tipo):
+        snap.decision = Decision.REVISAR
+        snap.motivo_revision = "pendiente_cadena_historica"
         return snap
 
-    if _es_reinspeccion_oficio(tipo) or _es_ratificacion(tipo):
-        if _es_reinspeccion_oficio(tipo):
-            uuid_prev, motivo, ref_usada = _resolver_previa_comprobacion(
-                snap, comp_index, expediente_index
-            )
-            if uuid_prev:
-                snap.previa_ec5_uuid = uuid_prev
-                snap.ref_comprobacion_previa = ref_usada
-                snap.decision = Decision.CANDIDATA_REINSPECCION_OFICIO
-            else:
-                snap.decision = Decision.REVISAR
-                snap.motivo_revision = motivo or "reinspeccion_oficio_sin_vinculo"
-            return snap
+    if _es_ratificacion(tipo):
         # Ratificación: actuación con comprobación/clausura/decomiso, sin auto-reinspección
         if not _datos_minimos_inicial(snap):
             snap.decision = Decision.REVISAR
@@ -537,30 +545,30 @@ def inventariar_csv(
 
     historic = [s for s in snapshots if s.fecha_inspec and s.fecha_inspec < cutoff]
 
+    from app.domains.migracion_historica.epicollect_cadenas_historicas import (
+        aplicar_cadenas_a_filas,
+        build_acta_indexes,
+        build_expediente_index,
+    )
+
+    _by_key, by_tipo_num = build_acta_indexes(historic)
+    expediente_acta_index = build_expediente_index(historic)
+
     notif_index: Dict[str, List[str]] = defaultdict(list)
     comp_index: Dict[str, List[str]] = defaultdict(list)
-    expediente_index: Dict[str, List[str]] = defaultdict(list)
     for s in historic:
         _register_acta(notif_index, s.acta_notificacion_num, s.ec5_uuid)
         if s.acta_comprobacion_num:
             _register_acta(comp_index, s.acta_comprobacion_num, s.ec5_uuid)
-            for clave in s.expediente_claves:
-                expediente_index[clave].append(s.ec5_uuid)
 
-    reins_vinc = 0
-    reins_no = 0
+    empty_exp: Dict[str, List[str]] = defaultdict(list)
     for s in snapshots:
-        classify_row(s, cutoff, notif_index, comp_index, expediente_index)
-        if s.decision in (
-            Decision.CANDIDATA_REINSPECCION_NOTIFICACION,
-            Decision.CANDIDATA_REINSPECCION_OFICIO,
-        ):
-            if s.previa_ec5_uuid:
-                reins_vinc += 1
-            else:
-                reins_no += 1
-        elif s.decision == Decision.REVISAR and "reinspeccion" in s.motivo_revision:
-            reins_no += 1
+        classify_row(s, cutoff, notif_index, comp_index, empty_exp)
+
+    cadenas_result = aplicar_cadenas_a_filas(snapshots, cutoff, by_tipo_num, expediente_acta_index)
+
+    reins_vinc = cadenas_result.vinculos_confiables
+    reins_no = len(cadenas_result.vinculos) - reins_vinc
 
     por_tipo: Counter = Counter()
     por_decision: Counter = Counter()
@@ -594,6 +602,7 @@ def inventariar_csv(
         duplicados_acta=duplicados,
         filas=snapshots,
         date_format_samples=date_formats,
+        cadenas=cadenas_result,
     )
 
 
@@ -614,6 +623,10 @@ def snapshot_to_output_row(snap: RowSnapshot) -> Dict[str, str]:
         "ref_notificacion_previa": snap.ref_notificacion_previa,
         "ref_comprobacion_previa": snap.ref_comprobacion_previa,
         "previa_ec5_uuid": snap.previa_ec5_uuid,
+        "fuente_previa_uuid": snap.fuente_previa_uuid,
+        "estado_vinculo": snap.estado_vinculo,
+        "tipo_origen_esperado": snap.tipo_origen_esperado,
+        "resultado_cadena_esperado": snap.resultado_cadena_esperado,
         "motivo_revision": snap.motivo_revision,
         "tiene_kilos_decomiso": "1" if snap.kilos_decomiso else "0",
         "tiene_faja_clausura": "1" if _is_si(snap.faja_clausura) else "0",
@@ -684,6 +697,11 @@ def write_inventario_outputs(result: InventarioResult, output_dir: Path) -> None
     }
     with (output_dir / "resumen_actas_historicas.json").open("w", encoding="utf-8") as f:
         json.dump(resumen, f, ensure_ascii=False, indent=2)
+
+    if result.cadenas is not None:
+        from app.domains.migracion_historica.epicollect_cadenas_historicas import write_cadenas_outputs
+
+        write_cadenas_outputs(result.cadenas, output_dir)
 
 
 def resolve_repo_root(start: Optional[Path] = None) -> Path:

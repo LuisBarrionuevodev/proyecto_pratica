@@ -1,4 +1,4 @@
-"""Tests del inventario read-only EpiCollect (V1.1-MIG-ACTAS.0)."""
+"""Tests del inventario read-only EpiCollect (V1.1-MIG-ACTAS.0 / 0A)."""
 
 from __future__ import annotations
 
@@ -23,6 +23,10 @@ from app.domains.migracion_historica.epicollect_actas_inventario import (
     write_inventario_outputs,
     _header_indices,
 )
+from app.domains.migracion_historica.epicollect_cadenas_historicas import (
+    EstadoVinculo as EV,
+    ResultadoCadenaEsperado as RCE,
+)
 
 BACKEND_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = BACKEND_ROOT / "scripts" / "inventariar_actas_historicas_epicollect.py"
@@ -38,6 +42,9 @@ def _minimal_header() -> list[str]:
         "5_Pudo_realizar_la_i",
         "6_Tipo_de_inspeccin",
         "8_Numero_de_la_Notif",
+        "14_Nombre_de_Fantasa",
+        "15_Razn_Socialnombre",
+        "16_DNI_del_Contribuy",
         "80_Realizo_Acta_de_I",
         "82_Numero_del_Acta_d",
         "84_Realizo_Acta_de_N",
@@ -74,7 +81,7 @@ def _row_base(
     fecha: str,
     tipo: str = "Inspección Integral o Denuncia",
     pudo: str = "SI",
-    dom: str = "Calle 123",
+    dom: str = "CALLE MITRE 100",
     inspeccion: str = "SI",
     num_ins: str = "1001",
     notif: str = "NO",
@@ -82,6 +89,9 @@ def _row_base(
     comp: str = "NO",
     num_comp: str = "",
     ref_notif: str = "",
+    dni: str = "20123456789",
+    razon: str = "COMERCIO SA",
+    nombre_fantasia: str = "",
 ) -> list[str]:
     return [
         uuid,
@@ -92,6 +102,9 @@ def _row_base(
         pudo,
         tipo,
         ref_notif,
+        nombre_fantasia,
+        razon,
+        dni,
         inspeccion,
         num_ins,
         notif,
@@ -139,10 +152,10 @@ def test_parse_fecha_formatos() -> None:
 def test_notificacion_y_comprobacion_misma_actuacion(tmp_path: Path) -> None:
     csv_path = tmp_path / "t.csv"
     row = _row_base("u-both", "2026-09-01")
-    row[10] = "SI"
-    row[11] = "2002"
-    row[12] = "SI"
-    row[13] = "3003"
+    row[13] = "SI"
+    row[14] = "2002"
+    row[15] = "SI"
+    row[16] = "3003"
     _write_csv(csv_path, [row])
     result = inventariar_csv(csv_path, date(2026, 10, 1))
     assert result.filas[0].decision == Decision.CANDIDATA_CON_AMBAS_ACTAS
@@ -151,13 +164,13 @@ def test_notificacion_y_comprobacion_misma_actuacion(tmp_path: Path) -> None:
 def test_clausura_decomiso_con_comprobacion(tmp_path: Path) -> None:
     csv_path = tmp_path / "t.csv"
     row = _row_base("u-cd", "2026-09-01", comp="SI", num_comp="4004")
-    row[14] = "SI"
-    row[15] = "5005"
-    row[16] = "SI"
-    row[17] = "6006"
-    row[18] = "12"
+    row[17] = "SI"
+    row[18] = "5005"
     row[19] = "SI"
-    row[20] = "SI"
+    row[20] = "6006"
+    row[21] = "12"
+    row[22] = "SI"
+    row[23] = "SI"
     _write_csv(csv_path, [row])
     result = inventariar_csv(csv_path, date(2026, 10, 1))
     snap = result.filas[0]
@@ -182,13 +195,14 @@ def test_reinspeccion_referencia_unica(tmp_path: Path) -> None:
     result = inventariar_csv(csv_path, date(2026, 10, 1))
     rein_snap = next(s for s in result.filas if s.ec5_uuid == "rein")
     assert rein_snap.decision == Decision.CANDIDATA_REINSPECCION_NOTIFICACION
-    assert rein_snap.previa_ec5_uuid == "origen"
+    assert rein_snap.estado_vinculo == EV.VINCULO_CONFIABLE.value
+    assert rein_snap.fuente_previa_uuid == "origen"
 
 
 def test_reinspeccion_sin_referencia_o_duplicada_revisar(tmp_path: Path) -> None:
     csv_path = tmp_path / "t.csv"
-    dup1 = _row_base("d1", "2026-08-01", notif="SI", num_not="7777")
-    dup2 = _row_base("d2", "2026-08-02", notif="SI", num_not="7777")
+    dup1 = _row_base("d1", "2026-08-01", notif="SI", num_not="7777", dni="11111111111")
+    dup2 = _row_base("d2", "2026-08-02", notif="SI", num_not="7777", dni="22222222222")
     rein_sin = _row_base(
         "r0",
         "2026-09-01",
@@ -255,6 +269,7 @@ def test_cli_sin_db(tmp_path: Path) -> None:
     )
     assert proc.returncode == 0
     assert (out / "resumen_actas_historicas.json").is_file()
+    assert (out / "resumen_cadenas_historicas.json").is_file()
     combined = proc.stdout + proc.stderr
     assert "Calle" not in combined
     assert "http" not in combined.lower()
@@ -262,8 +277,7 @@ def test_cli_sin_db(tmp_path: Path) -> None:
 
 def test_stdout_sin_pii(tmp_path: Path) -> None:
     csv_path = tmp_path / "pii.csv"
-    row = _row_base("pii-u", "2026-09-01", dom="Secret Address 999")
-    row[3] = "Juan Perez"
+    row = _row_base("pii-u", "2026-09-01", dom="Secret Address 999", razon="Juan Perez")
     _write_csv(csv_path, [row])
     out = tmp_path / "out2"
     proc = subprocess.run(
@@ -291,3 +305,146 @@ def test_allowed_columns_manifest_subset() -> None:
     snap = extract_row_snapshot(row, hdr, by)
     assert snap.ec5_uuid == "x"
     assert "ec5_uuid" in ALLOWED_LOGICAL_COLUMNS
+
+
+# --- V1.1-MIG-ACTAS.0A ---
+
+
+def test_cadena_notif_dni_confiable_y_cerrada_sin_comprobacion(tmp_path: Path) -> None:
+    csv_path = tmp_path / "cad1.csv"
+    origen = _row_base("o1", "2026-07-01", notif="SI", num_not="5001", dni="30999888777")
+    rein = _row_base(
+        "r1",
+        "2026-08-01",
+        tipo="Reinspección por Notificación",
+        ref_notif="5001",
+        dni="30999888777",
+        comp="NO",
+    )
+    _write_csv(csv_path, [origen, rein])
+    result = inventariar_csv(csv_path, date(2026, 10, 1))
+    r = next(s for s in result.filas if s.ec5_uuid == "r1")
+    assert r.estado_vinculo == EV.VINCULO_CONFIABLE.value
+    assert r.resultado_cadena_esperado == RCE.CERRADA_SIN_COMPROBACION.value
+
+
+def test_cadena_notif_con_comprobacion_en_reinspeccion(tmp_path: Path) -> None:
+    csv_path = tmp_path / "cad2.csv"
+    origen = _row_base("o2", "2026-07-01", notif="SI", num_not="5002")
+    rein = _row_base(
+        "r2",
+        "2026-08-01",
+        tipo="Reinspección por Notificación",
+        ref_notif="5002",
+        comp="SI",
+        num_comp="8008",
+    )
+    _write_csv(csv_path, [origen, rein])
+    result = inventariar_csv(csv_path, date(2026, 10, 1))
+    r = next(s for s in result.filas if s.ec5_uuid == "r2")
+    assert r.resultado_cadena_esperado == RCE.CERRADA_CON_COMPROBACION.value
+
+
+def test_cadena_comprobacion_oficio_expediente(tmp_path: Path) -> None:
+    csv_path = tmp_path / "cad3.csv"
+    origen = _row_base("o3", "2026-06-01", comp="SI", num_comp="6001")
+    origen[24] = "1000"
+    origen[25] = "2026"
+    origen[26] = "50"
+    rein = _row_base(
+        "r3",
+        "2026-09-01",
+        tipo="Verificar e Informar",
+        dni="20123456789",
+    )
+    rein[24] = "1000"
+    rein[25] = "2026"
+    rein[26] = "50"
+    _write_csv(csv_path, [origen, rein])
+    result = inventariar_csv(csv_path, date(2026, 10, 1))
+    r = next(s for s in result.filas if s.ec5_uuid == "r3")
+    assert r.estado_vinculo == EV.VINCULO_CONFIABLE.value
+    assert r.decision == Decision.CANDIDATA_REINSPECCION_OFICIO
+
+
+def test_mismo_numero_acta_dni_distinto_conflictivo(tmp_path: Path) -> None:
+    csv_path = tmp_path / "cad4.csv"
+    origen = _row_base("o4", "2026-07-01", notif="SI", num_not="9999", dni="11111111111")
+    rein = _row_base(
+        "r4",
+        "2026-08-01",
+        tipo="Reinspección por Notificación",
+        ref_notif="9999",
+        dni="22222222222",
+    )
+    _write_csv(csv_path, [origen, rein])
+    result = inventariar_csv(csv_path, date(2026, 10, 1))
+    r = next(s for s in result.filas if s.ec5_uuid == "r4")
+    assert r.estado_vinculo == EV.VINCULO_CONFLICTIVO.value
+    assert r.decision == Decision.REVISAR
+
+
+def test_vinculo_por_domicilio_y_titular_sin_dni(tmp_path: Path) -> None:
+    csv_path = tmp_path / "cad5.csv"
+    origen = _row_base(
+        "o5",
+        "2026-07-01",
+        notif="SI",
+        num_not="6006",
+        dni="",
+        dom="AV SAN MARTIN 200",
+        razon="PANADERIA EL SOL",
+    )
+    rein = _row_base(
+        "r5",
+        "2026-08-15",
+        tipo="Reinspección por Notificación",
+        ref_notif="6006",
+        dni="",
+        dom="AV SAN MARTIN 200",
+        razon="PANADERIA EL SOL",
+    )
+    _write_csv(csv_path, [origen, rein])
+    result = inventariar_csv(csv_path, date(2026, 10, 1))
+    r = next(s for s in result.filas if s.ec5_uuid == "r5")
+    assert r.estado_vinculo == EV.VINCULO_CONFIABLE.value
+
+
+def test_cronologia_reinspeccion_anterior_revisar(tmp_path: Path) -> None:
+    csv_path = tmp_path / "cad6.csv"
+    origen = _row_base("o6", "2026-09-01", notif="SI", num_not="7007")
+    rein = _row_base(
+        "r6",
+        "2026-08-01",
+        tipo="Reinspección por Notificación",
+        ref_notif="7007",
+    )
+    _write_csv(csv_path, [origen, rein])
+    result = inventariar_csv(csv_path, date(2026, 10, 1))
+    r = next(s for s in result.filas if s.ec5_uuid == "r6")
+    assert r.motivo_revision == "cronologia_invalida"
+    assert r.decision == Decision.REVISAR
+
+
+def test_salidas_cadenas_sin_pii(tmp_path: Path) -> None:
+    csv_path = tmp_path / "cad7.csv"
+    _write_csv(
+        csv_path,
+        [
+            _row_base("o7", "2026-07-01", notif="SI", num_not="1", razon="EMPRESA X"),
+            _row_base(
+                "r7",
+                "2026-08-01",
+                tipo="Reinspección por Notificación",
+                ref_notif="1",
+                razon="EMPRESA X",
+            ),
+        ],
+    )
+    out = tmp_path / "outcad"
+    result = inventariar_csv(csv_path, date(2026, 10, 1))
+    write_inventario_outputs(result, out)
+    blob = (out / "vinculos_confiables.csv").read_text(encoding="utf-8")
+    assert "EMPRESA" not in blob
+    assert "http" not in blob.lower()
+    assert "9001" not in blob or "hash" in blob.lower()
