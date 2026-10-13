@@ -20,6 +20,10 @@ dist-ssr
 backups/
 Backend/scripts/output/*.log
 
+# Migración histórica EpiCollect (CSV con PII — solo local)
+Backend/docs/private/migracion_historica/
+docs/form-1__inspecciones-bromatologicas*.csv
+
 # Editor directories and files
 venv/
 .vscode/*
