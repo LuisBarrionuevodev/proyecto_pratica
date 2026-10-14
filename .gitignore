@@ -23,6 +23,9 @@ Backend/scripts/output/*.log
 # Migración histórica EpiCollect (CSV con PII — solo local)
 Backend/docs/private/migracion_historica/
 docs/form-1__inspecciones-bromatologicas*.csv
+inventario_actuaciones_digitaliza*.csv
+inventario_actas_historicas_enriquecido*.csv
+**/fuente-mysql-enriquecida/
 
 # Editor directories and files
 venv/

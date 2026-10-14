@@ -60,6 +60,12 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="Directorio de salida (debe estar fuera del repositorio).",
     )
+    parser.add_argument(
+        "--legacy-inventory",
+        type=Path,
+        default=None,
+        help="CSV inventario MySQL histórico (opcional, fuera de Git).",
+    )
     args = parser.parse_args(argv)
 
     input_path: Path = args.input
@@ -68,19 +74,23 @@ def main(argv: list[str] | None = None) -> int:
 
     if not input_path.is_file():
         raise SystemExit("No se encontró el archivo --input.")
+    if args.legacy_inventory is not None and not args.legacy_inventory.is_file():
+        raise SystemExit("No se encontró el archivo --legacy-inventory.")
 
     repo_root = resolve_repo_root(_BACKEND_ROOT)
     assert_output_outside_repo(output_dir, repo_root)
 
-    result = inventariar_csv(input_path, cutoff)
+    result = inventariar_csv(input_path, cutoff, legacy_inventory=args.legacy_inventory)
     write_inventario_outputs(result, output_dir)
 
-    print(
-        "Inventario generado.",
-        f"filas={result.total_filas_leidas}",
-        f"historicas={result.total_anterior_corte}",
-        f"sha256={result.source_sha256[:12]}…",
+    msg = (
+        f"Inventario generado. filas={result.total_filas_leidas} "
+        f"historicas={result.total_anterior_corte} "
+        f"epi_sha256={result.source_sha256[:12]}…"
     )
+    if result.legacy_inventory_sha256:
+        msg += f" legacy_sha256={result.legacy_inventory_sha256[:12]}…"
+    print(msg)
     return 0
 
 

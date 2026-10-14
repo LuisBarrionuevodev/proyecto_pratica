@@ -448,3 +448,175 @@ def test_salidas_cadenas_sin_pii(tmp_path: Path) -> None:
     assert "EMPRESA" not in blob
     assert "http" not in blob.lower()
     assert "9001" not in blob or "hash" in blob.lower()
+
+
+# --- V1.1-MIG-ACTAS.0B ---
+
+
+def _legacy_header_minimal() -> list[str]:
+    return [
+        "source_actuacion_id",
+        "fecha_actuacion",
+        "ot_anio",
+        "tipo_actuacion",
+        "numero_acta_notificacion",
+        "numero_acta_comprobacion",
+        "documento",
+        "razon_social",
+        "domicilio_texto",
+        "numero_expediente",
+        "anio_expediente",
+        "numero_oficio",
+        "estado_ruta_item",
+    ]
+
+
+def _write_legacy_csv(path: Path, rows: list[list[str]]) -> None:
+    with path.open("w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(_legacy_header_minimal())
+        for row in rows:
+            w.writerow(row)
+
+
+def _legacy_row(
+    act_id: str,
+    fecha: str,
+    notif_num: str = "",
+    comp_num: str = "",
+    dni: str = "",
+    razon: str = "",
+    dom: str = "",
+) -> list[str]:
+    return [
+        act_id,
+        fecha,
+        "2026",
+        "INSPECCION",
+        notif_num,
+        comp_num,
+        dni,
+        razon,
+        dom,
+        "",
+        "",
+        "",
+        "REALIZADO",
+    ]
+
+
+def test_legacy_resuelve_cuando_epi_sin_referencia(tmp_path: Path) -> None:
+    epi = tmp_path / "epi.csv"
+    legacy = tmp_path / "legacy.csv"
+    rein = _row_base(
+        "rein-l1",
+        "2026-08-10",
+        tipo="Reinspección por Notificación",
+        ref_notif="88001",
+        dni="27111222333",
+        razon="KIOSCO SUR",
+        dom="CALLE 9 50",
+    )
+    _write_csv(epi, [rein])
+    _write_legacy_csv(
+        legacy,
+        [_legacy_row("99", "2026-07-01", notif_num="88001", dni="27111222333", razon="KIOSCO SUR", dom="CALLE 9 50")],
+    )
+    result = inventariar_csv(epi, date(2026, 10, 1), legacy_inventory=legacy)
+    r = next(s for s in result.filas if s.ec5_uuid == "rein-l1")
+    assert r.estado_vinculo == EV.VINCULO_CONFIABLE.value
+    assert r.origen_evidencia_vinculo == "MYSQL_HISTORICO"
+    assert r.fuente_previa_legacy_hash
+
+
+def test_legacy_ambos_fuentes_compatibles(tmp_path: Path) -> None:
+    epi = tmp_path / "epi.csv"
+    legacy = tmp_path / "legacy.csv"
+    origen = _row_base("orig-b", "2026-07-01", notif="SI", num_not="88002", dni="20111222333")
+    rein = _row_base(
+        "rein-b",
+        "2026-08-10",
+        tipo="Reinspección por Notificación",
+        ref_notif="88002",
+        dni="20111222333",
+    )
+    _write_csv(epi, [origen, rein])
+    _write_legacy_csv(legacy, [_legacy_row("100", "2026-07-01", notif_num="88002", dni="20111222333")])
+    result = inventariar_csv(epi, date(2026, 10, 1), legacy_inventory=legacy)
+    r = next(s for s in result.filas if s.ec5_uuid == "rein-b")
+    assert r.origen_evidencia_vinculo == "AMBOS"
+
+
+def test_legacy_conflicto_fuentes(tmp_path: Path) -> None:
+    epi = tmp_path / "epi.csv"
+    legacy = tmp_path / "legacy.csv"
+    origen = _row_base("orig-c", "2026-07-01", notif="SI", num_not="88003", dni="11111111111")
+    rein = _row_base(
+        "rein-c",
+        "2026-08-10",
+        tipo="Reinspección por Notificación",
+        ref_notif="88003",
+        dni="11111111111",
+    )
+    _write_csv(epi, [origen, rein])
+    _write_legacy_csv(legacy, [_legacy_row("101", "2026-07-01", notif_num="88003", dni="22222222222")])
+    result = inventariar_csv(epi, date(2026, 10, 1), legacy_inventory=legacy)
+    r = next(s for s in result.filas if s.ec5_uuid == "rein-c")
+    assert r.estado_vinculo == EV.VINCULO_CONFLICTIVO.value
+    assert r.motivo_revision == "conflicto_fuentes_epi_mysql"
+
+
+def test_legacy_sin_identidad_parcial(tmp_path: Path) -> None:
+    epi = tmp_path / "epi.csv"
+    legacy = tmp_path / "legacy.csv"
+    rein = _row_base(
+        "rein-p",
+        "2026-08-10",
+        tipo="Reinspección por Notificación",
+        ref_notif="88004",
+    )
+    _write_csv(epi, [rein])
+    _write_legacy_csv(legacy, [_legacy_row("102", "2026-07-01", notif_num="88004")])
+    result = inventariar_csv(epi, date(2026, 10, 1), legacy_inventory=legacy)
+    r = next(s for s in result.filas if s.ec5_uuid == "rein-p")
+    assert r.estado_vinculo in (EV.VINCULO_PARCIAL.value, EV.SIN_REFERENCIA_PREVIA.value)
+
+
+def test_compatibilidad_inventario_sin_columnas_identidad(tmp_path: Path) -> None:
+    epi = tmp_path / "epi.csv"
+    legacy = tmp_path / "legacy_min.csv"
+    _write_csv(epi, [_row_base("x", "2026-09-01")])
+    with legacy.open("w", newline="", encoding="utf-8") as f:
+        w = csv.writer(f)
+        w.writerow(["source_actuacion_id", "fecha_actuacion", "tipo_actuacion"])
+        w.writerow(["1", "2026-01-01", "INSPECCION"])
+    out = tmp_path / "outleg"
+    result = inventariar_csv(epi, date(2026, 10, 1), legacy_inventory=legacy)
+    write_inventario_outputs(result, out)
+    compat = json.loads((out / "compatibilidad_inventario_mysql.json").read_text(encoding="utf-8"))
+    assert compat["puede_elevar_vinculo_confiable"] is False
+
+
+def test_legacy_salidas_sin_pii(tmp_path: Path) -> None:
+    epi = tmp_path / "epi2.csv"
+    legacy = tmp_path / "legacy2.csv"
+    rein = _row_base(
+        "rein-out",
+        "2026-08-10",
+        tipo="Reinspección por Notificación",
+        ref_notif="88005",
+        dni="30999888777",
+        razon="SECRETO SA",
+    )
+    _write_csv(epi, [rein])
+    _write_legacy_csv(
+        legacy,
+        [_legacy_row("103", "2026-07-01", notif_num="88005", dni="30999888777", razon="SECRETO SA")],
+    )
+    out = tmp_path / "outlegacy"
+    result = inventariar_csv(epi, date(2026, 10, 1), legacy_inventory=legacy)
+    write_inventario_outputs(result, out)
+    blob = (out / "vinculos_resueltos_legacy.csv").read_text(encoding="utf-8")
+    assert "SECRETO" not in blob
+    assert "30999888777" not in blob
+    assert "http" not in blob.lower()

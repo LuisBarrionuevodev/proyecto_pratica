@@ -75,6 +75,20 @@ Reglas fijadas para el ticket siguiente:
 5. Las actuaciones históricas importadas **no** generan rutas, `iniciador_ruta`, alertas, pendientes ni trabajo operativo.
 6. La carga histórica actual “solo comprobación” **no** se modifica en este ticket.
 
+## Export enriquecido MySQL (V1.1-MIG-ACTAS.0C)
+
+```powershell
+cd Backend
+python scripts/export_actas_historicas_enriquecidas.py `
+  --output "$env:USERPROFILE\Desktop\digitaliza-migracion\fuente-mysql-enriquecida"
+```
+
+Genera `inventario_actas_historicas_enriquecido.csv` (PII solo local) y `resumen_export_actas_historicas_enriquecido.json` (sin PII). Solo `digitaliza_sandbox` en `localhost` / `127.0.0.1`.
+
+## Conciliación MySQL (V1.1-MIG-ACTAS.0B)
+
+Parámetro opcional `--legacy-inventory` apunta al CSV `inventario_actuaciones_digitaliza.csv` (fuera de Git). Genera `compatibilidad_inventario_mysql.json`, `resumen_conciliacion_legacy.json`, `vinculos_resueltos_legacy.csv` y `vinculos_conflictivos_legacy.csv`. El resumen de actas incluye `legacy_inventory_sha256` cuando aplica.
+
 ## Cadenas históricas (V1.1-MIG-ACTAS.0A)
 
 El CLI genera además:
