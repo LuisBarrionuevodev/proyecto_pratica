@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+import os
 import runpy
 import sys
 import uuid
@@ -19,6 +20,10 @@ from app.domains.migracion_historica.historico_migracion_import_security import 
     HistoricoMigracionImportSecurityError,
     MigracionImportTarget,
     validate_migracion_import_database_uri,
+)
+from app.domains.migracion_historica.migracion_target_connection import (
+    MigracionTargetConnectionError,
+    pin_explicit_database_uri,
 )
 from app.domains.migracion_historica.historico_piloto_import_service import (
     DECISION_INSERTED,
@@ -277,7 +282,7 @@ def test_dry_run_no_escribe(app, tmp_path: Path, pilot_io_dirs: Tuple[Path, Path
             dry_run=True,
             apply=False,
             confirm_batch=None,
-            target=_target(),
+            target=_test_db_target(),
             repo_root=repo_root,
         )
         after = count_operational_tables()
@@ -300,7 +305,7 @@ def test_salida_dentro_de_repo_rechazada(app, tmp_path: Path, pilot_io_dirs: Tup
                 dry_run=True,
                 apply=False,
                 confirm_batch=None,
-                target=_target(),
+                target=_test_db_target(),
                 repo_root=repo_root,
             )
 
@@ -320,7 +325,7 @@ def test_apply_sin_confirmacion_rechazado(app, tmp_path: Path, pilot_io_dirs: Tu
                 dry_run=False,
                 apply=True,
                 confirm_batch=None,
-                target=_target(),
+                target=_test_db_target(),
                 repo_root=repo_root,
             )
         with pytest.raises(ValueError, match=_APPLY_CONFIRM_MSG):
@@ -333,7 +338,7 @@ def test_apply_sin_confirmacion_rechazado(app, tmp_path: Path, pilot_io_dirs: Tu
                 dry_run=False,
                 apply=True,
                 confirm_batch="otro",
-                target=_target(),
+                target=_test_db_target(),
                 repo_root=repo_root,
             )
 
@@ -390,12 +395,52 @@ def test_resumen_sin_pii(app, tmp_path: Path, pilot_io_dirs: Tuple[Path, Path]) 
             dry_run=True,
             apply=False,
             confirm_batch=None,
-            target=_target(),
+            target=_test_db_target(),
             repo_root=repo_root,
         )
     blob = (output_dir / "resumen_piloto_importacion.json").read_text(encoding="utf-8")
     assert "20123456789" not in blob
     assert "http" not in blob.lower()
+    assert "secret" not in blob.lower()
+    assert "pass@" not in blob.lower()
+    data = json.loads(blob)
+    assert data["conexion_verificada"] is True
+    assert data["database_destino_efectiva"] == "digitaliza_test"
+
+
+def test_uri_migracion_con_sesion_test_aborta_sin_escribir(
+    app, tmp_path: Path, pilot_io_dirs: Tuple[Path, Path]
+) -> None:
+    """Reproduce incidente: URI declara migracion pero la sesión está en digitaliza_test."""
+    repo_root, output_dir = pilot_io_dirs
+    epi = _write_min_epi(tmp_path)
+    ev = _write_evidence(tmp_path)
+    with app.app_context():
+        before = count_operational_tables()
+        with pytest.raises(MigracionTargetConnectionError, match="digitaliza_test"):
+            run_pilot_import(
+                output_dir=output_dir,
+                epicollect_csv=epi,
+                sandbox_evidence_csv=ev,
+                batch_id="batch-mismatch",
+                cutoff=date(2026, 10, 1),
+                dry_run=True,
+                apply=False,
+                confirm_batch=None,
+                target=_target(),
+                repo_root=repo_root,
+            )
+        assert count_operational_tables() == before
+    assert not (output_dir / "resumen_piloto_importacion.json").exists()
+
+
+def test_pin_explicit_uri_prevalece_sobre_database_url(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DATABASE_URL", SANDBOX_URI)
+    monkeypatch.setenv("SQLALCHEMY_DATABASE_URI", SANDBOX_URI)
+    pinned = pin_explicit_database_uri(MIGRACION_URI)
+    assert pinned == MIGRACION_URI
+    assert os.environ.get("SQLALCHEMY_DATABASE_URI") == MIGRACION_URI
+    assert "DATABASE_URL" not in os.environ
 
 
 def test_cli_rechaza_uri_sandbox(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
@@ -578,7 +623,7 @@ def test_conteos_resumen_coherentes(app, tmp_path: Path, pilot_io_dirs: Tuple[Pa
             dry_run=True,
             apply=False,
             confirm_batch=None,
-            target=_target(),
+            target=_test_db_target(),
             repo_root=repo_root,
         )
         resumen = result.resumen

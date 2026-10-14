@@ -20,11 +20,14 @@ from dotenv import load_dotenv
 
 load_dotenv(_BACKEND_ROOT / ".env")
 
-from app import create_app  # noqa: E402
 from app.domains.migracion_historica.epicollect_actas_inventario import parse_inspection_date  # noqa: E402
 from app.domains.migracion_historica.historico_migracion_import_security import (  # noqa: E402
     HistoricoMigracionImportSecurityError,
     validate_migracion_import_database_uri,
+)
+from app.domains.migracion_historica.migracion_target_connection import (  # noqa: E402
+    MigracionTargetConnectionError,
+    create_migracion_flask_app,
 )
 from app.domains.migracion_historica.historico_piloto_import_service import (  # noqa: E402
     run_pilot_import,
@@ -73,13 +76,11 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     uri = args.database_uri.strip()
-    os.environ["SQLALCHEMY_DATABASE_URI"] = uri
-    app = create_app(
-        {
-            "JWT_SECRET_KEY": "piloto-import-historico-jwt-secret-32",
-            "SQLALCHEMY_DATABASE_URI": uri,
-        }
-    )
+    try:
+        app = create_migracion_flask_app(uri)
+    except HistoricoMigracionImportSecurityError as exc:
+        print(str(exc), file=sys.stderr)
+        return 2
 
     with app.app_context():
         try:
@@ -95,7 +96,7 @@ def main(argv: list[str] | None = None) -> int:
                 target=target,
                 repo_root=_BACKEND_ROOT.parent,
             )
-        except ValueError as exc:
+        except (ValueError, MigracionTargetConnectionError) as exc:
             print(str(exc), file=sys.stderr)
             return 2
 

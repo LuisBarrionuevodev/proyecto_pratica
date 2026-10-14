@@ -46,7 +46,10 @@ from app.domains.migracion_historica.epicollect_actas_inventario import (
 )
 from app.domains.migracion_historica.historico_migracion_import_security import (
     MigracionImportTarget,
-    validate_migracion_import_database_uri,
+)
+from app.domains.migracion_historica.migracion_target_connection import (
+    connection_summary_fields,
+    verify_pilot_target_connection,
 )
 from app.domains.migracion_historica.historico_sandbox_odt_evidencia import (
     ESTADO_EVIDENCIA_FINALIZADA,
@@ -535,6 +538,7 @@ def run_pilot_import(
 
     Raises:
         ValueError: confirmación inválida o destino no vacío.
+        MigracionTargetConnectionError: ``SELECT DATABASE()`` no coincide con el destino.
         HistoricoMigracionImportSecurityError: URI no permitida (validada antes en CLI).
     """
     if apply and dry_run:
@@ -544,6 +548,9 @@ def run_pilot_import(
             raise ValueError("--apply requiere --confirm-batch igual a --batch-id.")
         if confirm_batch.strip() != batch_id.strip():
             raise ValueError("--apply requiere --confirm-batch igual a --batch-id.")
+
+    verified = verify_pilot_target_connection(db.session, target)
+    conn_meta = connection_summary_fields(verified)
 
     root = repo_root or resolve_repo_root()
     assert_output_outside_repo(output_dir, root)
@@ -662,6 +669,7 @@ def run_pilot_import(
         "database": target.database,
         "host": target.host,
         "port": target.port,
+        **conn_meta,
         "alembic_revision": alembic_rev,
         "epicollect_sha256": epi_sha,
         "evidencia_sha256": ev_sha,

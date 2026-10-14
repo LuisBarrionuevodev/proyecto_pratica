@@ -25,6 +25,12 @@ if BACKEND_ROOT not in sys.path:
 
 from app import create_app
 from app.database import db
+from app.domains.migracion_historica.migracion_target_connection import (
+    MigracionTargetConnectionError,
+    database_name_from_uri,
+    pin_explicit_database_uri,
+    verify_explicit_uri_connection,
+)
 from app.domains.catalogos.canonical.manifest import CATALOG_VERSION, EXPECTED_COUNTS
 from app.domains.catalogos.seeds.seed_canonical_service import (
     canonical_names_contain_qa,
@@ -60,13 +66,12 @@ def parse_args() -> argparse.Namespace:
 def main() -> int:
     load_dotenv(os.path.join(BACKEND_ROOT, ".env"))
     args = parse_args()
-    uri = (args.database_uri or os.getenv("SQLALCHEMY_DATABASE_URI") or "").strip()
+    explicit_uri = (args.database_uri or "").strip()
+    uri = explicit_uri or (os.getenv("SQLALCHEMY_DATABASE_URI") or "").strip()
     if not uri:
         print("SQLALCHEMY_DATABASE_URI no configurada.", file=sys.stderr)
         return 1
 
-    db_name = _database_name(uri)
-    print(f"DATABASE DESTINO: {db_name}")
     print(f"CATALOG_VERSION: {CATALOG_VERSION}")
     print(f"MODO: {'DRY-RUN (sin writes)' if args.dry_run else 'WRITE'}")
 
@@ -76,12 +81,16 @@ def main() -> int:
         return 1
 
     dev_uri = (os.getenv("SQLALCHEMY_DATABASE_URI") or "").strip()
+    db_name = database_name_from_uri(uri)
     is_test_db = "test" in db_name.lower()
-    if is_test_db:
+    if explicit_uri:
+        pin_explicit_database_uri(uri)
+    elif is_test_db:
         os.environ["TEST_DATABASE_URL"] = uri
-        if dev_uri and dev_uri != uri and "test" not in _database_name(dev_uri).lower():
+        if dev_uri and dev_uri != uri and "test" not in database_name_from_uri(dev_uri).lower():
             os.environ.setdefault("PYTEST_ORIGINAL_DEV_DATABASE_URI", dev_uri)
-    os.environ["SQLALCHEMY_DATABASE_URI"] = uri
+        os.environ["SQLALCHEMY_DATABASE_URI"] = uri
+
     if is_test_db:
         app = create_app(
             {
@@ -91,13 +100,22 @@ def main() -> int:
             }
         )
     else:
-        app = create_app(
-            {
-                "JWT_SECRET_KEY": "seed-catalogos-canonicos-jwt-secret-32b",
-            }
-        )
+        config = {"JWT_SECRET_KEY": "seed-catalogos-canonicos-jwt-secret-32b"}
+        if explicit_uri:
+            config["SQLALCHEMY_DATABASE_URI"] = uri
+        app = create_app(config)
 
     with app.app_context():
+        if explicit_uri:
+            try:
+                efectiva = verify_explicit_uri_connection(db.session, uri)
+            except MigracionTargetConnectionError as exc:
+                print(str(exc), file=sys.stderr)
+                return 2
+            print(f"DATABASE DESTINO: {efectiva}")
+        else:
+            print(f"DATABASE DESTINO: {_database_name(uri)}")
+
         result = run_canonical_catalog_seed(db.session, dry_run=args.dry_run)
         print("\nResultado por catálogo:")
         for catalog, metrics in result.catalogs.items():
