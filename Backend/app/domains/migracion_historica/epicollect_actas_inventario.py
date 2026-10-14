@@ -95,6 +95,8 @@ OUTPUT_CSV_FIELDS: Tuple[str, ...] = (
     "estado_vinculo",
     "tipo_origen_esperado",
     "resultado_cadena_esperado",
+    "origen_evidencia_vinculo",
+    "fuente_previa_legacy_hash",
     "motivo_revision",
     "tiene_kilos_decomiso",
     "tiene_faja_clausura",
@@ -132,6 +134,8 @@ class RowSnapshot:
     tipo_origen_esperado: str = ""
     resultado_cadena_esperado: str = ""
     fuente_previa_uuid: str = ""
+    origen_evidencia_vinculo: str = ""
+    fuente_previa_legacy_hash: str = ""
     decision: Decision = Decision.REVISAR
     motivo_revision: str = ""
     previa_ec5_uuid: str = ""
@@ -152,6 +156,9 @@ class InventarioResult:
     filas: List[RowSnapshot] = field(default_factory=list)
     date_format_samples: Counter = field(default_factory=Counter)
     cadenas: Any = None
+    legacy_inventory_sha256: Optional[str] = None
+    conciliacion_legacy: Any = None
+    compatibilidad_legacy: Optional[Dict[str, Any]] = None
 
 
 def sha256_file(path: Path) -> str:
@@ -518,6 +525,7 @@ def _register_acta(index: Dict[str, List[str]], num: str, ec5_uuid: str) -> None
 def inventariar_csv(
     input_path: Path,
     cutoff: date,
+    legacy_inventory: Optional[Path] = None,
 ) -> InventarioResult:
     """
     Lee el CSV EpiCollect y clasifica filas históricas (< cutoff).
@@ -567,6 +575,24 @@ def inventariar_csv(
 
     cadenas_result = aplicar_cadenas_a_filas(snapshots, cutoff, by_tipo_num, expediente_acta_index)
 
+    legacy_sha: Optional[str] = None
+    conciliacion_legacy = None
+    compatibilidad_legacy = None
+    if legacy_inventory is not None:
+        from app.domains.migracion_historica.epicollect_legacy_conciliacion import (
+            aplicar_conciliacion_legacy,
+        )
+
+        cadenas_result, conciliacion_legacy, compatibilidad_legacy = aplicar_conciliacion_legacy(
+            snapshots,
+            cutoff,
+            cadenas_result,
+            legacy_inventory,
+            by_tipo_num,
+            expediente_acta_index,
+        )
+        legacy_sha = conciliacion_legacy.legacy_sha256
+
     reins_vinc = cadenas_result.vinculos_confiables
     reins_no = len(cadenas_result.vinculos) - reins_vinc
 
@@ -603,6 +629,9 @@ def inventariar_csv(
         filas=snapshots,
         date_format_samples=date_formats,
         cadenas=cadenas_result,
+        legacy_inventory_sha256=legacy_sha,
+        conciliacion_legacy=conciliacion_legacy,
+        compatibilidad_legacy=compatibilidad_legacy,
     )
 
 
@@ -627,6 +656,8 @@ def snapshot_to_output_row(snap: RowSnapshot) -> Dict[str, str]:
         "estado_vinculo": snap.estado_vinculo,
         "tipo_origen_esperado": snap.tipo_origen_esperado,
         "resultado_cadena_esperado": snap.resultado_cadena_esperado,
+        "origen_evidencia_vinculo": snap.origen_evidencia_vinculo,
+        "fuente_previa_legacy_hash": snap.fuente_previa_legacy_hash,
         "motivo_revision": snap.motivo_revision,
         "tiene_kilos_decomiso": "1" if snap.kilos_decomiso else "0",
         "tiene_faja_clausura": "1" if _is_si(snap.faja_clausura) else "0",
@@ -694,6 +725,7 @@ def write_inventario_outputs(result: InventarioResult, output_dir: Path) -> None
         },
         "formatos_fecha_detectados": dict(result.date_format_samples),
         "columnas_logicas_permitidas": list(ALLOWED_LOGICAL_COLUMNS),
+        "legacy_inventory_sha256": result.legacy_inventory_sha256,
     }
     with (output_dir / "resumen_actas_historicas.json").open("w", encoding="utf-8") as f:
         json.dump(resumen, f, ensure_ascii=False, indent=2)
@@ -702,6 +734,17 @@ def write_inventario_outputs(result: InventarioResult, output_dir: Path) -> None
         from app.domains.migracion_historica.epicollect_cadenas_historicas import write_cadenas_outputs
 
         write_cadenas_outputs(result.cadenas, output_dir)
+
+    if result.conciliacion_legacy is not None and result.compatibilidad_legacy is not None:
+        from app.domains.migracion_historica.epicollect_legacy_conciliacion import (
+            write_legacy_conciliacion_outputs,
+        )
+
+        write_legacy_conciliacion_outputs(
+            result.compatibilidad_legacy,
+            result.conciliacion_legacy,
+            output_dir,
+        )
 
 
 def resolve_repo_root(start: Optional[Path] = None) -> Path:

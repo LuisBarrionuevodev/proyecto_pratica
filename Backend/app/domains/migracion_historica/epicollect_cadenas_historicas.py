@@ -87,6 +87,8 @@ class CadenaVinculo:
     acta_referencia_hash: str
     previa_acta_hash: str
     es_reinspeccion: bool = True
+    origen_evidencia_vinculo: str = ""
+    fuente_previa_legacy_hash: str = ""
 
 
 @dataclass
@@ -428,6 +430,7 @@ def analizar_cadena_reinspeccion(
         motivo_revision="",
         acta_referencia_hash=ref_hash,
         previa_acta_hash=prev_hash,
+        origen_evidencia_vinculo="EPICOLLECT",
     )
 
 
@@ -464,6 +467,8 @@ def aplicar_cadenas_a_filas(
         snap.tipo_origen_esperado = cadena.tipo_origen_esperado
         snap.resultado_cadena_esperado = cadena.resultado_cadena_esperado.value
         snap.fuente_previa_uuid = cadena.fuente_previa_uuid
+        snap.origen_evidencia_vinculo = cadena.origen_evidencia_vinculo
+        snap.fuente_previa_legacy_hash = cadena.fuente_previa_legacy_hash
         if cadena.motivo_revision:
             snap.motivo_revision = cadena.motivo_revision
 
