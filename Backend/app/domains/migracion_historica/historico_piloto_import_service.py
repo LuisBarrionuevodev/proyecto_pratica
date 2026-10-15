@@ -18,14 +18,6 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 from sqlalchemy import func, text
 
 from app.database import db
-from app.domains.actuaciones.attach.clausura import attach_clausura
-from app.domains.actuaciones.attach.comprobacion import attach_comprobacion
-from app.domains.actuaciones.attach.contribuyente import resolve_contribuyente
-from app.domains.actuaciones.attach.decomiso import attach_decomiso
-from app.domains.actuaciones.attach.domicilio import get_or_create_domicilio
-from app.domains.actuaciones.attach.inspeccion import attach_inspeccion
-from app.domains.actuaciones.attach.notificacion import attach_notificacion
-from app.domains.actuaciones.attach.orden_trabajo import get_or_create_orden_trabajo
 from app.domains.actuaciones.catalogs.inspector import get_inspectores_o_falla
 from app.domains.actuaciones.catalogs.motivo import get_motivo_o_falla
 from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
@@ -46,6 +38,17 @@ from app.domains.migracion_historica.epicollect_actas_inventario import (
 )
 from app.domains.migracion_historica.historico_migracion_import_security import (
     MigracionImportTarget,
+)
+from app.domains.migracion_historica.historico_cadenas_import_service import (
+    FASE_1_RAIZ,
+    FASE_2_REINSPECCION,
+    FASE_3_OFICIO,
+    enriquecer_planes_con_cadenas,
+    importar_cadena_historica,
+    parse_administrativo_from_row,
+    reporte_registros_piloto_existentes,
+    build_resumen_cadenas,
+    write_cadenas_outputs,
 )
 from app.domains.migracion_historica.migracion_target_connection import (
     connection_summary_fields,
@@ -130,6 +133,14 @@ class PilotChainPlan:
     clausura: Dict[str, Any] = field(default_factory=dict)
     decomiso: Dict[str, Any] = field(default_factory=dict)
     nombre_local: str = ""
+    fase_importacion: str = ""
+    tipo_cadena: str = ""
+    estado_vinculo: str = ""
+    parent_source_uuid: str = ""
+    parent_source_hash: str = ""
+    acta_origen_numero: str = ""
+    parent_target_id: Optional[int] = None
+    administrativo: Optional[Any] = None
 
 
 @dataclass
@@ -231,6 +242,12 @@ def _resolve_tipo_actuacion(tipo_epi: str) -> Optional[str]:
             return canon
     if "REINSPECC" in t:
         return "REINSPECCION"
+    if "RATIFICACI" in t and "CLAUSURA" in t:
+        return "RATIFICACION DE CLAUSURA"
+    if "RATIFICACI" in t and "DECOMISO" in t:
+        return "RATIFICACION DE DECOMISO"
+    if "VERIFICAR" in t and "INFORMAR" in t:
+        return "VERIFICAR E INFORMAR"
     return "INSPECCION"
 
 
@@ -378,6 +395,8 @@ def build_plan_from_sources(
                 "kilos_total": kilos,
             }
 
+        plan.administrativo = parse_administrativo_from_row(raw, hdr)
+
         revision = _try_catalog_resolution(plan)
         if revision:
             plan.motivo_revision = revision
@@ -435,66 +454,6 @@ def _existing_registro(
         )
         .first()
     )
-
-
-def _import_single_chain(plan: PilotChainPlan) -> int:
-    """
-    Importa una cadena en la sesión actual (sin commit).
-
-    Raises:
-        ValueError: reglas de negocio o catálogos.
-    """
-    snap = plan.snap
-    if not snap or not snap.fecha_inspec:
-        raise ValueError("snapshot_invalido")
-
-    fecha_str = snap.fecha_inspec.isoformat()
-    orden_trabajo_id = None
-    if plan.odt_numero and plan.odt_anio:
-        ot = get_or_create_orden_trabajo(plan.odt_numero, fecha_str)
-        existente = Actuaciones.query.filter_by(orden_trabajo_id=ot.id).first()
-        if existente:
-            raise ValueError("ot_ya_tiene_actuacion")
-        orden_trabajo_id = ot.id
-
-    existente_uuid = Actuaciones.query.filter_by(ec5_uuid=plan.ec5_uuid).first()
-    if existente_uuid:
-        raise ValueError("ec5_uuid_ya_importado")
-
-    act = Actuaciones(
-        fecha=snap.fecha_inspec,
-        mes=snap.fecha_inspec.month,
-        anio=snap.fecha_inspec.year,
-        tipo=plan.tipo_actuacion,
-        orden_trabajo_id=orden_trabajo_id,
-        ec5_uuid=plan.ec5_uuid,
-        nombre_local=plan.nombre_local or None,
-    )
-    db.session.add(act)
-    db.session.flush()
-
-    rubro = get_rubro_o_falla(plan.rubro_nombre) if plan.rubro_nombre else None
-    contrib = resolve_contribuyente(plan.contribuyente or None)
-    dom = get_or_create_domicilio(plan.domicilio or None, contrib, rubro)
-    if dom:
-        act.domicilio_id = dom.id
-
-    act.inspector = get_inspectores_o_falla(plan.inspectores)
-
-    if plan.acta_inspeccion:
-        attach_inspeccion(act, plan.acta_inspeccion, crear=True)
-    if plan.notificacion:
-        attach_notificacion(act, plan.notificacion)
-    if plan.comprobacion:
-        attach_comprobacion(act, plan.comprobacion)
-    if plan.clausura:
-        attach_clausura(act, plan.clausura, crear=True)
-    if plan.decomiso:
-        attach_decomiso(act, plan.decomiso, crear=True)
-
-    db.session.add(act)
-    db.session.flush()
-    return int(act.id)
 
 
 def _sanitize_error(exc: BaseException) -> Tuple[str, str]:
@@ -578,6 +537,10 @@ def run_pilot_import(
         hdr_by_uuid,
         cutoff,
     )
+    enriquecer_planes_con_cadenas(plans, list(epi_by_uuid.values()))
+    write_cadenas_outputs(output_dir, plans)
+    if apply or dry_run:
+        reporte_registros_piloto_existentes(output_dir)
 
     counts_before = count_operational_tables()
     alembic_rev = read_alembic_revision()
@@ -600,7 +563,15 @@ def run_pilot_import(
     ot_before = counts_before["orden_trabajo"]
     act_before = counts_before["actuaciones"]
 
-    for plan in plans:
+    fase_orden = (FASE_1_RAIZ, FASE_2_REINSPECCION, FASE_3_OFICIO)
+    plans_ordenados = sorted(
+        plans,
+        key=lambda p: fase_orden.index(p.fase_importacion or FASE_1_RAIZ)
+        if (p.fase_importacion or FASE_1_RAIZ) in fase_orden
+        else 99,
+    )
+
+    for plan in plans_ordenados:
         if plan.decision != DECISION_APPLICABLE:
             continue
         if apply and not dry_run:
@@ -613,7 +584,7 @@ def run_pilot_import(
             continue
 
         try:
-            act_id = _import_single_chain(plan)
+            act_id = importar_cadena_historica(plan)
             reg = MigracionHistoricaRegistro(
                 batch_id=batch_id,
                 source_name=SOURCE_NAME,
@@ -690,6 +661,7 @@ def run_pilot_import(
         "conteos_antes": counts_before,
         "conteos_despues": counts_after,
         "media_urls_exportadas": False,
+        "cadenas": build_resumen_cadenas(plans),
     }
 
     _write_pilot_outputs(output_dir, plans, resumen)

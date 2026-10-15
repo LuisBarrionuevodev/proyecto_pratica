@@ -581,7 +581,7 @@ def test_falla_revierte_cadena(
             raise ValueError("fallo_simulado")
 
         monkeypatch.setattr(
-            "app.domains.migracion_historica.historico_piloto_import_service._import_single_chain",
+            "app.domains.migracion_historica.historico_piloto_import_service.importar_cadena_historica",
             lambda plan: _boom(plan),
         )
         before = Actuaciones.query.count()
