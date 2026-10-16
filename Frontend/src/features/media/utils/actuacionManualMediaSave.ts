@@ -1,4 +1,5 @@
-import type { MediaQueuedFile } from "../mediaTypes";
+import type { MediaQueuedFile, RutaItemArchivosListResponse } from "../mediaTypes";
+import { reconcileMediaQueueAfterUploadAttempt } from "./mediaUploadQueueReconcile";
 
 export type ManualMediaSaveOutcome = "success" | "partial" | "empty";
 
@@ -34,23 +35,36 @@ export async function runManualMediaSave(params: {
   rutaItemId: number;
   uploadAll: (rutaItemId: number) => Promise<void>;
   getQueueItems: () => MediaQueuedFile[];
+  /** Sincroniza la cola local tras reconciliar con el servidor (Completar trabajo). */
+  applyQueueItems?: (items: MediaQueuedFile[]) => void;
   clearUploadedFromQueue: () => void;
   reloadServer: () => Promise<void>;
+  fetchArchivosForReconcile?: (rutaItemId: number) => Promise<RutaItemArchivosListResponse>;
 }): Promise<ManualMediaSaveResult> {
   if (countUploadableQueueItems(params.getQueueItems()) === 0) {
     return { outcome: "empty", refreshFailed: false };
   }
 
-  await params.uploadAll(params.rutaItemId);
+  try {
+    await params.uploadAll(params.rutaItemId);
+  } catch {
+    // Puede haber archivos READY en servidor pese al error agregado del pipeline.
+  }
 
-  const afterUpload = params.getQueueItems();
-  if (hasIncompleteUploadInQueue(afterUpload)) {
-    return { outcome: "partial", refreshFailed: false };
+  const reconciled = await reconcileMediaQueueAfterUploadAttempt(
+    params.rutaItemId,
+    params.getQueueItems(),
+    params.fetchArchivosForReconcile
+  );
+  params.applyQueueItems?.(reconciled.items);
+
+  if (hasIncompleteUploadInQueue(reconciled.items)) {
+    return { outcome: "partial", refreshFailed: reconciled.archivosRefreshFailed };
   }
 
   params.clearUploadedFromQueue();
 
-  let refreshFailed = false;
+  let refreshFailed = reconciled.archivosRefreshFailed;
   try {
     await params.reloadServer();
   } catch {

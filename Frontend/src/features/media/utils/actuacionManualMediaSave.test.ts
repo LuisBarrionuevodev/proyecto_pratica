@@ -213,6 +213,41 @@ describe("actuacionManualMediaSave", () => {
     ).toBe(0);
   });
 
+  it("upload lanza pero servidor tiene archivo → success (reconciliación)", async () => {
+    let items: MediaQueuedFile[] = [
+      { ...pendingItem("a"), phase: "error", archivoId: null, errorMessage: "Red" },
+    ];
+    const uploadAll = vi.fn(async () => {
+      items = [{ ...pendingItem("a"), phase: "error", archivoId: 55, errorMessage: "Red" }];
+    });
+    const clear = vi.fn(() => {
+      items = [];
+    });
+    const result = await runManualMediaSave({
+      rutaItemId: 10,
+      uploadAll,
+      getQueueItems: () => items,
+      clearUploadedFromQueue: clear,
+      reloadServer: vi.fn(),
+      fetchArchivosForReconcile: vi.fn().mockResolvedValue({
+        foto_acta: [
+          {
+            archivo_id: 55,
+            original_filename: "a.jpg",
+            content_type: "image/jpeg",
+            byte_size: 1,
+            uploaded_at: "2026-01-01",
+            categoria: MEDIA_CATEGORIA_FOTO_ACTA,
+          },
+        ],
+        foto_documentacion_local: [],
+        foto_inspeccion: [],
+      }),
+    });
+    expect(result.outcome).toBe("success");
+    expect(clear).toHaveBeenCalled();
+  });
+
   it("manualMediaSavePrimaryLabel usa CONTINUAR SUBIDA con reintentos", () => {
     expect(manualMediaSavePrimaryLabel(2, true)).toBe("CONTINUAR SUBIDA");
     expect(manualMediaSavePrimaryLabel(0, false)).toBe("GUARDAR FOTOS");

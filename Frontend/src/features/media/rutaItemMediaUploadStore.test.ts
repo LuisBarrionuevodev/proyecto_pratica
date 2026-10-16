@@ -6,6 +6,7 @@ import {
   addFilesForRutaItem,
   cancelUploadForRutaItem,
   getRutaItemMediaUploadSnapshot,
+  replaceQueueItemsForRutaItem,
   uploadAllForRutaItem,
 } from "./rutaItemMediaUploadStore";
 
@@ -90,6 +91,17 @@ describe("rutaItemMediaUploadStore", () => {
     const after = getRutaItemMediaUploadSnapshot(12);
     expect(after).toBe(before);
     expect(after.items).toHaveLength(1);
+  });
+
+  it("error con archivoId no habilita continuar subida (uploadableCount 0)", () => {
+    addFilesForRutaItem(30, MEDIA_CATEGORIA_FOTO_ACTA, [fakeFile("z.jpg")], 0);
+    const base = getRutaItemMediaUploadSnapshot(30).items[0]!;
+    replaceQueueItemsForRutaItem(30, [
+      { ...base, phase: "error", archivoId: 9, errorMessage: "Red" },
+    ]);
+    const snap = getRutaItemMediaUploadSnapshot(30);
+    expect(snap.uploadableCount).toBe(0);
+    expect(snap.hasRetryableUpload).toBe(false);
   });
 
   it("respuestas tardías no actualizan otro rutaItemId tras cancel", async () => {

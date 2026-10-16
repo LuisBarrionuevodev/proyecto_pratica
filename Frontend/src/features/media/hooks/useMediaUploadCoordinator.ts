@@ -21,6 +21,7 @@ import {
   removeItemForRutaItem,
   retryAllRetryableForRutaItem,
   subscribeRutaItemMediaUploadStore,
+  clearReadyFromQueueForRutaItem,
   replaceQueueItemsForRutaItem,
   uploadAllForRutaItem,
 } from "../rutaItemMediaUploadStore";
@@ -322,6 +323,11 @@ export function useCompletarTrabajoMediaQueues(rutaItemId: number | null | undef
     [activeId]
   );
 
+  const clearUploadedFromQueue = useCallback(() => {
+    if (activeId == null) return;
+    clearReadyFromQueueForRutaItem(activeId);
+  }, [activeId]);
+
   const addFotoActaFiles = useCallback(
     (files: FileList | File[], serverCount = 0) =>
       addFiles(MEDIA_CATEGORIA_FOTO_ACTA, files, serverCount),
@@ -364,6 +370,7 @@ export function useCompletarTrabajoMediaQueues(rutaItemId: number | null | undef
       retryAllPending,
       clearForActiveRutaItem,
       syncQueueItems,
+      clearUploadedFromQueue,
       session: snapshot.session,
       allItems: snapshot.items,
     }),
@@ -373,6 +380,7 @@ export function useCompletarTrabajoMediaQueues(rutaItemId: number | null | undef
       addFotoDocFiles,
       addFotoInspeccionFiles,
       clearForActiveRutaItem,
+      clearUploadedFromQueue,
       syncQueueItems,
       fotoActaItems,
       fotoDocItems,

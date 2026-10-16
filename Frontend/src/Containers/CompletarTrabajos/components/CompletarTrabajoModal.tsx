@@ -137,9 +137,15 @@ import { useMediaUploadPanelHold } from "../../../features/media/hooks/useMediaU
 import { useScrollMediaUploadPanelOnUploadStart } from "../../../features/media/hooks/useScrollMediaUploadPanelOnUploadStart";
 import {
   MANUAL_MEDIA_GALLERY_REFRESH_HINT,
+  MANUAL_MEDIA_PARTIAL_MESSAGE,
 } from "../../../features/media/utils/actuacionManualMediaSave";
 import { scheduleScrollMediaUploadPanelIntoView } from "../../../features/media/utils/scrollMediaUploadPanelIntoView";
-import { finalizeCompletarTrabajoMediaUploadAttempt } from "../utils/completarTrabajoMediaUploadReconcile";
+import {
+  COMPLETAR_TRABAJO_FOTOS_SUCCESS_MESSAGE,
+  runCompletarTrabajoSoloEvidenciasMediaUpload,
+  shouldCloseCompletarTrabajoAfterSoloEvidenciasUpload,
+} from "../utils/completarTrabajoSoloEvidenciasMediaUpload";
+import { runManualMediaSave } from "../../../features/media/utils/actuacionManualMediaSave";
 import { MediaUploadProgress } from "../../../features/media/components/MediaUploadProgress";
 import { MediaUploadSection } from "../../../features/media/components/MediaUploadSection";
 import { MediaUploadPanelErrorBoundary } from "../../../features/media/components/MediaUploadPanelErrorBoundary";
@@ -1089,29 +1095,45 @@ export function CompletarTrabajoModal({
     actaComprobacion,
   ]);
 
-  const runMediaUploadWithFinalize = useCallback(async () => {
-    if (!resolvedRow) {
-      throw new Error("Sin fila de trabajo para subir evidencias.");
-    }
-    scrollToMediaUploadPanel();
-    try {
-      await mediaQueues.uploadAll(resolvedRow.ruta_item_id, 1);
-    } catch {
-      // Reconciliar con listado de archivos antes de marcar fallo.
-    }
-    const finalized = await finalizeCompletarTrabajoMediaUploadAttempt({
+  const completarTrabajoMediaSaveDeps = useCallback(() => {
+    if (!resolvedRow) return null;
+    return {
       rutaItemId: resolvedRow.ruta_item_id,
-      queueItems: mediaQueues.allItems,
-    });
-    mediaQueues.syncQueueItems(finalized.reconciledItems);
-    return finalized;
-  }, [mediaQueues, resolvedRow, scrollToMediaUploadPanel]);
+      uploadAll: mediaQueues.uploadAll,
+      getQueueItems: () => mediaQueues.allItems,
+      applyQueueItems: mediaQueues.syncQueueItems,
+      clearUploadedFromQueue: mediaQueues.clearUploadedFromQueue,
+      reloadServer: async () => {
+        await readyArchivos.reload();
+      },
+    };
+  }, [mediaQueues, readyArchivos, resolvedRow]);
+
+  const finishCompletarTrabajoFotosSuccess = useCallback(
+    (refreshFailed: boolean) => {
+      setEmptyQueueHint(null);
+      setMediaSelectionError(null);
+      if (refreshFailed) {
+        feedback.info(MANUAL_MEDIA_GALLERY_REFRESH_HINT);
+      }
+      feedback.success(COMPLETAR_TRABAJO_FOTOS_SUCCESS_MESSAGE);
+      mediaQueues.clearForActiveRutaItem();
+      if (resolvedRow) {
+        onSuccess(resolvedRow.ruta_item_id);
+        onClose();
+      }
+    },
+    [feedback, mediaQueues, onClose, onSuccess, resolvedRow]
+  );
 
   const uploadMediaAfterCierre = useCallback(async (): Promise<boolean> => {
     if (!resolvedRow || !mediaQueues.hasPendingUpload) return true;
-    const finalized = await runMediaUploadWithFinalize();
-    return finalized.status === "success";
-  }, [resolvedRow, mediaQueues.hasPendingUpload, runMediaUploadWithFinalize]);
+    const deps = completarTrabajoMediaSaveDeps();
+    if (!deps) return false;
+    scrollToMediaUploadPanel();
+    const result = await runManualMediaSave(deps);
+    return result.outcome === "success";
+  }, [completarTrabajoMediaSaveDeps, mediaQueues.hasPendingUpload, resolvedRow, scrollToMediaUploadPanel]);
 
   const runCierreThenMedia = useCallback(
     async (submitCierre: () => Promise<void>) => {
@@ -1249,47 +1271,36 @@ export function CompletarTrabajoModal({
       }
       setEmptyQueueHint(null);
       setSaving(true);
+      scrollToMediaUploadPanel();
       try {
-        const finalized = await runMediaUploadWithFinalize();
-        if (finalized.status === "success") {
-          if (finalized.archivosRefreshFailed) {
-            feedback.info(MANUAL_MEDIA_GALLERY_REFRESH_HINT);
-          }
-          feedback.success("Fotos subidas correctamente.");
-          mediaQueues.clearForActiveRutaItem();
-          onSuccess(resolvedRow.ruta_item_id);
-          onClose();
+        const deps = completarTrabajoMediaSaveDeps();
+        if (!deps) return;
+        const result = await runCompletarTrabajoSoloEvidenciasMediaUpload(deps);
+        if (shouldCloseCompletarTrabajoAfterSoloEvidenciasUpload(result.outcome)) {
+          finishCompletarTrabajoFotosSuccess(result.refreshFailed);
           return;
         }
-        if (finalized.status === "guardado_fotos_pendientes") {
-          feedback.info(
-            "El trabajo está guardado. Algunas fotos no se subieron; reintentá las que faltan."
-          );
-          return;
-        }
-        const recovered = await tryRecoverCompletarTrabajoTrasErrorRed(resolvedRow.ruta_item_id, {
-          onCompleto: () => {
-            feedback.success("Fotos subidas correctamente.");
-            mediaQueues.clearForActiveRutaItem();
-            onSuccess(resolvedRow.ruta_item_id);
-            onClose();
-          },
-          onGuardadoFotosPendientes: (det) => {
-            applyRecoveryDetalle(det);
-            feedback.info(
-              "El trabajo está guardado. Algunas fotos no se subieron; reintentá las que faltan."
-            );
-          },
-          onNoGuardado: () => {
+        if (result.outcome === "partial") {
+          feedback.info(MANUAL_MEDIA_PARTIAL_MESSAGE);
+          const recovered = await tryRecoverCompletarTrabajoTrasErrorRed(resolvedRow.ruta_item_id, {
+            onCompleto: () => finishCompletarTrabajoFotosSuccess(false),
+            onGuardadoFotosPendientes: (det) => {
+              applyRecoveryDetalle(det);
+              feedback.info(
+                "El trabajo está guardado. Algunas fotos no se subieron; reintentá las que faltan."
+              );
+            },
+            onNoGuardado: () => {
+              feedback.warning(
+                "No se pudieron subir todas las fotos. Reintentá cuando tengas mejor conexión."
+              );
+            },
+          });
+          if (!recovered) {
             feedback.warning(
               "No se pudieron subir todas las fotos. Reintentá cuando tengas mejor conexión."
             );
-          },
-        });
-        if (!recovered) {
-          feedback.warning(
-            "No se pudieron subir todas las fotos. Reintentá cuando tengas mejor conexión."
-          );
+          }
         }
       } finally {
         setSaving(false);

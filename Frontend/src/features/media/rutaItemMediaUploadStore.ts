@@ -12,6 +12,7 @@ import {
   sliceFilesToAvailableQuota,
   type MediaQuotaAddResult,
 } from "../../Containers/CompletarTrabajos/utils/completarTrabajoMediaQuota";
+import { countUploadableQueueItems } from "./utils/actuacionManualMediaSave";
 export type RutaItemMediaUploadSessionState = {
   active: boolean;
   globalPct: number;
@@ -116,18 +117,10 @@ const EMPTY_SNAPSHOT: RutaItemMediaUploadSnapshot = {
 };
 
 function computeFlags(items: MediaQueuedFile[]) {
-  const hasPendingUpload = items.some(
-    (x) => x.phase === "pending" || (x.phase === "error" && x.archivoId == null)
-  );
-  const hasRetryableUpload = items.some(
-    (x) =>
-      x.phase !== "ready" &&
-      (x.phase === "pending" || x.phase === "error")
-  );
-  const retryableCount = items.filter(
-    (x) => x.phase === "pending" || x.phase === "error"
-  ).length;
-  const uploadableCount = retryableCount;
+  const uploadableCount = countUploadableQueueItems(items);
+  const hasPendingUpload = uploadableCount > 0;
+  const hasRetryableUpload = uploadableCount > 0;
+  const retryableCount = uploadableCount;
   return { hasPendingUpload, hasRetryableUpload, retryableCount, uploadableCount };
 }
 
@@ -149,6 +142,20 @@ export function cancelUploadForRutaItem(rutaItemId: number): void {
   b.abortController = null;
   b.uploadEpoch += 1;
   b.session = { ...b.session, active: false };
+  notifyStoreChange(b);
+}
+
+/** Quita ítems READY de la cola (misma semántica que Mis trabajos tras guardado exitoso). */
+export function clearReadyFromQueueForRutaItem(rutaItemId: number): void {
+  const b = buckets.get(rutaItemId);
+  if (!b) return;
+  b.items = b.items.filter((x) => {
+    if (x.phase === "ready" && x.previewUrl) URL.revokeObjectURL(x.previewUrl);
+    return x.phase !== "ready";
+  });
+  if (b.session.active) {
+    b.session = { ...b.session, items: [...b.items] };
+  }
   notifyStoreChange(b);
 }
 
