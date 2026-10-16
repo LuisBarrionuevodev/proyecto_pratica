@@ -146,7 +146,7 @@ import {
   runCompletarTrabajoSoloEvidenciasFlow,
 } from "../utils/completarTrabajoRecoveredUploadFinal";
 import { isLocalCompletarTrabajoMediaQueueFinished } from "../utils/completarTrabajoEvidenciasConfirm";
-import { fetchDetalleConfirmaSinEvidenciasPendientes } from "../utils/completarTrabajoEvidenciasConfirm";
+import { fetchDetalleConfirmaSinEvidenciasPendientesDetailed } from "../utils/completarTrabajoEvidenciasConfirm";
 import { patchRowSinEvidenciasPendientes } from "../utils/completarTrabajoRecoveredUploadFinal";
 import { MediaUploadProgress } from "../../../features/media/components/MediaUploadProgress";
 import { MediaUploadSection } from "../../../features/media/components/MediaUploadSection";
@@ -1167,8 +1167,15 @@ export function CompletarTrabajoModal({
 
     let cancelled = false;
     void (async () => {
-      const backendOk = await fetchDetalleConfirmaSinEvidenciasPendientes(rutaItemId);
-      if (cancelled || !backendOk) return;
+      const confirm = await fetchDetalleConfirmaSinEvidenciasPendientesDetailed(rutaItemId);
+      if (cancelled) return;
+      if (confirm.status === "error") {
+        setDetalleError(
+          "No se pudo sincronizar el estado de las fotos. Revisá tu conexión e intentá de nuevo."
+        );
+        return;
+      }
+      if (confirm.status !== "completo") return;
       autoCloseAfterUploadRef.current = rutaItemId;
       finishCompletarTrabajoFotosSuccess();
     })();

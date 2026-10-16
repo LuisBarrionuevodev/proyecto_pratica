@@ -110,6 +110,40 @@ def test_resumen_cuenta_finalizado_con_fotos_pendientes(scope_fixture) -> None:
     assert row["categoria_calendario"] == "CON_PENDIENTES"
 
 
+def test_detalle_finalizado_sin_flag_tras_fotos_ready(scope_fixture) -> None:
+    """MEDIA-FINAL.3: sincronizar cuando evidencias_pendientes_abiertas ya se limpió."""
+    d = scope_fixture
+    item: RutaItem = d["item_a"]
+    _publish_scope_item(item, d["act_a"].id)
+    item.estado_ruta_item = "FINALIZADO"
+    item.evidencias_pendientes_abiertas = False
+    db.session.commit()
+
+    det = get_completar_trabajo_detalle(ruta_item_id=int(item.id))
+    assert det["ui_policy"]["cierre_alfanumerico_readonly"] is True
+    assert det["ui_policy"]["solo_evidencias_pendientes"] is False
+    assert det["row"]["trabajo_guardado_evidencias_pendientes"] is False
+    assert det["media_resumen"]["tiene_evidencias_pendientes"] is False
+    assert det["media_resumen"]["evidencias_pendientes_total"] == 0
+
+
+def test_detalle_finalizado_sin_flag_http_200(app, client, scope_fixture) -> None:
+    d = scope_fixture
+    item: RutaItem = d["item_a"]
+    _publish_scope_item(item, d["act_a"].id)
+    item.estado_ruta_item = "FINALIZADO"
+    item.evidencias_pendientes_abiertas = False
+    db.session.commit()
+
+    resp = client.get(
+        f"/actuaciones/completar-trabajo/detalle/{item.id}",
+        headers=_auth_headers(d["user_a"].id),
+    )
+    assert resp.status_code == 200
+    body = resp.get_json()
+    assert body["ui_policy"]["solo_evidencias_pendientes"] is False
+
+
 def test_detalle_modo_solo_evidencias(scope_fixture) -> None:
     d = scope_fixture
     item: RutaItem = d["item_a"]

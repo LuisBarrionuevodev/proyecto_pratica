@@ -40,7 +40,7 @@ def get_completar_trabajo_detalle(*, ruta_item_id: int) -> dict[str, Any]:
 
     Errores:
         LookupError: ítem inexistente o sin actuación.
-        ValueError: ruta no PUBLICADA o ítem no EN_PROCESO.
+        ValueError: ruta no PUBLICADA, ítem eliminado, estado no admitido o fotos cerradas por “finalizar por ahora”.
     """
     item = (
         RutaItem.query.filter(RutaItem.id == ruta_item_id)
@@ -76,18 +76,17 @@ def get_completar_trabajo_detalle(*, ruta_item_id: int) -> dict[str, Any]:
         raise ValueError("La ruta debe estar PUBLICADA para ver el detalle de completar trabajo.")
     if item.deleted_at is not None:
         raise ValueError("El ítem está eliminado.")
-    solo_evidencias = False
-    if item.estado_ruta_item != "EN_PROCESO":
-        if (
-            item.estado_ruta_item == "FINALIZADO"
-            and getattr(item, "fotos_pendientes_cerradas_at", None) is None
-            and bool(getattr(item, "evidencias_pendientes_abiertas", False))
-        ):
-            solo_evidencias = True
-        else:
-            raise ValueError(
-                f"El ítem no está EN_PROCESO (estado actual: {item.estado_ruta_item})."
-            )
+
+    estado = item.estado_ruta_item
+    if estado not in ("EN_PROCESO", "FINALIZADO"):
+        raise ValueError(
+            f"El ítem no está EN_PROCESO (estado actual: {item.estado_ruta_item})."
+        )
+    if estado == "FINALIZADO" and getattr(item, "fotos_pendientes_cerradas_at", None) is not None:
+        raise ValueError(
+            "Las evidencias pendientes fueron cerradas (finalizar por ahora); "
+            "usá Mis trabajos para cargas adicionales."
+        )
 
     grupo = item.ruta_grupo
     inspectores_grupo: list[dict[str, Any]] = []
@@ -116,11 +115,23 @@ def get_completar_trabajo_detalle(*, ruta_item_id: int) -> dict[str, Any]:
         inspectores_grupo=inspectores_grupo,
         tipo_actuacion_esperado=tipo_esperado,
     )
-    if solo_evidencias:
+    media_resumen = build_media_resumen_ruta_item(int(item.id))
+    detalle["media_resumen"] = media_resumen
+
+    if estado == "FINALIZADO":
+        pending_total = int(media_resumen.get("evidencias_pendientes_total") or 0)
+        tiene_oblig = bool(media_resumen.get("tiene_evidencias_pendientes"))
+        flag_abiertas = bool(getattr(item, "evidencias_pendientes_abiertas", False))
+        solo_fotos = flag_abiertas or pending_total > 0 or tiene_oblig
         detalle["ui_policy"] = {
             **detalle.get("ui_policy", {}),
-            "solo_evidencias_pendientes": True,
+            "solo_evidencias_pendientes": solo_fotos,
             "cierre_alfanumerico_readonly": True,
         }
-    detalle["media_resumen"] = build_media_resumen_ruta_item(int(item.id))
+        detalle["row"] = {
+            **detalle["row"],
+            "media_resumen": media_resumen,
+            "trabajo_guardado_evidencias_pendientes": solo_fotos,
+        }
+
     return detalle

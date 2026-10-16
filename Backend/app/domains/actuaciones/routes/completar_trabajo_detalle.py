@@ -27,7 +27,12 @@ def obtener_completar_trabajo_detalle(ruta_item_id: int):
 
     Errors:
         404: ítem o actuación no encontrados
-        400: estado no permitido para completar
+        400: estado no permitido (p. ej. finalizar por ahora) o ruta no publicada
+        403: ítem fuera del scope del inspector
+
+    Nota:
+        Ítems ``FINALIZADO`` con evidencia post-cierre admiten GET en modo solo fotos o
+        sincronización (sin reabrir cierre alfanumérico).
     """
     try:
         assert_current_user_can_access_ruta_item(ruta_item_id)

@@ -3,6 +3,7 @@ import type { MediaQueuedFile } from "../../../features/media/mediaTypes";
 import { MEDIA_CATEGORIA_FOTO_ACTA } from "../../../features/media/mediaConstants";
 import {
   detalleConfirmaCompletarTrabajoSinEvidenciasPendientes,
+  fetchDetalleConfirmaSinEvidenciasPendientesDetailed,
   isLocalCompletarTrabajoMediaQueueFinished,
 } from "./completarTrabajoEvidenciasConfirm";
 
@@ -31,6 +32,31 @@ describe("completarTrabajoEvidenciasConfirm", () => {
         },
       } as never)
     ).toBe(true);
+  });
+
+  it("fetch detalle con error HTTP no se interpreta como completo", async () => {
+    const result = await fetchDetalleConfirmaSinEvidenciasPendientesDetailed(1, async () => {
+      throw new Error("400");
+    });
+    expect(result).toEqual({ status: "error" });
+  });
+
+  it("FINALIZADO sincronizado sin pendientes → completo", async () => {
+    const result = await fetchDetalleConfirmaSinEvidenciasPendientesDetailed(2, async () => ({
+      ui_policy: {
+        solo_evidencias_pendientes: false,
+        cierre_alfanumerico_readonly: true,
+      },
+      row: {
+        estado_operativo: "FINALIZADO",
+        iniciador_estado: "FINALIZADO",
+        trabajo_guardado_evidencias_pendientes: false,
+        media_resumen: { tiene_evidencias_pendientes: false, evidencias_pendientes_total: 0 },
+      },
+      inspectores_grupo: [],
+      tipo_actuacion_esperado: null,
+    }));
+    expect(result).toEqual({ status: "completo" });
   });
 
   it("cola all READY sin uploadable cuenta como finalizada", () => {
