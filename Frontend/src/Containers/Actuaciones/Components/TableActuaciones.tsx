@@ -150,6 +150,7 @@ const TablaActuaciones = ({
   const [editSaving, setEditSaving] = useState(false);
   const [editDetalleLoading, setEditDetalleLoading] = useState(false);
   const [detalleInitialEditing, setDetalleInitialEditing] = useState(false);
+  const [inspectorVerTrabajoMode, setInspectorVerTrabajoMode] = useState(false);
   const [fotosDraft, setFotosDraft] = useState<IActuacionListItem | null>(null);
   const [fotosDetalleLoading, setFotosDetalleLoading] = useState(false);
 
@@ -238,6 +239,7 @@ const TablaActuaciones = ({
     setEditDraft(null);
     setEditOriginalRow(null);
     setDetalleInitialEditing(false);
+    setInspectorVerTrabajoMode(false);
     setEditSaving(false);
   }, []);
 
@@ -269,11 +271,13 @@ const TablaActuaciones = ({
       if (target === "fotos") {
         setFotosDraft(listRow);
         setFotosDetalleLoading(true);
+        setInspectorVerTrabajoMode(false);
       } else {
         setEditDraft(listRow);
         setEditOriginalRow(listRow);
         setEditDetalleLoading(true);
         setDetalleInitialEditing(target === "edit");
+        setInspectorVerTrabajoMode(target === "view" && inspectorSelfService);
       }
 
       try {
@@ -302,7 +306,7 @@ const TablaActuaciones = ({
         }
       }
     },
-    [feedback]
+    [feedback, inspectorSelfService]
   );
 
   const handleDialogSave = useCallback(
@@ -558,6 +562,13 @@ const TablaActuaciones = ({
     [loadActuacionDetalle]
   );
 
+  const handleOpenInspectorVerTrabajo = useCallback(
+    (original: IActuacionListItem) => {
+      void loadActuacionDetalle(original, "view");
+    },
+    [loadActuacionDetalle]
+  );
+
   const handleRequestPhotosOnlyFromDetalle = useCallback(() => {
     if (!editDraft) return;
     const row = editDraft;
@@ -590,6 +601,17 @@ const TablaActuaciones = ({
                 onClick={() => handleOpenInspectorFotos(row.original)}
               >
                 <PhotoCameraIcon />
+              </IconButton>
+            </Tooltip>
+            <Tooltip title="Ver trabajo">
+              <IconButton
+                sx={{
+                  color: COLORS.white,
+                  "&:hover": { color: COLORS.primary, backgroundColor: "rgba(1, 102, 255, 0.15)" },
+                }}
+                onClick={() => handleOpenInspectorVerTrabajo(row.original)}
+              >
+                <VisibilityIcon />
               </IconButton>
             </Tooltip>
           </>
@@ -626,7 +648,14 @@ const TablaActuaciones = ({
         )}
       </Box>
     ),
-    [handleOpenInspectorEdit, handleOpenInspectorFotos, handleOpenRowDetalle, hideDeleteAction, inspectorSelfService]
+    [
+      handleOpenInspectorEdit,
+      handleOpenInspectorFotos,
+      handleOpenInspectorVerTrabajo,
+      handleOpenRowDetalle,
+      hideDeleteAction,
+      inspectorSelfService,
+    ]
   );
 
   const renderTopToolbarCustomActionsCb = useCallback(
@@ -737,6 +766,7 @@ const TablaActuaciones = ({
           onOpenDetalle={handleOpenRowDetalle}
           onOpenInspectorEdit={handleOpenInspectorEdit}
           onOpenInspectorFotos={handleOpenInspectorFotos}
+          onOpenInspectorVerTrabajo={handleOpenInspectorVerTrabajo}
         />
       )}
       {isDesktopTable ? <GridLegend /> : null}
@@ -754,6 +784,7 @@ const TablaActuaciones = ({
           canEdit={enableEditing}
           inspectorSelfService={inspectorSelfService}
           initialEditing={detalleInitialEditing}
+          inspectorVerTrabajoMode={inspectorVerTrabajoMode}
           onRequestPhotosOnly={
             inspectorSelfService ? handleRequestPhotosOnlyFromDetalle : undefined
           }

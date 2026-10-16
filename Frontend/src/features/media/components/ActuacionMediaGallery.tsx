@@ -33,6 +33,7 @@ import {
 import type { MediaUploadOrigin } from "../mediaUploadOrigin";
 import { MediaPreviewDialog } from "./MediaPreviewDialog";
 import { MediaThumbnailTile } from "./MediaThumbnailTile";
+import { useMediaUploadPanelHold } from "../hooks/useMediaUploadPanelHold";
 import { MediaUploadProgress } from "./MediaUploadProgress";
 import { MediaUploadSection } from "./MediaUploadSection";
 
@@ -213,6 +214,11 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
       await runAutoUploadAfterAdd();
     };
 
+    const progressItems =
+      coordinator.session.items.length > 0 ? coordinator.session.items : coordinator.allItems;
+    const sessionActive = coordinator.session.active || uploading;
+    const { visible: progressPanelVisible } = useMediaUploadPanelHold(sessionActive, progressItems);
+
     if (!rutaItemId) {
       return (
         <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted }}>
@@ -227,11 +233,10 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
     return (
       <>
         <MediaUploadProgress
-          open={coordinator.session.active || uploading}
+          open={progressPanelVisible}
+          sessionActive={sessionActive}
           globalPct={coordinator.session.globalPct}
-          items={
-            coordinator.session.items.length > 0 ? coordinator.session.items : coordinator.allItems
-          }
+          items={progressItems}
           onRetry={manualSave ? undefined : (id) => void handleRetryUpload(id)}
         />
         <MediaPreviewDialog open={preview != null} item={preview} onClose={() => setPreview(null)} />

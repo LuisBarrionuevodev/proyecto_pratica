@@ -49,6 +49,7 @@ export type ActuacionesGestionMobileCardListProps = {
   inspectorSelfService?: boolean;
   onOpenInspectorEdit?: (row: IActuacionListItem) => void;
   onOpenInspectorFotos?: (row: IActuacionListItem) => void;
+  onOpenInspectorVerTrabajo?: (row: IActuacionListItem) => void;
 };
 
 /**
@@ -64,6 +65,7 @@ export function ActuacionesGestionMobileCardList({
   inspectorSelfService = false,
   onOpenInspectorEdit,
   onOpenInspectorFotos,
+  onOpenInspectorVerTrabajo,
 }: ActuacionesGestionMobileCardListProps) {
   const paginationBar =
     listadoServidor != null ? (
@@ -153,6 +155,16 @@ export function ActuacionesGestionMobileCardList({
                   startIcon={<PhotoCameraIcon />}
                 >
                   Cargar más fotos
+                </AppButton>
+                <AppButton
+                  dsVariant="ghost"
+                  dsSize="sm"
+                  fullWidth
+                  disabled={loading}
+                  onClick={() => onOpenInspectorVerTrabajo?.(row)}
+                  startIcon={<VisibilityIcon />}
+                >
+                  Ver trabajo
                 </AppButton>
               </Stack>
             ) : (

@@ -215,6 +215,8 @@ export type ActuacionDetalleDialogProps = {
   initialEditing?: boolean;
   /** Inspector: abre modal dedicado de fotos (Mis trabajos). */
   onRequestPhotosOnly?: () => void;
+  /** Inspector Mis trabajos: consulta solo lectura sin acciones de edición/carga. */
+  inspectorVerTrabajoMode?: boolean;
 };
 
 function opts(strings: string[]) {
@@ -1031,6 +1033,7 @@ export function ActuacionDetalleDialog({
   disablePortal,
   initialEditing = false,
   onRequestPhotosOnly,
+  inspectorVerTrabajoMode = false,
 }: ActuacionDetalleDialogProps) {
   const navigate = useNavigate();
   const feedback = useAppFeedback();
@@ -1045,11 +1048,14 @@ export function ActuacionDetalleDialog({
   const puedeInspectorDatos = Boolean(draft.ui_policy?.puede_editar_datos_propios);
   const puedeInspectorFotos = Boolean(draft.ui_policy?.puede_gestionar_fotos_propias);
   const formEditingActive = inspectorSelfService ? isEditing && !photosOnlyMode : isEditing;
-  const mediaReadOnly = inspectorSelfService
-    ? !(photosOnlyMode || (isEditing && puedeInspectorFotos))
-    : !isEditing;
+  const mediaReadOnly = inspectorVerTrabajoMode
+    ? true
+    : inspectorSelfService
+      ? !(photosOnlyMode || (isEditing && puedeInspectorFotos))
+      : !isEditing;
   const showInspectorModePicker =
     inspectorSelfService &&
+    !inspectorVerTrabajoMode &&
     !formEditingActive &&
     !photosOnlyMode &&
     (puedeInspectorDatos || puedeInspectorFotos);
@@ -2312,9 +2318,21 @@ export function ActuacionDetalleDialog({
       mobileFullScreen
       title={
         <CrudDialogHeader
-          domainChip="Actuaciones"
-          titulo={isEditing ? "Editar actuación" : "Ver actuación"}
-          subtitulo={isEditing ? "Datos operativos y actas del día" : "Consulta de ficha operativa"}
+          domainChip={inspectorSelfService ? "Mis trabajos" : "Actuaciones"}
+          titulo={
+            inspectorVerTrabajoMode
+              ? "Ver trabajo"
+              : isEditing
+                ? "Editar actuación"
+                : "Ver actuación"
+          }
+          subtitulo={
+            inspectorVerTrabajoMode
+              ? "Consulta de datos y fotos del trabajo"
+              : isEditing
+                ? "Datos operativos y actas del día"
+                : "Consulta de ficha operativa"
+          }
           reference={dialogHeaderReference}
         />
       }
@@ -2386,7 +2404,7 @@ export function ActuacionDetalleDialog({
             rutaItemId={draft.ruta_item_id}
             readOnly={mediaReadOnly}
             hideTitle
-            manualSave={formEditingActive}
+            manualSave={formEditingActive && !inspectorVerTrabajoMode}
             uploadOrigin={MEDIA_UPLOAD_ORIGIN_MIS_TRABAJOS}
           />
         </DocumentalBloque>

@@ -1,114 +1,125 @@
-import {
-  Box,
-  Dialog,
-  LinearProgress,
-  Stack,
-  Typography,
-  useMediaQuery,
-  useTheme,
-} from "@mui/material";
+import { Box, LinearProgress, Typography } from "@mui/material";
 import { AppButton } from "../../../ui";
 import { useDigitalizaTheme } from "../../../theme/DigitalizaThemeProvider";
 import type { MediaQueuedFile } from "../mediaTypes";
-import {
-  mediaUploadProgressDialogPaperSx,
-  mediaUploadProgressPanelSx,
-} from "../mediaUploadProgressPanelStyles";
-
-const phaseLabel: Record<MediaQueuedFile["phase"], string> = {
-  pending: "Pendiente",
-  preparing: "Preparando",
-  uploading: "Subiendo",
-  verifying: "Verificando",
-  ready: "Listo",
-  error: "Error al subir",
-};
+import { mediaUploadProgressPanelSx } from "../mediaUploadProgressPanelStyles";
+import { resolveMediaUploadPanelPhase } from "../utils/mediaUploadPanelVisibility";
 
 type Props = {
   open: boolean;
+  sessionActive: boolean;
   globalPct: number;
   items: MediaQueuedFile[];
   onRetry?: (localId: string) => void;
 };
 
-export function MediaUploadProgress({ open, globalPct, items, onRetry }: Props) {
-  const theme = useTheme();
-  const { mode, colors } = useDigitalizaTheme();
-  const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
-  if (!open) return null;
-  const displayItems = items;
-  const total = displayItems.length;
-  const done = displayItems.filter((x) => x.phase === "ready").length;
-  const inFlight = displayItems.some(
+function countProgress(items: MediaQueuedFile[]): { done: number; total: number; current: number } {
+  const total = items.length;
+  const done = items.filter((x) => x.phase === "ready").length;
+  const inFlight = items.some(
     (x) => x.phase === "preparing" || x.phase === "uploading" || x.phase === "verifying"
   );
+  const current = Math.min(done + (inFlight ? 1 : 0), total);
+  return { done, total, current };
+}
 
-  const panelSx = mediaUploadProgressPanelSx(mode);
+/**
+ * Panel sólido dentro del modal (sin Dialog ni position:fixed).
+ * El contador N/Total es la fuente de verdad visual; la barra refleja archivos completados.
+ */
+export function MediaUploadProgress({
+  open,
+  sessionActive,
+  globalPct,
+  items,
+  onRetry,
+}: Props) {
+  const { mode, colors } = useDigitalizaTheme();
+  if (!open || items.length === 0) return null;
+
+  const { done, total, current } = countProgress(items);
+  const phase = resolveMediaUploadPanelPhase(sessionActive, items);
+  const fileBasedPct = total > 0 ? Math.round((done / total) * 100) : 0;
+  const barValue = phase === "uploading" ? Math.max(fileBasedPct, Math.min(100, globalPct)) : fileBasedPct;
+
   const textPrimary = colors.text.primary;
   const textMuted = colors.text.muted;
-  const border = colors.border.default;
+  const errorColor = "#d32f2f";
+
+  let headline = "Subiendo fotos";
+  let counterLine = `${current} / ${total}`;
+  let detailLine = `Se guardaron ${done} fotos. Cargando la foto ${Math.min(done + 1, total)}…`;
+  let warningLine: string | null = "No cierres esta pantalla.";
+
+  if (phase === "success") {
+    headline = "Fotos cargadas correctamente";
+    counterLine = `${done} / ${total} · Carga finalizada`;
+    detailLine = "";
+    warningLine = null;
+  } else if (phase === "interrupted") {
+    headline = "Carga interrumpida";
+    counterLine = `${done} / ${total}`;
+    detailLine =
+      "Se guardaron las fotos anteriores. Podés continuar cuando vuelva la conexión.";
+    warningLine = null;
+  } else if (done === 0 && current <= 1) {
+    detailLine = `Preparando foto ${current} de ${total}…`;
+  }
+
+  const errorItem = items.find((x) => x.phase === "error");
 
   return (
-    <Dialog
-      open={open}
-      fullScreen={fullScreen}
-      maxWidth="sm"
-      fullWidth
-      slotProps={{
-        paper: {
-          sx: mediaUploadProgressDialogPaperSx(mode),
-        },
+    <Box
+      component="section"
+      aria-live="polite"
+      aria-busy={phase === "uploading"}
+      sx={{
+        ...mediaUploadProgressPanelSx(mode),
+        mb: 2,
+        position: "relative",
+        width: "100%",
+        maxWidth: "100%",
       }}
     >
-      <Box sx={panelSx}>
-        <Typography variant="h6" sx={{ color: textPrimary, mb: 1 }}>
-          Subiendo evidencia
+      <Typography variant="subtitle1" sx={{ color: textPrimary, fontWeight: 700 }}>
+        {headline}
+      </Typography>
+      <Typography variant="h6" sx={{ color: textPrimary, fontWeight: 700, mt: 0.5, letterSpacing: 0.5 }}>
+        {counterLine}
+      </Typography>
+      {warningLine ? (
+        <Typography variant="body2" sx={{ color: textMuted, mt: 0.5 }}>
+          {warningLine}
         </Typography>
-        <Typography variant="body2" sx={{ color: textMuted, mb: 1 }}>
-          Subiendo {Math.min(done + (inFlight ? 1 : 0), total)} de {total} archivos
+      ) : null}
+      <LinearProgress
+        variant="determinate"
+        value={barValue}
+        color={phase === "interrupted" ? "inherit" : "primary"}
+        sx={{
+          mt: 1.5,
+          mb: 1,
+          height: 10,
+          borderRadius: 1,
+          bgcolor: "action.hover",
+          "& .MuiLinearProgress-bar": phase === "interrupted" ? { bgcolor: errorColor } : undefined,
+        }}
+      />
+      {detailLine ? (
+        <Typography variant="body2" sx={{ color: textMuted }}>
+          {detailLine}
         </Typography>
-        <LinearProgress
-          variant="determinate"
-          value={globalPct}
-          color="primary"
-          sx={{ mb: 2, height: 8, borderRadius: 1 }}
-        />
-        <Stack spacing={1} sx={{ maxHeight: fullScreen ? "60vh" : 320, overflow: "auto" }}>
-          {displayItems.map((item) => (
-            <Box
-              key={item.localId}
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-                gap: 1,
-                py: 0.5,
-                borderBottom: `1px solid ${border}`,
-              }}
-            >
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography variant="body2" noWrap sx={{ color: textPrimary }}>
-                  {item.file.name}
-                </Typography>
-                <Typography variant="caption" sx={{ color: textMuted }}>
-                  {phaseLabel[item.phase]}
-                  {item.phase === "uploading" ? ` ${item.progressPct}%` : ""}
-                </Typography>
-                {item.phase === "error" && item.errorMessage ? (
-                  <Typography variant="caption" color="error" display="block">
-                    {item.errorMessage}
-                  </Typography>
-                ) : null}
-              </Box>
-              {item.phase === "error" && onRetry ? (
-                <AppButton dsVariant="ghost" dsSize="sm" onClick={() => onRetry(item.localId)}>
-                  Reintentar
-                </AppButton>
-              ) : null}
-            </Box>
-          ))}
-        </Stack>
-      </Box>
-    </Dialog>
+      ) : null}
+      {errorItem && onRetry ? (
+        <Box sx={{ mt: 1.5, display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
+          <Typography variant="caption" sx={{ color: errorColor }}>
+            {errorItem.errorMessage ?? "Error al subir"}
+          </Typography>
+          <AppButton dsVariant="ghost" dsSize="sm" onClick={() => onRetry(errorItem.localId)}>
+            Reintentar
+          </AppButton>
+        </Box>
+      ) : null}
+    </Box>
   );
 }

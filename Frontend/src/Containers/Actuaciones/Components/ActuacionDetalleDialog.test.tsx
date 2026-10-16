@@ -1007,5 +1007,38 @@ describe("ActuacionDetalleDialog", () => {
     expect(html).toContain("Editar datos");
     expect(html).not.toContain("Imprimir");
   });
+
+  it("Inspector Ver trabajo: solo lectura sin acciones de edición ni carga", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={{
+          ...baseRow,
+          ui_policy: {
+            mostrar_solicitud_carnet_manipulador: false,
+            mostrar_subsanacion_notificacion: false,
+            puede_editar_seguimiento: false,
+            puede_editar_datos_propios: true,
+            puede_gestionar_fotos_propias: true,
+          },
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        inspectorSelfService
+        inspectorVerTrabajoMode
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("Ver trabajo");
+    expect(html).not.toContain("Editar datos");
+    expect(html).not.toContain("Cargar más fotos");
+    expect(html).not.toContain("Guardar cambios");
+    expect(html).not.toContain("Imprimir");
+  });
 });
 

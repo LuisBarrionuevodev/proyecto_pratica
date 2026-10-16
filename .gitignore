@@ -18,6 +18,7 @@ dist
 dist-ssr
 *.local
 backups/
+private/
 Backend/scripts/output/*.log
 
 # Editor directories and files

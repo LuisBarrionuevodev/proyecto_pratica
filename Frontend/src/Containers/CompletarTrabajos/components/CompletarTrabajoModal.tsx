@@ -133,6 +133,7 @@ import {
 } from "../utils/actaSeguimientoUi";
 import { useCompletarTrabajoMediaQueues } from "../../../features/media/hooks/useMediaUploadCoordinator";
 import { useRutaItemReadyArchivos } from "../../../features/media/hooks/useRutaItemReadyArchivos";
+import { useMediaUploadPanelHold } from "../../../features/media/hooks/useMediaUploadPanelHold";
 import { MediaUploadProgress } from "../../../features/media/components/MediaUploadProgress";
 import { MediaUploadSection } from "../../../features/media/components/MediaUploadSection";
 import { MediaUploadPanelErrorBoundary } from "../../../features/media/components/MediaUploadPanelErrorBoundary";
@@ -523,6 +524,13 @@ export function CompletarTrabajoModal({
   const openedRutaItemId =
     open && mediaAnchorRow != null ? mediaAnchorRow.ruta_item_id ?? null : null;
   const mediaQueues = useCompletarTrabajoMediaQueues(openedRutaItemId);
+  const mediaProgressItems =
+    mediaQueues.session.items.length > 0 ? mediaQueues.session.items : mediaQueues.allItems;
+  const mediaSessionActive = mediaQueues.session.active;
+  const { visible: mediaProgressVisible } = useMediaUploadPanelHold(
+    mediaSessionActive,
+    mediaProgressItems
+  );
   const readyArchivos = useRutaItemReadyArchivos(openedRutaItemId, Boolean(open && openedRutaItemId != null));
   const [mediaSelectionError, setMediaSelectionError] = useState<string | null>(null);
   const [emptyQueueHint, setEmptyQueueHint] = useState<string | null>(null);
@@ -1592,11 +1600,10 @@ export function CompletarTrabajoModal({
     >
       <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} ref={scrollContainerRef}>
       <MediaUploadProgress
-        open={mediaQueues.session.active}
+        open={mediaProgressVisible}
+        sessionActive={mediaSessionActive}
         globalPct={mediaQueues.session.globalPct}
-        items={
-          mediaQueues.session.items.length > 0 ? mediaQueues.session.items : mediaQueues.allItems
-        }
+        items={mediaProgressItems}
       />
       {row && detalleLoading && !resolvedRow && (
         <Box sx={{ display: "flex", flexDirection: "column", alignItems: "stretch", gap: 2 }}>

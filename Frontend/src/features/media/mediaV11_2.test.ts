@@ -25,10 +25,11 @@ describe("MEDIA.2 panel de progreso", () => {
     expect(light).toMatchObject({ backgroundColor: c.surface.tableRowEven });
   });
 
-  it("MediaUploadProgress no importa GLASS_COLORS", () => {
+  it("MediaUploadProgress no importa GLASS_COLORS ni Dialog", () => {
     const src = readSrc("features/media/components/MediaUploadProgress.tsx");
     expect(src).not.toContain("GLASS_COLORS");
-    expect(src).toContain("mediaUploadProgressDialogPaperSx");
+    expect(src).not.toContain("<Dialog");
+    expect(src).toContain("mediaUploadProgressPanelSx");
   });
 });
 
