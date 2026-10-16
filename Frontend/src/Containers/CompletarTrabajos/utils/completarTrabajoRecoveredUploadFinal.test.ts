@@ -34,7 +34,7 @@ describe("completarTrabajoRecoveredUploadFinal", () => {
       removeFromList: () => order.push("list"),
       closeModal: () => order.push("close"),
     });
-    expect(order).toEqual(["errors", "upload", "invalidate", "refresh", "toast", "list", "close"]);
+    expect(order).toEqual(["errors", "upload", "refresh", "toast", "list", "close", "invalidate"]);
   });
 
   it("cola 3/3 READY sin uploadable → confirm success", async () => {

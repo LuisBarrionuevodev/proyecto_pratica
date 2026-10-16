@@ -2,6 +2,10 @@ import {
   getCompletarTrabajoDetalle,
   type ICompletarTrabajoDetalleResponse,
 } from "../../../api/completarTrabajoApi";
+import {
+  isCompletarTrabajoOperativoFinalizado,
+  isCompletarTrabajoSoloFotosMode,
+} from "./completarTrabajoSoloFotosMode";
 
 export type CompletarTrabajoRecoveryStatus =
   | "completo"
@@ -15,11 +19,9 @@ export type CompletarTrabajoRecoveryStatus =
 export function classifyCompletarTrabajoDetalle(
   det: ICompletarTrabajoDetalleResponse
 ): CompletarTrabajoRecoveryStatus {
-  const soloFotos = det.ui_policy?.solo_evidencias_pendientes === true;
   const guardadoConFotos =
-    soloFotos ||
-    det.row.trabajo_guardado_evidencias_pendientes === true ||
-    det.ui_policy?.cierre_alfanumerico_readonly === true;
+    isCompletarTrabajoSoloFotosMode(det.ui_policy, det.row) ||
+    isCompletarTrabajoOperativoFinalizado(det.row);
 
   const resumen = det.row.media_resumen;
   const totalPend = resumen?.evidencias_pendientes_total ?? 0;

@@ -102,6 +102,34 @@ describe("classifyCompletarTrabajoDetalle", () => {
   it("marca no_guardado si no hay señales de cierre", () => {
     expect(classifyCompletarTrabajoDetalle(detalle({}))).toBe("no_guardado");
   });
+
+  it("FINALIZADO con fotos pendientes sin ui_policy → guardado_fotos_pendientes", () => {
+    const status = classifyCompletarTrabajoDetalle(
+      detalle({
+        ui_policy: undefined,
+        row: {
+          estado_operativo: "FINALIZADO",
+          iniciador_estado: "FINALIZADO",
+          media_resumen: { tiene_evidencias_pendientes: true, evidencias_pendientes_total: 1 },
+        },
+      })
+    );
+    expect(status).toBe("guardado_fotos_pendientes");
+  });
+
+  it("FINALIZADO sin pendientes → completo (recuperación 422)", () => {
+    const status = classifyCompletarTrabajoDetalle(
+      detalle({
+        ui_policy: undefined,
+        row: {
+          estado_operativo: "FINALIZADO",
+          iniciador_estado: "FINALIZADO",
+          media_resumen: { tiene_evidencias_pendientes: false, evidencias_pendientes_total: 0 },
+        },
+      })
+    );
+    expect(status).toBe("completo");
+  });
 });
 
 describe("tryRecoverCompletarTrabajoTrasErrorRed", () => {

@@ -32,11 +32,11 @@ export function applyCompletarTrabajoRecoveredUploadSuccess(
   actions.clearTransientErrors();
   actions.clearUploadPanelHold?.();
   actions.clearUploadState();
-  actions.invalidateEvidenciasPendientesLocal();
   actions.notifyPendientesRefresh();
   actions.showSuccessToast();
   actions.removeFromList(rutaItemId);
   actions.closeModal();
+  actions.invalidateEvidenciasPendientesLocal();
 }
 
 /** Solo evidencias: subir si hay cola uploadable; si no, confirmar cierre definitivo. */

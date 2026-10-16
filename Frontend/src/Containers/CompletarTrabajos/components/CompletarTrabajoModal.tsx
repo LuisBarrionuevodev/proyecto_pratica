@@ -117,7 +117,9 @@ import { getContraproducenciaUxHint } from "../utils/contraproducenciaUxHint";
 import {
   applyCompletarTrabajoFieldErrorsFromApi,
   formatCompletarTrabajoApiError,
+  isCompletarTrabajoCierreNoEnProcesoError,
 } from "../utils/completarTrabajoErrors";
+import { isCompletarTrabajoSoloFotosMode } from "../utils/completarTrabajoSoloFotosMode";
 import {
   MOTIVOS_NOTIFICACION_MAX,
   mergeMotivosNotifCatalogStrings,
@@ -811,7 +813,7 @@ export function CompletarTrabajoModal({
   const visitaRealizada = !contraproducencia.trim();
   const esNoPermiteInspeccion = esNoPermiteInspeccionContraproducencia(contraproducencia);
   const displayRow = resolvedRow ?? row;
-  const soloEvidenciasUi = uiPolicy?.solo_evidencias_pendientes === true;
+  const soloEvidenciasUi = isCompletarTrabajoSoloFotosMode(uiPolicy, resolvedRow);
 
   const notifyMediaQuotaAdd = useCallback(
     (result: MediaQuotaAddResult) => {
@@ -1203,6 +1205,9 @@ export function CompletarTrabajoModal({
       if (!resolvedRow) {
         throw new Error("Sin fila de trabajo para cerrar.");
       }
+      if (isCompletarTrabajoSoloFotosMode(uiPolicy, resolvedRow)) {
+        return;
+      }
       const item = await submitCompletarTrabajoCierreFromRow(resolvedRow, values, {
         ...opts,
         idempotencyKey: cierreIdempotencyKeyRef.current,
@@ -1210,11 +1215,26 @@ export function CompletarTrabajoModal({
       });
       applyCierreConfirmado(item);
     },
-    [resolvedRow, mediaQueues.hasPendingUpload, applyCierreConfirmado]
+    [resolvedRow, uiPolicy, mediaQueues.hasPendingUpload, applyCierreConfirmado]
   );
 
   const handleCierreFailed = useCallback(
     async (outcome: CompletarTrabajoFinalizeFlowOutcome, rutaItemId: number) => {
+      if (isCompletarTrabajoCierreNoEnProcesoError(outcome.cierreError)) {
+        const recovered = await tryRecoverCompletarTrabajoTrasErrorRed(rutaItemId, {
+          onCompleto: () => finishCompletarTrabajoFotosSuccess(),
+          onGuardadoFotosPendientes: (det) => {
+            applyRecoveryDetalle(det);
+            feedback.info(
+              "El trabajo ya estaba guardado. Subí las fotos que faltan cuando tengas conexión."
+            );
+          },
+          onNoGuardado: () => {
+            /* 422 genuino EN_PROCESO: mostrar error abajo */
+          },
+        });
+        if (recovered) return;
+      }
       if (isLikelyNetworkCierreError(outcome.cierreError)) {
         const recovered = await tryRecoverCompletarTrabajoTrasErrorRed(rutaItemId, {
           onCompleto: () => {
@@ -1252,6 +1272,7 @@ export function CompletarTrabajoModal({
     [
       applyRecoveryDetalle,
       feedback,
+      finishCompletarTrabajoFotosSuccess,
       mediaQueues,
       onClose,
       onSuccess,
@@ -1315,7 +1336,7 @@ export function CompletarTrabajoModal({
     if (!resolvedRow || detalleLoading) return;
     setFieldErrors({});
 
-    if (uiPolicy?.solo_evidencias_pendientes) {
+    if (isCompletarTrabajoSoloFotosMode(uiPolicy, resolvedRow)) {
       setSaving(true);
       scrollToMediaUploadPanel();
       try {

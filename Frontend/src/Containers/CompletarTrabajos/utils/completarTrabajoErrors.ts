@@ -48,3 +48,22 @@ export function parseCompletarTrabajoFieldErrors(err: unknown): Record<string, s
   if (Object.keys(normalized.fieldErrors).length === 0) return null;
   return normalized.fieldErrors;
 }
+
+/**
+ * 422 cuando el ítem ya no está EN_PROCESO (p. ej. cierre previo + reintento de /cerrar).
+ */
+export function isCompletarTrabajoCierreNoEnProcesoError(err: unknown): boolean {
+  const normalized = normalizeActuacionApiError(err, { fallbackMessage: COMPLETAR_FALLBACK });
+  const parts = [normalized.message];
+  if (err && typeof err === "object") {
+    const detail = (err as { response?: { data?: { detail?: unknown } } }).response?.data?.detail;
+    if (typeof detail === "string") parts.push(detail);
+    else if (detail != null) parts.push(String(detail));
+  }
+  const text = parts.join(" ").toLowerCase();
+  return (
+    text.includes("en_proceso") ||
+    text.includes("en proceso") ||
+    (text.includes("finalizado") && text.includes("estado"))
+  );
+}
