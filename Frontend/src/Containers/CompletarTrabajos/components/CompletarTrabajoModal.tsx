@@ -146,7 +146,7 @@ import {
   runCompletarTrabajoSoloEvidenciasFlow,
 } from "../utils/completarTrabajoRecoveredUploadFinal";
 import { isLocalCompletarTrabajoMediaQueueFinished } from "../utils/completarTrabajoEvidenciasConfirm";
-import { fetchDetalleConfirmaSinEvidenciasPendientesDetailed } from "../utils/completarTrabajoEvidenciasConfirm";
+import { waitForCompletarTrabajoEvidenciasBackendSync } from "../utils/completarTrabajoMediaPostUploadSync";
 import { patchRowSinEvidenciasPendientes } from "../utils/completarTrabajoRecoveredUploadFinal";
 import { MediaUploadProgress } from "../../../features/media/components/MediaUploadProgress";
 import { MediaUploadSection } from "../../../features/media/components/MediaUploadSection";
@@ -1167,7 +1167,7 @@ export function CompletarTrabajoModal({
 
     let cancelled = false;
     void (async () => {
-      const confirm = await fetchDetalleConfirmaSinEvidenciasPendientesDetailed(rutaItemId);
+      const confirm = await waitForCompletarTrabajoEvidenciasBackendSync(rutaItemId);
       if (cancelled) return;
       if (confirm.status === "error") {
         setDetalleError(
@@ -1297,7 +1297,20 @@ export function CompletarTrabajoModal({
         emitGestionNotificacionReinspeccionRefresh();
       }
       if (flow === "success_evidencias_pendientes") {
-        feedback.info("Trabajo guardado. Quedan fotos por subir.");
+        void (async () => {
+          const sync = await waitForCompletarTrabajoEvidenciasBackendSync(rutaItemId);
+          if (sync.status === "completo") {
+            finishCompletarTrabajoFotosSuccess();
+            return;
+          }
+          if (sync.status === "error") {
+            feedback.warning(
+              "No se pudo sincronizar el estado de las fotos. Revisá tu conexión e intentá continuar la subida."
+            );
+            return;
+          }
+          feedback.info("Trabajo guardado. Quedan fotos por subir.");
+        })();
         return;
       }
       feedback.success("Trabajo completado correctamente.");
@@ -1306,7 +1319,15 @@ export function CompletarTrabajoModal({
       onSuccess(rutaItemId);
       onClose();
     },
-    [feedback, handleCierreFailed, mediaQueues, onClose, onSuccess, resolvedRow?.tipo_iniciador]
+    [
+      feedback,
+      finishCompletarTrabajoFotosSuccess,
+      handleCierreFailed,
+      mediaQueues,
+      onClose,
+      onSuccess,
+      resolvedRow?.tipo_iniciador,
+    ]
   );
 
   const handleConfirmFinalizarPorAhora = useCallback(async () => {

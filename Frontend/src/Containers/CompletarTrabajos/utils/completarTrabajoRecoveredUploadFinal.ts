@@ -1,9 +1,7 @@
 import type { ICompletarTrabajoDetalleResponse } from "../../../api/completarTrabajoApi";
 import { COMPLETAR_TRABAJO_FOTOS_SUCCESS_MESSAGE } from "./completarTrabajoSoloEvidenciasMediaUpload";
-import {
-  fetchDetalleConfirmaSinEvidenciasPendientes,
-  isLocalCompletarTrabajoMediaQueueFinished,
-} from "./completarTrabajoEvidenciasConfirm";
+import { isLocalCompletarTrabajoMediaQueueFinished } from "./completarTrabajoEvidenciasConfirm";
+import { waitForCompletarTrabajoEvidenciasBackendSync } from "./completarTrabajoMediaPostUploadSync";
 import type { CompletarTrabajoSoloEvidenciasMediaUploadDeps } from "./completarTrabajoSoloEvidenciasMediaUpload";
 import { runCompletarTrabajoSoloEvidenciasMediaUpload } from "./completarTrabajoSoloEvidenciasMediaUpload";
 import { countUploadableQueueItems } from "../../../features/media/utils/actuacionManualMediaSave";
@@ -61,10 +59,11 @@ export async function confirmCompletarTrabajoEvidenciasDefinitiveSuccess(
     return { outcome: "partial", refreshFailed: false };
   }
 
-  const backendOk = await fetchDetalleConfirmaSinEvidenciasPendientes(
-    deps.rutaItemId,
-    deps.fetchDetalleForConfirm
-  );
+  const sync = await waitForCompletarTrabajoEvidenciasBackendSync(deps.rutaItemId, {
+    fetchDetalle: deps.fetchDetalleForConfirm,
+    fetchArchivos: deps.fetchArchivosForReconcile,
+  });
+  const backendOk = sync.status === "completo";
 
   if (backendOk && (localFinished || deps.getQueueItems().length === 0)) {
     deps.clearUploadedFromQueue();

@@ -25,10 +25,8 @@ export function classifyCompletarTrabajoDetalle(
 
   const resumen = det.row.media_resumen;
   const totalPend = resumen?.evidencias_pendientes_total ?? 0;
-  const pendientes =
-    totalPend > 0 ||
-    (resumen?.tiene_evidencias_pendientes === true && totalPend > 0) ||
-    (det.row.trabajo_guardado_evidencias_pendientes === true && totalPend > 0);
+  /** Solo conteos reales; flags de UI pueden quedar stale un instante tras READY. */
+  const pendientes = totalPend > 0;
 
   if (guardadoConFotos) {
     return pendientes ? "guardado_fotos_pendientes" : "completo";

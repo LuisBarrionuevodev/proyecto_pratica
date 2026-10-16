@@ -5,10 +5,11 @@ import {
   type ManualMediaSaveResult,
 } from "../../../features/media/utils/actuacionManualMediaSave";
 import type { MediaQueuedFile, RutaItemArchivosListResponse } from "../../../features/media/mediaTypes";
+import { isLocalCompletarTrabajoMediaQueueFinished } from "./completarTrabajoEvidenciasConfirm";
 import {
-  fetchDetalleConfirmaSinEvidenciasPendientes,
-  isLocalCompletarTrabajoMediaQueueFinished,
-} from "./completarTrabajoEvidenciasConfirm";
+  waitForCompletarTrabajoEvidenciasBackendSync,
+  type WaitCompletarTrabajoEvidenciasSyncOptions,
+} from "./completarTrabajoMediaPostUploadSync";
 
 export const COMPLETAR_TRABAJO_FOTOS_SUCCESS_MESSAGE =
   "Trabajo y fotos subidos correctamente.";
@@ -22,6 +23,8 @@ export type CompletarTrabajoSoloEvidenciasMediaUploadDeps = {
   reloadServer: () => Promise<void>;
   fetchArchivosForReconcile?: (rutaItemId: number) => Promise<RutaItemArchivosListResponse>;
   fetchDetalleForConfirm?: (rutaItemId: number) => Promise<ICompletarTrabajoDetalleResponse>;
+  /** Inyectable en tests (delays / mocks de reconsulta). */
+  evidenciasSyncOptions?: WaitCompletarTrabajoEvidenciasSyncOptions;
 };
 
 /**
@@ -40,17 +43,18 @@ export async function runCompletarTrabajoSoloEvidenciasMediaUpload(
     fetchArchivosForReconcile: deps.fetchArchivosForReconcile,
   });
 
-  const backendOk = await fetchDetalleConfirmaSinEvidenciasPendientes(
-    deps.rutaItemId,
-    deps.fetchDetalleForConfirm
-  );
   const localFinished = isLocalCompletarTrabajoMediaQueueFinished(deps.getQueueItems());
-
-  if (base.outcome === "success" && backendOk) {
+  if (!localFinished) {
     return base;
   }
 
-  if (localFinished && backendOk) {
+  const sync = await waitForCompletarTrabajoEvidenciasBackendSync(deps.rutaItemId, {
+    fetchDetalle: deps.fetchDetalleForConfirm,
+    fetchArchivos: deps.fetchArchivosForReconcile,
+    ...deps.evidenciasSyncOptions,
+  });
+
+  if (sync.status === "completo") {
     deps.clearUploadedFromQueue();
     return {
       outcome: "success",
@@ -58,8 +62,11 @@ export async function runCompletarTrabajoSoloEvidenciasMediaUpload(
     };
   }
 
-  if (base.outcome === "success" && !backendOk) {
-    return { outcome: "partial", refreshFailed: base.refreshFailed };
+  if (base.outcome === "success" || localFinished) {
+    return {
+      outcome: "partial",
+      refreshFailed: base.refreshFailed || sync.status === "error",
+    };
   }
 
   return base;

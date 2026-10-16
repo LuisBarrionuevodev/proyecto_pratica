@@ -96,6 +96,53 @@ describe("completarTrabajoSoloEvidenciasMediaUpload", () => {
     expect(result.outcome).toBe("success");
   });
 
+  it("MEDIA-FINAL.4: primera consulta pendiente y segunda completa → success sin segundo clic", async () => {
+    let items: MediaQueuedFile[] = [queued("pending", null)];
+    const uploadAll = vi.fn(async () => {
+      items = [queued("ready", 11)];
+    });
+    const fetchDetalle = vi
+      .fn()
+      .mockResolvedValueOnce(detallePendiente)
+      .mockResolvedValueOnce(detalleCompleto);
+
+    const result = await runCompletarTrabajoSoloEvidenciasMediaUpload({
+      rutaItemId: 10,
+      uploadAll,
+      getQueueItems: () => items,
+      applyQueueItems: (next) => {
+        items = next;
+      },
+      clearUploadedFromQueue: vi.fn(() => {
+        items = [];
+      }),
+      reloadServer: vi.fn(),
+      fetchArchivosForReconcile: vi.fn().mockResolvedValue({
+        foto_acta: [
+          {
+            archivo_id: 11,
+            original_filename: "f.jpg",
+            content_type: "image/jpeg",
+            byte_size: 1,
+            uploaded_at: "2026-01-01",
+            categoria: MEDIA_CATEGORIA_FOTO_ACTA,
+          },
+        ],
+        foto_documentacion_local: [],
+        foto_inspeccion: [],
+      }),
+      fetchDetalleForConfirm: fetchDetalle,
+      evidenciasSyncOptions: {
+        maxAttempts: 3,
+        delayMs: 0,
+        sleep: vi.fn().mockResolvedValue(undefined),
+      },
+    });
+
+    expect(result.outcome).toBe("success");
+    expect(fetchDetalle.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
   it("backend con pendientes → partial y no cierra", async () => {
     let items: MediaQueuedFile[] = [queued("pending", null)];
     const result = await runCompletarTrabajoSoloEvidenciasMediaUpload({
@@ -113,6 +160,7 @@ describe("completarTrabajoSoloEvidenciasMediaUpload", () => {
         foto_inspeccion: [],
       }),
       fetchDetalleForConfirm: vi.fn().mockResolvedValue(detallePendiente),
+      evidenciasSyncOptions: { maxAttempts: 2, delayMs: 0, sleep: vi.fn().mockResolvedValue(undefined) },
     });
     expect(result.outcome).toBe("partial");
     expect(shouldCloseCompletarTrabajoAfterSoloEvidenciasUpload(result.outcome)).toBe(false);
