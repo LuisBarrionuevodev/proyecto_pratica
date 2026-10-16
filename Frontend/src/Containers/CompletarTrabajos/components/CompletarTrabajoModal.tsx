@@ -135,7 +135,11 @@ import { useCompletarTrabajoMediaQueues } from "../../../features/media/hooks/us
 import { useRutaItemReadyArchivos } from "../../../features/media/hooks/useRutaItemReadyArchivos";
 import { useMediaUploadPanelHold } from "../../../features/media/hooks/useMediaUploadPanelHold";
 import { useScrollMediaUploadPanelOnUploadStart } from "../../../features/media/hooks/useScrollMediaUploadPanelOnUploadStart";
-import { isQueueStillUploadable } from "../../../features/media/utils/actuacionManualMediaSave";
+import {
+  MANUAL_MEDIA_GALLERY_REFRESH_HINT,
+} from "../../../features/media/utils/actuacionManualMediaSave";
+import { scheduleScrollMediaUploadPanelIntoView } from "../../../features/media/utils/scrollMediaUploadPanelIntoView";
+import { finalizeCompletarTrabajoMediaUploadAttempt } from "../utils/completarTrabajoMediaUploadReconcile";
 import { MediaUploadProgress } from "../../../features/media/components/MediaUploadProgress";
 import { MediaUploadSection } from "../../../features/media/components/MediaUploadSection";
 import { MediaUploadPanelErrorBoundary } from "../../../features/media/components/MediaUploadPanelErrorBoundary";
@@ -534,11 +538,17 @@ export function CompletarTrabajoModal({
     mediaProgressItems
   );
   const mediaUploadProgressPanelRef = useRef<HTMLElement | null>(null);
-  const mediaUploadScrollActive = mediaSessionActive || saving;
+  const scrollToMediaUploadPanel = useCallback(() => {
+    scheduleScrollMediaUploadPanelIntoView(
+      mediaUploadProgressPanelRef.current,
+      scrollContainerRef?.current ?? null
+    );
+  }, [scrollContainerRef]);
   useScrollMediaUploadPanelOnUploadStart(
-    mediaUploadScrollActive,
+    mediaSessionActive,
     mediaProgressVisible,
-    mediaUploadProgressPanelRef
+    mediaUploadProgressPanelRef,
+    scrollContainerRef
   );
   const readyArchivos = useRutaItemReadyArchivos(openedRutaItemId, Boolean(open && openedRutaItemId != null));
   const [mediaSelectionError, setMediaSelectionError] = useState<string | null>(null);
@@ -1079,15 +1089,29 @@ export function CompletarTrabajoModal({
     actaComprobacion,
   ]);
 
-  const uploadMediaAfterCierre = useCallback(async (): Promise<boolean> => {
-    if (!resolvedRow || !mediaQueues.hasPendingUpload) return true;
+  const runMediaUploadWithFinalize = useCallback(async () => {
+    if (!resolvedRow) {
+      throw new Error("Sin fila de trabajo para subir evidencias.");
+    }
+    scrollToMediaUploadPanel();
     try {
       await mediaQueues.uploadAll(resolvedRow.ruta_item_id, 1);
-      return !isQueueStillUploadable(mediaQueues.allItems);
     } catch {
-      return false;
+      // Reconciliar con listado de archivos antes de marcar fallo.
     }
-  }, [resolvedRow, mediaQueues]);
+    const finalized = await finalizeCompletarTrabajoMediaUploadAttempt({
+      rutaItemId: resolvedRow.ruta_item_id,
+      queueItems: mediaQueues.allItems,
+    });
+    mediaQueues.syncQueueItems(finalized.reconciledItems);
+    return finalized;
+  }, [mediaQueues, resolvedRow, scrollToMediaUploadPanel]);
+
+  const uploadMediaAfterCierre = useCallback(async (): Promise<boolean> => {
+    if (!resolvedRow || !mediaQueues.hasPendingUpload) return true;
+    const finalized = await runMediaUploadWithFinalize();
+    return finalized.status === "success";
+  }, [resolvedRow, mediaQueues.hasPendingUpload, runMediaUploadWithFinalize]);
 
   const runCierreThenMedia = useCallback(
     async (submitCierre: () => Promise<void>) => {
@@ -1226,18 +1250,23 @@ export function CompletarTrabajoModal({
       setEmptyQueueHint(null);
       setSaving(true);
       try {
-        await mediaQueues.uploadAll(resolvedRow.ruta_item_id, 1);
-        if (isQueueStillUploadable(mediaQueues.allItems)) {
-          feedback.warning(
-            "No se pudieron subir todas las fotos. Reintentá cuando tengas mejor conexión."
+        const finalized = await runMediaUploadWithFinalize();
+        if (finalized.status === "success") {
+          if (finalized.archivosRefreshFailed) {
+            feedback.info(MANUAL_MEDIA_GALLERY_REFRESH_HINT);
+          }
+          feedback.success("Fotos subidas correctamente.");
+          mediaQueues.clearForActiveRutaItem();
+          onSuccess(resolvedRow.ruta_item_id);
+          onClose();
+          return;
+        }
+        if (finalized.status === "guardado_fotos_pendientes") {
+          feedback.info(
+            "El trabajo está guardado. Algunas fotos no se subieron; reintentá las que faltan."
           );
           return;
         }
-        feedback.success("Fotos subidas correctamente.");
-        mediaQueues.clearForActiveRutaItem();
-        onSuccess(resolvedRow.ruta_item_id);
-        onClose();
-      } catch {
         const recovered = await tryRecoverCompletarTrabajoTrasErrorRed(resolvedRow.ruta_item_id, {
           onCompleto: () => {
             feedback.success("Fotos subidas correctamente.");
@@ -1571,7 +1600,16 @@ export function CompletarTrabajoModal({
       actions={
         <CrudDialogActions
           mode="edit"
-          onSave={() => void handleSubmit()}
+          onSave={() => {
+            if (
+              soloEvidenciasUi ||
+              mediaQueues.hasPendingUpload ||
+              mediaQueues.hasRetryableUpload
+            ) {
+              scrollToMediaUploadPanel();
+            }
+            void handleSubmit();
+          }}
           loading={saving || finalizingPorAhora}
           saveDisabled={
             soloEvidenciasUi &&

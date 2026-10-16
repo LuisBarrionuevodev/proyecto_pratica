@@ -56,6 +56,20 @@ describe("MediaUploadProgress", () => {
     expect(html).toContain("Carga finalizada");
   });
 
+  it("muestra 0/Total al iniciar carga", () => {
+    const html = renderToStaticMarkup(
+      <MediaUploadProgress
+        open
+        sessionActive
+        globalPct={0}
+        items={[item("pending", 1), item("pending", 2)]}
+      />
+    );
+    expect(html).toContain("0 / 2");
+    expect(html).toContain("Preparando carga");
+    expect(html).toContain("Iniciando la foto 1");
+  });
+
   it("muestra copy de carga interrumpida", () => {
     const html = renderToStaticMarkup(
       <MediaUploadProgress

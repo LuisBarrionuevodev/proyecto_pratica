@@ -34,8 +34,10 @@ import {
 import type { MediaUploadOrigin } from "../mediaUploadOrigin";
 import { MediaPreviewDialog } from "./MediaPreviewDialog";
 import { MediaThumbnailTile } from "./MediaThumbnailTile";
+import { useCrudDialogScrollContainer } from "../../../components/crudDialog";
 import { useMediaUploadPanelHold } from "../hooks/useMediaUploadPanelHold";
 import { useScrollMediaUploadPanelOnUploadStart } from "../hooks/useScrollMediaUploadPanelOnUploadStart";
+import { scheduleScrollMediaUploadPanelIntoView } from "../utils/scrollMediaUploadPanelIntoView";
 import { MediaUploadProgress } from "./MediaUploadProgress";
 import { MediaUploadSection } from "./MediaUploadSection";
 
@@ -54,6 +56,7 @@ export type ActuacionMediaGalleryHandle = {
   pendingSaveCount: () => number;
   isUploadInProgress: () => boolean;
   discardLocalQueue: () => void;
+  scrollUploadPanelIntoView: () => void;
 };
 
 function serverItemsForCategoria(
@@ -98,6 +101,7 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
     const [uploading, setUploading] = useState(false);
     const uploadInFlightRef = useRef(false);
     const uploadProgressPanelRef = useRef<HTMLElement | null>(null);
+    const dialogScrollContainerRef = useCrudDialogScrollContainer();
 
     const refreshGalleryFromServer = useCallback(
       async (options?: { silent?: boolean }) => {
@@ -142,6 +146,10 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
       uploadInFlightRef.current = true;
       setUploading(true);
       setError(null);
+      scheduleScrollMediaUploadPanelIntoView(
+        uploadProgressPanelRef.current,
+        dialogScrollContainerRef?.current ?? null
+      );
       try {
         const { outcome, refreshFailed } = await runManualMediaSave({
           rutaItemId,
@@ -180,8 +188,21 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
         pendingSaveCount: () => countUploadableQueueItems(coordinator.allItems),
         isUploadInProgress: () => uploading || coordinator.session.active || uploadInFlightRef.current,
         discardLocalQueue: () => resetUploadQueue(),
+        scrollUploadPanelIntoView: () => {
+          scheduleScrollMediaUploadPanelIntoView(
+            uploadProgressPanelRef.current,
+            dialogScrollContainerRef?.current ?? null
+          );
+        },
       }),
-      [coordinator.allItems, coordinator.session.active, resetUploadQueue, saveQueuedPhotos, uploading]
+      [
+        coordinator.allItems,
+        coordinator.session.active,
+        dialogScrollContainerRef,
+        resetUploadQueue,
+        saveQueuedPhotos,
+        uploading,
+      ]
     );
 
     const handleAddFiles = useCallback(
@@ -221,7 +242,12 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
       coordinator.session.items.length > 0 ? coordinator.session.items : coordinator.allItems;
     const sessionActive = coordinator.session.active || uploading;
     const { visible: progressPanelVisible } = useMediaUploadPanelHold(sessionActive, progressItems);
-    useScrollMediaUploadPanelOnUploadStart(sessionActive, progressPanelVisible, uploadProgressPanelRef);
+    useScrollMediaUploadPanelOnUploadStart(
+      sessionActive,
+      progressPanelVisible,
+      uploadProgressPanelRef,
+      dialogScrollContainerRef
+    );
 
     if (!rutaItemId) {
       return (

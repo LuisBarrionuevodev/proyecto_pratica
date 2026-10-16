@@ -152,6 +152,17 @@ export function cancelUploadForRutaItem(rutaItemId: number): void {
   notifyStoreChange(b);
 }
 
+/** Sincroniza la cola local tras reconciliación con el servidor (sin commit). */
+export function replaceQueueItemsForRutaItem(rutaItemId: number, items: MediaQueuedFile[]): void {
+  const b = buckets.get(rutaItemId);
+  if (!b) return;
+  b.items = items;
+  if (b.session.active) {
+    b.session = { ...b.session, items: [...items] };
+  }
+  notifyStoreChange(b);
+}
+
 export function clearRutaItemMediaUploadState(rutaItemId: number): void {
   cancelUploadForRutaItem(rutaItemId);
   const b = buckets.get(rutaItemId);

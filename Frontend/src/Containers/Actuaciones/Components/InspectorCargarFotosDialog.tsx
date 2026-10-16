@@ -64,6 +64,7 @@ export function InspectorCargarFotosDialog({
       feedback.info("Seleccioná fotos para guardar.");
       return;
     }
+    gallery.scrollUploadPanelIntoView();
     setSaving(true);
     try {
       const outcome = await gallery.saveQueuedPhotos();

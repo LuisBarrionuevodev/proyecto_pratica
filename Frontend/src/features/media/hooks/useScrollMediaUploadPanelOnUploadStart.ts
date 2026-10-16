@@ -1,5 +1,5 @@
 import { useEffect, useRef, type RefObject } from "react";
-import { scrollMediaUploadPanelIntoView } from "../utils/scrollMediaUploadPanelIntoView";
+import { scheduleScrollMediaUploadPanelIntoView } from "../utils/scrollMediaUploadPanelIntoView";
 
 /**
  * Al iniciar una carga (flanco activo → true), hace scroll al panel sin mover foco de inputs.
@@ -7,7 +7,8 @@ import { scrollMediaUploadPanelIntoView } from "../utils/scrollMediaUploadPanelI
 export function useScrollMediaUploadPanelOnUploadStart(
   uploadActive: boolean,
   panelVisible: boolean,
-  panelRef: RefObject<HTMLElement | null>
+  panelRef: RefObject<HTMLElement | null>,
+  scrollContainerRef?: RefObject<HTMLElement | null> | null
 ): void {
   const prevUploadActiveRef = useRef(false);
 
@@ -15,9 +16,9 @@ export function useScrollMediaUploadPanelOnUploadStart(
     const started = uploadActive && !prevUploadActiveRef.current;
     prevUploadActiveRef.current = uploadActive;
     if (!started || !panelVisible) return;
-    const id = requestAnimationFrame(() => {
-      scrollMediaUploadPanelIntoView(panelRef.current);
-    });
-    return () => cancelAnimationFrame(id);
-  }, [uploadActive, panelVisible, panelRef]);
+    scheduleScrollMediaUploadPanelIntoView(
+      panelRef.current,
+      scrollContainerRef?.current ?? null
+    );
+  }, [uploadActive, panelVisible, panelRef, scrollContainerRef]);
 }

@@ -36,6 +36,9 @@ export const MediaUploadProgress = forwardRef<HTMLElement, Props>(function Media
   if (!open || items.length === 0) return null;
 
   const { done, total, current } = countProgress(items);
+  const inFlight = items.some(
+    (x) => x.phase === "preparing" || x.phase === "uploading" || x.phase === "verifying"
+  );
   const phase = resolveMediaUploadPanelPhase(sessionActive, items);
   const fileBasedPct = total > 0 ? Math.round((done / total) * 100) : 0;
   const barValue = phase === "uploading" ? Math.max(fileBasedPct, Math.min(100, globalPct)) : fileBasedPct;
@@ -46,6 +49,7 @@ export const MediaUploadProgress = forwardRef<HTMLElement, Props>(function Media
 
   let headline = "Subiendo fotos";
   let counterLine = `${current} / ${total}`;
+  let preparandoLine: string | null = null;
   let detailLine = `Se guardaron ${done} fotos. Cargando la foto ${Math.min(done + 1, total)}…`;
   let warningLine: string | null = "No cierres esta pantalla.";
 
@@ -60,6 +64,10 @@ export const MediaUploadProgress = forwardRef<HTMLElement, Props>(function Media
     detailLine =
       "Se guardaron las fotos anteriores. Podés continuar cuando vuelva la conexión.";
     warningLine = null;
+  } else if (phase === "uploading" && done === 0 && !inFlight) {
+    counterLine = `0 / ${total}`;
+    preparandoLine = "Preparando carga…";
+    detailLine = "Se guardaron 0 fotos. Iniciando la foto 1…";
   } else if (done === 0 && current <= 1) {
     detailLine = `Preparando foto ${current} de ${total}…`;
   }
@@ -90,6 +98,11 @@ export const MediaUploadProgress = forwardRef<HTMLElement, Props>(function Media
       {warningLine ? (
         <Typography variant="body2" sx={{ color: textMuted, mt: 0.5 }}>
           {warningLine}
+        </Typography>
+      ) : null}
+      {preparandoLine ? (
+        <Typography variant="body2" sx={{ color: textMuted, mt: 0.5 }}>
+          {preparandoLine}
         </Typography>
       ) : null}
       <LinearProgress
