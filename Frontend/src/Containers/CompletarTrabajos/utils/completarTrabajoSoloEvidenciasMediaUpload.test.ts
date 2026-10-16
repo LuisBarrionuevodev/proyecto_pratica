@@ -16,21 +16,33 @@ function queued(
     categoria: MEDIA_CATEGORIA_FOTO_ACTA,
     tipoDocumento: null,
     phase,
-    progressPct: 0,
+    progressPct: phase === "ready" ? 100 : 0,
     errorMessage: phase === "error" ? "Red" : null,
     archivoId,
     previewUrl: null,
   };
 }
 
+const detalleCompleto = {
+  ui_policy: { solo_evidencias_pendientes: true, cierre_alfanumerico_readonly: true },
+  row: {
+    trabajo_guardado_evidencias_pendientes: false,
+    media_resumen: { tiene_evidencias_pendientes: false, evidencias_pendientes_total: 0 },
+  },
+};
+
+const detallePendiente = {
+  ui_policy: { solo_evidencias_pendientes: true },
+  row: {
+    media_resumen: { tiene_evidencias_pendientes: true, evidencias_pendientes_total: 1 },
+  },
+};
+
 describe("completarTrabajoSoloEvidenciasMediaUpload", () => {
-  it("corte + reconexión + READY en servidor → success y debe cerrar", async () => {
+  it("corte → READY local + backend completo → success y cierra", async () => {
     let items: MediaQueuedFile[] = [queued("error", null)];
     const uploadAll = vi.fn(async () => {
       items = [queued("error", 7)];
-    });
-    const apply = vi.fn((next: MediaQueuedFile[]) => {
-      items = next;
     });
     const clear = vi.fn(() => {
       items = items.filter((x) => x.phase !== "ready");
@@ -39,7 +51,9 @@ describe("completarTrabajoSoloEvidenciasMediaUpload", () => {
       rutaItemId: 1,
       uploadAll,
       getQueueItems: () => items,
-      applyQueueItems: apply,
+      applyQueueItems: (next) => {
+        items = next;
+      },
       clearUploadedFromQueue: clear,
       reloadServer: vi.fn(),
       fetchArchivosForReconcile: vi.fn().mockResolvedValue({
@@ -56,18 +70,36 @@ describe("completarTrabajoSoloEvidenciasMediaUpload", () => {
         foto_documentacion_local: [],
         foto_inspeccion: [],
       }),
+      fetchDetalleForConfirm: vi.fn().mockResolvedValue(detalleCompleto),
     });
 
-    expect(uploadAll).toHaveBeenCalled();
     expect(result.outcome).toBe("success");
     expect(shouldCloseCompletarTrabajoAfterSoloEvidenciasUpload(result.outcome)).toBe(true);
     expect(clear).toHaveBeenCalled();
   });
 
-  it("queda pendiente real → partial y no cierra", async () => {
-    let items: MediaQueuedFile[] = [queued("pending", null)];
+  it("local partial pero backend confirma sin pendientes → success definitivo", async () => {
+    let items: MediaQueuedFile[] = [queued("ready", 1), queued("ready", 2)];
     const result = await runCompletarTrabajoSoloEvidenciasMediaUpload({
       rutaItemId: 2,
+      uploadAll: vi.fn(),
+      getQueueItems: () => items,
+      applyQueueItems: (next) => {
+        items = next;
+      },
+      clearUploadedFromQueue: vi.fn(() => {
+        items = [];
+      }),
+      reloadServer: vi.fn(),
+      fetchDetalleForConfirm: vi.fn().mockResolvedValue(detalleCompleto),
+    });
+    expect(result.outcome).toBe("success");
+  });
+
+  it("backend con pendientes → partial y no cierra", async () => {
+    let items: MediaQueuedFile[] = [queued("pending", null)];
+    const result = await runCompletarTrabajoSoloEvidenciasMediaUpload({
+      rutaItemId: 3,
       uploadAll: vi.fn(),
       getQueueItems: () => items,
       applyQueueItems: (next) => {
@@ -80,15 +112,16 @@ describe("completarTrabajoSoloEvidenciasMediaUpload", () => {
         foto_documentacion_local: [],
         foto_inspeccion: [],
       }),
+      fetchDetalleForConfirm: vi.fn().mockResolvedValue(detallePendiente),
     });
     expect(result.outcome).toBe("partial");
     expect(shouldCloseCompletarTrabajoAfterSoloEvidenciasUpload(result.outcome)).toBe(false);
   });
 
-  it("refresh visual fallido con archivos READY → success", async () => {
+  it("éxito confirmado + refresh visual fallido → success sin degradar", async () => {
     let items: MediaQueuedFile[] = [queued("pending", null)];
     const result = await runCompletarTrabajoSoloEvidenciasMediaUpload({
-      rutaItemId: 3,
+      rutaItemId: 4,
       uploadAll: vi.fn(async () => {
         items = [queued("ready", 1)];
       }),
@@ -100,6 +133,7 @@ describe("completarTrabajoSoloEvidenciasMediaUpload", () => {
         items = [];
       },
       reloadServer: vi.fn().mockRejectedValue(new Error("refresh")),
+      fetchDetalleForConfirm: vi.fn().mockResolvedValue(detalleCompleto),
     });
     expect(result.outcome).toBe("success");
     expect(result.refreshFailed).toBe(true);

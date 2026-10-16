@@ -135,17 +135,13 @@ import { useCompletarTrabajoMediaQueues } from "../../../features/media/hooks/us
 import { useRutaItemReadyArchivos } from "../../../features/media/hooks/useRutaItemReadyArchivos";
 import { useMediaUploadPanelHold } from "../../../features/media/hooks/useMediaUploadPanelHold";
 import { useScrollMediaUploadPanelOnUploadStart } from "../../../features/media/hooks/useScrollMediaUploadPanelOnUploadStart";
-import {
-  MANUAL_MEDIA_GALLERY_REFRESH_HINT,
-  MANUAL_MEDIA_PARTIAL_MESSAGE,
-} from "../../../features/media/utils/actuacionManualMediaSave";
 import { scheduleScrollMediaUploadPanelIntoView } from "../../../features/media/utils/scrollMediaUploadPanelIntoView";
 import {
   COMPLETAR_TRABAJO_FOTOS_SUCCESS_MESSAGE,
   runCompletarTrabajoSoloEvidenciasMediaUpload,
   shouldCloseCompletarTrabajoAfterSoloEvidenciasUpload,
 } from "../utils/completarTrabajoSoloEvidenciasMediaUpload";
-import { runManualMediaSave } from "../../../features/media/utils/actuacionManualMediaSave";
+import { notifyCompletarTrabajoPendientesRefresh } from "../utils/completarTrabajoPendientesRefresh";
 import { MediaUploadProgress } from "../../../features/media/components/MediaUploadProgress";
 import { MediaUploadSection } from "../../../features/media/components/MediaUploadSection";
 import { MediaUploadPanelErrorBoundary } from "../../../features/media/components/MediaUploadPanelErrorBoundary";
@@ -1109,29 +1105,26 @@ export function CompletarTrabajoModal({
     };
   }, [mediaQueues, readyArchivos, resolvedRow]);
 
-  const finishCompletarTrabajoFotosSuccess = useCallback(
-    (refreshFailed: boolean) => {
-      setEmptyQueueHint(null);
-      setMediaSelectionError(null);
-      if (refreshFailed) {
-        feedback.info(MANUAL_MEDIA_GALLERY_REFRESH_HINT);
-      }
-      feedback.success(COMPLETAR_TRABAJO_FOTOS_SUCCESS_MESSAGE);
-      mediaQueues.clearForActiveRutaItem();
-      if (resolvedRow) {
-        onSuccess(resolvedRow.ruta_item_id);
-        onClose();
-      }
-    },
-    [feedback, mediaQueues, onClose, onSuccess, resolvedRow]
-  );
+  const finishCompletarTrabajoFotosSuccess = useCallback(() => {
+    setEmptyQueueHint(null);
+    setMediaSelectionError(null);
+    setFieldErrors({});
+    setDetalleError(null);
+    mediaQueues.clearForActiveRutaItem();
+    notifyCompletarTrabajoPendientesRefresh();
+    feedback.success(COMPLETAR_TRABAJO_FOTOS_SUCCESS_MESSAGE);
+    if (resolvedRow) {
+      onSuccess(resolvedRow.ruta_item_id);
+      onClose();
+    }
+  }, [feedback, mediaQueues, onClose, onSuccess, resolvedRow]);
 
   const uploadMediaAfterCierre = useCallback(async (): Promise<boolean> => {
     if (!resolvedRow || !mediaQueues.hasPendingUpload) return true;
     const deps = completarTrabajoMediaSaveDeps();
     if (!deps) return false;
     scrollToMediaUploadPanel();
-    const result = await runManualMediaSave(deps);
+    const result = await runCompletarTrabajoSoloEvidenciasMediaUpload(deps);
     return result.outcome === "success";
   }, [completarTrabajoMediaSaveDeps, mediaQueues.hasPendingUpload, resolvedRow, scrollToMediaUploadPanel]);
 
@@ -1223,6 +1216,7 @@ export function CompletarTrabajoModal({
       }
       feedback.success("Trabajo completado correctamente.");
       mediaQueues.clearForActiveRutaItem();
+      notifyCompletarTrabajoPendientesRefresh();
       onSuccess(rutaItemId);
       onClose();
     },
@@ -1277,13 +1271,12 @@ export function CompletarTrabajoModal({
         if (!deps) return;
         const result = await runCompletarTrabajoSoloEvidenciasMediaUpload(deps);
         if (shouldCloseCompletarTrabajoAfterSoloEvidenciasUpload(result.outcome)) {
-          finishCompletarTrabajoFotosSuccess(result.refreshFailed);
+          finishCompletarTrabajoFotosSuccess();
           return;
         }
         if (result.outcome === "partial") {
-          feedback.info(MANUAL_MEDIA_PARTIAL_MESSAGE);
           const recovered = await tryRecoverCompletarTrabajoTrasErrorRed(resolvedRow.ruta_item_id, {
-            onCompleto: () => finishCompletarTrabajoFotosSuccess(false),
+            onCompleto: () => finishCompletarTrabajoFotosSuccess(),
             onGuardadoFotosPendientes: (det) => {
               applyRecoveryDetalle(det);
               feedback.info(

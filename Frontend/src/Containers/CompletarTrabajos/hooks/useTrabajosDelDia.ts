@@ -5,6 +5,7 @@ import {
   type ICompletarTrabajoPendienteRow,
   type ICompletarTrabajoPendientesMeta,
 } from "../../../api/completarTrabajoApi";
+import { subscribeCompletarTrabajoPendientesRefresh } from "../utils/completarTrabajoPendientesRefresh";
 
 export type UseTrabajosDelDiaOptions = {
   page?: number;
@@ -74,6 +75,23 @@ export function useTrabajosDelDia(fecha: string | null, options: UseTrabajosDelD
     setRows((prev) => prev.filter((r) => r.ruta_item_id !== rutaItemId));
     setMeta((m) => (m ? { ...m, total: Math.max(0, m.total - 1) } : null));
   }, []);
+
+  const refetchSilent = useCallback(async () => {
+    if (!fecha) return;
+    try {
+      const resp = await getCompletarTrabajoPendientes({ fecha, page, per_page: perPage });
+      setRows(resp.items);
+      setMeta(resp.meta);
+    } catch {
+      // Éxito ya confirmado en backend: no restaurar error ni filas optimistas.
+    }
+  }, [fecha, page, perPage]);
+
+  useEffect(() => {
+    return subscribeCompletarTrabajoPendientesRefresh(() => {
+      void refetchSilent();
+    });
+  }, [refetchSilent]);
 
   return { rows, meta, loading, error, removeRowByRutaItemId };
 }

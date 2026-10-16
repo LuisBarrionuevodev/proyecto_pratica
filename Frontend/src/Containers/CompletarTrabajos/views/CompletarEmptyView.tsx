@@ -27,6 +27,7 @@ import {
   pendientesFooterLabel,
   resolvePendienteCeldaTono,
 } from "../utils/completarTrabajoCalendarDisplay";
+import { subscribeCompletarTrabajoPendientesRefresh } from "../utils/completarTrabajoPendientesRefresh";
 
 const COMPLETAR_CONTENT_MAX_PX = 1400;
 
@@ -97,6 +98,29 @@ export function CompletarEmptyView({ initialFecha, onVerTrabajos }: CompletarTra
   useEffect(() => {
     void cargarResumen();
   }, [cargarResumen]);
+
+  const cargarResumenSilent = useCallback(async () => {
+    try {
+      const res = await getCompletarTrabajoPendientesResumen({
+        fecha_desde: mesVisible.desde,
+        fecha_hasta: mesVisible.hasta,
+      });
+      setDias(res.dias ?? []);
+      setMetaResumen({
+        desde: res.meta.fecha_desde,
+        hasta: res.meta.fecha_hasta,
+        hoy: res.meta.hoy,
+      });
+    } catch {
+      // No revertir calendario si el cierre ya fue confirmado.
+    }
+  }, [mesVisible.desde, mesVisible.hasta]);
+
+  useEffect(() => {
+    return subscribeCompletarTrabajoPendientesRefresh(() => {
+      void cargarResumenSilent();
+    });
+  }, [cargarResumenSilent]);
 
   const abrirGrid = useCallback(
     (fechaIso: string) => {
