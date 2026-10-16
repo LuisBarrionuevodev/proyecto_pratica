@@ -129,6 +129,7 @@ export function CompletarTrabajosGridView({ fecha, onVolver }: CompletarTrabajos
         onClose={() => setModalRow(null)}
         onSuccess={(rutaItemId) => {
           removeRowByRutaItemId(rutaItemId);
+          setModalRow(null);
         }}
       />
     </Box>

@@ -22,10 +22,11 @@ export function classifyCompletarTrabajoDetalle(
     det.ui_policy?.cierre_alfanumerico_readonly === true;
 
   const resumen = det.row.media_resumen;
+  const totalPend = resumen?.evidencias_pendientes_total ?? 0;
   const pendientes =
-    det.row.trabajo_guardado_evidencias_pendientes === true ||
-    resumen?.tiene_evidencias_pendientes === true ||
-    (resumen?.evidencias_pendientes_total ?? 0) > 0;
+    totalPend > 0 ||
+    (resumen?.tiene_evidencias_pendientes === true && totalPend > 0) ||
+    (det.row.trabajo_guardado_evidencias_pendientes === true && totalPend > 0);
 
   if (guardadoConFotos) {
     return pendientes ? "guardado_fotos_pendientes" : "completo";

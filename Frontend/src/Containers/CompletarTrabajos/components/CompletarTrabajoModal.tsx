@@ -136,12 +136,16 @@ import { useRutaItemReadyArchivos } from "../../../features/media/hooks/useRutaI
 import { useMediaUploadPanelHold } from "../../../features/media/hooks/useMediaUploadPanelHold";
 import { useScrollMediaUploadPanelOnUploadStart } from "../../../features/media/hooks/useScrollMediaUploadPanelOnUploadStart";
 import { scheduleScrollMediaUploadPanelIntoView } from "../../../features/media/utils/scrollMediaUploadPanelIntoView";
-import {
-  COMPLETAR_TRABAJO_FOTOS_SUCCESS_MESSAGE,
-  runCompletarTrabajoSoloEvidenciasMediaUpload,
-  shouldCloseCompletarTrabajoAfterSoloEvidenciasUpload,
-} from "../utils/completarTrabajoSoloEvidenciasMediaUpload";
+import { shouldCloseCompletarTrabajoAfterSoloEvidenciasUpload } from "../utils/completarTrabajoSoloEvidenciasMediaUpload";
 import { notifyCompletarTrabajoPendientesRefresh } from "../utils/completarTrabajoPendientesRefresh";
+import {
+  applyCompletarTrabajoRecoveredUploadSuccess,
+  COMPLETAR_TRABAJO_FOTOS_SUCCESS_MESSAGE,
+  runCompletarTrabajoSoloEvidenciasFlow,
+} from "../utils/completarTrabajoRecoveredUploadFinal";
+import { isLocalCompletarTrabajoMediaQueueFinished } from "../utils/completarTrabajoEvidenciasConfirm";
+import { fetchDetalleConfirmaSinEvidenciasPendientes } from "../utils/completarTrabajoEvidenciasConfirm";
+import { patchRowSinEvidenciasPendientes } from "../utils/completarTrabajoRecoveredUploadFinal";
 import { MediaUploadProgress } from "../../../features/media/components/MediaUploadProgress";
 import { MediaUploadSection } from "../../../features/media/components/MediaUploadSection";
 import { MediaUploadPanelErrorBoundary } from "../../../features/media/components/MediaUploadPanelErrorBoundary";
@@ -535,10 +539,9 @@ export function CompletarTrabajoModal({
   const mediaProgressItems =
     mediaQueues.session.items.length > 0 ? mediaQueues.session.items : mediaQueues.allItems;
   const mediaSessionActive = mediaQueues.session.active;
-  const { visible: mediaProgressVisible } = useMediaUploadPanelHold(
-    mediaSessionActive,
-    mediaProgressItems
-  );
+  const { visible: mediaProgressVisible, clearHold: clearMediaUploadPanelHold } =
+    useMediaUploadPanelHold(mediaSessionActive, mediaProgressItems);
+  const autoCloseAfterUploadRef = useRef<number | null>(null);
   const mediaUploadProgressPanelRef = useRef<HTMLElement | null>(null);
   const scrollToMediaUploadPanel = useCallback(() => {
     scheduleScrollMediaUploadPanelIntoView(
@@ -1106,27 +1109,82 @@ export function CompletarTrabajoModal({
   }, [mediaQueues, readyArchivos, resolvedRow]);
 
   const finishCompletarTrabajoFotosSuccess = useCallback(() => {
-    setEmptyQueueHint(null);
-    setMediaSelectionError(null);
-    setFieldErrors({});
-    setDetalleError(null);
-    mediaQueues.clearForActiveRutaItem();
-    notifyCompletarTrabajoPendientesRefresh();
-    feedback.success(COMPLETAR_TRABAJO_FOTOS_SUCCESS_MESSAGE);
-    if (resolvedRow) {
-      onSuccess(resolvedRow.ruta_item_id);
-      onClose();
-    }
-  }, [feedback, mediaQueues, onClose, onSuccess, resolvedRow]);
+    if (!resolvedRow) return;
+    applyCompletarTrabajoRecoveredUploadSuccess(resolvedRow.ruta_item_id, {
+      clearTransientErrors: () => {
+        setEmptyQueueHint(null);
+        setMediaSelectionError(null);
+        setFieldErrors({});
+        setDetalleError(null);
+      },
+      clearUploadPanelHold: () => clearMediaUploadPanelHold(),
+      clearUploadState: () => mediaQueues.clearForActiveRutaItem(),
+      invalidateEvidenciasPendientesLocal: () => {
+        setResolvedRow((prev) => (prev ? patchRowSinEvidenciasPendientes(prev) : prev));
+        setUiPolicy((prev) =>
+          prev ? { ...prev, solo_evidencias_pendientes: false } : prev
+        );
+      },
+      notifyPendientesRefresh: () => notifyCompletarTrabajoPendientesRefresh(),
+      showSuccessToast: () => feedback.success(COMPLETAR_TRABAJO_FOTOS_SUCCESS_MESSAGE),
+      removeFromList: (rutaItemId) => onSuccess(rutaItemId),
+      closeModal: () => onClose(),
+    });
+  }, [
+    clearMediaUploadPanelHold,
+    feedback,
+    mediaQueues,
+    onClose,
+    onSuccess,
+    resolvedRow,
+  ]);
 
   const uploadMediaAfterCierre = useCallback(async (): Promise<boolean> => {
     if (!resolvedRow || !mediaQueues.hasPendingUpload) return true;
     const deps = completarTrabajoMediaSaveDeps();
     if (!deps) return false;
     scrollToMediaUploadPanel();
-    const result = await runCompletarTrabajoSoloEvidenciasMediaUpload(deps);
+    const result = await runCompletarTrabajoSoloEvidenciasFlow(deps);
     return result.outcome === "success";
   }, [completarTrabajoMediaSaveDeps, mediaQueues.hasPendingUpload, resolvedRow, scrollToMediaUploadPanel]);
+
+  useEffect(() => {
+    if (!open) {
+      autoCloseAfterUploadRef.current = null;
+    }
+  }, [open]);
+
+  useEffect(() => {
+    if (!open || !soloEvidenciasUi || mediaSessionActive || saving || !resolvedRow) return;
+    const localFinished = isLocalCompletarTrabajoMediaQueueFinished(mediaQueues.allItems);
+    if (!localFinished || mediaProgressItems.length === 0) return;
+    if ((mediaQueues.uploadableCount ?? 0) > 0) return;
+
+    const rutaItemId = resolvedRow.ruta_item_id;
+    if (autoCloseAfterUploadRef.current === rutaItemId) return;
+
+    let cancelled = false;
+    void (async () => {
+      const backendOk = await fetchDetalleConfirmaSinEvidenciasPendientes(rutaItemId);
+      if (cancelled || !backendOk) return;
+      autoCloseAfterUploadRef.current = rutaItemId;
+      finishCompletarTrabajoFotosSuccess();
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    finishCompletarTrabajoFotosSuccess,
+    mediaProgressItems,
+    mediaQueues.allItems,
+    mediaQueues.uploadableCount,
+    mediaSessionActive,
+    open,
+    resolvedRow,
+    saving,
+    soloEvidenciasUi,
+  ]);
 
   const runCierreThenMedia = useCallback(
     async (submitCierre: () => Promise<void>) => {
@@ -1258,18 +1316,16 @@ export function CompletarTrabajoModal({
     setFieldErrors({});
 
     if (uiPolicy?.solo_evidencias_pendientes) {
-      const uploadable = mediaQueues.uploadableCount ?? 0;
-      if (uploadable <= 0) {
-        setEmptyQueueHint("Seleccioná fotos para subir.");
-        return;
-      }
-      setEmptyQueueHint(null);
       setSaving(true);
       scrollToMediaUploadPanel();
       try {
         const deps = completarTrabajoMediaSaveDeps();
         if (!deps) return;
-        const result = await runCompletarTrabajoSoloEvidenciasMediaUpload(deps);
+        const result = await runCompletarTrabajoSoloEvidenciasFlow(deps);
+        if (result.outcome === "empty") {
+          setEmptyQueueHint("Seleccioná fotos para subir.");
+          return;
+        }
         if (shouldCloseCompletarTrabajoAfterSoloEvidenciasUpload(result.outcome)) {
           finishCompletarTrabajoFotosSuccess();
           return;
