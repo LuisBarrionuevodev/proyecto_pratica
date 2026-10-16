@@ -134,6 +134,8 @@ import {
 import { useCompletarTrabajoMediaQueues } from "../../../features/media/hooks/useMediaUploadCoordinator";
 import { useRutaItemReadyArchivos } from "../../../features/media/hooks/useRutaItemReadyArchivos";
 import { useMediaUploadPanelHold } from "../../../features/media/hooks/useMediaUploadPanelHold";
+import { useScrollMediaUploadPanelOnUploadStart } from "../../../features/media/hooks/useScrollMediaUploadPanelOnUploadStart";
+import { isQueueStillUploadable } from "../../../features/media/utils/actuacionManualMediaSave";
 import { MediaUploadProgress } from "../../../features/media/components/MediaUploadProgress";
 import { MediaUploadSection } from "../../../features/media/components/MediaUploadSection";
 import { MediaUploadPanelErrorBoundary } from "../../../features/media/components/MediaUploadPanelErrorBoundary";
@@ -530,6 +532,13 @@ export function CompletarTrabajoModal({
   const { visible: mediaProgressVisible } = useMediaUploadPanelHold(
     mediaSessionActive,
     mediaProgressItems
+  );
+  const mediaUploadProgressPanelRef = useRef<HTMLElement | null>(null);
+  const mediaUploadScrollActive = mediaSessionActive || saving;
+  useScrollMediaUploadPanelOnUploadStart(
+    mediaUploadScrollActive,
+    mediaProgressVisible,
+    mediaUploadProgressPanelRef
   );
   const readyArchivos = useRutaItemReadyArchivos(openedRutaItemId, Boolean(open && openedRutaItemId != null));
   const [mediaSelectionError, setMediaSelectionError] = useState<string | null>(null);
@@ -1074,7 +1083,7 @@ export function CompletarTrabajoModal({
     if (!resolvedRow || !mediaQueues.hasPendingUpload) return true;
     try {
       await mediaQueues.uploadAll(resolvedRow.ruta_item_id, 1);
-      return true;
+      return !isQueueStillUploadable(mediaQueues.allItems);
     } catch {
       return false;
     }
@@ -1218,10 +1227,7 @@ export function CompletarTrabajoModal({
       setSaving(true);
       try {
         await mediaQueues.uploadAll(resolvedRow.ruta_item_id, 1);
-        const stillUploadable = mediaQueues.allItems.some(
-          (x) => x.phase === "pending" || x.phase === "error"
-        );
-        if (stillUploadable) {
+        if (isQueueStillUploadable(mediaQueues.allItems)) {
           feedback.warning(
             "No se pudieron subir todas las fotos. Reintentá cuando tengas mejor conexión."
           );
@@ -1600,6 +1606,7 @@ export function CompletarTrabajoModal({
     >
       <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} ref={scrollContainerRef}>
       <MediaUploadProgress
+        ref={mediaUploadProgressPanelRef}
         open={mediaProgressVisible}
         sessionActive={mediaSessionActive}
         globalPct={mediaQueues.session.globalPct}

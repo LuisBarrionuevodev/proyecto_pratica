@@ -1,3 +1,4 @@
+import { forwardRef } from "react";
 import { Box, LinearProgress, Typography } from "@mui/material";
 import { AppButton } from "../../../ui";
 import { useDigitalizaTheme } from "../../../theme/DigitalizaThemeProvider";
@@ -27,13 +28,10 @@ function countProgress(items: MediaQueuedFile[]): { done: number; total: number;
  * Panel sólido dentro del modal (sin Dialog ni position:fixed).
  * El contador N/Total es la fuente de verdad visual; la barra refleja archivos completados.
  */
-export function MediaUploadProgress({
-  open,
-  sessionActive,
-  globalPct,
-  items,
-  onRetry,
-}: Props) {
+export const MediaUploadProgress = forwardRef<HTMLElement, Props>(function MediaUploadProgress(
+  { open, sessionActive, globalPct, items, onRetry },
+  ref
+) {
   const { mode, colors } = useDigitalizaTheme();
   if (!open || items.length === 0) return null;
 
@@ -70,7 +68,9 @@ export function MediaUploadProgress({
 
   return (
     <Box
+      ref={ref}
       component="section"
+      data-testid="media-upload-progress-panel"
       aria-live="polite"
       aria-busy={phase === "uploading"}
       sx={{
@@ -122,4 +122,4 @@ export function MediaUploadProgress({
       ) : null}
     </Box>
   );
-}
+});

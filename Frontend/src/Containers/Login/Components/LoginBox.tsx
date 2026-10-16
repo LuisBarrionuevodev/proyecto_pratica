@@ -12,6 +12,12 @@ import {
     consumeSessionEndFeedback,
     sessionEndUserMessage,
 } from "../../../auth/sessionEndFeedback";
+import {
+    appWebUpdateButtonLabel,
+    detectAppWebUpdateMode,
+    runAppWebUpdate,
+    type AppWebUpdateMode,
+} from "../../../utils/appWebUpdate";
 
 const LoginBox = (): JSX.Element => {
     
@@ -21,6 +27,8 @@ const LoginBox = (): JSX.Element => {
     const [password, setPassword] = useState("");
     const [error, setError] = useState("");
     const [sessionInfo, setSessionInfo] = useState<string | null>(null);
+    const [webUpdateMode, setWebUpdateMode] = useState<AppWebUpdateMode>("hard_reload");
+    const [webUpdateBusy, setWebUpdateBusy] = useState(false);
 
     useEffect(() => {
         const payload = consumeSessionEndFeedback();
@@ -28,6 +36,16 @@ const LoginBox = (): JSX.Element => {
             setSessionInfo(sessionEndUserMessage(payload.reason));
         }
     }, []);
+
+    useEffect(() => {
+        void detectAppWebUpdateMode().then(setWebUpdateMode);
+    }, []);
+
+    const handleAppWebUpdate = () => {
+        if (webUpdateBusy) return;
+        setWebUpdateBusy(true);
+        void runAppWebUpdate(webUpdateMode).finally(() => setWebUpdateBusy(false));
+    };
 
     const handleLogin = async () => {
         try {
@@ -110,6 +128,25 @@ const LoginBox = (): JSX.Element => {
                         ¿Has olvidado tu contraseña?
                         <Link to={"/recuperarCuenta"} style={{fontWeight:800, textDecoration: "none", color: "#0166FF", }}> Haz click aqui</Link>
                     </Typography>
+
+                    <AppButton
+                        dsVariant="ghost"
+                        dsSize="sm"
+                        type="button"
+                        disabled={webUpdateBusy}
+                        onClick={handleAppWebUpdate}
+                        sx={{
+                            mt: { xs: 1.5, sm: 2 },
+                            alignSelf: "center",
+                            fontSize: 13,
+                            color: "text.secondary",
+                            fontWeight: 500,
+                            textTransform: "none",
+                            minHeight: 36,
+                        }}
+                    >
+                        ↻ {appWebUpdateButtonLabel(webUpdateMode)}
+                    </AppButton>
                 </Box>
             </Box>
         </Box>

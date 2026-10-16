@@ -25,6 +25,7 @@ import {
 } from "../mediaUploadOrigin";
 import {
   countUploadableQueueItems,
+  MANUAL_MEDIA_GALLERY_REFRESH_HINT,
   MANUAL_MEDIA_PARTIAL_MESSAGE,
   MANUAL_MEDIA_RELOAD_HINT,
   runManualMediaSave,
@@ -34,6 +35,7 @@ import type { MediaUploadOrigin } from "../mediaUploadOrigin";
 import { MediaPreviewDialog } from "./MediaPreviewDialog";
 import { MediaThumbnailTile } from "./MediaThumbnailTile";
 import { useMediaUploadPanelHold } from "../hooks/useMediaUploadPanelHold";
+import { useScrollMediaUploadPanelOnUploadStart } from "../hooks/useScrollMediaUploadPanelOnUploadStart";
 import { MediaUploadProgress } from "./MediaUploadProgress";
 import { MediaUploadSection } from "./MediaUploadSection";
 
@@ -95,6 +97,7 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [uploading, setUploading] = useState(false);
     const uploadInFlightRef = useRef(false);
+    const uploadProgressPanelRef = useRef<HTMLElement | null>(null);
 
     const refreshGalleryFromServer = useCallback(
       async (options?: { silent?: boolean }) => {
@@ -150,7 +153,7 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
 
         if (outcome === "success") {
           if (refreshFailed) {
-            feedback.info("Las fotos se guardaron; no se pudo refrescar la vista. Reabrí el trabajo si no las ves.");
+            feedback.info(MANUAL_MEDIA_GALLERY_REFRESH_HINT);
           } else if (!manualSave) {
             feedback.success("Archivos subidos correctamente.");
           }
@@ -218,6 +221,7 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
       coordinator.session.items.length > 0 ? coordinator.session.items : coordinator.allItems;
     const sessionActive = coordinator.session.active || uploading;
     const { visible: progressPanelVisible } = useMediaUploadPanelHold(sessionActive, progressItems);
+    useScrollMediaUploadPanelOnUploadStart(sessionActive, progressPanelVisible, uploadProgressPanelRef);
 
     if (!rutaItemId) {
       return (
@@ -233,6 +237,7 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
     return (
       <>
         <MediaUploadProgress
+          ref={uploadProgressPanelRef}
           open={progressPanelVisible}
           sessionActive={sessionActive}
           globalPct={coordinator.session.globalPct}

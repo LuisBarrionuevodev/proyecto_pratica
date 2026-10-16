@@ -163,6 +163,48 @@ describe("actuacionManualMediaSave", () => {
     expect(items).toHaveLength(0);
   });
 
+  it("error con archivoId ya subido no cuenta como incompleto", async () => {
+    let items: MediaQueuedFile[] = [
+      { ...pendingItem("a"), phase: "ready", archivoId: 1 },
+      { ...pendingItem("b"), phase: "error", archivoId: 2, errorMessage: "Red anterior" },
+    ];
+    const uploadAll = vi.fn();
+    const clear = vi.fn(() => {
+      items = [];
+    });
+    const result = await runManualMediaSave({
+      rutaItemId: 8,
+      uploadAll,
+      getQueueItems: () => items,
+      clearUploadedFromQueue: clear,
+      reloadServer: vi.fn(),
+    });
+    expect(result.outcome).toBe("empty");
+    expect(uploadAll).not.toHaveBeenCalled();
+  });
+
+  it("tras upload, error stale con archivoId no es partial", async () => {
+    let items: MediaQueuedFile[] = [pendingItem("a")];
+    const uploadAll = vi.fn(async () => {
+      items = [
+        { ...pendingItem("a"), phase: "ready", archivoId: 5 },
+        { ...pendingItem("b"), phase: "error", archivoId: 6, errorMessage: "timeout previo" },
+      ];
+    });
+    const clear = vi.fn(() => {
+      items = [];
+    });
+    const result = await runManualMediaSave({
+      rutaItemId: 9,
+      uploadAll,
+      getQueueItems: () => items,
+      clearUploadedFromQueue: clear,
+      reloadServer: vi.fn(),
+    });
+    expect(result.outcome).toBe("success");
+    expect(clear).toHaveBeenCalled();
+  });
+
   it("countUploadableQueueItems ignora READY", () => {
     expect(
       countUploadableQueueItems([

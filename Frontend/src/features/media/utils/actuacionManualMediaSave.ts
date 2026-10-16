@@ -8,16 +8,17 @@ export function countUploadableQueueItems(items: MediaQueuedFile[]): number {
   ).length;
 }
 
-/** True si quedó algún archivo de la cola que no terminó READY tras el pipeline. */
+/** True si quedó algún archivo que aún requiere subida o reintento real. */
 export function hasIncompleteUploadInQueue(items: MediaQueuedFile[]): boolean {
+  if (countUploadableQueueItems(items) > 0) return true;
   return items.some(
-    (x) =>
-      x.phase === "pending" ||
-      x.phase === "preparing" ||
-      x.phase === "uploading" ||
-      x.phase === "verifying" ||
-      x.phase === "error"
+    (x) => x.phase === "preparing" || x.phase === "uploading" || x.phase === "verifying"
   );
+}
+
+/** Tras `uploadAll`, indica si la cola sigue con pendientes reales (ignora READY y error con archivoId). */
+export function isQueueStillUploadable(items: MediaQueuedFile[]): boolean {
+  return hasIncompleteUploadInQueue(items);
 }
 
 export type ManualMediaSaveResult = {
@@ -77,3 +78,6 @@ export const MANUAL_MEDIA_PARTIAL_MESSAGE =
 
 export const MANUAL_MEDIA_RELOAD_HINT =
   "Las fotos ya guardadas se muestran abajo. Volvé a seleccionar únicamente las que no terminaron de subir.";
+
+export const MANUAL_MEDIA_GALLERY_REFRESH_HINT =
+  "Fotos cargadas correctamente. La galería se actualizará al volver a abrirla.";
