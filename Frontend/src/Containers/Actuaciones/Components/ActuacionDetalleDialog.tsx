@@ -2,6 +2,7 @@ import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { ReactNode } from "react";
 import type { SxProps, Theme } from "@mui/material/styles";
 import {
+  Alert,
   Autocomplete,
   Box,
   Chip,
@@ -136,6 +137,7 @@ import {
   ActuacionMediaGallery,
   type ActuacionMediaGalleryHandle,
 } from "../../../features/media/components/ActuacionMediaGallery";
+import { MediaUploadPanelErrorBoundary } from "../../../features/media/components/MediaUploadPanelErrorBoundary";
 import { shouldCloseInspectorFotosModalAfterSave } from "../../../features/media/utils/actuacionManualMediaSave";
 import { ConfirmDialog } from "../../../ui";
 import { MEDIA_UPLOAD_ORIGIN_MIS_TRABAJOS } from "../../../features/media/mediaUploadOrigin";
@@ -194,6 +196,8 @@ export type ActuacionDetalleDialogProps = {
   /** Carga del detalle autorizado (`GET /gestion`); no debe deshabilitar campos de edición. */
   detailLoading?: boolean;
   catalogs: ActuacionEditCatalogs;
+  /** Catálogos de selects aún cargando (evita Autocomplete vacío aparentando listo). */
+  catalogsLoading?: boolean;
   readOnlyColumns: string[];
   /** Opciones de calle para editor de número (p. ej. gestión domicilios); opcional en actuaciones. */
   numeroEditorLabel?: string;
@@ -1022,6 +1026,7 @@ export function ActuacionDetalleDialog({
   saving,
   detailLoading = false,
   catalogs,
+  catalogsLoading = false,
   readOnlyColumns,
   canEdit = true,
   inspectorSelfService = false,
@@ -2342,7 +2347,8 @@ export function ActuacionDetalleDialog({
           onEdit={!inspectorSelfService && canEdit ? handleStartEditing : undefined}
           onSave={formEditingActive ? handleSaveClick : undefined}
           loading={saving || detailLoading}
-          canEdit={!inspectorSelfService && canEdit && !detailLoading}
+          saveDisabled={formEditingActive && catalogsLoading}
+          canEdit={!inspectorSelfService && canEdit && !detailLoading && !catalogsLoading}
           saveLabel="Guardar cambios"
           extraActions={
             <>
@@ -2396,17 +2402,28 @@ export function ActuacionDetalleDialog({
           {detalleVista}
         </Box>
         <Box sx={{ display: formEditingActive ? "block" : "none" }} aria-hidden={!formEditingActive}>
+          {catalogsLoading ? (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Cargando catálogos del formulario…
+            </Alert>
+          ) : null}
           {edicionVista}
         </Box>
         <DocumentalBloque overline="Fotos del trabajo">
-          <ActuacionMediaGallery
-            ref={mediaGalleryRef}
-            rutaItemId={draft.ruta_item_id}
-            readOnly={mediaReadOnly}
-            hideTitle
-            manualSave={formEditingActive && !inspectorVerTrabajoMode}
-            uploadOrigin={MEDIA_UPLOAD_ORIGIN_MIS_TRABAJOS}
-          />
+          <MediaUploadPanelErrorBoundary
+            resetKey={`${draft.id}-${draft.ruta_item_id ?? 0}`}
+            rutaItemId={draft.ruta_item_id ?? null}
+            onClosePanel={() => undefined}
+          >
+            <ActuacionMediaGallery
+              ref={mediaGalleryRef}
+              rutaItemId={draft.ruta_item_id}
+              readOnly={mediaReadOnly}
+              hideTitle
+              manualSave={formEditingActive && !inspectorVerTrabajoMode}
+              uploadOrigin={MEDIA_UPLOAD_ORIGIN_MIS_TRABAJOS}
+            />
+          </MediaUploadPanelErrorBoundary>
         </DocumentalBloque>
         {detailLoading ? (
           <Box

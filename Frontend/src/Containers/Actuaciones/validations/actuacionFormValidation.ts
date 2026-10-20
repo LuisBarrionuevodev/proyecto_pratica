@@ -6,6 +6,7 @@ import {
   esNoPermiteInspeccionContraproducencia,
 } from "../../CompletarTrabajos/utils/completarTrabajoContraproducencia";
 import { getActuacionEditableFields } from "../utils/actuacionEditRules";
+import { esFamiliaNoExisteLocalContraproducencia } from "../utils/contraproducenciaNoExisteLocal";
 import { motivosNotificacionFromSlots } from "../../../utils/motivosNotificacionSlots";
 import { buildActuacionFormGlobalError } from "../utils/actuacionFormErrors";
 import { buildInspectoresForCanal } from "../utils/buildInspectoresForCanal";
@@ -215,6 +216,7 @@ export function validateActuacionFormForSubmit(
   const warnings: string[] = [];
 
   const contra = trim(form.contraproducencia);
+  const esNoExisteLocal = esFamiliaNoExisteLocalContraproducencia(contra);
   const visitaRealizada = resolveVisitaRealizada(form, context);
   const esNoPermiteInspeccion = esNoPermiteInspeccionContraproducencia(contra);
   const lockedNotif = context.notificacionEditable === false || form.notificacion_editable === false;
@@ -249,7 +251,12 @@ export function validateActuacionFormForSubmit(
       fieldErrors.tipo_actuacion = ACTUACION_VALIDATION_MESSAGES.tipoRequerido;
     }
 
-    if (!omiteIdentidad && !esReinspeccionOficio && context.canEditDomicilio !== false) {
+    if (
+      !esNoExisteLocal &&
+      !omiteIdentidad &&
+      !esReinspeccionOficio &&
+      context.canEditDomicilio !== false
+    ) {
       if (!trim(form.calle)) {
         fieldErrors.calle = ACTUACION_VALIDATION_MESSAGES.calleRequerida;
       }
@@ -283,7 +290,7 @@ export function validateActuacionFormForSubmit(
     }
   }
 
-  if (sharedRules) {
+  if (sharedRules && !esNoExisteLocal) {
     validateCrudActaNumeros(fieldErrors, form);
   }
 

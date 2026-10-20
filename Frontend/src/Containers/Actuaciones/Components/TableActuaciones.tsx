@@ -54,6 +54,7 @@ import {
   MENSAJE_EDICION_OK,
   notifyActuacionSaveResult,
 } from "../utils/actuacionSaveFeedback";
+import { scheduleActuacionListRefreshAfterSave } from "../utils/actuacionEditListRefresh";
 import {
   ACTUACIONES_COMPOSITE_COLUMN_IDS,
   buildActuacionesCompositeColumns,
@@ -129,6 +130,7 @@ const TablaActuaciones = ({
   const { isRefreshing, triggerRefresh } = useTableRefresh();
 
   /** Un solo setState tras cargar catálogos evita 6 re-renders en serie al montar. */
+  const [catalogsLoading, setCatalogsLoading] = useState(true);
   const [catalogBundle, setCatalogBundle] = useState<{
     inspectores: string[];
     motivos: string[];
@@ -161,6 +163,7 @@ const TablaActuaciones = ({
   useEffect(() => {
     let cancelled = false;
     const loadCatalogs = async () => {
+      setCatalogsLoading(true);
       try {
         const [inspectores, motivos, rubrosItems, tipos, contras, motivosComp, itemsActaInspeccion] =
           await Promise.all([
@@ -184,6 +187,8 @@ const TablaActuaciones = ({
         });
       } catch (error) {
         console.error("Error cargando catálogos:", error);
+      } finally {
+        if (!cancelled) setCatalogsLoading(false);
       }
     };
     void loadCatalogs();
@@ -250,10 +255,12 @@ const TablaActuaciones = ({
         setEditSaving(false);
         return;
       }
+      scheduleActuacionListRefreshAfterSave(false, triggerRefresh, onRefresh);
       feedback.success(MENSAJE_EDICION_OK);
+      setEditSaving(false);
       handleCloseEditDialog();
     },
-    [feedback, handleCloseEditDialog]
+    [feedback, handleCloseEditDialog, onRefresh, triggerRefresh]
   );
 
   const handleCloseFotosDialog = useCallback(() => {
@@ -353,8 +360,11 @@ const TablaActuaciones = ({
             stripActuacionRowForListStorage(prepareActuacionGestionModalRow(result.updatedRow))
           );
         }
-        triggerRefresh();
-        setTimeout(() => onRefresh?.(), 100);
+        scheduleActuacionListRefreshAfterSave(
+          options?.deferDialogClose === true,
+          triggerRefresh,
+          onRefresh
+        );
         if (options?.deferDialogClose) {
           deferCloseSession = true;
           return true;
@@ -779,6 +789,7 @@ const TablaActuaciones = ({
           saving={editSaving}
           detailLoading={editDetalleLoading}
           catalogs={catalogs}
+          catalogsLoading={catalogsLoading}
           readOnlyColumns={readOnlyColumns}
           numeroEditorLabel={numeroEditorLabel}
           canEdit={enableEditing}

@@ -740,3 +740,32 @@ describe("validateActuacionFormForSubmit — Completar trabajo", () => {
     expect(result.canSubmit).toBe(true);
   });
 });
+
+describe("validateActuacionFormForSubmit — NO_EXISTE_LOCAL CRUD", () => {
+  const rowBase = {
+    id: 1,
+    fecha_actuacion: "2026-06-01",
+    tipo_actuacion: "INSPECCION",
+    orden_trabajo_numero: "123456",
+    contraproducencia: "NO_EXISTE_LOCAL",
+    calle: "",
+    rubro_nombre: "",
+    doc_nro: "",
+    contrib_apellido: "",
+    contrib_nombre: "",
+    acta_inspeccion_num: "",
+    acta_comprobacion_num: "",
+    inspectores: [] as string[],
+  };
+
+  it("permite edición mínima sin rubro, domicilio ni actas", () => {
+    const result = validateActuacionFormForSubmit(
+      rowBase,
+      actuacionCrudValidationContext(rowBase as never)
+    );
+    expect(result.fieldErrors.rubro_nombre).toBeUndefined();
+    expect(result.fieldErrors.calle).toBeUndefined();
+    expect(result.fieldErrors.acta_inspeccion_num).toBeUndefined();
+    expect(result.canSubmit).toBe(true);
+  });
+});

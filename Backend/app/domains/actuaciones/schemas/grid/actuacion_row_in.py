@@ -24,6 +24,10 @@ from app.domains.actuaciones.services.actas_quitar_canal_actas_service import (
 )
 
 from app.database import db
+from app.domains.actuaciones.services.completar_trabajo_contraproducencia import (
+    contraproducencia_es_familia_no_existe_local,
+    map_contraproducencia_alias_to_catalog_nombre,
+)
 from app.models import (
     CatalogTipoActuacion,
     CatalogContraproducencia,
@@ -424,7 +428,31 @@ class ActuacionGridRowIn(BaseModel):
         # STAB-4: sin default NO_HUBO; vacío → None (no pisa valor existente en update).
         if v is None or v == "":
             return None
-        return _coerce_catalog_value(v, CatalogContraproducencia, "contraproducencia")
+        if not isinstance(v, str):
+            return v
+        s = v.strip()
+        if not s:
+            return None
+        if db.session is None:  # pragma: no cover
+            return s
+        s = map_contraproducencia_alias_to_catalog_nombre(s)
+        try:
+            return _coerce_catalog_value(s, CatalogContraproducencia, "contraproducencia")
+        except ValueError:
+            want = _upper_norm(s).replace("/", " ")
+
+            def _ck_loose(x: str) -> str:
+                z = x.upper().replace("_", " ").replace("/", " ")
+                return " ".join(z.split())
+
+            for (nombre,) in db.session.query(CatalogContraproducencia.nombre).all():
+                if nombre and _ck_loose(str(nombre)) == _ck_loose(s):
+                    return str(nombre).strip()
+            if contraproducencia_es_familia_no_existe_local(s):
+                for (nombre,) in db.session.query(CatalogContraproducencia.nombre).all():
+                    if nombre and contraproducencia_es_familia_no_existe_local(str(nombre)):
+                        return str(nombre).strip()
+            raise ValueError("contraproducencia inválido.")
 
     @field_validator("actas_a_quitar", mode="before")
     @classmethod
@@ -561,6 +589,47 @@ class ActuacionGridRowIn(BaseModel):
 
         return field_errors
 
+    def _errores_actas_contraproducencia_visita_no_realizada(self) -> Dict[str, str]:
+        """Actas del día prohibidas cuando la visita no se realizó (p. ej. NO EXISTE LOCAL)."""
+        field_errors: Dict[str, str] = {}
+
+        def _present(v: Any) -> bool:
+            if v is None:
+                return False
+            if isinstance(v, str):
+                return bool(v.strip())
+            if isinstance(v, list):
+                return len(v) > 0
+            return bool(v)
+
+        bloque: list[tuple[str, bool]] = [
+            ("acta_inspeccion_num", bool(self.acta_inspeccion_num)),
+            ("items_acta_inspeccion", self.items_acta_inspeccion is not None),
+            ("cantidad_personas_sin_carnet_sanidad", self.cantidad_personas_sin_carnet_sanidad is not None),
+            ("acta_notificacion_num", bool(self.acta_notificacion_num)),
+            ("acta_comprobacion_num", bool(self.acta_comprobacion_num)),
+            ("acta_clausura_num", bool(self.acta_clausura_num)),
+            ("acta_decomiso_num", bool(self.acta_decomiso_num)),
+            (
+                "notificacion_motivo_1",
+                any(
+                    _present(x)
+                    for x in (
+                        self.notificacion_motivo_1,
+                        self.notificacion_motivo_2,
+                        self.notificacion_motivo_3,
+                    )
+                ),
+            ),
+            ("comprobacion_motivo", bool(self.comprobacion_motivo)),
+            ("decomiso_kilos_total", self.decomiso_kilos_total is not None),
+        ]
+        msg = "No aplica con visita no realizada (NO EXISTE LOCAL)."
+        for key, tiene in bloque:
+            if tiene:
+                field_errors[key] = msg
+        return field_errors
+
     # ---------- Reglas de negocio (after, errores por celda) ----------
     @model_validator(mode="after")
     def reglas_negocio_base(self, info: ValidationInfo) -> "ActuacionGridRowIn":
@@ -598,6 +667,13 @@ class ActuacionGridRowIn(BaseModel):
             )
         if field_errors:
             _raise_field_errors(self.__class__.__name__, field_errors)
+
+        contra_txt = (self.contraproducencia or "").strip()
+        if contra_txt and contraproducencia_es_familia_no_existe_local(contra_txt):
+            field_errors.update(self._errores_actas_contraproducencia_visita_no_realizada())
+            if field_errors:
+                _raise_field_errors(self.__class__.__name__, field_errors)
+            return self
 
         # 1.b) Si contraproducencia == NO_HUBO => domicilio obligatorio
         if _matches_catalog(self.contraproducencia, "NO_HUBO"):
