@@ -24,11 +24,14 @@ _RELEVADOR_MEDIA_RX: Final[re.Pattern[str]] = re.compile(
 _PROFILE_RX: Final[re.Pattern[str]] = re.compile(r"^/api/profile(?:/.*)?$")
 _RUBROS_CATALOGO_RX: Final[re.Pattern[str]] = re.compile(r"^/catalogos/rubros(?:/.*)?$")
 
+# MICROFIX V1.1-INSPECTOR-EDITAR-DATOS.1A: ruta exacta usada en producción (Mis trabajos → Editar datos).
+_RELEVADOR_GRID_CATALOG_TIPOS_PATH: Final[str] = "/grid/catalogs/tipos"
+
 _RELEVADOR_GRID_CATALOG_GET_PATHS: Final[frozenset[str]] = frozenset(
     {
         "/grid/catalogs/inspectores",
         "/grid/catalogs/motivos",
-        "/grid/catalogs/tipos",
+        _RELEVADOR_GRID_CATALOG_TIPOS_PATH,
         "/grid/catalogs/contraproducencias",
         "/grid/catalogs/motivos-comprobacion",
         "/grid/catalogs/items-acta-inspeccion",
@@ -140,6 +143,10 @@ def relevador_may_access(method: str, path: str) -> bool:
         if p in _RELEVADOR_MAP_OPERATIVO_GET_PATHS:
             return m in ("GET", "HEAD", "OPTIONS")
         return False
+
+    # Antes del deny genérico de Grid: solo GET del catálogo tipos (sin wildcard /grid/catalogs/*).
+    if p == _RELEVADOR_GRID_CATALOG_TIPOS_PATH:
+        return m in ("GET", "HEAD", "OPTIONS")
 
     if p.startswith("/grid"):
         return False
