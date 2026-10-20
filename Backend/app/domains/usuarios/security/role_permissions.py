@@ -28,6 +28,7 @@ _RELEVADOR_GRID_CATALOG_GET_PATHS: Final[frozenset[str]] = frozenset(
     {
         "/grid/catalogs/inspectores",
         "/grid/catalogs/motivos",
+        "/grid/catalogs/tipos",
         "/grid/catalogs/contraproducencias",
         "/grid/catalogs/motivos-comprobacion",
         "/grid/catalogs/items-acta-inspeccion",

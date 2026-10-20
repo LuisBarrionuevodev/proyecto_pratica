@@ -92,7 +92,7 @@ import { detectActasClearedByUser } from "../validations/actuacionFormNormalize"
 import {
   normalizeActuacionApiError,
 } from "../validations/normalizeActuacionApiError";
-import { notifyActuacionApiError } from "../utils/actuacionSaveFeedback";
+import { MENSAJE_ERROR_GRAVE, notifyActuacionApiError } from "../utils/actuacionSaveFeedback";
 import { ReinspeccionOficioForm } from "../../../shared/reinspeccionOficio/ReinspeccionOficioForm";
 import {
   resolveReinspeccionOficioFormContext,
@@ -198,6 +198,8 @@ export type ActuacionDetalleDialogProps = {
   catalogs: ActuacionEditCatalogs;
   /** Catálogos de selects aún cargando (evita Autocomplete vacío aparentando listo). */
   catalogsLoading?: boolean;
+  /** Error recuperable al cargar catálogos (Inspector / gestión). */
+  catalogsError?: string | null;
   readOnlyColumns: string[];
   /** Opciones de calle para editor de número (p. ej. gestión domicilios); opcional en actuaciones. */
   numeroEditorLabel?: string;
@@ -1027,6 +1029,7 @@ export function ActuacionDetalleDialog({
   detailLoading = false,
   catalogs,
   catalogsLoading = false,
+  catalogsError = null,
   readOnlyColumns,
   canEdit = true,
   inspectorSelfService = false,
@@ -1248,7 +1251,25 @@ export function ActuacionDetalleDialog({
   }, [draft, feedback, onDraftChange]);
 
   const handleSaveClick = useCallback(async () => {
-    actaFlushRegistry.current.forEach((fn) => fn());
+    if (inspectorSelfService && formEditingActive && !puedeInspectorDatos) {
+      feedback.warning("No tenés permiso para editar los datos de esta actuación.");
+      return;
+    }
+    if (catalogsLoading) {
+      feedback.info("Esperá a que terminen de cargar los catálogos del formulario.");
+      return;
+    }
+    if (catalogsError?.trim()) {
+      feedback.warning(catalogsError.trim());
+      return;
+    }
+    try {
+      actaFlushRegistry.current.forEach((fn) => fn());
+    } catch (err) {
+      console.error("Error al preparar actas antes de guardar:", err);
+      feedback.error(MENSAJE_ERROR_GRAVE);
+      return;
+    }
     const baseline = editBaseline ?? draft;
     const blockedMsg = detectBlockedActaClearAttempt(draft, baseline);
     if (blockedMsg) {
@@ -1349,51 +1370,62 @@ export function ActuacionDetalleDialog({
     }
     setSeguimientoFieldErrors({});
 
-    const putOk = await onSave(rowForSubmit, {
-      oficioCorrectionApplied,
-      actasClearedByOficioCorrection,
-      oficioValidationContext:
-        oficioCtx != null
-          ? {
-              subtipo: oficioForm.subtipo,
-              verificarEstadoOperativo: oficioForm.esVerificar ? oficioForm.verificarEstadoOperativo : "",
-            }
-          : undefined,
-      inspeccionChecklistTouched: {
-        items: checklistItemsTouchedRef.current,
-        carnets: personasSinCarnetTouchedRef.current,
-      },
-      inspeccionChecklistCatalog: catalogs.itemsActaInspeccion ?? [],
-      deferDialogClose: true,
-    });
-    if (putOk === false) return;
+    try {
+      const putOk = await onSave(rowForSubmit, {
+        oficioCorrectionApplied,
+        actasClearedByOficioCorrection,
+        oficioValidationContext:
+          oficioCtx != null
+            ? {
+                subtipo: oficioForm.subtipo,
+                verificarEstadoOperativo: oficioForm.esVerificar ? oficioForm.verificarEstadoOperativo : "",
+              }
+            : undefined,
+        inspeccionChecklistTouched: {
+          items: checklistItemsTouchedRef.current,
+          carnets: personasSinCarnetTouchedRef.current,
+        },
+        inspeccionChecklistCatalog: catalogs.itemsActaInspeccion ?? [],
+        deferDialogClose: true,
+      });
+      if (putOk === false) return;
 
-    let sessionOutcome: "success" | "aborted" = "success";
-    const gallery = mediaGalleryRef.current;
-    if (gallery && gallery.pendingSaveCount() > 0) {
-      const mediaOutcome = await gallery.saveQueuedPhotos();
-      if (!shouldCloseInspectorFotosModalAfterSave(mediaOutcome)) {
-        sessionOutcome = "aborted";
+      let sessionOutcome: "success" | "aborted" = "success";
+      const gallery = mediaGalleryRef.current;
+      if (gallery && gallery.pendingSaveCount() > 0) {
+        const mediaOutcome = await gallery.saveQueuedPhotos();
+        if (!shouldCloseInspectorFotosModalAfterSave(mediaOutcome)) {
+          sessionOutcome = "aborted";
+        }
       }
-    }
 
-    if (onEditSaveSessionEnd) {
-      onEditSaveSessionEnd(sessionOutcome);
-      return;
-    }
-    if (sessionOutcome === "success") {
-      onClose();
+      if (onEditSaveSessionEnd) {
+        onEditSaveSessionEnd(sessionOutcome);
+        return;
+      }
+      if (sessionOutcome === "success") {
+        onClose();
+      }
+    } catch (err) {
+      console.error("Error al guardar actuación:", err);
+      feedback.error(MENSAJE_ERROR_GRAVE);
     }
   }, [
+    catalogs.itemsActaInspeccion,
+    catalogsError,
+    catalogsLoading,
     draft,
     editBaseline,
     editableFields.canEditResultadoOperativo,
     feedback,
+    formEditingActive,
+    inspectorSelfService,
     oficioForm,
     onDraftChange,
     onClose,
     onEditSaveSessionEnd,
     onSave,
+    puedeInspectorDatos,
   ]);
 
   const applyInspectoresNombres = useCallback(
@@ -2347,7 +2379,7 @@ export function ActuacionDetalleDialog({
           onEdit={!inspectorSelfService && canEdit ? handleStartEditing : undefined}
           onSave={formEditingActive ? handleSaveClick : undefined}
           loading={saving || detailLoading}
-          saveDisabled={formEditingActive && catalogsLoading}
+          saveDisabled={formEditingActive && (catalogsLoading || Boolean(catalogsError?.trim()))}
           canEdit={!inspectorSelfService && canEdit && !detailLoading && !catalogsLoading}
           saveLabel="Guardar cambios"
           extraActions={
@@ -2405,6 +2437,11 @@ export function ActuacionDetalleDialog({
           {catalogsLoading ? (
             <Alert severity="info" sx={{ mb: 2 }}>
               Cargando catálogos del formulario…
+            </Alert>
+          ) : null}
+          {catalogsError?.trim() ? (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {catalogsError.trim()}
             </Alert>
           ) : null}
           {edicionVista}

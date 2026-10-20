@@ -978,6 +978,37 @@ describe("ActuacionDetalleDialog", () => {
     expect(html).not.toContain("Cantidad de personas sin carnet de sanidad");
   });
 
+  it("Inspector Editar datos (initialEditing): muestra Guardar y alerta de catálogos", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        initialEditing
+        draft={{
+          ...baseRow,
+          ui_policy: {
+            mostrar_solicitud_carnet_manipulador: false,
+            mostrar_subsanacion_notificacion: false,
+            puede_editar_seguimiento: false,
+            puede_editar_datos_propios: true,
+            puede_gestionar_fotos_propias: true,
+          },
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        catalogsError="No se pudieron cargar: tipos de actuación."
+        readOnlyColumns={[]}
+        inspectorSelfService
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("Guardar cambios");
+    expect(html).toContain("tipos de actuación");
+  });
+
   it("Inspector Mis trabajos: Cargar más fotos y sin Imprimir", () => {
     const html = render(
       <ActuacionDetalleDialog

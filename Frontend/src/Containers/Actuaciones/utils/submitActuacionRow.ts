@@ -290,6 +290,8 @@ export type SubmitActuacionRowParams = {
   inspeccionChecklistTouched?: { items?: boolean; carnets?: boolean };
   inspeccionChecklistCatalog?: import("../../../api/itemActaInspeccionCatalogApi").IItemActaInspeccionCatalogItem[];
   skipValidation: boolean;
+  /** Inspector Mis trabajos: omitir POST /grid/validate-row (rol sin acceso al grid masivo). */
+  skipGridRowValidation?: boolean;
   skipUpdate: boolean;
   onBeforeSave?: (fullRow: IActuacionListItem) => Promise<void>;
   onAfterSave?: (fullRow: IActuacionListItem) => Promise<void>;
@@ -315,6 +317,7 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     inspeccionChecklistTouched,
     inspeccionChecklistCatalog,
     skipValidation,
+    skipGridRowValidation = false,
     skipUpdate,
     onBeforeSave,
     onAfterSave,
@@ -444,25 +447,27 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   }
 
   if (!skipValidation) {
-    const v = await validateRow({
-      batch_id: ACTUACION_TABLE_UI_BATCH_ID,
-      kind: "actuaciones",
-      row_id: `act_${id}`,
-      row: rowWithInspectores as any,
-    });
-
-    if (!v.ok) {
-      const rawFe = normalizeActuacionRowErrors(v.errors || {});
-      const { fieldErrors, rowMessages } = finalizeActuacionFormErrors(rawFe, {
-        ignoreCrudObsoleteFields: true,
+    if (!skipGridRowValidation) {
+      const v = await validateRow({
+        batch_id: ACTUACION_TABLE_UI_BATCH_ID,
+        kind: "actuaciones",
+        row_id: `act_${id}`,
+        row: rowWithInspectores as any,
       });
-      if (Object.keys(fieldErrors).length > 0 || rowMessages.length > 0) {
-        return {
-          ok: false,
-          kind: "validation",
-          fieldErrors,
-          globalMessage: buildActuacionFormGlobalError(fieldErrors, rowMessages),
-        };
+
+      if (!v.ok) {
+        const rawFe = normalizeActuacionRowErrors(v.errors || {});
+        const { fieldErrors, rowMessages } = finalizeActuacionFormErrors(rawFe, {
+          ignoreCrudObsoleteFields: true,
+        });
+        if (Object.keys(fieldErrors).length > 0 || rowMessages.length > 0) {
+          return {
+            ok: false,
+            kind: "validation",
+            fieldErrors,
+            globalMessage: buildActuacionFormGlobalError(fieldErrors, rowMessages),
+          };
+        }
       }
     }
     onValidationPassed?.();

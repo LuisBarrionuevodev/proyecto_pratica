@@ -52,6 +52,7 @@ import {
 } from "../utils/actuacionGestionSeguimientoPut";
 import {
   MENSAJE_EDICION_OK,
+  MENSAJE_ERROR_GRAVE,
   notifyActuacionSaveResult,
 } from "../utils/actuacionSaveFeedback";
 import { scheduleActuacionListRefreshAfterSave } from "../utils/actuacionEditListRefresh";
@@ -131,6 +132,7 @@ const TablaActuaciones = ({
 
   /** Un solo setState tras cargar catálogos evita 6 re-renders en serie al montar. */
   const [catalogsLoading, setCatalogsLoading] = useState(true);
+  const [catalogsError, setCatalogsError] = useState<string | null>(null);
   const [catalogBundle, setCatalogBundle] = useState<{
     inspectores: string[];
     motivos: string[];
@@ -164,32 +166,63 @@ const TablaActuaciones = ({
     let cancelled = false;
     const loadCatalogs = async () => {
       setCatalogsLoading(true);
-      try {
-        const [inspectores, motivos, rubrosItems, tipos, contras, motivosComp, itemsActaInspeccion] =
-          await Promise.all([
-          fetchInspectores(),
-          fetchMotivos(),
-          fetchRubrosCatalogoCached(),
-          fetchTiposActuacion(),
-          fetchContraproducencias(),
-          fetchMotivosComprobacion(),
-          fetchItemsActaInspeccionCatalog(),
-        ]);
-        if (cancelled) return;
+      setCatalogsError(null);
+      const results = await Promise.allSettled([
+        fetchInspectores(),
+        fetchMotivos(),
+        fetchRubrosCatalogoCached(),
+        fetchTiposActuacion(),
+        fetchContraproducencias(),
+        fetchMotivosComprobacion(),
+        fetchItemsActaInspeccionCatalog(),
+      ]);
+      if (cancelled) return;
+      const labels = [
+        "inspectores",
+        "motivos",
+        "rubros",
+        "tipos de actuación",
+        "contraproducencias",
+        "motivos de comprobación",
+        "ítems de acta de inspección",
+      ];
+      const failed = results
+        .map((r, i) => (r.status === "rejected" ? labels[i] : null))
+        .filter(Boolean) as string[];
+      if (failed.length > 0) {
+        console.error("Error cargando catálogos:", failed, results);
+        setCatalogsError(
+          `No se pudieron cargar: ${failed.join(", ")}. Reintentá en unos segundos o recargá la página.`
+        );
+      }
+      const inspectores = results[0].status === "fulfilled" ? results[0].value : null;
+      const motivos = results[1].status === "fulfilled" ? results[1].value : null;
+      const rubrosItems = results[2].status === "fulfilled" ? results[2].value : null;
+      const tipos = results[3].status === "fulfilled" ? results[3].value : null;
+      const contras = results[4].status === "fulfilled" ? results[4].value : null;
+      const motivosComp = results[5].status === "fulfilled" ? results[5].value : null;
+      const itemsActaInspeccion = results[6].status === "fulfilled" ? results[6].value : [];
+      if (
+        inspectores &&
+        motivos &&
+        rubrosItems &&
+        tipos &&
+        contras &&
+        motivosComp
+      ) {
         setCatalogBundle({
-          inspectores: [...new Set(inspectores.items.map((i: any) => i.nombre))],
-          motivos: [...new Set(motivos.items.map((m: any) => m.nombre))],
+          inspectores: [...new Set(inspectores.items.map((i: { nombre: string }) => i.nombre))],
+          motivos: [...new Set(motivos.items.map((m: { nombre: string }) => m.nombre))],
           rubros: rubroItemsToNombres(rubrosItems),
-          tipos: [...new Set(tipos.items.map((t: any) => t.nombre))],
-          contras: [...new Set(contras.items.map((c: any) => c.nombre))],
-          motivosComprobacion: [...new Set(motivosComp.items.map((m: any) => m.nombre))],
+          tipos: [...new Set(tipos.items.map((t: { nombre: string }) => t.nombre))],
+          contras: [...new Set(contras.items.map((c: { nombre: string }) => c.nombre))],
+          motivosComprobacion: [...new Set(motivosComp.items.map((m: { nombre: string }) => m.nombre))],
           itemsActaInspeccion,
         });
-      } catch (error) {
-        console.error("Error cargando catálogos:", error);
-      } finally {
-        if (!cancelled) setCatalogsLoading(false);
+      } else {
+        setCatalogBundle(null);
       }
+      setCatalogsLoading(false);
     };
     void loadCatalogs();
     return () => {
@@ -337,6 +370,7 @@ const TablaActuaciones = ({
           inspeccionChecklistTouched: options?.inspeccionChecklistTouched,
           inspeccionChecklistCatalog: options?.inspeccionChecklistCatalog,
           skipValidation,
+          skipGridRowValidation: inspectorSelfService,
           skipUpdate,
           onBeforeSave,
           onAfterSave,
@@ -372,7 +406,9 @@ const TablaActuaciones = ({
         notifyActuacionSaveResult(result, feedback);
         handleCloseEditDialog();
         return true;
-      } catch {
+      } catch (err) {
+        console.error("Error al guardar actuación:", err);
+        feedback.error(MENSAJE_ERROR_GRAVE);
         return false;
       } finally {
         if (!deferCloseSession) {
@@ -388,6 +424,7 @@ const TablaActuaciones = ({
     onBeforeSave,
     onAfterSave,
     onActuacionListPatch,
+    inspectorSelfService,
     skipValidation,
     skipUpdate,
     feedback,
@@ -790,6 +827,7 @@ const TablaActuaciones = ({
           detailLoading={editDetalleLoading}
           catalogs={catalogs}
           catalogsLoading={catalogsLoading}
+          catalogsError={catalogsError}
           readOnlyColumns={readOnlyColumns}
           numeroEditorLabel={numeroEditorLabel}
           canEdit={enableEditing}

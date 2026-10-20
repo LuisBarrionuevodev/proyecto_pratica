@@ -24,6 +24,7 @@ GRID_MASSIVE_ENDPOINTS: tuple[tuple[str, str], ...] = (
 GRID_CATALOG_GET_PATHS: tuple[str, ...] = (
     "/grid/catalogs/inspectores",
     "/grid/catalogs/motivos",
+    "/grid/catalogs/tipos",
     "/grid/catalogs/contraproducencias",
     "/grid/catalogs/motivos-comprobacion",
     "/grid/catalogs/items-acta-inspeccion",
@@ -42,7 +43,6 @@ def test_relevador_allows_grid_catalogs_get_unit() -> None:
 
 
 def test_relevador_denies_other_grid_paths() -> None:
-    assert not relevador_may_access("GET", "/grid/catalogs/tipos")
     assert not relevador_may_access("GET", "/grid/catalogs/rubros")
     assert not relevador_may_access("GET", "/grid/catalogs/juzgados")
     assert not relevador_may_access("POST", "/grid/catalogs/motivos")
