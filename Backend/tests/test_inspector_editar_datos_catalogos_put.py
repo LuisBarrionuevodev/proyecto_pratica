@@ -1,13 +1,17 @@
-"""MICROFIX V1.1-INSPECTOR-EDITAR-DATOS.1A — GET /grid/catalogs/tipos y deny grid masivo."""
+"""MICROFIX V1.1-INSPECTOR-EDITAR-DATOS.1A/1B — catálogo tipos y PUT Inspector."""
 
 from __future__ import annotations
 
 from flask_jwt_extended import create_access_token
 
+from app.domains.actuaciones.services.actuacion_inspector_put_policy import (
+    INSPECTOR_FORBIDDEN_PUT_PAYLOAD_KEYS,
+)
 from app.domains.usuarios.security.role_permissions import relevador_may_access
 
 from tests.test_hotfix_inspector_3a_grid import relevador_jwt_headers  # noqa: F401 — pytest fixture
 from tests.test_inspector_scope_v1_1_2 import scope_fixture  # noqa: F401 — pytest fixture
+from tests.test_inspeccion_checklist import _legacy_put_row_dict, _resolve_rubro_nombre
 
 _PRODUCTION_TIPOS_CATALOG_PATH = "/grid/catalogs/tipos"
 
@@ -36,3 +40,30 @@ def test_relevador_put_actuacion_ajena_403(app, client, scope_fixture) -> None:
     act_id = d["act_b"].id
     resp = client.put(f"/actuaciones/{act_id}", headers=headers, json={"nombre_local": "X"})
     assert resp.status_code == 403
+
+
+def test_relevador_put_actuacion_propia_campo_permitido_200(app, client, scope_fixture) -> None:
+    d = scope_fixture
+    act = d["act_a"]
+    token = create_access_token(identity=str(d["user_a"].id))
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    body = {
+        "rubro_nombre": _resolve_rubro_nombre(),
+        "nombre_local": "Local editado inspector",
+    }
+    assert not INSPECTOR_FORBIDDEN_PUT_PAYLOAD_KEYS.intersection(body.keys())
+    resp = client.put(f"/actuaciones/{act.id}", headers=headers, json=body)
+    assert resp.status_code == 200, resp.get_json()
+
+
+def test_relevador_put_actuacion_propia_campo_restringido_403(app, client, scope_fixture) -> None:
+    d = scope_fixture
+    act = d["act_a"]
+    token = create_access_token(identity=str(d["user_a"].id))
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    body = _legacy_put_row_dict(act)
+    assert INSPECTOR_FORBIDDEN_PUT_PAYLOAD_KEYS.intersection(body.keys())
+    resp = client.put(f"/actuaciones/{act.id}", headers=headers, json=body)
+    assert resp.status_code == 403
+    detail = resp.get_json()["detail"]
+    assert "restringida" in detail or "permisos" in detail

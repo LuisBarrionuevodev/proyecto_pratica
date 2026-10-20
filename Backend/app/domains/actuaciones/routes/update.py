@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any, Dict
 
-from flask import jsonify, request
+from flask import g, jsonify, request
 from pydantic import ValidationError
 
 from app.domains.actuaciones.mappers.grid.actuacion_row_mapper import map_actuacion_row
@@ -24,6 +24,7 @@ from app.domains.actuaciones.services.actuaciones_actuacion_inspector_scope impo
 )
 from app.domains.actuaciones.services.actuacion_inspector_put_policy import (
     assert_inspector_raw_json_solo_campos_permitidos,
+    hydrate_inspector_put_row_for_validation,
 )
 from app.domains.actuaciones.services.update_service import actualizar_actuacion as actualizar_actuacion_service
 from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
@@ -56,7 +57,9 @@ def actualizar_actuacion_route(actuacion_id: int):
         user = resolve_user_from_identity()
         if user is not None and user.role == INSPECTOR_ROLE:
             assert_inspector_puede_acceder_actuacion(int(actuacion_id))
+            g.inspector_put_client_keys = frozenset(data.keys())
             assert_inspector_raw_json_solo_campos_permitidos(data)
+            hydrate_inspector_put_row_for_validation(int(actuacion_id), data)
 
         data["id"] = actuacion_id
 

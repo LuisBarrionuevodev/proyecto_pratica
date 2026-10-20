@@ -371,6 +371,7 @@ const TablaActuaciones = ({
           inspeccionChecklistCatalog: options?.inspeccionChecklistCatalog,
           skipValidation,
           skipGridRowValidation: inspectorSelfService,
+          inspectorSelfService,
           skipUpdate,
           onBeforeSave,
           onAfterSave,

@@ -42,6 +42,7 @@ import {
   stripGestionSeguimientoDisallowedFromPut,
 } from "./actuacionGestionSeguimientoPut";
 import { buildObservacionesEjecucionPutFields } from "./actuacionObservacionesVisitaPut";
+import { buildInspectorSelfServiceUpdateBody } from "./buildInspectorSelfServiceUpdateBody";
 import {
   domicilioCalleCargadaEditable,
   domicilioEsTipoEsquina,
@@ -292,6 +293,8 @@ export type SubmitActuacionRowParams = {
   skipValidation: boolean;
   /** Inspector Mis trabajos: omitir POST /grid/validate-row (rol sin acceso al grid masivo). */
   skipGridRowValidation?: boolean;
+  /** Inspector Mis trabajos → Editar datos: payload PUT sin campos de pertenencia restringidos. */
+  inspectorSelfService?: boolean;
   skipUpdate: boolean;
   onBeforeSave?: (fullRow: IActuacionListItem) => Promise<void>;
   onAfterSave?: (fullRow: IActuacionListItem) => Promise<void>;
@@ -318,6 +321,7 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     inspeccionChecklistCatalog,
     skipValidation,
     skipGridRowValidation = false,
+    inspectorSelfService = false,
     skipUpdate,
     onBeforeSave,
     onAfterSave,
@@ -434,13 +438,15 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   const rowWithInspectores: IActuacionListItem & { actas_a_quitar?: ActaCanalQuitarTipo[] } = {
     ...rowForCanal,
   };
-  if (originalRow) {
-    const baselineInspectores = buildInspectoresForCanal(originalRow);
-    if (inspectores.length > 0 || !inspectoresListEqual(inspectores, baselineInspectores)) {
+  if (!inspectorSelfService) {
+    if (originalRow) {
+      const baselineInspectores = buildInspectoresForCanal(originalRow);
+      if (inspectores.length > 0 || !inspectoresListEqual(inspectores, baselineInspectores)) {
+        rowWithInspectores.inspectores = inspectores;
+      }
+    } else if (inspectores.length > 0) {
       rowWithInspectores.inspectores = inspectores;
     }
-  } else if (inspectores.length > 0) {
-    rowWithInspectores.inspectores = inspectores;
   }
   if (actasQuitarEnPutTransaccional) {
     rowWithInspectores.actas_a_quitar = actasPendingClear.map(({ tipo }) => tipo);
@@ -484,10 +490,12 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
           await postQuitarActaCanalActas(id, tipo);
         }
       }
-      const updatedRow = (await updateActuacion(
-        id,
-        rowWithInspectores as any
-      )) as IActuacionListItem;
+      const putBody = inspectorSelfService
+        ? buildInspectorSelfServiceUpdateBody(
+            rowWithInspectores as unknown as Record<string, unknown>
+          )
+        : rowWithInspectores;
+      const updatedRow = (await updateActuacion(id, putBody as any)) as IActuacionListItem;
 
       if (onAfterSave) {
         await onAfterSave(rowWithInspectores);
