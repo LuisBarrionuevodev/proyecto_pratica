@@ -75,6 +75,35 @@ describe("submitActuacionRow inspector Mis trabajos", () => {
     expect(body).not.toHaveProperty("inspectores");
   });
 
+  it("inspectorSelfService: checklist JSON sin transformar en el PUT", async () => {
+    const checklist = [
+      { item_id: 1, estado: "BIEN" },
+      { item_id: 2, estado: "BIEN" },
+      { item_id: 6, valor_si_no: true },
+    ];
+    const row = baseRow({
+      items_acta_inspeccion: checklist,
+      acta_inspeccion_num: "000100",
+    });
+    await submitActuacionRow({
+      id: 7,
+      fullRow: row,
+      originalRow: row,
+      skipValidation: true,
+      skipGridRowValidation: true,
+      inspectorSelfService: true,
+      inspeccionChecklistTouched: { items: true },
+      inspeccionChecklistCatalog: [
+        { id: 1, codigo: "TIENE_BANO", nombre: "Baño", tipo_respuesta: "ESTADO" },
+        { id: 2, codigo: "TIENE_SALON", nombre: "Salón", tipo_respuesta: "ESTADO" },
+        { id: 6, codigo: "TIENE_HABILITACION", nombre: "Tiene habilitación", tipo_respuesta: "SI_NO" },
+      ],
+      skipUpdate: false,
+    });
+    const [, body] = updateActuacion.mock.calls[0] as [number, Record<string, unknown>];
+    expect(body.items_acta_inspeccion).toEqual(checklist);
+  });
+
   it("inspectorSelfService: un solo inspector en fila no bloquea validación ni envía inspectores", async () => {
     const row = baseRow({
       inspector2: null,

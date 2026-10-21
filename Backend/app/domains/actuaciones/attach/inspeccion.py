@@ -15,6 +15,10 @@ from app.utils.actas import acta_6
 from app.domains.actuaciones.utils.inspeccion_habilitacion_validation import (
     validar_tiene_habilitacion_obligatoria,
 )
+from app.domains.actuaciones.utils.item_acta_inspeccion_coercion import (
+    coerce_item_acta_inspeccion_estado,
+    item_acta_inspeccion_estado_to_payload_dict,
+)
 
 from .uniqueness import (
 
@@ -77,11 +81,8 @@ def _normalizar_items_respuesta(raw_items: Any) -> list[dict[str, Any]]:
     for raw in raw_items:
 
         if not isinstance(raw, dict):
-
-            raise ValueError(
-
-                "items_acta_inspeccion debe contener objetos con item_id y estado o valor_si_no."
-
+            raw = item_acta_inspeccion_estado_to_payload_dict(
+                coerce_item_acta_inspeccion_estado(raw)
             )
 
         try:

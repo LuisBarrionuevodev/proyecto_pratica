@@ -28,6 +28,8 @@ def map_inspector_patch_to_canonical(patch: ActuacionInspectorPatchIn) -> Dict[s
     Errores esperados: ninguno (validación ya ocurrió en Pydantic).
     """
     patch_data = patch.model_dump(exclude_unset=True)
+    if "items_acta_inspeccion" in patch.model_fields_set:
+        patch_data["items_acta_inspeccion"] = list(patch.items_acta_inspeccion or [])
     row = ActuacionGridRowIn.model_construct(
         fecha_actuacion=_PLACEHOLDER_FECHA,
         **patch_data,

@@ -3,6 +3,10 @@ from __future__ import annotations
 from typing import Any, Dict, Optional
 
 from app.domains.actuaciones.schemas.grid.actuacion_row_in import ActuacionGridRowIn
+from app.domains.actuaciones.utils.item_acta_inspeccion_coercion import (
+    coerce_item_acta_inspeccion_estado,
+    item_acta_inspeccion_estado_to_payload_dict,
+)
 
 
 def _dedupe_inspector_names_preserve_order(names: list[str]) -> list[str]:
@@ -108,15 +112,7 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
     if "items_acta_inspeccion" in row.model_fields_set:
         items = row.items_acta_inspeccion or []
         payload["items_acta_inspeccion"] = [
-            {
-                "item_id": int(i.item_id),
-                **({"estado": str(i.estado)} if i.estado is not None else {}),
-                **(
-                    {"valor_si_no": bool(i.valor_si_no)}
-                    if i.valor_si_no is not None
-                    else {}
-                ),
-            }
+            item_acta_inspeccion_estado_to_payload_dict(coerce_item_acta_inspeccion_estado(i))
             for i in items
         ]
     if "cantidad_personas_sin_carnet_sanidad" in row.model_fields_set:
