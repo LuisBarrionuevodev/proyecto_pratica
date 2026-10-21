@@ -42,7 +42,7 @@ import {
   stripGestionSeguimientoDisallowedFromPut,
 } from "./actuacionGestionSeguimientoPut";
 import { buildObservacionesEjecucionPutFields } from "./actuacionObservacionesVisitaPut";
-import { buildInspectorSelfServiceUpdateBody } from "./buildInspectorSelfServiceUpdateBody";
+import { buildActuacionUpdatePayload } from "./buildActuacionUpdatePayload";
 import {
   domicilioCalleCargadaEditable,
   domicilioEsTipoEsquina,
@@ -269,6 +269,37 @@ export function applyActuacionErrorsFromApi(err: unknown): FormErrorsFromApi {
   return { fieldErrors, globalMessage };
 }
 
+function logActuacionPutRejectedFieldKeys(error: unknown): void {
+  const data = (error as { response?: { data?: { errors?: unknown } } })?.response?.data;
+  const errors = data?.errors;
+  if (errors && typeof errors === "object" && !Array.isArray(errors)) {
+    console.warn("[actuacion PUT] campos rechazados:", Object.keys(errors));
+    return;
+  }
+  if (Array.isArray(errors)) {
+    const keys = errors
+      .map((entry) => {
+        if (entry && typeof entry === "object" && Array.isArray((entry as { loc?: unknown }).loc)) {
+          const loc = (entry as { loc: unknown[] }).loc;
+          return loc.length > 0 ? String(loc[loc.length - 1]) : null;
+        }
+        return null;
+      })
+      .filter((k): k is string => Boolean(k));
+    if (keys.length > 0) {
+      console.warn("[actuacion PUT] campos rechazados:", keys);
+    }
+  }
+}
+
+function firstBackendValidationMessage(fieldErrors: Record<string, string>): string | null {
+  for (const msg of Object.values(fieldErrors)) {
+    const trimmed = String(msg ?? "").trim();
+    if (trimmed) return trimmed;
+  }
+  return null;
+}
+
 export type SubmitActuacionRowResult =
   | { ok: true; correccionCierre?: boolean; updatedRow?: IActuacionListItem }
   | { ok: false; kind: "validation"; fieldErrors: Record<string, string>; globalMessage?: string | null }
@@ -491,11 +522,10 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
           await postQuitarActaCanalActas(id, tipo);
         }
       }
-      const putBody = inspectorSelfService
-        ? buildInspectorSelfServiceUpdateBody(
-            rowWithInspectores as unknown as Record<string, unknown>
-          )
-        : rowWithInspectores;
+      const putBody = buildActuacionUpdatePayload(
+        rowWithInspectores as unknown as Record<string, unknown>,
+        { inspectorSelfService }
+      );
       const updatedRow = (await updateActuacion(id, putBody as any)) as IActuacionListItem;
 
       if (onAfterSave) {
@@ -511,10 +541,14 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
 
     return { ok: true, correccionCierre };
   } catch (error: unknown) {
-    console.error("Error al actualizar actuación:", error);
     const axiosLike = error as { response?: { status?: number; data?: { detail?: string } } };
     const status = axiosLike.response?.status;
     const detail = axiosLike.response?.data?.detail;
+    if (status === 422) {
+      logActuacionPutRejectedFieldKeys(error);
+    } else {
+      console.error("Error al actualizar actuación:", error);
+    }
     if (status === 409 && detail) {
       return { ok: false, kind: "reingreso_blocked", message: String(detail) };
     }
@@ -524,11 +558,15 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     });
     if (Object.keys(normalized.fieldErrors).length > 0) {
       const parsed = applyActuacionErrorsFromApi(error);
+      const firstMsg =
+        firstBackendValidationMessage(parsed.fieldErrors) ??
+        parsed.globalMessage ??
+        normalized.message;
       return {
         ok: false,
         kind: "backend_fields",
         fieldErrors: parsed.fieldErrors,
-        globalMessage: parsed.globalMessage,
+        globalMessage: firstMsg,
       };
     }
     return {

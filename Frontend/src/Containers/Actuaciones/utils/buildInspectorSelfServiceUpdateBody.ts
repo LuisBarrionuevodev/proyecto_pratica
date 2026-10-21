@@ -30,15 +30,13 @@ export const INSPECTOR_SELF_SERVICE_PUT_FORBIDDEN_KEYS: readonly string[] = [
 export type InspectorSelfServicePutForbiddenKey =
   (typeof INSPECTOR_SELF_SERVICE_PUT_FORBIDDEN_KEYS)[number];
 
+import { buildActuacionUpdatePayload } from "./buildActuacionUpdatePayload";
+
 /**
- * Elimina del body las claves de pertenencia/asignación/ruta que el Inspector no puede enviar.
+ * @deprecated Preferir `buildActuacionUpdatePayload(body, { inspectorSelfService: true })`.
  */
 export function buildInspectorSelfServiceUpdateBody<T extends Record<string, unknown>>(
   body: T
 ): T {
-  const out: Record<string, unknown> = { ...body };
-  for (const key of INSPECTOR_SELF_SERVICE_PUT_FORBIDDEN_KEYS) {
-    delete out[key];
-  }
-  return out as T;
+  return buildActuacionUpdatePayload(body, { inspectorSelfService: true }) as T;
 }

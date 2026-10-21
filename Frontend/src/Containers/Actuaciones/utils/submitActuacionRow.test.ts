@@ -1,5 +1,6 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
 
+import { ACTUACION_PUT_READ_ONLY_METADATA_KEYS } from "./buildActuacionUpdatePayload";
 import {
   ACTUACION_ROW_ERROR_KEY_MAP,
   normalizeActuacionRowErrors,
@@ -203,6 +204,31 @@ describe("submitActuacionRow pipeline", () => {
     expect(result.kind).toBe("validation");
     expect(result.fieldErrors.contraproducencia).toBe("Debés elegir una contraproducencia.");
     expect(result.globalMessage).toContain("Contraproducencia");
+  });
+
+  it("PUT final no incluye metadata de lectura del detalle relevamiento", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...baseRow,
+        actuacion_editable: true,
+        calle_cargada: "X",
+        calle_raw: "x",
+        can_edit_rubro: true,
+        rubro_edit_blocked_reason: "n/a",
+        ui_policy: { puede_editar_seguimiento: false },
+      } as IActuacionListItem,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    for (const key of ACTUACION_PUT_READ_ONLY_METADATA_KEYS) {
+      expect(putBody).not.toHaveProperty(key);
+    }
   });
 
   it("sanitize omite oficio/expediente y metadatos de lectura del PUT", () => {
@@ -452,9 +478,9 @@ describe("submitActuacionRow pipeline", () => {
     });
 
     const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
-    expect(putBody.oficio_numero).toBeNull();
-    expect(putBody.oficio_anio).toBeNull();
-    expect(putBody.oficio_causa).toBeNull();
+    expect(putBody).not.toHaveProperty("oficio_numero");
+    expect(putBody).not.toHaveProperty("oficio_anio");
+    expect(putBody).not.toHaveProperty("oficio_causa");
   });
 
   it("can_edit_domicilio envía calle y número explícitos al cambiar calle", async () => {

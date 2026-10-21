@@ -83,6 +83,21 @@ def test_relevador_put_calle_rubro_sin_inspectores_conserva_asignacion(
     assert list_active_inspector_nombres_for_actuacion(act.id) == before_names
 
 
+def test_relevador_put_metadata_ui_422(app, client, scope_fixture) -> None:
+    d = scope_fixture
+    act = d["act_a"]
+    token = create_access_token(identity=str(d["user_a"].id))
+    headers = {"Authorization": f"Bearer {token}", "Content-Type": "application/json"}
+    resp = client.put(
+        f"/actuaciones/{act.id}",
+        headers=headers,
+        json={"nombre_local": "X", "actuacion_editable": True},
+    )
+    assert resp.status_code == 422
+    body = resp.get_json()
+    assert body.get("detail") == "Validation error" or "errors" in body
+
+
 def test_relevador_put_body_con_inspectores_403(app, client, scope_fixture) -> None:
     d = scope_fixture
     act = d["act_a"]
