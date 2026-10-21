@@ -5,6 +5,9 @@ from typing import Any, Dict
 from flask import g, jsonify, request
 from pydantic import ValidationError
 
+from app.domains.actuaciones.mappers.actuacion_inspector_patch_mapper import (
+    map_inspector_patch_to_canonical,
+)
 from app.domains.actuaciones.mappers.grid.actuacion_row_mapper import map_actuacion_row
 from app.domains.actuaciones.utils.actuaciones_bandeja_eager import (
     reload_actuaciones_inspeccion_checklist_eager,
@@ -14,7 +17,7 @@ from app.domains.actuaciones.presenters.actuacion_gestion_seguimiento_presenter 
 )
 from app.domains.usuarios.security.inspector_scope_policy import InspectorScopeError
 from app.domains.actuaciones.schemas.grid.actuacion_row_in import ActuacionGridRowIn
-from app.domains.actuaciones.schemas.actuacion_patch_in import ActuacionPatchIn
+from app.domains.actuaciones.schemas.actuacion_inspector_patch_in import ActuacionInspectorPatchIn
 from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.actuaciones.utils.circuito_operativo import (
     build_actuacion_grid_validation_context,
@@ -24,7 +27,9 @@ from app.domains.actuaciones.services.actuaciones_actuacion_inspector_scope impo
 )
 from app.domains.actuaciones.services.actuacion_inspector_put_policy import (
     assert_inspector_raw_json_solo_campos_permitidos,
-    hydrate_inspector_put_row_for_validation,
+)
+from app.domains.actuaciones.services.actuacion_inspector_update_service import (
+    actualizar_actuacion_inspector,
 )
 from app.domains.actuaciones.services.update_service import actualizar_actuacion as actualizar_actuacion_service
 from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
@@ -55,26 +60,32 @@ def actualizar_actuacion_route(actuacion_id: int):
         data: Dict[str, Any] = dict(raw_json) if isinstance(raw_json, dict) else {}
 
         user = resolve_user_from_identity()
+        actor_user_id = get_current_user_id()
+
         if user is not None and user.role == INSPECTOR_ROLE:
             assert_inspector_puede_acceder_actuacion(int(actuacion_id))
             g.inspector_put_client_keys = frozenset(data.keys())
             assert_inspector_raw_json_solo_campos_permitidos(data)
-            hydrate_inspector_put_row_for_validation(int(actuacion_id), data)
+            patch = ActuacionInspectorPatchIn.model_validate(data)
+            payload = map_inspector_patch_to_canonical(patch)
+            log_put_request(actuacion_id, data, payload)
+            act = actualizar_actuacion_inspector(
+                actuacion_id, payload, actor_user_id=actor_user_id
+            )
+        else:
+            data["id"] = actuacion_id
 
-        data["id"] = actuacion_id
+            validation_ctx = build_actuacion_grid_validation_context(actuacion_id)
+            row = ActuacionGridRowIn.model_validate(
+                data,
+                context=validation_ctx,
+            )
+            payload = map_actuacion_row(row)
+            log_put_request(actuacion_id, data, payload)
 
-        validation_ctx = build_actuacion_grid_validation_context(actuacion_id)
-        row = ActuacionGridRowIn.model_validate(
-            data,
-            context=validation_ctx,
-        )
-        payload = map_actuacion_row(row)
-        log_put_request(actuacion_id, data, payload)
-
-        actor_user_id = get_current_user_id()
-        act = actualizar_actuacion_service(
-            actuacion_id, payload, actor_user_id=actor_user_id
-        )
+            act = actualizar_actuacion_service(
+                actuacion_id, payload, actor_user_id=actor_user_id
+            )
         act_reload = reload_actuaciones_inspeccion_checklist_eager([act])[0]
         return jsonify(present_actuacion_gestion_detalle(act_reload)), 200
 

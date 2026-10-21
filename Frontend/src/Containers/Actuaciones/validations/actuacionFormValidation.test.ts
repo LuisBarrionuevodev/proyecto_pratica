@@ -657,6 +657,15 @@ describe("validateActuacionFormForSubmit — Completar trabajo", () => {
     expect(result.fieldErrors.inspectores).toBe(ACTUACION_VALIDATION_MESSAGES.inspectoresMinimoDos);
   });
 
+  it("inspectorSelfService no exige inspectores en validación CRUD", () => {
+    const row = { ...visitaRealizadaForm, inspector2: null, inspectores: ["García"] };
+    const result = validateActuacionFormForSubmit(
+      row,
+      actuacionCrudValidationContext(row, { inspectorSelfService: true })
+    );
+    expect(result.fieldErrors.inspectores).toBeUndefined();
+  });
+
   it("notificación sin inspección bloquea en completar trabajo", () => {
     const result = validateActuacionFormForSubmit(
       {

@@ -343,6 +343,7 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
       actuacionCrudValidationContext(rowForValidation, {
         originalRow,
         oficioValidationContext,
+        inspectorSelfService,
       })
     );
     const fieldErrors = { ...clientValidation.fieldErrors };

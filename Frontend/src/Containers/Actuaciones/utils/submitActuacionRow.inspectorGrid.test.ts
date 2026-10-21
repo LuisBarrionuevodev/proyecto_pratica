@@ -72,6 +72,27 @@ describe("submitActuacionRow inspector Mis trabajos", () => {
     for (const key of INSPECTOR_SELF_SERVICE_PUT_FORBIDDEN_KEYS) {
       expect(body).not.toHaveProperty(key);
     }
+    expect(body).not.toHaveProperty("inspectores");
+  });
+
+  it("inspectorSelfService: un solo inspector en fila no bloquea validación ni envía inspectores", async () => {
+    const row = baseRow({
+      inspector2: null,
+      inspectores: ["A"],
+      nombre_local: "Solo un inspector",
+    });
+    const result = await submitActuacionRow({
+      id: 7,
+      fullRow: row,
+      originalRow: row,
+      skipValidation: false,
+      skipGridRowValidation: true,
+      inspectorSelfService: true,
+      skipUpdate: false,
+    });
+    expect(result.ok).toBe(true);
+    const [, body] = updateActuacion.mock.calls[0] as [number, Record<string, unknown>];
+    expect(body).not.toHaveProperty("inspectores");
   });
 
   it("Admin/Usuario: conserva payload con inspectores cuando corresponde", async () => {

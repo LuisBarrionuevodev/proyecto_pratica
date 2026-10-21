@@ -134,6 +134,8 @@ export type ActuacionFormValidationContext = {
    * Undefined fuera del circuito Oficio (comportamiento legacy).
    */
   usaActasNuevaInspeccion?: boolean;
+  /** Mis trabajos (Inspector): inspectores son solo lectura; no validar mínimo 2. */
+  skipInspectoresValidation?: boolean;
   /**
    * Alias estricto de `usaActasNuevaInspeccion` (FIX.4.1 / FIX.6.1).
    * True solo en Verificar + SI_INSPECCION; false explícito en otras ramas Oficio.
@@ -284,9 +286,11 @@ export function validateActuacionFormForSubmit(
       fieldErrors.doc_nro = docError;
     }
 
-    const inspectoresCount = buildInspectoresForCanal(form as IActuacionListItem).length;
-    if (inspectoresCount < 2) {
-      fieldErrors.inspectores = ACTUACION_VALIDATION_MESSAGES.inspectoresMinimoDos;
+    if (!context.skipInspectoresValidation) {
+      const inspectoresCount = buildInspectoresForCanal(form as IActuacionListItem).length;
+      if (inspectoresCount < 2) {
+        fieldErrors.inspectores = ACTUACION_VALIDATION_MESSAGES.inspectoresMinimoDos;
+      }
     }
   }
 
@@ -382,6 +386,8 @@ export type ActuacionCrudValidationContextOptions = {
   originalRow?: IActuacionListItem | null;
   /** Estado destino del formulario Oficio (subtipo + máquina Verificar). */
   oficioValidationContext?: ReinspeccionOficioValidationContextInput;
+  /** Mis trabajos: no exigir inspectores en validación cliente. */
+  inspectorSelfService?: boolean;
 };
 
 /** Contexto por defecto para el CRUD de Actuaciones (modal detalle). */
@@ -435,6 +441,7 @@ export function actuacionCrudValidationContext(
     comprobacionEditable: row.comprobacion_editable !== false,
     skipNotificacionActaRules:
       isReinspeccionPorNotificacion(row) || !editable.canEditNotificacion || skipNotifPorOficio,
+    skipInspectoresValidation: opts?.inspectorSelfService === true,
   };
 }
 
