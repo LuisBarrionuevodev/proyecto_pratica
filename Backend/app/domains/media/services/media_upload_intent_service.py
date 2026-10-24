@@ -11,7 +11,11 @@ from app.domains.actuaciones.services.completar_trabajo_ruta_item_access import 
     assert_current_user_can_access_ruta_item,
 )
 from app.domains.media.constants import STORAGE_PROVIDER_RAILWAY
-from app.domains.media.errors import MEDIA_QUOTA_EXCEEDED, MediaDomainError
+from app.domains.media.errors import (
+    MEDIA_QUOTA_EXCEEDED,
+    MEDIA_STATE_INVALID,
+    MediaDomainError,
+)
 from app.domains.media.schemas.media_schemas import UploadIntentIn, UploadIntentOut
 from app.domains.media.services.media_storage_service import MediaStorageService
 from app.domains.media.utils.file_validation import max_bytes_for_content_type
@@ -41,11 +45,37 @@ def _count_activos_por_categoria(ruta_item_id: int, categoria: str) -> int:
     )
 
 
-def _find_active_by_sha(
+_IDEMPOTENCY_UNIQUE_INDEX = "uq_ruta_item_archivo_item_cat_sha"
+
+
+def _is_idempotency_sha_unique_violation(err: IntegrityError) -> bool:
+    """True si el conflicto proviene del índice (ruta_item, categoría, content_sha256)."""
+    raw = str(getattr(err, "orig", err)).lower()
+    return _IDEMPOTENCY_UNIQUE_INDEX in raw or (
+        "duplicate" in raw and "content_sha256" in raw
+    )
+
+
+def _archivo_es_terminal_no_reintentable(arch: Archivo) -> bool:
+    if arch.deleted_at is not None:
+        return True
+    return arch.status in ("REJECTED", "DELETED")
+
+
+def _find_vinculo_by_content_sha(
     ruta_item_id: int,
     categoria: str,
     sha256: str,
 ) -> tuple[RutaItemArchivo, Archivo] | None:
+    """
+    Busca vínculo por clave de idempotencia (incluye archivos terminales).
+
+    Parámetros:
+        ruta_item_id, categoria, sha256: clave de negocio.
+
+    Retorno:
+        Par (RutaItemArchivo, Archivo) o None si no hay fila con ese SHA en el vínculo.
+    """
     sha = sha256.lower()
     row = (
         db.session.query(RutaItemArchivo, Archivo)
@@ -54,8 +84,6 @@ def _find_active_by_sha(
             RutaItemArchivo.ruta_item_id == int(ruta_item_id),
             RutaItemArchivo.categoria == categoria,
             RutaItemArchivo.content_sha256 == sha,
-            Archivo.deleted_at.is_(None),
-            Archivo.status.in_(("PENDING", "READY")),
         )
         .with_for_update()
         .first()
@@ -63,6 +91,82 @@ def _find_active_by_sha(
     if not row:
         return None
     return row[0], row[1]
+
+
+def _find_active_by_sha(
+    ruta_item_id: int,
+    categoria: str,
+    sha256: str,
+) -> tuple[RutaItemArchivo, Archivo] | None:
+    """Vínculo activo PENDING/READY reutilizable para idempotencia."""
+    found = _find_vinculo_by_content_sha(ruta_item_id, categoria, sha256)
+    if not found:
+        return None
+    _link, arch = found
+    if arch.deleted_at is not None or arch.status not in ("PENDING", "READY"):
+        return None
+    return found
+
+
+def _raise_si_archivo_terminal_no_reintentable(arch: Archivo) -> None:
+    """
+    Impide reintentar upload-intent sobre evidencia dada de baja o rechazada.
+
+    Errores:
+        MediaDomainError: MEDIA_STATE_INVALID.
+    """
+    if not _archivo_es_terminal_no_reintentable(arch):
+        return
+    raise MediaDomainError(
+        MEDIA_STATE_INVALID,
+        "No se puede reutilizar la carga: el archivo está en un estado final "
+        f"({arch.status}).",
+    )
+
+
+def _upload_intent_out_for_archivo(arch: Archivo, storage: MediaStorageService) -> UploadIntentOut:
+    """Construye respuesta idempotente para un Archivo PENDING o READY existente."""
+    if arch.status == "READY":
+        return UploadIntentOut(
+            archivo_id=int(arch.id),
+            upload_url="",
+            expires_at=datetime.utcnow(),
+            status="READY",
+        )
+    presigned = storage.create_presigned_put(arch.object_key, arch.content_type)
+    return UploadIntentOut(
+        archivo_id=int(arch.id),
+        upload_url=presigned.url,
+        expires_at=presigned.expires_at,
+        status="PENDING",
+    )
+
+
+def _resolve_upload_intent_after_integrity_conflict(
+    *,
+    ruta_item_id: int,
+    categoria: str,
+    sha256: str,
+    storage: MediaStorageService,
+    original_err: IntegrityError,
+) -> UploadIntentOut:
+    """
+    Tras colisión en el índice único de SHA, relee el vínculo y responde idempotentemente.
+
+    Errores:
+        MediaDomainError: archivo terminal no reintentable.
+        IntegrityError: si no se pudo reconciliar el conflicto esperado.
+    """
+    db.session.query(RutaItem).filter(RutaItem.id == int(ruta_item_id)).with_for_update().one()
+    active = _find_active_by_sha(ruta_item_id, categoria, sha256)
+    if active:
+        _link, arch = active
+        return _upload_intent_out_for_archivo(arch, storage)
+    vinculo = _find_vinculo_by_content_sha(ruta_item_id, categoria, sha256)
+    if vinculo:
+        _link, arch = vinculo
+        _raise_si_archivo_terminal_no_reintentable(arch)
+    raise original_err
 
 
 def crear_upload_intent(
@@ -104,24 +208,13 @@ def crear_upload_intent(
     sha = body.sha256.lower()
     db.session.query(RutaItem).filter(RutaItem.id == int(ruta_item_id)).with_for_update().one()
 
-    existing = _find_active_by_sha(ruta_item_id, body.categoria, sha)
     storage = MediaStorageService()
-    if existing:
-        link, arch = existing
-        if arch.status == "READY":
-            return UploadIntentOut(
-                archivo_id=int(arch.id),
-                upload_url="",
-                expires_at=datetime.utcnow(),
-                status="READY",
-            )
-        presigned = storage.create_presigned_put(arch.object_key, arch.content_type)
-        return UploadIntentOut(
-            archivo_id=int(arch.id),
-            upload_url=presigned.url,
-            expires_at=presigned.expires_at,
-            status="PENDING",
-        )
+    vinculo_previo = _find_vinculo_by_content_sha(ruta_item_id, body.categoria, sha)
+    if vinculo_previo:
+        _link_prev, arch_prev = vinculo_previo
+        _raise_si_archivo_terminal_no_reintentable(arch_prev)
+        if arch_prev.status in ("PENDING", "READY") and arch_prev.deleted_at is None:
+            return _upload_intent_out_for_archivo(arch_prev, storage)
 
     cupo = max_archivos_por_categoria(cfg, body.categoria)
     if _count_activos_por_categoria(ruta_item_id, body.categoria) >= cupo:
@@ -164,26 +257,16 @@ def crear_upload_intent(
     db.session.add(link)
     try:
         db.session.commit()
-    except IntegrityError:
+    except IntegrityError as err:
         db.session.rollback()
-        db.session.query(RutaItem).filter(RutaItem.id == int(ruta_item_id)).with_for_update().one()
-        dup = _find_active_by_sha(ruta_item_id, body.categoria, sha)
-        if not dup:
+        if not _is_idempotency_sha_unique_violation(err):
             raise
-        _link, arch_dup = dup
-        if arch_dup.status == "READY":
-            return UploadIntentOut(
-                archivo_id=int(arch_dup.id),
-                upload_url="",
-                expires_at=datetime.utcnow(),
-                status="READY",
-            )
-        presigned = storage.create_presigned_put(arch_dup.object_key, arch_dup.content_type)
-        return UploadIntentOut(
-            archivo_id=int(arch_dup.id),
-            upload_url=presigned.url,
-            expires_at=presigned.expires_at,
-            status="PENDING",
+        return _resolve_upload_intent_after_integrity_conflict(
+            ruta_item_id=ruta_item_id,
+            categoria=body.categoria,
+            sha256=sha,
+            storage=storage,
+            original_err=err,
         )
 
     log_upload_intent_created(
