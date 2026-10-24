@@ -56,6 +56,17 @@ export function putFileToPresignedUrl(
 
 export type UploadSingleResult = { archivoId: number };
 
+/** Error de subida con `archivoId` ya emitido por upload-intent (reconciliación posible). */
+export class MediaUploadStepError extends Error {
+  readonly archivoId: number | null;
+
+  constructor(message: string, archivoId: number | null) {
+    super(message);
+    this.name = "MediaUploadStepError";
+    this.archivoId = archivoId;
+  }
+}
+
 /**
  * Flujo intent → PUT → complete para un archivo local (idempotente por SHA en servidor).
  */
@@ -81,27 +92,39 @@ export async function uploadSingleQueuedFile(
     sha256,
     upload_origin: item.uploadOrigin ?? MEDIA_UPLOAD_ORIGIN_COMPLETAR_TRABAJO,
   };
-  const intent = await postMediaUploadIntent(rutaItemId, body);
-  const archivoId = intent.archivo_id;
-  if (intent.status === "READY") {
-    return { archivoId };
+  let archivoIdFromIntent: number | null = null;
+  try {
+    const intent = await postMediaUploadIntent(rutaItemId, body);
+    archivoIdFromIntent = intent.archivo_id;
+    if (intent.status === "READY") {
+      return { archivoId: intent.archivo_id };
+    }
+    if (!intent.upload_url) {
+      throw new MediaUploadStepError("No se recibió URL de subida.", archivoIdFromIntent);
+    }
+    await putFileToPresignedUrl(
+      intent.upload_url,
+      item.file,
+      contentType,
+      (p) => {
+        if (p.total > 0 && onProgress) {
+          onProgress(Math.min(100, Math.round((p.loaded / p.total) * 100)));
+        }
+      },
+      abortSignal
+    );
+    await postMediaComplete(archivoIdFromIntent);
+    return { archivoId: archivoIdFromIntent };
+  } catch (e) {
+    if (e instanceof MediaUploadStepError) {
+      throw e;
+    }
+    const msg = mediaErrorMessageFromUnknown(e);
+    if (archivoIdFromIntent != null) {
+      throw new MediaUploadStepError(msg, archivoIdFromIntent);
+    }
+    throw e instanceof Error ? e : new Error(msg);
   }
-  if (!intent.upload_url) {
-    throw new Error("No se recibió URL de subida.");
-  }
-  await putFileToPresignedUrl(
-    intent.upload_url,
-    item.file,
-    contentType,
-    (p) => {
-      if (p.total > 0 && onProgress) {
-        onProgress(Math.min(100, Math.round((p.loaded / p.total) * 100)));
-      }
-    },
-    abortSignal
-  );
-  await postMediaComplete(archivoId);
-  return { archivoId };
 }
 
 export const MOBILE_UPLOAD_CONCURRENCY = 1;
@@ -178,6 +201,9 @@ export async function uploadQueuedFilesWithConcurrency(
         return;
       }
       if (options.isStale?.()) return;
+      if (e instanceof MediaUploadStepError && e.archivoId != null) {
+        archivoId = e.archivoId;
+      }
       const msg = mediaErrorMessageFromUnknown(e);
       options.onItemPhase?.(item.localId, "error", 0, {
         errorMessage: msg,

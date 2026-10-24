@@ -10,6 +10,7 @@ import {
   replaceQueueItemsForRutaItem,
   uploadAllForRutaItem,
 } from "./rutaItemMediaUploadStore";
+import { mergeMediaQueueItemPatch } from "./utils/mediaQueueItemPatch";
 
 vi.mock("./mediaUploadPipeline", () => ({
   uploadQueuedFilesWithConcurrency: vi.fn(
@@ -177,6 +178,24 @@ describe("rutaItemMediaUploadStore", () => {
     expect(getRutaItemMediaUploadSnapshot(50).items[0]?.errorMessage).toBe(
       MEDIA_UPLOAD_INTERRUPTED_MESSAGE
     );
+  });
+
+  it("2E.1B: mergeMediaQueueItemPatch protege READY en cola del store", () => {
+    addFilesForRutaItem(60, MEDIA_CATEGORIA_FOTO_ACTA, [fakeFile("ok.jpg")], 0);
+    const base = getRutaItemMediaUploadSnapshot(60).items[0]!;
+    const ready = {
+      ...base,
+      phase: "ready" as const,
+      progressPct: 100,
+      archivoId: 88,
+      errorMessage: null,
+    };
+    const guarded = mergeMediaQueueItemPatch(ready, {
+      phase: "error",
+      errorMessage: "Network Error",
+    });
+    expect(guarded.phase).toBe("ready");
+    expect(guarded.archivoId).toBe(88);
   });
 
   it("respuestas tardías no actualizan otro rutaItemId tras cancel", async () => {

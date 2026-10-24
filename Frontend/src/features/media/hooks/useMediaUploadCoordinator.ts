@@ -12,6 +12,9 @@ import {
 } from "../mediaUploadOrigin";
 import type { MediaQueuedFile } from "../mediaTypes";
 import { uploadQueuedFilesWithConcurrency } from "../mediaUploadPipeline";
+import { mergeMediaQueueItemPatch } from "../utils/mediaQueueItemPatch";
+import { reconcileMediaQueueAfterUploadAttempt } from "../utils/mediaUploadQueueReconcile";
+import { notifyMediaUploadSessionSettled } from "../utils/mediaUploadSessionNotify";
 import { sliceFilesToAvailableQuota, type MediaQuotaAddResult } from "../../../Containers/CompletarTrabajos/utils/completarTrabajoMediaQuota";
 import {
   addFilesForRutaItem,
@@ -59,6 +62,7 @@ export function useMediaUploadCoordinator(
   const [items, setItems] = useState<MediaQueuedFile[]>([]);
   const itemsRef = useRef<MediaQueuedFile[]>([]);
   const [session, setSession] = useState<MediaUploadSessionState>(INITIAL_SESSION);
+  const uploadGenerationRef = useRef(0);
 
   useEffect(() => {
     itemsRef.current = items;
@@ -70,14 +74,18 @@ export function useMediaUploadCoordinator(
   );
 
   const patchItem = useCallback((localId: string, patch: Partial<MediaQueuedFile>) => {
-    const next = itemsRef.current.map((x) => (x.localId === localId ? { ...x, ...patch } : x));
+    const next = itemsRef.current.map((x) =>
+      x.localId === localId ? mergeMediaQueueItemPatch(x, patch) : x
+    );
     itemsRef.current = next;
     setItems(next);
     setSession((prev) =>
       prev.active
         ? {
             ...prev,
-            items: prev.items.map((x) => (x.localId === localId ? { ...x, ...patch } : x)),
+            items: prev.items.map((x) =>
+              x.localId === localId ? mergeMediaQueueItemPatch(x, patch) : x
+            ),
           }
         : prev
     );
@@ -171,11 +179,15 @@ export function useMediaUploadCoordinator(
       const current = itemsRef.current;
       const snapshot = current.filter((x) => x.phase === "pending" || x.phase === "error");
       if (snapshot.length === 0) return;
+      const generation = ++uploadGenerationRef.current;
+      const isStale = () => uploadGenerationRef.current !== generation;
       setSession({ active: true, globalPct: 0, items: [...current] });
       try {
         await uploadQueuedFilesWithConcurrency(rutaItemId, current, {
           concurrency,
+          isStale,
           onItemPhase: (localId, phase, progressPct, meta) => {
+            if (isStale()) return;
             patchItem(localId, {
               phase,
               progressPct: progressPct ?? 0,
@@ -189,11 +201,27 @@ export function useMediaUploadCoordinator(
             });
           },
           onGlobalProgress: (pct) => {
+            if (isStale()) return;
             setSession((prev) => ({ ...prev, globalPct: pct }));
           },
         });
+      } catch {
+        /* reconciliación en finally */
       } finally {
-        setSession((prev) => ({ ...prev, active: false }));
+        if (!isStale()) {
+          const { items: reconciled } = await reconcileMediaQueueAfterUploadAttempt(
+            rutaItemId,
+            itemsRef.current,
+            undefined,
+            { isCancelled: isStale }
+          );
+          if (!isStale()) {
+            itemsRef.current = reconciled;
+            setItems(reconciled);
+            setSession({ active: false, globalPct: 0, items: [...reconciled] });
+            notifyMediaUploadSessionSettled();
+          }
+        }
       }
     },
     [patchItem]
@@ -209,13 +237,23 @@ export function useMediaUploadCoordinator(
   }, []);
 
   const resetAll = useCallback(() => {
+    uploadGenerationRef.current += 1;
     setItems((prev) => {
       prev.forEach((x) => {
         if (x.previewUrl) URL.revokeObjectURL(x.previewUrl);
       });
       return [];
     });
+    itemsRef.current = [];
     setSession(INITIAL_SESSION);
+  }, []);
+
+  const syncQueueItems = useCallback((next: MediaQueuedFile[]) => {
+    itemsRef.current = next;
+    setItems(next);
+    setSession((prev) =>
+      prev.active ? { ...prev, items: [...next] } : { ...prev, items: [...next] }
+    );
   }, []);
 
   const getLatestQueueItems = useCallback(() => itemsRef.current, []);
@@ -232,6 +270,7 @@ export function useMediaUploadCoordinator(
     uploadAll,
     clearUploadedFromQueue,
     resetAll,
+    syncQueueItems,
     session,
     patchItem,
   };

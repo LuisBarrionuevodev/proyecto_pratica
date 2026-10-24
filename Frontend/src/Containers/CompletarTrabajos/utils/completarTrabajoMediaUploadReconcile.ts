@@ -1,6 +1,6 @@
 /** @deprecated Usar `runManualMediaSave` / `mediaUploadQueueReconcile` (misma lógica que Mis trabajos). */
 export {
-  promoteQueueItemsWithPersistedArchivoId,
+  queueNeedsServerReconciliation,
   reconcileQueueItemsWithServerArchivos,
   reconcileMediaQueueAfterUploadAttempt,
 } from "../../../features/media/utils/mediaUploadQueueReconcile";

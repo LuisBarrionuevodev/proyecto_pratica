@@ -13,6 +13,9 @@ import {
   type MediaQuotaAddResult,
 } from "../../Containers/CompletarTrabajos/utils/completarTrabajoMediaQuota";
 import { countUploadableQueueItems } from "./utils/actuacionManualMediaSave";
+import { mergeMediaQueueItemPatch } from "./utils/mediaQueueItemPatch";
+import { reconcileMediaQueueAfterUploadAttempt } from "./utils/mediaUploadQueueReconcile";
+import { notifyMediaUploadSessionSettled } from "./utils/mediaUploadSessionNotify";
 export type RutaItemMediaUploadSessionState = {
   active: boolean;
   globalPct: number;
@@ -214,11 +217,15 @@ function patchItemInBucket(
   patch: Partial<MediaQueuedFile>
 ): void {
   const b = getBucket(rutaItemId);
-  b.items = b.items.map((x) => (x.localId === localId ? { ...x, ...patch } : x));
+  b.items = b.items.map((x) =>
+    x.localId === localId ? mergeMediaQueueItemPatch(x, patch) : x
+  );
   if (b.session.active) {
     b.session = {
       ...b.session,
-      items: b.session.items.map((x) => (x.localId === localId ? { ...x, ...patch } : x)),
+      items: b.session.items.map((x) =>
+        x.localId === localId ? mergeMediaQueueItemPatch(x, patch) : x
+      ),
     };
   }
   notifyStoreChange(b);
@@ -358,12 +365,29 @@ export async function uploadAllForRutaItem(
         notifyStoreChange(live);
       },
     });
+  } catch {
+    /* reconciliación en finally */
   } finally {
     if (!isStale()) {
       const live = getBucket(rutaItemId);
-      live.session = { ...live.session, active: false };
-      live.abortController = null;
-      notifyStoreChange(live);
+      const { items } = await reconcileMediaQueueAfterUploadAttempt(
+        rutaItemId,
+        live.items,
+        undefined,
+        { isCancelled: isStale }
+      );
+      if (!isStale()) {
+        const bucket = getBucket(rutaItemId);
+        bucket.items = items;
+        bucket.session = {
+          active: false,
+          globalPct: 0,
+          items: [...items],
+        };
+        bucket.abortController = null;
+        notifyStoreChange(bucket);
+        notifyMediaUploadSessionSettled();
+      }
     }
   }
 }

@@ -1,5 +1,9 @@
 import type { MediaQueuedFile, RutaItemArchivosListResponse } from "../mediaTypes";
-import { reconcileMediaQueueAfterUploadAttempt } from "./mediaUploadQueueReconcile";
+import {
+  queueNeedsServerReconciliation,
+  reconcileMediaQueueAfterUploadAttempt,
+} from "./mediaUploadQueueReconcile";
+import { notifyMediaUploadSessionSettled } from "./mediaUploadSessionNotify";
 
 export type ManualMediaSaveOutcome = "success" | "partial" | "empty";
 
@@ -12,6 +16,7 @@ export function countUploadableQueueItems(items: MediaQueuedFile[]): number {
 /** True si quedó algún archivo que aún requiere subida o reintento real. */
 export function hasIncompleteUploadInQueue(items: MediaQueuedFile[]): boolean {
   if (countUploadableQueueItems(items) > 0) return true;
+  if (items.some((x) => x.phase === "error" && x.archivoId != null)) return true;
   return items.some(
     (x) => x.phase === "preparing" || x.phase === "uploading" || x.phase === "verifying"
   );
@@ -41,14 +46,18 @@ export async function runManualMediaSave(params: {
   reloadServer: () => Promise<void>;
   fetchArchivosForReconcile?: (rutaItemId: number) => Promise<RutaItemArchivosListResponse>;
 }): Promise<ManualMediaSaveResult> {
-  if (countUploadableQueueItems(params.getQueueItems()) === 0) {
+  const initialItems = params.getQueueItems();
+  const uploadable = countUploadableQueueItems(initialItems);
+  if (uploadable === 0 && !queueNeedsServerReconciliation(initialItems)) {
     return { outcome: "empty", refreshFailed: false };
   }
 
-  try {
-    await params.uploadAll(params.rutaItemId);
-  } catch {
-    // Puede haber archivos READY en servidor pese al error agregado del pipeline.
+  if (uploadable > 0) {
+    try {
+      await params.uploadAll(params.rutaItemId);
+    } catch {
+      // Puede haber archivos READY en servidor pese al error agregado del pipeline.
+    }
   }
 
   const reconciled = await reconcileMediaQueueAfterUploadAttempt(
@@ -57,6 +66,7 @@ export async function runManualMediaSave(params: {
     params.fetchArchivosForReconcile
   );
   params.applyQueueItems?.(reconciled.items);
+  notifyMediaUploadSessionSettled();
 
   if (hasIncompleteUploadInQueue(reconciled.items)) {
     return { outcome: "partial", refreshFailed: reconciled.archivosRefreshFailed };

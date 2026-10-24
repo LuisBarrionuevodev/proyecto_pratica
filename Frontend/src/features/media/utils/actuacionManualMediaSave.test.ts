@@ -163,7 +163,7 @@ describe("actuacionManualMediaSave", () => {
     expect(items).toHaveLength(0);
   });
 
-  it("error con archivoId ya subido no cuenta como incompleto", async () => {
+  it("error con archivoId reconcilia con servidor sin re-subir", async () => {
     let items: MediaQueuedFile[] = [
       { ...pendingItem("a"), phase: "ready", archivoId: 1 },
       { ...pendingItem("b"), phase: "error", archivoId: 2, errorMessage: "Red anterior" },
@@ -172,18 +172,38 @@ describe("actuacionManualMediaSave", () => {
     const clear = vi.fn(() => {
       items = [];
     });
+    const applyQueueItems = vi.fn((next: MediaQueuedFile[]) => {
+      items = next;
+    });
     const result = await runManualMediaSave({
       rutaItemId: 8,
       uploadAll,
       getQueueItems: () => items,
+      applyQueueItems,
       clearUploadedFromQueue: clear,
       reloadServer: vi.fn(),
+      fetchArchivosForReconcile: vi.fn().mockResolvedValue({
+        foto_acta: [
+          { ...pendingItem("a"), archivo_id: 1 },
+          { ...pendingItem("b"), archivo_id: 2 },
+        ].map((x, i) => ({
+          archivo_id: i === 0 ? 1 : 2,
+          original_filename: "a.jpg",
+          content_type: "image/jpeg",
+          byte_size: 1,
+          uploaded_at: "2026-01-01",
+          categoria: MEDIA_CATEGORIA_FOTO_ACTA,
+        })),
+        foto_documentacion_local: [],
+        foto_inspeccion: [],
+      }),
     });
-    expect(result.outcome).toBe("empty");
     expect(uploadAll).not.toHaveBeenCalled();
+    expect(result.outcome).toBe("success");
+    expect(clear).toHaveBeenCalled();
   });
 
-  it("tras upload, error stale con archivoId no es partial", async () => {
+  it("tras upload, error stale con archivoId reconcilia a success si el servidor confirma", async () => {
     let items: MediaQueuedFile[] = [pendingItem("a")];
     const uploadAll = vi.fn(async () => {
       items = [
@@ -200,6 +220,28 @@ describe("actuacionManualMediaSave", () => {
       getQueueItems: () => items,
       clearUploadedFromQueue: clear,
       reloadServer: vi.fn(),
+      fetchArchivosForReconcile: vi.fn().mockResolvedValue({
+        foto_acta: [
+          {
+            archivo_id: 5,
+            original_filename: "a.jpg",
+            content_type: "image/jpeg",
+            byte_size: 1,
+            uploaded_at: "2026-01-01",
+            categoria: MEDIA_CATEGORIA_FOTO_ACTA,
+          },
+          {
+            archivo_id: 6,
+            original_filename: "b.jpg",
+            content_type: "image/jpeg",
+            byte_size: 1,
+            uploaded_at: "2026-01-01",
+            categoria: MEDIA_CATEGORIA_FOTO_ACTA,
+          },
+        ],
+        foto_documentacion_local: [],
+        foto_inspeccion: [],
+      }),
     });
     expect(result.outcome).toBe("success");
     expect(clear).toHaveBeenCalled();

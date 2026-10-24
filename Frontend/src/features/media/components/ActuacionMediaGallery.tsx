@@ -155,6 +155,7 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
           rutaItemId,
           uploadAll: coordinator.uploadAll,
           getQueueItems: coordinator.getLatestQueueItems,
+          applyQueueItems: coordinator.syncQueueItems,
           clearUploadedFromQueue: coordinator.clearUploadedFromQueue,
           reloadServer: () => refreshGalleryFromServer({ silent: true }),
         });

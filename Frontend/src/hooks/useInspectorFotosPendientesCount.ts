@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { getInspectorFotosPendientesCount } from "../api/completarTrabajoApi";
 import { useAppSession } from "../auth/AppSessionProvider";
+import { subscribeInspectorFotosPendientesRefresh } from "../features/media/utils/mediaUploadSessionNotify";
 
 const POLL_MS = 60_000;
 
@@ -29,7 +30,11 @@ export function useInspectorFotosPendientesCount() {
     void reload();
     if (!enabled) return;
     const id = window.setInterval(() => void reload(), POLL_MS);
-    return () => window.clearInterval(id);
+    const unsub = subscribeInspectorFotosPendientesRefresh(() => void reload());
+    return () => {
+      window.clearInterval(id);
+      unsub();
+    };
   }, [enabled, reload]);
 
   return { count, enabled, reload };
