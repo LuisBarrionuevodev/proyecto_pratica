@@ -41,6 +41,28 @@ const INITIAL_SESSION: RutaItemMediaUploadSessionState = {
   items: [],
 };
 
+/** Mensaje local cuando una carga en curso se aborta (reintento manual en la misma sesión). */
+export const MEDIA_UPLOAD_INTERRUPTED_MESSAGE = "Carga interrumpida. Podés reintentar.";
+
+const TRANSIENT_UPLOAD_PHASES = new Set<MediaQueuedFile["phase"]>([
+  "preparing",
+  "uploading",
+  "verifying",
+]);
+
+function recoverInterruptedQueueItems(items: MediaQueuedFile[]): MediaQueuedFile[] {
+  return items.map((x) => {
+    if (x.phase === "ready") return x;
+    if (!TRANSIENT_UPLOAD_PHASES.has(x.phase)) return x;
+    return {
+      ...x,
+      phase: "pending",
+      progressPct: 0,
+      errorMessage: MEDIA_UPLOAD_INTERRUPTED_MESSAGE,
+    };
+  });
+}
+
 type RutaItemUploadBucket = {
   items: MediaQueuedFile[];
   session: RutaItemMediaUploadSessionState;
@@ -141,7 +163,12 @@ export function cancelUploadForRutaItem(rutaItemId: number): void {
   b.abortController?.abort();
   b.abortController = null;
   b.uploadEpoch += 1;
-  b.session = { ...b.session, active: false };
+  b.items = recoverInterruptedQueueItems(b.items);
+  b.session = {
+    active: false,
+    globalPct: 0,
+    items: [...b.items],
+  };
   notifyStoreChange(b);
 }
 
