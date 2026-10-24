@@ -13,6 +13,10 @@ from app.domains.media.services.media_access_service import (
 )
 from app.domains.media.services.media_storage_service import MediaStorageService
 from app.domains.media.utils.media_observability import log_archivo_delete_ok, log_storage_error
+from app.domains.media.utils.db_deadlock_retry import run_with_deadlock_retry
+from app.domains.media.utils.ruta_item_archivo_idempotency import (
+    release_content_sha256_idempotency_key,
+)
 
 def eliminar_archivo(archivo_id: int, actor_user_id: int) -> ArchivoDeleteOut:
     """
@@ -52,7 +56,12 @@ def eliminar_archivo(archivo_id: int, actor_user_id: int) -> ArchivoDeleteOut:
     arch.status = "DELETED"
     arch.deleted_at = now
     arch.deleted_by_user_id = int(actor_user_id)
-    db.session.commit()
+    release_content_sha256_idempotency_key(link)
+
+    def _commit_delete() -> None:
+        db.session.commit()
+
+    run_with_deadlock_retry(_commit_delete)
 
     log_archivo_delete_ok(
         archivo_id=int(arch.id),

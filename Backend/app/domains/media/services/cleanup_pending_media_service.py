@@ -11,7 +11,10 @@ from app.domains.media.utils.media_observability import (
     log_cleanup_pending_batch,
     log_storage_error,
 )
-from app.models import Archivo
+from app.models import Archivo, RutaItemArchivo
+from app.domains.media.utils.ruta_item_archivo_idempotency import (
+    release_content_sha256_idempotency_key,
+)
 
 
 def cleanup_pending_media(*, older_than_hours: int = 24) -> CleanupPendingMediaResult:
@@ -62,6 +65,10 @@ def cleanup_pending_media(*, older_than_hours: int = 24) -> CleanupPendingMediaR
             )
         arch.status = "DELETED"
         arch.deleted_at = now
+        for vinculo in (
+            RutaItemArchivo.query.filter(RutaItemArchivo.archivo_id == int(arch.id)).all()
+        ):
+            release_content_sha256_idempotency_key(vinculo)
         processed += 1
     db.session.commit()
     result = CleanupPendingMediaResult(
