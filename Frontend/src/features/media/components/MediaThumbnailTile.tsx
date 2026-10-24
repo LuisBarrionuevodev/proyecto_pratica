@@ -1,4 +1,3 @@
-import { useEffect, useState } from "react";
 import {
   Box,
   ImageListItem,
@@ -7,9 +6,9 @@ import {
   Typography,
 } from "@mui/material";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
-import { getMediaDownloadUrl } from "../../../api/mediaApi";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import type { MediaArchivoListItem } from "../mediaTypes";
+import { useLazyMediaDownloadUrl } from "../hooks/useLazyMediaDownloadUrl";
 
 type Props = {
   item: MediaArchivoListItem;
@@ -20,30 +19,10 @@ type Props = {
 
 export function MediaThumbnailTile({ item, onOpen, onDelete, deleting }: Props) {
   const isImg = item.content_type.startsWith("image/");
-  const [thumbUrl, setThumbUrl] = useState<string | null>(null);
-  const [loadState, setLoadState] = useState<"idle" | "loading" | "ok" | "error">(
-    isImg ? "loading" : "idle"
-  );
-
-  useEffect(() => {
-    if (!isImg) return;
-    let cancelled = false;
-    setLoadState("loading");
-    setThumbUrl(null);
-    getMediaDownloadUrl(item.archivo_id)
-      .then((res) => {
-        if (!cancelled) {
-          setThumbUrl(res.download_url);
-          setLoadState("ok");
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setLoadState("error");
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [item.archivo_id, isImg]);
+  const { phase, thumbUrl, rootRef, retry } = useLazyMediaDownloadUrl({
+    archivoId: item.archivo_id,
+    enabled: isImg,
+  });
 
   const ariaLabel = isImg
     ? `Ver imagen: ${item.original_filename}`
@@ -56,6 +35,7 @@ export function MediaThumbnailTile({ item, onOpen, onDelete, deleting }: Props) 
       aria-label={ariaLabel}
     >
       <Box
+        ref={isImg ? rootRef : undefined}
         role="button"
         tabIndex={0}
         aria-label={ariaLabel}
@@ -77,12 +57,42 @@ export function MediaThumbnailTile({ item, onOpen, onDelete, deleting }: Props) 
         }}
       >
         {isImg ? (
-          loadState === "loading" ? (
+          phase === "loading" || phase === "idle" ? (
             <Skeleton variant="rectangular" width="100%" height={96} />
-          ) : loadState === "error" ? (
-            <Typography variant="caption" sx={{ px: 1, color: GLASS_COLORS.textMuted }}>
-              No se pudo cargar
-            </Typography>
+          ) : phase === "error" ? (
+            <Box
+              sx={{
+                display: "flex",
+                flexDirection: "column",
+                alignItems: "center",
+                gap: 0.5,
+                px: 1,
+              }}
+            >
+              <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted, textAlign: "center" }}>
+                No se pudo cargar
+              </Typography>
+              <Box
+                component="button"
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  retry();
+                }}
+                sx={{
+                  border: "none",
+                  borderRadius: 1,
+                  px: 0.75,
+                  py: 0.25,
+                  fontSize: 11,
+                  cursor: "pointer",
+                  bgcolor: "primary.main",
+                  color: "primary.contrastText",
+                }}
+              >
+                Reintentar
+              </Box>
+            </Box>
           ) : thumbUrl ? (
             <img
               src={thumbUrl}

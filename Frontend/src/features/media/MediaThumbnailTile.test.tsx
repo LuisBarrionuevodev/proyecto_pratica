@@ -7,8 +7,12 @@ import type { MediaArchivoListItem } from "./mediaTypes";
 
 const theme = createTheme();
 
-vi.mock("../../api/mediaApi", () => ({
+const { getMediaDownloadUrl } = vi.hoisted(() => ({
   getMediaDownloadUrl: vi.fn().mockResolvedValue({ download_url: "https://example.com/x.jpg" }),
+}));
+
+vi.mock("../../api/mediaApi", () => ({
+  getMediaDownloadUrl,
 }));
 
 const imageItem: MediaArchivoListItem = {
@@ -40,6 +44,7 @@ describe("MediaThumbnailTile RESP-ACT.1", () => {
   });
 
   it("PDF conserva identificación mínima", () => {
+    getMediaDownloadUrl.mockClear();
     const html = renderToStaticMarkup(
       <ThemeProvider theme={theme}>
         <MediaThumbnailTile item={pdfItem} onOpen={() => undefined} />
@@ -47,5 +52,6 @@ describe("MediaThumbnailTile RESP-ACT.1", () => {
     );
     expect(html).toContain("acta.pdf");
     expect(html).toContain("PDF");
+    expect(getMediaDownloadUrl).not.toHaveBeenCalled();
   });
 });
