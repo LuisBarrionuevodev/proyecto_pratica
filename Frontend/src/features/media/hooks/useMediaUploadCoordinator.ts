@@ -315,6 +315,11 @@ export function useCompletarTrabajoMediaQueues(rutaItemId: number | null | undef
     clearRutaItemMediaUploadState(activeId);
   }, [activeId]);
 
+  const pauseActiveUpload = useCallback(() => {
+    if (activeId == null) return;
+    cancelUploadForRutaItem(activeId);
+  }, [activeId]);
+
   const syncQueueItems = useCallback(
     (items: MediaQueuedFile[]) => {
       if (activeId == null) return;
@@ -369,6 +374,7 @@ export function useCompletarTrabajoMediaQueues(rutaItemId: number | null | undef
       uploadAll,
       retryAllPending,
       clearForActiveRutaItem,
+      pauseActiveUpload,
       syncQueueItems,
       clearUploadedFromQueue,
       session: snapshot.session,
@@ -380,6 +386,7 @@ export function useCompletarTrabajoMediaQueues(rutaItemId: number | null | undef
       addFotoDocFiles,
       addFotoInspeccionFiles,
       clearForActiveRutaItem,
+      pauseActiveUpload,
       clearUploadedFromQueue,
       syncQueueItems,
       fotoActaItems,

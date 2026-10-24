@@ -408,6 +408,19 @@ describe("CompletarTrabajoModal", () => {
     expect((html.match(/Seleccionar archivos/g) ?? []).length).toBe(3);
   });
 
+  it("MEDIA.2E.1A: cierre con subida activa usa confirmación y pauseActiveUpload", () => {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const src = readFileSync(join(here, "CompletarTrabajoModal.tsx"), "utf8");
+    expect(src).toContain("shouldConfirmPauseMediaUploadOnClose");
+    expect(src).toContain("uploadExitConfirmOpen");
+    expect(src).toContain("Continuar subiendo");
+    expect(src).toContain("Salir y pausar subida");
+    expect(src).toContain("mediaQueues.pauseActiveUpload");
+    expect(src).toMatch(/onClose=\{handleDialogClose\}/);
+    expect(src).toMatch(/onCloseButtonClick=\{handleClose\}/);
+    expect(src).not.toMatch(/handleClose[\s\S]{0,80}if\s*\(\s*saving\s*\)\s*return/);
+  });
+
   it("reinspección por notificación mantiene flujo sin regresión de oficio", () => {
     const html = render(
       <CompletarTrabajoModal

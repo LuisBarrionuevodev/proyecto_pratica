@@ -148,6 +148,10 @@ import {
 import { isLocalCompletarTrabajoMediaQueueFinished } from "../utils/completarTrabajoEvidenciasConfirm";
 import { waitForCompletarTrabajoEvidenciasBackendSync } from "../utils/completarTrabajoMediaPostUploadSync";
 import { patchRowSinEvidenciasPendientes } from "../utils/completarTrabajoRecoveredUploadFinal";
+import {
+  shouldBlockCompletarTrabajoModalClose,
+  shouldConfirmPauseMediaUploadOnClose,
+} from "../utils/completarTrabajoModalExitDuringUpload";
 import { MediaUploadProgress } from "../../../features/media/components/MediaUploadProgress";
 import { MediaUploadSection } from "../../../features/media/components/MediaUploadSection";
 import { MediaUploadPanelErrorBoundary } from "../../../features/media/components/MediaUploadPanelErrorBoundary";
@@ -561,6 +565,7 @@ export function CompletarTrabajoModal({
   const [mediaSelectionError, setMediaSelectionError] = useState<string | null>(null);
   const [emptyQueueHint, setEmptyQueueHint] = useState<string | null>(null);
   const [finalizeConfirmOpen, setFinalizeConfirmOpen] = useState(false);
+  const [uploadExitConfirmOpen, setUploadExitConfirmOpen] = useState(false);
   const [finalizingPorAhora, setFinalizingPorAhora] = useState(false);
   const [detalleLoading, setDetalleLoading] = useState(false);
   const [detalleError, setDetalleError] = useState<string | null>(null);
@@ -1153,6 +1158,7 @@ export function CompletarTrabajoModal({
   useEffect(() => {
     if (!open) {
       autoCloseAfterUploadRef.current = null;
+      setUploadExitConfirmOpen(false);
     }
   }, [open]);
 
@@ -1347,17 +1353,38 @@ export function CompletarTrabajoModal({
     }
   }, [resolvedRow, finalizingPorAhora, mediaQueues, feedback, onSuccess, onClose]);
 
-  const handleClose = useCallback(() => {
-    if (saving) return;
+  const requestModalClose = useCallback(() => {
+    if (
+      shouldBlockCompletarTrabajoModalClose({
+        saving,
+        mediaSessionActive,
+        finalizingPorAhora,
+      })
+    ) {
+      return;
+    }
+    if (shouldConfirmPauseMediaUploadOnClose(mediaSessionActive)) {
+      setUploadExitConfirmOpen(true);
+      return;
+    }
     onClose();
-  }, [saving, onClose]);
+  }, [finalizingPorAhora, mediaSessionActive, onClose, saving]);
+
+  const handleConfirmSalirYPausarSubida = useCallback(() => {
+    setUploadExitConfirmOpen(false);
+    mediaQueues.pauseActiveUpload();
+    setSaving(false);
+    autoCloseAfterUploadRef.current = null;
+    onClose();
+  }, [mediaQueues, onClose]);
+
+  const handleClose = requestModalClose;
 
   const handleDialogClose = useCallback(
     (_event: unknown, _reason: string) => {
-      if (saving) return;
-      onClose();
+      requestModalClose();
     },
-    [saving, onClose]
+    [requestModalClose]
   );
 
   const handleSubmit = async () => {
@@ -2727,6 +2754,20 @@ export function CompletarTrabajoModal({
         <span>El trabajo ya está guardado.</span>
         <span>No se subirán más fotos por ahora.</span>
         <span>Podrás agregar fotos después desde Mis trabajos.</span>
+      </Typography>
+    </ConfirmDialog>
+    <ConfirmDialog
+      open={uploadExitConfirmOpen}
+      onClose={() => setUploadExitConfirmOpen(false)}
+      onConfirm={handleConfirmSalirYPausarSubida}
+      title="¿Salir mientras se suben fotos?"
+      cancelLabel="Continuar subiendo"
+      confirmLabel="Salir y pausar subida"
+      destructive
+    >
+      <Typography variant="body2" component="div" sx={{ display: "flex", flexDirection: "column", gap: 1 }}>
+        <span>Podés seguir la subida en segundo plano o salir y reintentar las fotos que no terminaron.</span>
+        <span>Las fotos que ya se guardaron no se borran.</span>
       </Typography>
     </ConfirmDialog>
     </>
