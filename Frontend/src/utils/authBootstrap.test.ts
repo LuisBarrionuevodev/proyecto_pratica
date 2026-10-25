@@ -26,6 +26,12 @@ describe("HOTFIX auth bootstrap — carga inicial sin F5", () => {
     expect(read("src/api/apiClient.ts")).toContain("notifyAuthSessionRefresh");
   });
 
+  it("logout y 401 limpian caches de bootstrap (PERF.3)", () => {
+    expect(read("src/Componets/TopBar.tsx")).toContain("clearBootstrapSessionCaches");
+    expect(read("src/api/apiClient.ts")).toContain("clearBootstrapSessionCaches");
+    expect(read("src/auth/AppSessionProvider.tsx")).toContain("clearBootstrapSessionCaches");
+  });
+
   it("InicioOperacionesGrid espera status ready antes de armar cards", () => {
     const src = read("src/Containers/Inicio/Components/InicioOperacionesGrid.tsx");
     expect(src).toContain('status !== "ready"');

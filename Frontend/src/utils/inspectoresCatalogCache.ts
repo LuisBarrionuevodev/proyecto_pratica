@@ -1,30 +1,16 @@
 import { fetchInspectores, type CatalogItem } from "../api/gridApi";
+import { clearGridCatalogSessionCacheKey } from "./gridCatalogSessionCache";
 
-let memoryCache: CatalogItem[] | null = null;
-let inflight: Promise<CatalogItem[]> | null = null;
+const GRID_CATALOG_INSPECTORES = "/grid/catalogs/inspectores";
 
 /**
- * Catálogo de inspectores (ítems con id) — una carga por sesión (STAB-6).
+ * Catálogo de inspectores (ítems con id) — delega en cache de sesión de `fetchInspectores`.
  */
 export function fetchInspectoresCatalogItemsCached(): Promise<CatalogItem[]> {
-  if (memoryCache) return Promise.resolve(memoryCache);
-  if (inflight) return inflight;
-  inflight = fetchInspectores()
-    .then((resp) => {
-      const items = resp.items ?? [];
-      memoryCache = items;
-      inflight = null;
-      return items;
-    })
-    .catch((e) => {
-      inflight = null;
-      throw e;
-    });
-  return inflight;
+  return fetchInspectores().then((resp) => resp.items ?? []);
 }
 
-/** Solo tests. */
+/** Limpia solo inspectores (tests); logout usa `clearBootstrapSessionCaches`. */
 export function clearInspectoresCatalogCache(): void {
-  memoryCache = null;
-  inflight = null;
+  clearGridCatalogSessionCacheKey(GRID_CATALOG_INSPECTORES);
 }

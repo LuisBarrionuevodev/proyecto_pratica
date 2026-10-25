@@ -29,6 +29,7 @@ import OpenInNewIcon from "@mui/icons-material/OpenInNew";
 
 import TextDigitaliza from "../assets/TextDigitaliza.svg"
 
+import { clearBootstrapSessionCaches } from "../auth/clearBootstrapSessionCaches";
 import { useAppSession, notifyAuthSessionRefresh } from "../auth/AppSessionProvider";
 
 import {
@@ -131,6 +132,7 @@ const TopBar: React.FC<TopBarProps> = ({
         handleClose();
 
         localStorage.removeItem("access_token");
+        clearBootstrapSessionCaches();
         notifyAuthSessionRefresh();
         navigate("/login");
 

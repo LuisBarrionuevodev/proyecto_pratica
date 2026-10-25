@@ -8,22 +8,10 @@ import {
   type ReactNode,
 } from "react";
 
-import { apiClient } from "../api/apiClient";
+import { clearBootstrapSessionCaches } from "./clearBootstrapSessionCaches";
+import { fetchProfileMe } from "./profileMeSession";
 import { normalizeAppRole, type AppRole } from "./roles";
 import { formatToolbarUserDisplay, resolveRealDisplayName } from "./userDisplay";
-
-type MeResponse = {
-  user: {
-    username: string;
-    role: string;
-    inspector_id?: number | null;
-    inspector_nombre?: string | null;
-  };
-  profile: {
-    nickname: string | null;
-    avatar_key: "avatar1" | "avatar2" | "avatar3" | "avatar4" | "avatar5";
-  };
-};
 
 /** loading = bootstrap en curso; unauthenticated = sin token (no es error). */
 export type AppSessionStatus = "loading" | "ready" | "unauthenticated" | "error";
@@ -100,6 +88,7 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
       const token = localStorage.getItem("access_token");
       if (!token) {
         if (cancel) return;
+        clearBootstrapSessionCaches();
         resetSessionFields(
           setRole,
           setUsername,
@@ -113,10 +102,10 @@ export function AppSessionProvider({ children }: { children: ReactNode }) {
       }
 
       try {
-        const res = await apiClient.get<MeResponse>("/api/profile/me");
+        const me = await fetchProfileMe({ force: tick > 0 });
         if (cancel) return;
-        const u = res.data.user;
-        const p = res.data.profile;
+        const u = me.user;
+        const p = me.profile;
         setRole(normalizeAppRole(u.role));
         setUsername(u.username ?? null);
         setNickname(p.nickname ?? null);

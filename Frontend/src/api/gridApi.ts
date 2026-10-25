@@ -1,5 +1,12 @@
+import { fetchGridCatalogSessionCached } from "../utils/gridCatalogSessionCache";
 import { apiClient } from "./apiClient";
 import { fetchRubrosCatalogo } from "./rubrosCatalogApi";
+
+const GRID_CATALOG_INSPECTORES = "/grid/catalogs/inspectores";
+const GRID_CATALOG_MOTIVOS = "/grid/catalogs/motivos";
+const GRID_CATALOG_MOTIVOS_COMPROBACION = "/grid/catalogs/motivos-comprobacion";
+const GRID_CATALOG_CONTRAPRODUCENCIAS = "/grid/catalogs/contraproducencias";
+const GRID_CATALOG_TIPOS = "/grid/catalogs/tipos";
 
 // ============= TYPES =============
 
@@ -215,8 +222,10 @@ export const commitBatch = async (
  * Catálogo de inspectores (para dropdowns)
  */
 export const fetchInspectores = async (): Promise<CatalogResponse> => {
-  const { data } = await apiClient.get<CatalogResponse>("/grid/catalogs/inspectores");
-  return data;
+  return fetchGridCatalogSessionCached(GRID_CATALOG_INSPECTORES, async () => {
+    const { data } = await apiClient.get<CatalogResponse>(GRID_CATALOG_INSPECTORES);
+    return data;
+  });
 };
 
 /**
@@ -231,8 +240,10 @@ export const fetchRelevadores = async (): Promise<CatalogResponse> => {
  * Catálogo de motivos (para dropdowns)
  */
 export const fetchMotivos = async (): Promise<CatalogResponse> => {
-  const { data } = await apiClient.get<CatalogResponse>("/grid/catalogs/motivos");
-  return data;
+  return fetchGridCatalogSessionCached(GRID_CATALOG_MOTIVOS, async () => {
+    const { data } = await apiClient.get<CatalogResponse>(GRID_CATALOG_MOTIVOS);
+    return data;
+  });
 };
 
 /**
@@ -247,22 +258,28 @@ export const fetchRubros = async (): Promise<CatalogResponse> => {
  * Catálogo de tipos de actuación (para dropdowns)
  */
 export const fetchTiposActuacion = async (): Promise<CatalogResponse> => {
-  const { data } = await apiClient.get<CatalogResponse>("/grid/catalogs/tipos");
-  return data;
+  return fetchGridCatalogSessionCached(GRID_CATALOG_TIPOS, async () => {
+    const { data } = await apiClient.get<CatalogResponse>(GRID_CATALOG_TIPOS);
+    return data;
+  });
 };
 
 /**
  * Catálogo de contraproducencias (para dropdowns)
  */
 export const fetchContraproducencias = async (): Promise<CatalogResponse> => {
-  const { data } = await apiClient.get<CatalogResponse>("/grid/catalogs/contraproducencias");
-  return data;
+  return fetchGridCatalogSessionCached(GRID_CATALOG_CONTRAPRODUCENCIAS, async () => {
+    const { data } = await apiClient.get<CatalogResponse>(GRID_CATALOG_CONTRAPRODUCENCIAS);
+    return data;
+  });
 };
 
 /**
  * Catálogo de motivos de comprobación (para dropdowns)
  */
 export const fetchMotivosComprobacion = async (): Promise<CatalogResponse> => {
-  const { data } = await apiClient.get<CatalogResponse>("/grid/catalogs/motivos-comprobacion");
-  return data;
+  return fetchGridCatalogSessionCached(GRID_CATALOG_MOTIVOS_COMPROBACION, async () => {
+    const { data } = await apiClient.get<CatalogResponse>(GRID_CATALOG_MOTIVOS_COMPROBACION);
+    return data;
+  });
 };

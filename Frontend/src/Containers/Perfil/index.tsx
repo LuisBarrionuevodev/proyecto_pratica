@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import BoxCambiarInfo from "./Components/BoxCambiarInfo";
 import BoxNombreUsuario from "./Components/BoxNombreUsuario";
 import { apiClient } from "../../api/apiClient";
+import { fetchProfileMe } from "../../auth/profileMeSession";
 import { ROLE_LABELS, normalizeAppRole } from "../../auth/roles";
 import { BandejaTableSpinner } from "../../components/dataTable/bandejaTableLoading";
 
@@ -22,10 +23,10 @@ type MeResponse = {
 const Perfil = () => {
   const [me, setMe] = useState<MeResponse | null>(null);
 
-  const fetchMe = async () => {
+  const fetchMe = async (force = false) => {
     try {
-      const res = await apiClient.get<MeResponse>("/api/profile/me");
-      setMe(res.data);
+      const data = await fetchProfileMe({ force });
+      setMe(data as MeResponse);
     } catch (error) {
       console.error("Error al cargar perfil", error);
     }
@@ -77,7 +78,7 @@ const Perfil = () => {
                 onAvatarChange={async (newAvatar) => {
                     try {
                         await apiClient.patch("/api/profile/me", { avatar_key: newAvatar });
-                        await fetchMe();
+                        await fetchMe(true);
                         window.dispatchEvent(new Event("profile:updated"));
                     } catch (error) {
                         console.error("Error al actualizar avatar", error);
@@ -86,7 +87,7 @@ const Perfil = () => {
                 onNameChange={async (newName) => {
                     try {
                         await apiClient.patch("/api/profile/me", { nickname: newName });
-                        await fetchMe();
+                        await fetchMe(true);
                         window.dispatchEvent(new Event("profile:updated"));
                     } catch (error) {
                         console.error("Error al actualizar nickname", error);

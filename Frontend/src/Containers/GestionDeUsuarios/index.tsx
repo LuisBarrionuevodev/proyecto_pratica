@@ -1,13 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiClient } from "../../api/apiClient";
+import { fetchProfileMe } from "../../auth/profileMeSession";
 import TableGestionDeUsuarios from "./Components/TableGestionDeUsuarios";
-
-type MeResponse = {
-    user: {
-        role: "admin" | "usuario";
-    };
-};
 
 const GestionDeUsuarios = () => {
     const navigate = useNavigate();
@@ -16,8 +10,8 @@ const GestionDeUsuarios = () => {
     useEffect(() => {
         const checkRole = async () => {
             try {
-                const res = await apiClient.get<MeResponse>("/api/profile/me");
-                if (res.data.user.role !== "admin") {
+                const me = await fetchProfileMe();
+                if (me.user.role !== "admin") {
                     navigate("/inicio", { replace: true });
                     setAllowed(false);
                     return;

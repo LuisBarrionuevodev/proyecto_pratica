@@ -116,10 +116,11 @@ const ActuacionesContainer = (): JSX.Element => {
   );
 
   useEffect(() => {
+    if (isInspectorReadOnly) return;
     getActuacionesPendientesSummary(pendientesDesde, pendientesHasta)
       .then(setPendingSummary)
       .catch(() => undefined);
-  }, [pendientesDesde, pendientesHasta]);
+  }, [pendientesDesde, pendientesHasta, isInspectorReadOnly]);
 
   const fusionarPendienteEnLista = useCallback((row: IActuacionListItem) => {
     const rid = Number(row.id);

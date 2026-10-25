@@ -5,6 +5,7 @@ import {
   setSessionEndFeedback,
 } from "../auth/sessionEndFeedback";
 import { notifyAuthSessionRefresh } from "../auth/AppSessionProvider";
+import { clearBootstrapSessionCaches } from "../auth/clearBootstrapSessionCaches";
 
 function resolveApiBaseUrl(): string {
   const raw = import.meta.env.VITE_API_BASE_URL?.trim();
@@ -72,6 +73,7 @@ apiClient.interceptors.response.use(
           : undefined;
       const reason = parseJwt401Reason(data);
       localStorage.removeItem("access_token");
+      clearBootstrapSessionCaches();
       notifyAuthSessionRefresh();
       scheduleAuthRedirectToLogin(reason, msg);
     }
