@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { setBodyAuthenticatedRoute } from "../theme/bodyRouteClass";
 import { Outlet, useLocation } from "react-router-dom";
 import { resolveBreadcrumbLabel } from "../utils/breadcrumbLabel";
@@ -11,6 +11,7 @@ import { InspectorFotosPendientesBanner } from "../components/InspectorFotosPend
 import { useAppSession } from "../auth/AppSessionProvider";
 import { TRANSITION, glassContent } from "../styles/GlassStyles";
 import { CSS_VAR_NAMES } from "../theme/applyCssVariables";
+import { RouteModuleFallback } from "../routing/RouteModuleFallback";
 import { layoutShell } from "../theme/tokens";
 
 const TOPBAR_HEIGHT = layoutShell.topBarHeightPx;
@@ -171,7 +172,9 @@ const AppLayout = () => {
                             }}
                         >
                             <RoleRouteGuard>
-                                <Outlet />
+                                <Suspense fallback={<RouteModuleFallback />}>
+                                    <Outlet />
+                                </Suspense>
                             </RoleRouteGuard>
                         </Box>
                     </Box>
