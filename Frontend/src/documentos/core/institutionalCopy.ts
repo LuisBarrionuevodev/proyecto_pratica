@@ -14,5 +14,5 @@ export const ORDEN_TRABAJO_DEPARTAMENTAL_MUNICIPALITY =
 export const ORDEN_TRABAJO_DEPARTAMENTAL_ADDRESS_LINE = "San Martín N° 1009";
 /** Leyenda de pie del formulario OT departamental (OT-PDF.1), antes del espacio de firmas. */
 export const ORDEN_TRABAJO_DEPARTAMENTAL_LEYENDA_CAPACITACION =
-  "INSPECTORES CAPACITADOS EN PROCEDIMIENTOS DE FISCALIZACIÓN Y CONTROL, ACTUACIONES ADMINISTRATIVAS Y HERRAMIENTAS DIGITALES, CON CAPACITACIÓN CONVALIDADA POR RESOLUCIÓN N.º 3679/DCH/26.";
+  "Los agentes mencionados en la presente Orden de Trabajo cuentan con la capacitación correspondiente, conforme a la Resolución N.º 3679/DCH/26, y están habilitados para llevar adelante el procedimiento de control previsto en virtud de las facultades conferidas al/a la Jefe/a de Inspectores y/o al/a la responsable que suscribe la presente, por lo que se autoriza a los agentes individualizados a proceder a la inspección del domicilio asignado.";
 export const ORDEN_TRABAJO_DEPARTAMENTAL_CIERRE = "ORDEN DE TRABAJO SUJETA A SUPERVISIÓN.";
