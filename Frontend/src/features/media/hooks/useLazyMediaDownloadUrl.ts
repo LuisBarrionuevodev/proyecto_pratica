@@ -6,6 +6,7 @@ import {
   LazyThumbnailUrlSession,
   type LazyThumbnailUrlPhase,
 } from "../utils/lazyThumbnailUrlSession";
+import { scheduleLazyThumbnailVisible } from "../utils/lazyMediaThumbnailVisibleScheduler";
 
 type Options = {
   archivoId: number;
@@ -21,6 +22,7 @@ type Result = {
 
 /**
  * Obtiene la URL firmada de una miniatura solo cuando el tile es visible (IntersectionObserver).
+ * Las notificaciones de visibilidad se agrupan por frame (PERF.6).
  */
 export function useLazyMediaDownloadUrl({ archivoId, enabled }: Options): Result {
   const [phase, setPhase] = useState<LazyThumbnailUrlPhase>("idle");
@@ -47,23 +49,31 @@ export function useLazyMediaDownloadUrl({ archivoId, enabled }: Options): Result
   const runOnVisible = useCallback(async () => {
     const session = sessionRef.current;
     if (!session || !enabled) return;
+    if (!session.shouldFetchOnVisible()) return;
     await session.onVisible();
     syncFromSession();
   }, [enabled, syncFromSession]);
+
+  const queueOnVisible = useCallback(() => {
+    scheduleLazyThumbnailVisible(archivoId, () => {
+      void runOnVisible();
+    });
+  }, [archivoId, runOnVisible]);
 
   useEffect(() => {
     if (!enabled) return;
     const el = rootRef.current;
     if (!el || typeof IntersectionObserver === "undefined") {
-      void runOnVisible();
+      queueOnVisible();
       return;
     }
 
     const observer = new IntersectionObserver(
       (entries) => {
-        if (entries.some((e) => e.isIntersecting)) {
-          void runOnVisible();
-        }
+        if (!entries.some((e) => e.isIntersecting)) return;
+        const session = sessionRef.current;
+        if (session && !session.shouldFetchOnVisible()) return;
+        queueOnVisible();
       },
       {
         root: scrollRootElementRef.current,
@@ -73,7 +83,7 @@ export function useLazyMediaDownloadUrl({ archivoId, enabled }: Options): Result
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [enabled, runOnVisible, archivoId]);
+  }, [enabled, queueOnVisible, archivoId]);
 
   const retry = useCallback(() => {
     void sessionRef.current?.retry().then(() => syncFromSession());

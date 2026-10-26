@@ -64,6 +64,7 @@ function MediaThumbnailTileInner({ item, onOpenById, onDeleteById, deleting }: P
         }}
         sx={{
           height: 96,
+          minHeight: 96,
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
@@ -115,7 +116,10 @@ function MediaThumbnailTileInner({ item, onOpenById, onDeleteById, deleting }: P
               src={thumbUrl}
               alt={item.original_filename}
               loading="lazy"
-              style={{ width: "100%", height: 96, objectFit: "cover" }}
+              decoding="async"
+              width={320}
+              height={96}
+              style={{ width: "100%", height: 96, objectFit: "cover", display: "block" }}
             />
           ) : (
             <Skeleton variant="rectangular" width="100%" height={96} />
