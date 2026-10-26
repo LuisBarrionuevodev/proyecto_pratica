@@ -28,6 +28,8 @@ export function useLazyMediaDownloadUrl({ archivoId, enabled }: Options): Result
   const rootRef = useRef<HTMLDivElement | null>(null);
   const sessionRef = useRef<LazyThumbnailUrlSession | null>(null);
   const dialogScrollRef = useCrudDialogScrollContainer();
+  const scrollRootElementRef = useRef<HTMLElement | null>(null);
+  scrollRootElementRef.current = dialogScrollRef?.current ?? null;
 
   useEffect(() => {
     sessionRef.current = new LazyThumbnailUrlSession(archivoId, getMediaDownloadUrl);
@@ -57,7 +59,6 @@ export function useLazyMediaDownloadUrl({ archivoId, enabled }: Options): Result
       return;
     }
 
-    const scrollRoot = dialogScrollRef?.current ?? null;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((e) => e.isIntersecting)) {
@@ -65,14 +66,14 @@ export function useLazyMediaDownloadUrl({ archivoId, enabled }: Options): Result
         }
       },
       {
-        root: scrollRoot,
+        root: scrollRootElementRef.current,
         rootMargin: LAZY_MEDIA_THUMBNAIL_ROOT_MARGIN,
         threshold: 0.01,
       }
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, [enabled, runOnVisible, archivoId, dialogScrollRef]);
+  }, [enabled, runOnVisible, archivoId]);
 
   const retry = useCallback(() => {
     void sessionRef.current?.retry().then(() => syncFromSession());

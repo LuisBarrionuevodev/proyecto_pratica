@@ -1,3 +1,4 @@
+import { memo, useCallback, type MouseEvent } from "react";
 import {
   Box,
   ImageListItem,
@@ -9,20 +10,36 @@ import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import type { MediaArchivoListItem } from "../mediaTypes";
 import { useLazyMediaDownloadUrl } from "../hooks/useLazyMediaDownloadUrl";
+import {
+  mediaThumbnailTilePropsAreEqual,
+  type MediaThumbnailTilePropsComparable,
+} from "../utils/mediaThumbnailTileProps";
 
 type Props = {
   item: MediaArchivoListItem;
-  onOpen: () => void;
-  onDelete?: () => void;
+  onOpenById: (archivoId: number) => void;
+  onDeleteById?: (archivoId: number) => void;
   deleting?: boolean;
 };
 
-export function MediaThumbnailTile({ item, onOpen, onDelete, deleting }: Props) {
+function MediaThumbnailTileInner({ item, onOpenById, onDeleteById, deleting }: Props) {
   const isImg = item.content_type.startsWith("image/");
   const { phase, thumbUrl, rootRef, retry } = useLazyMediaDownloadUrl({
     archivoId: item.archivo_id,
     enabled: isImg,
   });
+
+  const handleOpen = useCallback(() => {
+    onOpenById(item.archivo_id);
+  }, [item.archivo_id, onOpenById]);
+
+  const handleDelete = useCallback(
+    (e: MouseEvent) => {
+      e.stopPropagation();
+      onDeleteById?.(item.archivo_id);
+    },
+    [item.archivo_id, onDeleteById]
+  );
 
   const ariaLabel = isImg
     ? `Ver imagen: ${item.original_filename}`
@@ -31,7 +48,7 @@ export function MediaThumbnailTile({ item, onOpen, onDelete, deleting }: Props) 
   return (
     <ImageListItem
       sx={{ cursor: "pointer" }}
-      onClick={onOpen}
+      onClick={handleOpen}
       aria-label={ariaLabel}
     >
       <Box
@@ -42,7 +59,7 @@ export function MediaThumbnailTile({ item, onOpen, onDelete, deleting }: Props) 
         onKeyDown={(e) => {
           if (e.key === "Enter" || e.key === " ") {
             e.preventDefault();
-            onOpen();
+            handleOpen();
           }
         }}
         sx={{
@@ -100,18 +117,17 @@ export function MediaThumbnailTile({ item, onOpen, onDelete, deleting }: Props) 
               loading="lazy"
               style={{ width: "100%", height: 96, objectFit: "cover" }}
             />
-          ) : null
+          ) : (
+            <Skeleton variant="rectangular" width="100%" height={96} />
+          )
         ) : (
           <StackLikePdf />
         )}
-        {onDelete ? (
+        {onDeleteById ? (
           <Box
             component="button"
             type="button"
-            onClick={(e) => {
-              e.stopPropagation();
-              onDelete();
-            }}
+            onClick={handleDelete}
             disabled={deleting}
             sx={{
               position: "absolute",
@@ -140,6 +156,20 @@ export function MediaThumbnailTile({ item, onOpen, onDelete, deleting }: Props) 
     </ImageListItem>
   );
 }
+
+function tileMemoCompare(prev: Props, next: Props): boolean {
+  const comparable = (p: Props): MediaThumbnailTilePropsComparable => ({
+    item: p.item,
+    deleting: p.deleting,
+    hasDelete: Boolean(p.onDeleteById),
+  });
+  if (!mediaThumbnailTilePropsAreEqual(comparable(prev), comparable(next))) {
+    return false;
+  }
+  return prev.onOpenById === next.onOpenById && prev.onDeleteById === next.onDeleteById;
+}
+
+export const MediaThumbnailTile = memo(MediaThumbnailTileInner, tileMemoCompare);
 
 function StackLikePdf() {
   return (

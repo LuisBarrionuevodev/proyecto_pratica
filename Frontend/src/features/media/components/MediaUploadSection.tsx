@@ -1,5 +1,5 @@
-import { useRef } from "react";
-import { Box, ImageList, Stack, Typography } from "@mui/material";
+import { memo, useRef } from "react";
+import { Box, Stack, Typography } from "@mui/material";
 import { AppButton } from "../../../ui";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import {
@@ -10,7 +10,7 @@ import {
   type MediaCategoria,
 } from "../mediaConstants";
 import type { MediaArchivoListItem, MediaQueuedFile } from "../mediaTypes";
-import { MediaThumbnailTile } from "./MediaThumbnailTile";
+import { MediaGalleryServerThumbnails } from "./MediaGalleryServerThumbnails";
 import { safeFilesFromFileList } from "../utils/safeFileSelection";
 import { MediaUploadQueue } from "./MediaUploadQueue";
 
@@ -31,7 +31,9 @@ type Props = {
   pendingPhaseLabel?: string;
 };
 
-export function MediaUploadSection({
+const noopOpenById = (_archivoId: number) => undefined;
+
+function MediaUploadSectionInner({
   categoria,
   items,
   serverCount = 0,
@@ -44,6 +46,7 @@ export function MediaUploadSection({
   pendingQueueTitle = "Fotos pendientes de carga",
   pendingPhaseLabel = "Pendiente de carga",
 }: Props) {
+  const openReadyById = noopOpenById;
   const inputRef = useRef<HTMLInputElement>(null);
   const label = MEDIA_CATEGORY_LABELS[categoria];
   const hint = MEDIA_CATEGORY_HINTS[categoria];
@@ -80,11 +83,12 @@ export function MediaUploadSection({
         </Stack>
       ) : null}
       {readyServerItems.length > 0 ? (
-        <ImageList cols={3} gap={8} sx={{ m: 0, mb: 1 }}>
-          {readyServerItems.map((item) => (
-            <MediaThumbnailTile key={item.archivo_id} item={item} onOpen={() => undefined} />
-          ))}
-        </ImageList>
+        <MediaGalleryServerThumbnails
+          items={readyServerItems}
+          deletingId={null}
+          readOnly
+          onOpenById={openReadyById}
+        />
       ) : null}
       <Stack spacing={1}>
         <input
@@ -122,3 +126,5 @@ export function MediaUploadSection({
     </Box>
   );
 }
+
+export const MediaUploadSection = memo(MediaUploadSectionInner);

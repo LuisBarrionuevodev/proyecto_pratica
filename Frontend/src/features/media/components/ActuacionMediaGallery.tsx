@@ -3,10 +3,11 @@ import {
   useCallback,
   useEffect,
   useImperativeHandle,
+  useMemo,
   useRef,
   useState,
 } from "react";
-import { Box, ImageList, Stack, Typography } from "@mui/material";
+import { Stack, Typography } from "@mui/material";
 import { deleteArchivo, getRutaItemArchivos } from "../../../api/mediaApi";
 import { useAppFeedback } from "../../../components/feedback";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
@@ -32,15 +33,13 @@ import {
   type ManualMediaSaveOutcome,
 } from "../utils/actuacionManualMediaSave";
 import type { MediaUploadOrigin } from "../mediaUploadOrigin";
+import { MediaGalleryCategoryBlock } from "./MediaGalleryCategoryBlock";
 import { MediaPreviewDialog } from "./MediaPreviewDialog";
-import { MediaThumbnailTile } from "./MediaThumbnailTile";
 import { useCrudDialogScrollContainer } from "../../../components/crudDialog";
 import { useMediaUploadPanelHold } from "../hooks/useMediaUploadPanelHold";
 import { useScrollMediaUploadPanelOnUploadStart } from "../hooks/useScrollMediaUploadPanelOnUploadStart";
 import { scheduleScrollMediaUploadPanelIntoView } from "../utils/scrollMediaUploadPanelIntoView";
 import { MediaUploadProgress } from "./MediaUploadProgress";
-import { MediaUploadSection } from "./MediaUploadSection";
-
 type Props = {
   rutaItemId: number | null | undefined;
   readOnly?: boolean;
@@ -219,25 +218,64 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
       [coordinator, data, manualSave, runAutoUploadAfterAdd]
     );
 
-    const handleDelete = async (archivoId: number) => {
-      if (!window.confirm("¿Eliminar este archivo? Esta acción no se puede deshacer.")) return;
-      setDeletingId(archivoId);
-      try {
-        await deleteArchivo(archivoId);
-        await refreshGalleryFromServer();
-        feedback.success("Archivo eliminado.");
-      } catch {
-        feedback.error("No se pudo eliminar el archivo.");
-      } finally {
-        setDeletingId(null);
+    const serverItemsIndexRef = useRef<Map<number, MediaArchivoListItem>>(new Map());
+    useEffect(() => {
+      const index = new Map<number, MediaArchivoListItem>();
+      if (data) {
+        for (const gallery of MEDIA_RUTA_ITEM_GALLERIES) {
+          for (const item of serverItemsForCategoria(data, gallery.categoria)) {
+            index.set(item.archivo_id, item);
+          }
+        }
       }
-    };
+      serverItemsIndexRef.current = index;
+    }, [data]);
 
-    const handleRetryUpload = async (localId: string) => {
-      coordinator.retryItem(localId);
-      if (manualSave) return;
-      await runAutoUploadAfterAdd();
-    };
+    const handleDelete = useCallback(
+      async (archivoId: number) => {
+        if (!window.confirm("¿Eliminar este archivo? Esta acción no se puede deshacer.")) return;
+        setDeletingId(archivoId);
+        try {
+          await deleteArchivo(archivoId);
+          await refreshGalleryFromServer();
+          feedback.success("Archivo eliminado.");
+        } catch {
+          feedback.error("No se pudo eliminar el archivo.");
+        } finally {
+          setDeletingId(null);
+        }
+      },
+      [feedback, refreshGalleryFromServer]
+    );
+
+    const onOpenById = useCallback((archivoId: number) => {
+      const item = serverItemsIndexRef.current.get(archivoId);
+      if (item) setPreview(item);
+    }, []);
+
+    const onDeleteById = useCallback(
+      (archivoId: number) => {
+        void handleDelete(archivoId);
+      },
+      [handleDelete]
+    );
+
+    const handleRetryUpload = useCallback(
+      async (localId: string) => {
+        coordinator.retryItem(localId);
+        if (manualSave) return;
+        await runAutoUploadAfterAdd();
+      },
+      [coordinator, manualSave, runAutoUploadAfterAdd]
+    );
+
+    const addFilesByCategoria = useMemo(() => {
+      const map = new Map<MediaCategoria, (files: FileList | File[]) => void>();
+      for (const gallery of MEDIA_RUTA_ITEM_GALLERIES) {
+        map.set(gallery.categoria, (files) => handleAddFiles(gallery.categoria, files));
+      }
+      return map;
+    }, [handleAddFiles]);
 
     const progressItems =
       coordinator.session.items.length > 0 ? coordinator.session.items : coordinator.allItems;
@@ -285,64 +323,26 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
           </Typography>
         ) : null}
           {error ? <Typography color="error">{error}</Typography> : null}
-          {MEDIA_RUTA_ITEM_GALLERIES.map((gallery) => {
-            const serverItems = serverItemsForCategoria(data, gallery.categoria);
-            const queueItems = coordinator.getItems(gallery.categoria);
-            const localPending = queueItems.filter((x) => x.phase !== "ready").length;
-            const used = serverItems.length + localPending;
-
-            return (
-              <Box key={gallery.categoria} sx={{ mb: 2 }}>
-                <Stack direction="row" justifyContent="space-between" alignItems="flex-start" sx={{ mb: 0.5 }}>
-                  <Box>
-                    <Typography variant="subtitle2" sx={{ color: GLASS_COLORS.textPrimary }}>
-                      {gallery.titulo}
-                    </Typography>
-                    <Typography
-                      variant="body2"
-                      sx={{ color: GLASS_COLORS.textMuted, fontStyle: "italic", mt: 0.25 }}
-                    >
-                      {gallery.ejemplos}
-                    </Typography>
-                  </Box>
-                  <Typography variant="caption" sx={{ color: GLASS_COLORS.textMuted }}>
-                    {used} / {gallery.cupo}
-                  </Typography>
-                </Stack>
-                {serverItems.length === 0 ? (
-                  <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted, py: 1 }}>
-                    Sin archivos cargados.
-                  </Typography>
-                ) : (
-                  <ImageList cols={3} gap={8} sx={{ m: 0, mb: 1 }}>
-                    {serverItems.map((item) => (
-                      <MediaThumbnailTile
-                        key={item.archivo_id}
-                        item={item}
-                        onOpen={() => setPreview(item)}
-                        onDelete={readOnly ? undefined : () => void handleDelete(item.archivo_id)}
-                        deleting={deletingId === item.archivo_id}
-                      />
-                    ))}
-                  </ImageList>
-                )}
-                {!readOnly ? (
-                  <MediaUploadSection
-                    embedded
-                    categoria={gallery.categoria}
-                    items={queueItems}
-                    serverCount={serverItems.length}
-                    onAddFiles={(files) => handleAddFiles(gallery.categoria, files)}
-                    onRemove={coordinator.removeItem}
-                    onRetry={manualSave ? undefined : (id) => void handleRetryUpload(id)}
-                    disabled={uploading || coordinator.session.active}
-                    pendingQueueTitle={pendingQueueTitle}
-                    pendingPhaseLabel={pendingPhaseLabel}
-                  />
-                ) : null}
-              </Box>
-            );
-          })}
+          {MEDIA_RUTA_ITEM_GALLERIES.map((gallery) => (
+            <MediaGalleryCategoryBlock
+              key={gallery.categoria}
+              gallery={gallery}
+              serverItems={serverItemsForCategoria(data, gallery.categoria)}
+              queueItems={coordinator.getItems(gallery.categoria)}
+              readOnly={readOnly}
+              deletingId={deletingId}
+              uploading={uploading}
+              sessionActive={coordinator.session.active}
+              manualSave={manualSave}
+              pendingQueueTitle={pendingQueueTitle}
+              pendingPhaseLabel={pendingPhaseLabel}
+              onOpenById={onOpenById}
+              onDeleteById={readOnly ? undefined : onDeleteById}
+              onAddFiles={addFilesByCategoria.get(gallery.categoria)!}
+              onRemove={coordinator.removeItem}
+              onRetry={manualSave ? undefined : handleRetryUpload}
+            />
+          ))}
         </Stack>
       </>
     );

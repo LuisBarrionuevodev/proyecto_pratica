@@ -35,7 +35,7 @@ describe("MediaThumbnailTile RESP-ACT.1", () => {
   it("imagen no muestra barra con nombre ni KB", () => {
     const html = renderToStaticMarkup(
       <ThemeProvider theme={theme}>
-        <MediaThumbnailTile item={imageItem} onOpen={() => undefined} />
+        <MediaThumbnailTile item={imageItem} onOpenById={() => undefined} />
       </ThemeProvider>
     );
     expect(html).toContain('aria-label="Ver imagen: foto_local.jpg"');
@@ -47,7 +47,7 @@ describe("MediaThumbnailTile RESP-ACT.1", () => {
     getMediaDownloadUrl.mockClear();
     const html = renderToStaticMarkup(
       <ThemeProvider theme={theme}>
-        <MediaThumbnailTile item={pdfItem} onOpen={() => undefined} />
+        <MediaThumbnailTile item={pdfItem} onOpenById={() => undefined} />
       </ThemeProvider>
     );
     expect(html).toContain("acta.pdf");
