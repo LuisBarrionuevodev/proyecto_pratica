@@ -14,12 +14,24 @@ import CloseIcon from "@mui/icons-material/Close";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import DownloadIcon from "@mui/icons-material/Download";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import { getMediaDownloadUrl } from "../../../api/mediaApi";
 import type { MediaArchivoListItem } from "../mediaTypes";
+import {
+  adjacentPreviewArchivoId,
+  buildMediaPreviewDialogTitle,
+  getMediaPreviewNavState,
+  shouldCloseMediaPreview,
+} from "../utils/mediaPreviewNavigation";
 
-type Props = {
+export type MediaPreviewDialogProps = {
   open: boolean;
-  item: MediaArchivoListItem | null;
+  /** Ítems READY de una sola categoría (orden de galería). */
+  items: MediaArchivoListItem[];
+  /** archivo_id con el que abrir el visor. */
+  activeArchivoId: number | null;
+  categoryLabel: string;
   onClose: () => void;
 };
 
@@ -27,9 +39,18 @@ const MIN_SCALE = 1;
 const MAX_SCALE = 4;
 const SCALE_STEP = 0.5;
 
-export function MediaPreviewDialog({ open, item, onClose }: Props) {
+const NAV_BUTTON_SX = { minWidth: 44, minHeight: 44 };
+
+export function MediaPreviewDialog({
+  open,
+  items,
+  activeArchivoId,
+  categoryLabel,
+  onClose,
+}: MediaPreviewDialogProps) {
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
+  const [userNavigatedArchivoId, setUserNavigatedArchivoId] = useState<number | null>(null);
   const [url, setUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,6 +67,29 @@ export function MediaPreviewDialog({ open, item, onClose }: Props) {
   }, []);
 
   useEffect(() => {
+    if (!open) setUserNavigatedArchivoId(null);
+  }, [open]);
+
+  useEffect(() => {
+    setUserNavigatedArchivoId(null);
+  }, [activeArchivoId]);
+
+  const viewArchivoId =
+    open && activeArchivoId != null
+      ? userNavigatedArchivoId ?? activeArchivoId
+      : null;
+
+  useEffect(() => {
+    if (!open) return;
+    if (shouldCloseMediaPreview(items, viewArchivoId)) {
+      onClose();
+    }
+  }, [items, viewArchivoId, open, onClose]);
+
+  const nav = getMediaPreviewNavState(items, viewArchivoId);
+  const item = nav.index >= 0 ? items[nav.index] : null;
+
+  useEffect(() => {
     if (!open || !item) {
       setUrl(null);
       setError(null);
@@ -55,6 +99,7 @@ export function MediaPreviewDialog({ open, item, onClose }: Props) {
     let cancelled = false;
     setLoading(true);
     setError(null);
+    setUrl(null);
     resetView();
     getMediaDownloadUrl(item.archivo_id)
       .then((res) => {
@@ -70,6 +115,33 @@ export function MediaPreviewDialog({ open, item, onClose }: Props) {
       cancelled = true;
     };
   }, [open, item?.archivo_id, resetView]);
+
+  const goPrevious = useCallback(() => {
+    if (!viewArchivoId) return;
+    const prevId = adjacentPreviewArchivoId(items, viewArchivoId, "previous");
+    if (prevId != null) setUserNavigatedArchivoId(prevId);
+  }, [items, viewArchivoId]);
+
+  const goNext = useCallback(() => {
+    if (!viewArchivoId) return;
+    const nextId = adjacentPreviewArchivoId(items, viewArchivoId, "next");
+    if (nextId != null) setUserNavigatedArchivoId(nextId);
+  }, [items, viewArchivoId]);
+
+  useEffect(() => {
+    if (!open || !nav.showNav) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") {
+        e.preventDefault();
+        goPrevious();
+      } else if (e.key === "ArrowRight") {
+        e.preventDefault();
+        goNext();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [open, nav.showNav, goPrevious, goNext]);
 
   const handleClose = () => {
     resetView();
@@ -113,12 +185,41 @@ export function MediaPreviewDialog({ open, item, onClose }: Props) {
   };
 
   const isPdf = item?.content_type === "application/pdf";
+  const showSideNav = nav.showNav && Boolean(url && item && !isPdf);
+  const showBottomNav = nav.showNav && Boolean(item && (!url || isPdf));
+
+  const titlePrimary = buildMediaPreviewDialogTitle(
+    categoryLabel,
+    nav,
+    item?.original_filename
+  );
+
+  const prevButton = (
+    <IconButton
+      onClick={goPrevious}
+      disabled={!nav.canGoPrevious}
+      aria-label="Evidencia anterior"
+      sx={NAV_BUTTON_SX}
+    >
+      <ChevronLeftIcon />
+    </IconButton>
+  );
+  const nextButton = (
+    <IconButton
+      onClick={goNext}
+      disabled={!nav.canGoNext}
+      aria-label="Evidencia siguiente"
+      sx={NAV_BUTTON_SX}
+    >
+      <ChevronRightIcon />
+    </IconButton>
+  );
 
   return (
     <Dialog open={open} onClose={handleClose} fullScreen={fullScreen} maxWidth="lg" fullWidth>
       <DialogTitle sx={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 1 }}>
         <Typography variant="subtitle1" noWrap sx={{ flex: 1 }}>
-          {item?.original_filename ?? "Archivo"}
+          {titlePrimary}
         </Typography>
         <Stack direction="row" spacing={0.5} alignItems="center">
           {url && !isPdf ? (
@@ -149,6 +250,11 @@ export function MediaPreviewDialog({ open, item, onClose }: Props) {
         </Stack>
       </DialogTitle>
       <DialogContent>
+        {nav.counter != null && item ? (
+          <Typography variant="caption" display="block" sx={{ mb: 0.5 }} noWrap>
+            {item.original_filename}
+          </Typography>
+        ) : null}
         {loading ? <Typography>Cargando…</Typography> : null}
         {error ? <Typography color="error">{error}</Typography> : null}
         {item ? (
@@ -170,40 +276,51 @@ export function MediaPreviewDialog({ open, item, onClose }: Props) {
           </Stack>
         ) : null}
         {url && item && !isPdf ? (
-          <Box
-            ref={viewportRef}
-            onPointerDown={onPointerDown}
-            onPointerMove={onPointerMove}
-            onPointerUp={onPointerUp}
-            onPointerLeave={onPointerUp}
-            onDoubleClick={onDoubleClick}
-            sx={{
-              overflow: "hidden",
-              height: fullScreen ? "calc(100vh - 140px)" : "70vh",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              bgcolor: "action.hover",
-              borderRadius: 1,
-              touchAction: scale > 1 ? "none" : "manipulation",
-              cursor: scale > 1 ? "grab" : "zoom-in",
-            }}
-          >
+          <Box sx={{ display: "flex", alignItems: "stretch", gap: 0.5 }}>
+            {showSideNav ? prevButton : null}
             <Box
-              component="img"
-              src={url}
-              alt={item.original_filename}
+              ref={viewportRef}
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerLeave={onPointerUp}
+              onDoubleClick={onDoubleClick}
               sx={{
-                maxWidth: "100%",
-                maxHeight: "100%",
-                objectFit: "contain",
-                transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
-                transformOrigin: "center center",
-                userSelect: "none",
+                flex: 1,
+                overflow: "hidden",
+                height: fullScreen ? "calc(100vh - 140px)" : "70vh",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                bgcolor: "action.hover",
+                borderRadius: 1,
+                touchAction: scale > 1 ? "none" : "manipulation",
+                cursor: scale > 1 ? "grab" : "zoom-in",
               }}
-              draggable={false}
-            />
+            >
+              <Box
+                component="img"
+                src={url}
+                alt={item.original_filename}
+                sx={{
+                  maxWidth: "100%",
+                  maxHeight: "100%",
+                  objectFit: "contain",
+                  transform: `translate(${pan.x}px, ${pan.y}px) scale(${scale})`,
+                  transformOrigin: "center center",
+                  userSelect: "none",
+                }}
+                draggable={false}
+              />
+            </Box>
+            {showSideNav ? nextButton : null}
           </Box>
+        ) : null}
+        {showBottomNav ? (
+          <Stack direction="row" justifyContent="center" spacing={1} sx={{ mt: 2 }}>
+            {prevButton}
+            {nextButton}
+          </Stack>
         ) : null}
       </DialogContent>
     </Dialog>

@@ -12,6 +12,7 @@ import { deleteArchivo, getRutaItemArchivos } from "../../../api/mediaApi";
 import { useAppFeedback } from "../../../components/feedback";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import {
+  MEDIA_CATEGORY_LABELS,
   MEDIA_CATEGORIA_FOTO_ACTA,
   MEDIA_CATEGORIA_FOTO_DOCUMENTACION_LOCAL,
   MEDIA_CATEGORIA_FOTO_INSPECCION,
@@ -95,7 +96,10 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
     const { resetAll: resetUploadQueue } = coordinator;
     const [data, setData] = useState<RutaItemArchivosListResponse | null>(null);
     const [error, setError] = useState<string | null>(null);
-    const [preview, setPreview] = useState<MediaArchivoListItem | null>(null);
+    const [preview, setPreview] = useState<{
+      categoria: MediaCategoria;
+      archivoId: number;
+    } | null>(null);
     const [deletingId, setDeletingId] = useState<number | null>(null);
     const [uploading, setUploading] = useState(false);
     const uploadInFlightRef = useRef(false);
@@ -218,18 +222,29 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
       [coordinator, data, manualSave, runAutoUploadAfterAdd]
     );
 
-    const serverItemsIndexRef = useRef<Map<number, MediaArchivoListItem>>(new Map());
+    const previewItems = useMemo(
+      () => (preview ? serverItemsForCategoria(data, preview.categoria) : []),
+      [data, preview]
+    );
+    const previewCategoryLabel = preview ? MEDIA_CATEGORY_LABELS[preview.categoria] : "";
+
     useEffect(() => {
-      const index = new Map<number, MediaArchivoListItem>();
-      if (data) {
-        for (const gallery of MEDIA_RUTA_ITEM_GALLERIES) {
-          for (const item of serverItemsForCategoria(data, gallery.categoria)) {
-            index.set(item.archivo_id, item);
-          }
-        }
+      if (!preview) return;
+      if (!previewItems.some((i) => i.archivo_id === preview.archivoId)) {
+        setPreview(null);
       }
-      serverItemsIndexRef.current = index;
-    }, [data]);
+    }, [preview, previewItems]);
+
+    const openPreviewHandlers = useMemo(() => {
+      const handlers = new Map<MediaCategoria, (archivoId: number) => void>();
+      for (const gallery of MEDIA_RUTA_ITEM_GALLERIES) {
+        const categoria = gallery.categoria;
+        handlers.set(categoria, (archivoId: number) => {
+          setPreview({ categoria, archivoId });
+        });
+      }
+      return handlers;
+    }, []);
 
     const handleDelete = useCallback(
       async (archivoId: number) => {
@@ -247,11 +262,6 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
       },
       [feedback, refreshGalleryFromServer]
     );
-
-    const onOpenById = useCallback((archivoId: number) => {
-      const item = serverItemsIndexRef.current.get(archivoId);
-      if (item) setPreview(item);
-    }, []);
 
     const onDeleteById = useCallback(
       (archivoId: number) => {
@@ -309,7 +319,13 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
           items={progressItems}
           onRetry={manualSave ? undefined : (id) => void handleRetryUpload(id)}
         />
-        <MediaPreviewDialog open={preview != null} item={preview} onClose={() => setPreview(null)} />
+        <MediaPreviewDialog
+          open={preview != null}
+          items={previewItems}
+          activeArchivoId={preview?.archivoId ?? null}
+          categoryLabel={previewCategoryLabel}
+          onClose={() => setPreview(null)}
+        />
         <Stack spacing={2}>
         {!hideTitle ? (
           <Typography variant="subtitle1" sx={{ color: GLASS_COLORS.textPrimary }}>
@@ -336,7 +352,7 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
               manualSave={manualSave}
               pendingQueueTitle={pendingQueueTitle}
               pendingPhaseLabel={pendingPhaseLabel}
-              onOpenById={onOpenById}
+              onOpenById={openPreviewHandlers.get(gallery.categoria)!}
               onDeleteById={readOnly ? undefined : onDeleteById}
               onAddFiles={addFilesByCategoria.get(gallery.categoria)!}
               onRemove={coordinator.removeItem}
