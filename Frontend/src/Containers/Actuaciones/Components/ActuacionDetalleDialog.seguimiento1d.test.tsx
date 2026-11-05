@@ -113,7 +113,7 @@ describe("ActuacionDetalleDialog seguimiento 1D", () => {
     expect(disabledToggles.length).toBe(0);
   });
 
-  it("modo Ver: toggles de carnet están disabled", () => {
+  it("modo Ver: seguimiento es texto documental sin toggles disabled", () => {
     const html = render(
       <ActuacionDetalleDialog
         open
@@ -128,7 +128,14 @@ describe("ActuacionDetalleDialog seguimiento 1D", () => {
         onSave={() => undefined}
       />
     );
-    expect(html).toContain("MuiToggleButton-root Mui-disabled");
+    const lecturaInicio = html.indexOf('aria-label="Ficha de la actuación"');
+    const edicionInicio = html.indexOf('aria-label="Edición de la actuación"');
+    const lectura = html.slice(lecturaInicio, edicionInicio);
+    expect(lectura).toContain("Solicitud de carnet");
+    expect(lectura).toContain("Sí");
+    expect(lectura).toContain("381 555-0100");
+    expect(lectura).not.toContain("MuiToggleButton-root");
+    expect(lectura).not.toContain("<input");
   });
 
   it("detailLoading no deshabilita toggles en edición", () => {

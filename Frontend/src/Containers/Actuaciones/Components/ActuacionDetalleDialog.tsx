@@ -54,6 +54,7 @@ import { COLORS } from "../styles/filtroStyles";
 import { ActaNumFieldLazy } from "./ActaNumFieldLazy";
 import {
   InspeccionChecklistFields,
+  displayItemNombre,
   isValidActaInspeccionNum,
 } from "./InspeccionChecklistFields";
 import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";
@@ -61,6 +62,7 @@ import {
   cantidadPersonasSinCarnetFromRow,
   estadosMapFromRow,
   itemsActaInspeccionWriteFromEstados,
+  normalizeChecklistItems,
   planChecklistHydration,
 } from "../utils/inspeccionChecklistSubmit";
 import type { ChecklistUxValue } from "../utils/inspeccionChecklistSubmit";
@@ -292,6 +294,16 @@ const lecturaValueSx = {
   whiteSpace: "pre-wrap" as const,
 } as const;
 
+const lecturaSectionTitleSx = {
+  color: GLASS_COLORS.textPrimary,
+  fontSize: "0.95rem",
+  fontWeight: 700,
+  lineHeight: 1.35,
+  letterSpacing: 0,
+  textTransform: "none" as const,
+  mb: 1.5,
+} as const;
+
 const col = { display: "flex", flexDirection: "column" as const, gap: 1.5 };
 const labelMuted = { color: GLASS_COLORS.textMuted, fontFamily: FONT_FAMILY_UI } as const;
 
@@ -349,6 +361,14 @@ function LecturaDato({
         {dash(value)}
       </Typography>
     </Box>
+  );
+}
+
+function LecturaBloque({ titulo, children }: { titulo: string; children: ReactNode }) {
+  return (
+    <DocumentalBloque overline={titulo} sectionTitleSx={lecturaSectionTitleSx}>
+      {children}
+    </DocumentalBloque>
   );
 }
 
@@ -420,10 +440,21 @@ function actasVisitaHayContenido(draft: IActuacionListItem): boolean {
   const kg = draft.decomiso_kilos_total;
   const motivosNoti = motivosNotificacionNoVacios(draft);
   const mComp = draft.comprobacion_motivo != null ? String(draft.comprobacion_motivo).trim() : "";
+  const notificacionOrigen =
+    draft.origen_reinspeccion_notificacion?.notificacion_acta_numero?.trim() ?? "";
+  const comprobacionOrigen =
+    draft.origen_reinspeccion_oficio?.comprobacion_acta_numero?.trim() ?? "";
   const showInspeccion = !!(nIns != null && String(nIns).trim() !== "");
   const showNotificacion =
-    (nNot != null && String(nNot).trim() !== "") || motivosNoti.length > 0;
-  const showComprobacion = (nComp != null && String(nComp).trim() !== "") || mComp !== "";
+    (nNot != null &&
+      String(nNot).trim() !== "" &&
+      String(nNot).trim() !== notificacionOrigen) ||
+    motivosNoti.length > 0;
+  const showComprobacion =
+    (nComp != null &&
+      String(nComp).trim() !== "" &&
+      String(nComp).trim() !== comprobacionOrigen) ||
+    mComp !== "";
   const showClausura = !!(nClau != null && String(nClau).trim() !== "");
   const showDecomiso = (nDec != null && String(nDec).trim() !== "") || kg != null;
   return showInspeccion || showNotificacion || showComprobacion || showClausura || showDecomiso;
@@ -459,11 +490,22 @@ function ActasVisitaLectura({
   const kg = draft.decomiso_kilos_total;
   const motivosNoti = motivosNotificacionNoVacios(draft);
   const mComp = draft.comprobacion_motivo != null ? String(draft.comprobacion_motivo).trim() : "";
+  const notificacionOrigen =
+    draft.origen_reinspeccion_notificacion?.notificacion_acta_numero?.trim() ?? "";
+  const comprobacionOrigen =
+    draft.origen_reinspeccion_oficio?.comprobacion_acta_numero?.trim() ?? "";
 
   const showInspeccion = !!(nIns != null && String(nIns).trim() !== "");
   const showNotificacion =
-    (nNot != null && String(nNot).trim() !== "") || motivosNoti.length > 0;
-  const showComprobacion = (nComp != null && String(nComp).trim() !== "") || mComp !== "";
+    (nNot != null &&
+      String(nNot).trim() !== "" &&
+      String(nNot).trim() !== notificacionOrigen) ||
+    motivosNoti.length > 0;
+  const showComprobacion =
+    (nComp != null &&
+      String(nComp).trim() !== "" &&
+      String(nComp).trim() !== comprobacionOrigen) ||
+    mComp !== "";
   const showClausura = !!(nClau != null && String(nClau).trim() !== "");
   const showDecomiso =
     (nDec != null && String(nDec).trim() !== "") || kg != null;
@@ -474,63 +516,115 @@ function ActasVisitaLectura({
     return null;
   }
 
-  const numNot = (nNot != null && String(nNot).trim() !== "") ? dash(nNot) : "—";
-  const numComp = (nComp != null && String(nComp).trim() !== "") ? dash(nComp) : "—";
+  const numNot =
+    nNot != null &&
+    String(nNot).trim() !== "" &&
+    String(nNot).trim() !== notificacionOrigen
+      ? dash(nNot)
+      : "—";
+  const numComp =
+    nComp != null &&
+    String(nComp).trim() !== "" &&
+    String(nComp).trim() !== comprobacionOrigen
+      ? dash(nComp)
+      : "—";
   const numDec = (nDec != null && String(nDec).trim() !== "") ? dash(nDec) : "—";
 
   const showPersonasSinCarnet =
-    !lockedNotif && isValidActaNotificacionNum(nNot != null ? String(nNot) : null);
+    !lockedNotif &&
+    isValidActaNotificacionNum(nNot != null ? String(nNot) : null) &&
+    String(nNot).trim() !== notificacionOrigen;
+  const estados = estadosMapFromRow(draft, catalog);
+  const readItems = normalizeChecklistItems(draft.items_acta_inspeccion);
+  const readById = new Map(readItems.map((item) => [item.id, item]));
+  const checklist = (
+    catalog.length > 0
+      ? catalog.map((item) => {
+          const value = estados[item.id] ?? "NONE";
+          return {
+            id: item.id,
+            label: displayItemNombre(item),
+            value:
+              value === "SI"
+                ? "Sí"
+                : value === "NO"
+                  ? "No"
+                  : value === "BIEN"
+                    ? "Bien"
+                    : value === "OBSERVADO"
+                      ? "Observado"
+                      : "—",
+          };
+        })
+      : readItems.map((item) => ({
+          id: item.id,
+          label: item.nombre?.trim() || item.codigo?.trim() || `Condición ${item.id}`,
+          value:
+            item.tipo_respuesta === "SI_NO"
+              ? item.valor_si_no === true
+                ? "Sí"
+                : item.valor_si_no === false
+                  ? "No"
+                  : "—"
+              : item.estado === "BIEN"
+                ? "Bien"
+                : item.estado === "OBSERVADO"
+                  ? "Observado"
+                  : "—",
+        }))
+  ).filter((item) => item.value !== "—" || readById.has(item.id));
 
   return (
     <Box sx={{ ...col, width: "100%" }}>
       {showInspeccion ? (
-        <>
-          <CrudFormSlot label="N° acta de inspección" mode="view" value={dash(nIns)} />
-          {catalog.length > 0 ? (
-            <InspeccionChecklistFields
-              catalog={catalog}
-              estados={estadosMapFromRow(draft, catalog)}
-              onEstadosChange={() => undefined}
-              readOnly
-            />
+        <Box>
+          <LecturaDato label="N.º acta de inspección" value={nIns} />
+          {checklist.length > 0 ? (
+            <Box sx={{ mt: 1.5 }}>
+              <Typography component="h4" sx={lecturaLabelSx}>
+                Condiciones verificadas
+              </Typography>
+              <Box sx={lecturaGridSx}>
+                {checklist.map((item) => (
+                  <LecturaDato key={item.id} label={item.label} value={item.value} />
+                ))}
+              </Box>
+            </Box>
           ) : null}
-        </>
+        </Box>
       ) : null}
-      <Box sx={edicionGrid2ColSx}>
+      <Box sx={lecturaGridSx}>
         {showNotificacion ? (
-          <CrudFormSlot label="N° acta de notificación" mode="view" value={numNot} />
+          <LecturaDato label="N.º acta de notificación" value={numNot} />
         ) : null}
         {showComprobacion ? (
-          <CrudFormSlot label="N° acta de comprobación" mode="view" value={numComp} />
+          <LecturaDato label="N.º acta de comprobación" value={numComp} />
         ) : null}
         {showClausura ? (
-          <CrudFormSlot label="N° acta de clausura" mode="view" value={dash(nClau)} />
+          <LecturaDato label="N.º acta de clausura" value={nClau} />
         ) : null}
         {showDecomiso ? (
-          <CrudFormSlot label="N° acta de decomiso" mode="view" value={numDec} />
+          <LecturaDato label="N.º acta de decomiso" value={numDec} />
         ) : null}
       </Box>
       {motivosNoti.length > 0 ? (
-        <CrudFormSlot
+        <LecturaDato
           label="Motivos de notificación"
-          mode="view"
           value={motivosNoti.join(" · ")}
-          sx={{ mt: 0.5 }}
+          fullWidth
         />
       ) : null}
       {showPersonasSinCarnet ? (
-        <CrudFormSlot
+        <LecturaDato
           label="Cantidad de personas sin carnet de sanidad"
-          mode="view"
           value={cantidadPersonasSinCarnetFromRow(draft)}
-          sx={{ mt: 0.5 }}
         />
       ) : null}
       {mComp ? (
-        <CrudFormSlot label="Motivo de comprobación" mode="view" value={mComp} sx={{ mt: 0.5 }} />
+        <LecturaDato label="Motivo de comprobación" value={mComp} />
       ) : null}
       {kg != null ? (
-        <CrudFormSlot label="Kilos decomisados" mode="view" value={`${kg} kg`} sx={{ mt: 0.5 }} />
+        <LecturaDato label="Kilos decomisados" value={`${kg} kg`} />
       ) : null}
     </Box>
   );
@@ -595,13 +689,21 @@ function gestionSeguimientoBloqueVisible(draft: IActuacionListItem): boolean {
   );
 }
 
-function resultadoSeguimientoHayContenido(draft: IActuacionListItem): boolean {
-  const res = draft.resultado_cumplimiento_oficio;
-  const tieneResultado = res != null && String(res).trim() !== "";
-  return (
-    tieneResultado ||
-    documentacionTramiteModalTieneContenido(draft) ||
-    tieneRestriccionesEdicion(draft)
+function resultadoLecturaHayContenido(draft: IActuacionListItem): boolean {
+  const circuito = draft.documentacion_contexto?.circuito;
+  const tieneResultado = Boolean(draft.resultado_cumplimiento_oficio?.trim());
+  const tieneTramitePropio =
+    circuito !== "REINSPECCION_OFICIO" &&
+    circuito !== "REINSPECCION_NOTIFICACION" &&
+    actuacionDocumentacionPropiaTramiteSegments(draft).length > 0;
+  return tieneResultado || tieneTramitePropio;
+}
+
+function antecedentesSeguimientoHayContenido(draft: IActuacionListItem): boolean {
+  return Boolean(
+    draft.origen_reinspeccion_oficio ||
+      draft.origen_reinspeccion_notificacion ||
+      gestionSeguimientoBloqueVisible(draft)
   );
 }
 
@@ -688,82 +790,157 @@ function DocumentacionTramiteModalLectura({ draft }: { draft: IActuacionListItem
   );
 }
 
-/**
- * Card "Resultado y seguimiento": solo subsecciones con dato útil; sin texto vacío ni pedagógico.
- */
-function ResultadoSeguimientoLectura({ draft }: { draft: IActuacionListItem }) {
-  const res = draft.resultado_cumplimiento_oficio;
-  const tieneResultado = res != null && String(res).trim() !== "";
-  const showDoc = documentacionTramiteModalTieneContenido(draft);
-  const showEdicion = tieneRestriccionesEdicion(draft);
+function formatNumeroAnio(
+  numero: string | number | null | undefined,
+  anio: string | number | null | undefined
+): string | null {
+  const numeroTexto = String(numero ?? "").trim();
+  if (!numeroTexto) return null;
+  const anioTexto = String(anio ?? "").trim();
+  return anioTexto ? `${numeroTexto}/${anioTexto}` : numeroTexto;
+}
 
-  if (!tieneResultado && !showDoc && !showEdicion) {
-    return null;
-  }
+function siNoLectura(value: boolean | null | undefined): string {
+  return value === true ? "Sí" : value === false ? "No" : "—";
+}
 
-  const bloques: ReactNode[] = [];
-  if (tieneResultado) {
-    bloques.push(
-      <CrudFormSlot
-        key="res"
-        label="Resultado cumplimiento oficio"
-        mode="view"
-        value={dash(res)}
-      />
-    );
-  }
-  if (showDoc) {
-    bloques.push(
-      <Box key="doc">
-        <DocumentacionTramiteModalLectura draft={draft} />
-      </Box>
-    );
-  }
-  if (showEdicion) {
-    bloques.push(
-      <Box
-        key="ed"
-        sx={{
-          p: 1.25,
-          borderRadius: 1.5,
-          bgcolor: "rgba(255,255,255,0.04)",
-          border: "1px solid rgba(255,255,255,0.08)",
-        }}
-      >
-        <Typography
-          component="h3"
-          sx={{
-            ...docModalSubheadingInCardSx,
-            fontSize: "0.6875rem",
-            opacity: 0.9,
-          }}
-        >
-          Edición en canal actas
-        </Typography>
-        <Typography
-          variant="body2"
-          sx={{
-            color: DOC_MODAL_TEXT,
-            fontSize: "0.8125rem",
-            fontWeight: 400,
-            lineHeight: 1.55,
-            mt: 1,
-            opacity: 0.88,
-          }}
-        >
-          {textoRestriccionesEdicion(draft)}
-        </Typography>
-      </Box>
-    );
-  }
+/** Resultado propio de la actuación, sin repetir antecedentes de reinspección. */
+function ResultadoOperativoLectura({ draft }: { draft: IActuacionListItem }) {
+  const circuito = draft.documentacion_contexto?.circuito;
+  const resultado = draft.resultado_cumplimiento_oficio?.trim() ?? "";
+  const tramitePropio =
+    circuito === "REINSPECCION_OFICIO" || circuito === "REINSPECCION_NOTIFICACION"
+      ? []
+      : actuacionDocumentacionPropiaTramiteSegments(draft);
+
+  return (
+    <Stack spacing={1.25}>
+      {resultado ? (
+        <LecturaDato label="Resultado de cumplimiento" value={resultado} />
+      ) : null}
+      {tramitePropio.length > 0 ? (
+        <Box>
+          <Typography component="h4" sx={lecturaLabelSx}>
+            Trámite documental
+          </Typography>
+          <Stack spacing={0.5}>
+            {tramitePropio.map((line) => (
+              <Typography key={line} component="p" variant="body2" sx={lecturaValueSx}>
+                {line}
+              </Typography>
+            ))}
+          </Stack>
+        </Box>
+      ) : null}
+    </Stack>
+  );
+}
+
+/** Antecedentes consolidados: cada dato de origen se presenta una sola vez. */
+function AntecedentesSeguimientoLectura({ draft }: { draft: IActuacionListItem }) {
+  const oficio = draft.origen_reinspeccion_oficio;
+  const notificacion = draft.origen_reinspeccion_notificacion;
+  const seguimiento = mergeActuacionSeguimientoFromApiRow(draft);
+  const policy = draft.ui_policy;
+  const origenNotificacion =
+    formatNumeroAnio(
+      notificacion?.notificacion_acta_numero,
+      notificacion?.notificacion_acta_anio
+    ) ??
+    (draft.seguimiento?.notificacion_origen_numero?.trim() || null);
+  const causa = oficio?.oficio_causa?.trim() ?? "";
+  const resultado = draft.resultado_cumplimiento_oficio?.trim() ?? "";
+  const causaAportaDato =
+    causa !== "" && causa.toLocaleLowerCase("es") !== resultado.toLocaleLowerCase("es");
 
   return (
     <Stack
-      divider={<Divider sx={{ borderColor: GLASS_COLORS.borderLight, opacity: 0.9 }} flexItem />}
-      spacing={2.25}
-      sx={{ width: "100%" }}
+      spacing={2}
+      divider={<Divider sx={{ borderColor: GLASS_COLORS.borderLight }} flexItem />}
     >
-      {bloques}
+      {oficio ? (
+        <Box>
+          <Typography component="h3" sx={docModalSubheadingInCardSx}>
+            Reinspección por oficio
+          </Typography>
+          <Box sx={{ ...lecturaGridSx, mt: 1 }}>
+            {formatNumeroAnio(
+              oficio.comprobacion_acta_numero,
+              oficio.comprobacion_acta_anio
+            ) ? (
+              <LecturaDato
+                label="Comprobación de origen"
+                value={formatNumeroAnio(
+                  oficio.comprobacion_acta_numero,
+                  oficio.comprobacion_acta_anio
+                )}
+              />
+            ) : null}
+            {formatNumeroAnio(oficio.expediente_numero, oficio.expediente_anio) ? (
+              <LecturaDato
+                label="Expediente"
+                value={formatNumeroAnio(oficio.expediente_numero, oficio.expediente_anio)}
+              />
+            ) : null}
+            {formatNumeroAnio(oficio.oficio_numero, oficio.oficio_anio) ? (
+              <LecturaDato
+                label="Oficio"
+                value={formatNumeroAnio(oficio.oficio_numero, oficio.oficio_anio)}
+              />
+            ) : null}
+            {causaAportaDato ? <LecturaDato label="Causa" value={causa} fullWidth /> : null}
+          </Box>
+        </Box>
+      ) : null}
+
+      {notificacion || policy?.mostrar_subsanacion_notificacion ? (
+        <Box>
+          <Typography component="h3" sx={docModalSubheadingInCardSx}>
+            Reinspección por notificación
+          </Typography>
+          <Box sx={{ ...lecturaGridSx, mt: 1 }}>
+            {origenNotificacion ? (
+              <LecturaDato label="Notificación de origen" value={origenNotificacion} />
+            ) : null}
+            {notificacion &&
+            formatNumeroAnio(notificacion.expediente_numero, notificacion.expediente_anio) ? (
+              <LecturaDato
+                label="Expediente"
+                value={formatNumeroAnio(
+                  notificacion.expediente_numero,
+                  notificacion.expediente_anio
+                )}
+              />
+            ) : null}
+            {policy?.mostrar_subsanacion_notificacion ? (
+              <LecturaDato
+                label="Faltas subsanadas"
+                value={siNoLectura(seguimiento.faltas_notificacion_subsanadas)}
+              />
+            ) : null}
+          </Box>
+        </Box>
+      ) : null}
+
+      {policy?.mostrar_solicitud_carnet_manipulador ? (
+        <Box>
+          <Typography component="h3" sx={docModalSubheadingInCardSx}>
+            Solicitud de carnet
+          </Typography>
+          <Box sx={{ ...lecturaGridSx, mt: 1 }}>
+            <LecturaDato
+              label="Solicita carnet de manipulador"
+              value={siNoLectura(seguimiento.solicita_carnet_manipulador)}
+            />
+            {seguimiento.telefono_contacto_solicitud_carnet?.trim() ? (
+              <LecturaDato
+                label="Teléfono de contacto"
+                value={seguimiento.telefono_contacto_solicitud_carnet.trim()}
+              />
+            ) : null}
+          </Box>
+        </Box>
+      ) : null}
     </Stack>
   );
 }
@@ -1617,8 +1794,8 @@ export function ActuacionDetalleDialog({
     const totalEvid = draft.epicollect_evidencias_total ?? 0;
     const tieneEvidenciasEpicollect = totalEvid > 0 && gruposEvid.length > 0;
     const tieneActas = actasVisitaHayContenido(draft);
-    const tieneSeguimiento = gestionSeguimientoBloqueVisible(draft);
-    const tieneResultado = resultadoSeguimientoHayContenido(draft);
+    const tieneResultado = resultadoLecturaHayContenido(draft);
+    const tieneAntecedentes = antecedentesSeguimientoHayContenido(draft);
     const observaciones = observacionesVisitaDisplayText(draft);
     const contribuyenteNombre =
       formatGestionContribuyenteNombre(draft) || draft.razon_social || "—";
@@ -1632,7 +1809,24 @@ export function ActuacionDetalleDialog({
       component="section"
       aria-label="Ficha de la actuación"
     >
-      <DocumentalBloque overline="Establecimiento">
+      <LecturaBloque titulo="Visita y actuación">
+        <Box sx={lecturaGridSx}>
+          <LecturaDato label="Fecha" value={draft.fecha_actuacion} />
+          <LecturaDato label="Tipo de actuación" value={draft.tipo_actuacion} />
+          <LecturaDato
+            label="Inspectores"
+            value={draft.inspectores_texto?.trim() || inspectoresLinea(draft)}
+          />
+          {contraproducencia ? (
+            <LecturaDato label="Contraproducencia" value={contraproducencia} />
+          ) : null}
+          {observaciones !== "—" ? (
+            <LecturaDato label="Observaciones de visita" value={observaciones} fullWidth />
+          ) : null}
+        </Box>
+      </LecturaBloque>
+
+      <LecturaBloque titulo="Establecimiento">
         <Box sx={lecturaGridSx}>
           <LecturaDato
             label="Nombre de fantasía / razón social"
@@ -1662,7 +1856,7 @@ export function ActuacionDetalleDialog({
               </Typography>
             </Box>
             <AppButton
-              dsVariant="ghost"
+              dsVariant="primary"
               dsSize="sm"
               onClick={() => {
                 onClose();
@@ -1673,9 +1867,9 @@ export function ActuacionDetalleDialog({
             </AppButton>
           </Box>
         ) : null}
-      </DocumentalBloque>
+      </LecturaBloque>
 
-      <DocumentalBloque overline="Domicilio">
+      <LecturaBloque titulo="Domicilio">
         <Typography component="p" variant="body1" sx={{ ...lecturaValueSx, fontSize: "0.95rem", fontWeight: 600 }}>
           {domicilioLinea}
         </Typography>
@@ -1684,33 +1878,16 @@ export function ActuacionDetalleDialog({
             <LecturaDato label="Tipo de numeración" value={numeroTipoVisible} />
           </Box>
         ) : null}
-      </DocumentalBloque>
+      </LecturaBloque>
 
-      <DocumentalBloque overline="Contribuyente">
+      <LecturaBloque titulo="Contribuyente">
         <Box sx={lecturaGridSx}>
           <LecturaDato label="CUIT / DNI" value={draft.doc_nro} />
           <LecturaDato label="Nombre o razón social" value={contribuyenteNombre} />
         </Box>
-      </DocumentalBloque>
+      </LecturaBloque>
 
-      <DocumentalBloque overline="Visita y actuación">
-        <Box sx={lecturaGridSx}>
-          <LecturaDato label="Fecha" value={draft.fecha_actuacion} />
-          <LecturaDato label="Tipo de actuación" value={draft.tipo_actuacion} />
-          <LecturaDato
-            label="Inspectores"
-            value={draft.inspectores_texto?.trim() || inspectoresLinea(draft)}
-          />
-          {contraproducencia ? (
-            <LecturaDato label="Contraproducencia" value={contraproducencia} />
-          ) : null}
-          {observaciones !== "—" ? (
-            <LecturaDato label="Observaciones de visita" value={observaciones} fullWidth />
-          ) : null}
-        </Box>
-      </DocumentalBloque>
-
-      <DocumentalBloque overline="Actas y resultado">
+      <LecturaBloque titulo="Actas y resultado">
         <Stack spacing={2} divider={<Divider sx={{ borderColor: GLASS_COLORS.borderLight }} />}>
           {tieneActas ? (
               <Box>
@@ -1730,36 +1907,27 @@ export function ActuacionDetalleDialog({
               Sin actas labradas
             </Typography>
           )}
-          {tieneSeguimiento && !formEditingActive ? (
-              <Box>
-                <Typography component="h3" sx={docModalSubheadingInCardSx}>
-                  Seguimiento
-                </Typography>
-                <Box sx={{ mt: 1 }}>
-                  <ActaSeguimientoGestionFields
-                    draft={draft}
-                    fieldErrors={fieldErrors}
-                    saving={saving}
-                    readOnly
-                  />
-                </Box>
-              </Box>
-          ) : null}
           {tieneResultado ? (
               <Box>
                 <Typography component="h3" sx={docModalSubheadingInCardSx}>
                   Resultado operativo
                 </Typography>
                 <Box sx={{ mt: 1 }}>
-                  <ResultadoSeguimientoLectura draft={draft} />
+                  <ResultadoOperativoLectura draft={draft} />
                 </Box>
               </Box>
           ) : null}
         </Stack>
-      </DocumentalBloque>
+      </LecturaBloque>
+
+      {tieneAntecedentes ? (
+        <LecturaBloque titulo="Antecedentes y seguimiento">
+          <AntecedentesSeguimientoLectura draft={draft} />
+        </LecturaBloque>
+      ) : null}
 
       {tieneSnapshotEpicollectLectura || tieneEvidenciasEpicollect ? (
-        <DocumentalBloque overline="Evidencias de campo">
+        <LecturaBloque titulo="Evidencias de campo">
           {tieneSnapshotEpicollectLectura ? (
             <BloqueEpicollectDetalleLectura
               draft={draft}
@@ -1772,11 +1940,11 @@ export function ActuacionDetalleDialog({
             <Divider sx={{ borderColor: GLASS_COLORS.borderLight, my: 1.5 }} />
           ) : null}
           {tieneEvidenciasEpicollect ? <BloqueEvidenciasEpicollect draft={draft} embedded /> : null}
-        </DocumentalBloque>
+        </LecturaBloque>
       ) : null}
     </Stack>
     );
-  }, [draft, catalogs.itemsActaInspeccion, epicollectOtrosExpanded, fieldErrors, saving, formEditingActive, onClose, navigate, toggleEpicollectOtros]);
+  }, [draft, catalogs.itemsActaInspeccion, epicollectOtrosExpanded, formEditingActive, onClose, navigate, toggleEpicollectOtros]);
 
   const edicionVista = useMemo(() => {
     const e = (key: string) => fieldErrors[key] ?? oficioFieldErrors[key] ?? "";
@@ -2575,7 +2743,10 @@ export function ActuacionDetalleDialog({
           ) : null}
           {edicionVista}
         </Box>
-        <DocumentalBloque overline="Fotos y documentación">
+        <DocumentalBloque
+          overline="Fotos y documentación"
+          sectionTitleSx={!formEditingActive ? lecturaSectionTitleSx : undefined}
+        >
           <MediaUploadPanelErrorBoundary
             resetKey={`${draft.id}-${draft.ruta_item_id ?? 0}`}
             rutaItemId={draft.ruta_item_id ?? null}

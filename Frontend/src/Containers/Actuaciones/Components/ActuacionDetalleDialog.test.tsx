@@ -65,6 +65,10 @@ function lecturaMarkup(html: string): string {
   return html.slice(start, end);
 }
 
+function occurrences(text: string, needle: string): number {
+  return text.split(needle).length - 1;
+}
+
 
 
 const baseRow: IActuacionListItem = {
@@ -324,6 +328,124 @@ describe("ActuacionDetalleDialog", () => {
     const lectura = lecturaMarkup(html);
     expect(lectura).not.toContain("Contraproducencia");
     expect(lectura).toContain("Sin actas labradas");
+  });
+
+  it("modo lectura presenta checklist y habilitación como texto, sin toggles", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={{
+          ...baseRow,
+          items_acta_inspeccion: [
+            { id: 1, codigo: "TIENE_BANO", nombre: "Baño", estado: "BIEN" },
+            {
+              id: 6,
+              codigo: "TIENE_HABILITACION",
+              nombre: "Tiene habilitación",
+              tipo_respuesta: "SI_NO",
+              valor_si_no: true,
+            },
+          ],
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogsWithChecklist}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    const lectura = lecturaMarkup(html);
+    expect(lectura).toContain("Condiciones verificadas");
+    expect(lectura).toContain("Baño");
+    expect(lectura).toContain("Bien");
+    expect(lectura).toContain("Tiene habilitación");
+    expect(lectura).toContain("Sí");
+    expect(lectura).not.toContain("MuiToggleButton-root");
+    expect(lectura).not.toContain("<input");
+  });
+
+  it("modo lectura consolida una sola vez antecedentes por oficio", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={{
+          ...baseRow,
+          acta_comprobacion_num: "000200",
+          resultado_cumplimiento_oficio: "Cumple",
+          notificacion_editable: false,
+          comprobacion_editable: false,
+          documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+          origen_reinspeccion_oficio: {
+            comprobacion_acta_numero: "000200",
+            comprobacion_acta_anio: 2025,
+            expediente_numero: "EXP-9",
+            expediente_anio: 2025,
+            oficio_numero: "OF-8",
+            oficio_anio: 2025,
+            oficio_causa: "Control de cumplimiento",
+          },
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    const lectura = lecturaMarkup(html);
+    expect(occurrences(lectura, "Reinspección por oficio")).toBe(1);
+    expect(occurrences(lectura, "000200/2025")).toBe(1);
+    expect(occurrences(lectura, "EXP-9/2025")).toBe(1);
+    expect(occurrences(lectura, "OF-8/2025")).toBe(1);
+    expect(occurrences(lectura, "Control de cumplimiento")).toBe(1);
+    expect(occurrences(lectura, "Cumple")).toBe(1);
+    expect(lectura).not.toContain("Edición en canal actas");
+  });
+
+  it("modo lectura consolida notificación de origen y faltas subsanadas", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={{
+          ...baseRow,
+          acta_notificacion_num: "000050",
+          documentacion_contexto: { circuito: "REINSPECCION_NOTIFICACION", propia: {} },
+          origen_reinspeccion_notificacion: {
+            notificacion_acta_numero: "000050",
+            notificacion_acta_anio: 2025,
+          },
+          seguimiento: {
+            faltas_notificacion_subsanadas: true,
+            notificacion_origen_numero: "000050",
+          },
+          ui_policy: {
+            mostrar_solicitud_carnet_manipulador: false,
+            mostrar_subsanacion_notificacion: true,
+            puede_editar_seguimiento: true,
+          },
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    const lectura = lecturaMarkup(html);
+    expect(occurrences(lectura, "Reinspección por notificación")).toBe(1);
+    expect(occurrences(lectura, "000050/2025")).toBe(1);
+    expect(occurrences(lectura, "Notificación de origen")).toBe(1);
+    expect(occurrences(lectura, "Faltas subsanadas")).toBe(1);
+    expect(lectura).not.toContain("MuiToggleButton-root");
   });
 
 
