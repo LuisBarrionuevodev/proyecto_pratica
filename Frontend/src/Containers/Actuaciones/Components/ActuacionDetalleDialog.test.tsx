@@ -3,6 +3,7 @@
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 
 import { MemoryRouter } from "react-router-dom";
+import { readFileSync } from "node:fs";
 
 import { describe, expect, it, vi } from "vitest";
 
@@ -14,7 +15,11 @@ import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 
 import { MENSAJE_BLOQUEO_EXPEDIENTE_EDICION } from "../utils/actuacionEditRules";
 
-import { ActuacionDetalleDialog } from "./ActuacionDetalleDialog";
+import {
+  ActuacionDetalleDialog,
+  actuacionDetalleDomicilioLinea,
+  actuacionDetalleNumeroTipoVisible,
+} from "./ActuacionDetalleDialog";
 
 
 
@@ -52,6 +57,12 @@ function render(ui: React.ReactElement) {
 
   );
 
+}
+
+function lecturaMarkup(html: string): string {
+  const start = html.indexOf('aria-label="Ficha de la actuación"');
+  const end = html.indexOf('aria-label="Edición de la actuación"');
+  return html.slice(start, end);
 }
 
 
@@ -233,11 +244,86 @@ describe("ActuacionDetalleDialog", () => {
     );
     const start = html.indexOf('aria-label="Ficha de la actuación"');
     const end = html.indexOf('aria-label="Edición de la actuación"');
-    const lectura = html.slice(start, end);
+    const lectura = lecturaMarkup(html);
     expect(start).toBeGreaterThanOrEqual(0);
     expect(end).toBeGreaterThan(start);
     expect(lectura).toContain("Nombre de fantasía / razón social");
     expect(lectura).not.toContain("<input");
+  });
+
+  it("modo lectura une calle y altura y oculta el tipo NUMERO", () => {
+    const draft = {
+      ...baseRow,
+      calle: "República del Líbano",
+      numero: "1709",
+      numero_tipo: "NUMERO",
+      domicilio: undefined,
+    };
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={draft}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    const lectura = lecturaMarkup(html);
+    expect(lectura).toContain("República del Líbano 1709");
+    expect(lectura).not.toContain("Tipo de numeración");
+    expect(actuacionDetalleDomicilioLinea(draft)).toBe("República del Líbano 1709");
+    expect(actuacionDetalleNumeroTipoVisible("NÚMERO")).toBeNull();
+  });
+
+  it.each([
+    ["ESQUINA", "Esquina"],
+    ["SIN_NUMERO", "Sin número"],
+  ])("modo lectura conserva el tipo especial %s", (numeroTipo, label) => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={{ ...baseRow, numero_tipo: numeroTipo }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(lecturaMarkup(html)).toContain(label);
+    expect(actuacionDetalleNumeroTipoVisible(numeroTipo)).toBe(label);
+  });
+
+  it("modo lectura omite contraproducencia vacía y documenta ausencia de actas", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={{
+          ...baseRow,
+          contraproducencia: null,
+          acta_inspeccion_num: null,
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    const lectura = lecturaMarkup(html);
+    expect(lectura).not.toContain("Contraproducencia");
+    expect(lectura).toContain("Sin actas labradas");
   });
 
 
@@ -402,6 +488,12 @@ describe("ActuacionDetalleDialog", () => {
 
     expect(html).toContain("Ver establecimiento");
 
+  });
+
+  it("Ver establecimiento conserva cierre y navegación existentes", () => {
+    const source = readFileSync(new URL("./ActuacionDetalleDialog.tsx", import.meta.url), "utf8");
+    expect(source).toContain("onClose();");
+    expect(source).toContain("navigate(`/establecimientos/${draft.establecimiento_operativo_id}`);");
   });
 
 

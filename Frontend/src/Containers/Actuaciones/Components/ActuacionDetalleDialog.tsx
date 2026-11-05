@@ -272,9 +272,10 @@ const lecturaGridSx = {
 } as const;
 
 const lecturaLabelSx = {
-  color: GLASS_COLORS.textSecondary,
-  fontSize: "0.6875rem",
+  color: DOC_MODAL_TEXT,
+  fontSize: "0.72rem",
   fontWeight: 700,
+  opacity: 0.82,
   textTransform: "uppercase" as const,
   letterSpacing: "0.04em",
   display: "block",
@@ -356,6 +357,41 @@ function actuacionHeaderReference(row: IActuacionListItem): string | null {
   if (!reference?.startsWith("OT ")) return reference;
   const year = String(row.fecha_actuacion ?? "").match(/^(\d{4})/)?.[1];
   return year ? `${reference} · ${year}` : reference;
+}
+
+function titleCaseNumeroTipo(value: string): string {
+  return value
+    .toLocaleLowerCase("es")
+    .replaceAll("_", " ")
+    .replace(/\b\p{L}/gu, (letter) => letter.toLocaleUpperCase("es"));
+}
+
+/** Línea principal del domicilio en la ficha de lectura. */
+export function actuacionDetalleDomicilioLinea(row: IActuacionListItem): string {
+  const calle = String(row.domicilio?.calle ?? row.calle ?? "").trim();
+  const numeroTipo = String(row.numero_tipo ?? "").trim().toUpperCase();
+  const complemento = String(
+    numeroTipo === "ESQUINA"
+      ? row.domicilio?.esquina ?? row.domicilio?.numero ?? row.numero ?? ""
+      : row.domicilio?.numero ?? row.domicilio?.esquina ?? row.numero ?? ""
+  ).trim();
+  if (!calle) return complemento || "—";
+  if (!complemento) return calle;
+  return numeroTipo === "ESQUINA" ? `${calle} y ${complemento}` : `${calle} ${complemento}`;
+}
+
+/** Oculta NUMERO/NÚMERO por ser el caso convencional; presenta los casos especiales. */
+export function actuacionDetalleNumeroTipoVisible(
+  numeroTipo: string | null | undefined
+): string | null {
+  const raw = String(numeroTipo ?? "").trim();
+  if (!raw) return null;
+  const normalized = raw.normalize("NFD").replace(/\p{Diacritic}/gu, "").toUpperCase();
+  if (normalized === "NUMERO") return null;
+  if (normalized === "SIN_NUMERO") return "Sin número";
+  if (normalized === "ESQUINA") return "Esquina";
+  if (normalized === "REFERENCIA") return "Referencia";
+  return titleCaseNumeroTipo(raw);
 }
 
 /** Texto de vinculación a establecimiento sin exponer IDs internos. */
@@ -1586,9 +1622,16 @@ export function ActuacionDetalleDialog({
     const observaciones = observacionesVisitaDisplayText(draft);
     const contribuyenteNombre =
       formatGestionContribuyenteNombre(draft) || draft.razon_social || "—";
+    const domicilioLinea = actuacionDetalleDomicilioLinea(draft);
+    const numeroTipoVisible = actuacionDetalleNumeroTipoVisible(draft.numero_tipo);
+    const contraproducencia = String(draft.contraproducencia ?? "").trim();
 
     return (
-    <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Ficha de la actuación">
+    <Stack
+      spacing={DOC_MODAL_BLOCK_STACK_SPACING}
+      component="section"
+      aria-label="Ficha de la actuación"
+    >
       <DocumentalBloque overline="Establecimiento">
         <Box sx={lecturaGridSx}>
           <LecturaDato
@@ -1598,9 +1641,28 @@ export function ActuacionDetalleDialog({
           <LecturaDato label="Rubro" value={formatGestionRubroNombre(draft)} />
         </Box>
         {draft.establecimiento_operativo_id != null && !formEditingActive ? (
-          <Box sx={{ mt: 1.5 }}>
+          <Box
+            sx={{
+              mt: 1.5,
+              pt: 1.25,
+              borderTop: `1px solid ${GLASS_COLORS.borderLight}`,
+              display: "flex",
+              flexDirection: { xs: "column", sm: "row" },
+              alignItems: { xs: "flex-start", sm: "center" },
+              justifyContent: "space-between",
+              gap: 1,
+            }}
+          >
+            <Box sx={{ minWidth: 0 }}>
+              <Typography component="span" sx={lecturaLabelSx}>
+                Vinculación a ficha de establecimiento
+              </Typography>
+              <Typography component="p" variant="body2" sx={lecturaValueSx}>
+                {establecimientoVinculacionTexto(draft)}
+              </Typography>
+            </Box>
             <AppButton
-              dsVariant="secondary"
+              dsVariant="ghost"
               dsSize="sm"
               onClick={() => {
                 onClose();
@@ -1614,25 +1676,20 @@ export function ActuacionDetalleDialog({
       </DocumentalBloque>
 
       <DocumentalBloque overline="Domicilio">
-        <Box sx={lecturaGridSx}>
-          <LecturaDato label="Calle" value={draft.domicilio?.calle ?? draft.calle} />
-          <LecturaDato
-            label="Altura o referencia"
-            value={draft.domicilio?.numero ?? draft.domicilio?.esquina ?? draft.numero}
-          />
-          <LecturaDato label="Tipo de numeración" value={draft.numero_tipo} fullWidth />
-        </Box>
+        <Typography component="p" variant="body1" sx={{ ...lecturaValueSx, fontSize: "0.95rem", fontWeight: 600 }}>
+          {domicilioLinea}
+        </Typography>
+        {numeroTipoVisible ? (
+          <Box sx={{ mt: 1 }}>
+            <LecturaDato label="Tipo de numeración" value={numeroTipoVisible} />
+          </Box>
+        ) : null}
       </DocumentalBloque>
 
       <DocumentalBloque overline="Contribuyente">
         <Box sx={lecturaGridSx}>
           <LecturaDato label="CUIT / DNI" value={draft.doc_nro} />
           <LecturaDato label="Nombre o razón social" value={contribuyenteNombre} />
-          <LecturaDato
-            label="Vinculación a ficha de establecimiento"
-            value={establecimientoVinculacionTexto(draft)}
-            fullWidth
-          />
         </Box>
       </DocumentalBloque>
 
@@ -1644,17 +1701,18 @@ export function ActuacionDetalleDialog({
             label="Inspectores"
             value={draft.inspectores_texto?.trim() || inspectoresLinea(draft)}
           />
-          <LecturaDato label="Contraproducencia" value={draft.contraproducencia} />
+          {contraproducencia ? (
+            <LecturaDato label="Contraproducencia" value={contraproducencia} />
+          ) : null}
           {observaciones !== "—" ? (
             <LecturaDato label="Observaciones de visita" value={observaciones} fullWidth />
           ) : null}
         </Box>
       </DocumentalBloque>
 
-      {tieneActas || tieneSeguimiento || tieneResultado ? (
-        <DocumentalBloque overline="Actas y resultado">
-          <Stack spacing={2} divider={<Divider sx={{ borderColor: GLASS_COLORS.borderLight }} />}>
-            {tieneActas ? (
+      <DocumentalBloque overline="Actas y resultado">
+        <Stack spacing={2} divider={<Divider sx={{ borderColor: GLASS_COLORS.borderLight }} />}>
+          {tieneActas ? (
               <Box>
                 <Typography component="h3" sx={docModalSubheadingInCardSx}>
                   Actas labradas
@@ -1667,8 +1725,12 @@ export function ActuacionDetalleDialog({
                   />
                 </Box>
               </Box>
-            ) : null}
-            {tieneSeguimiento && !formEditingActive ? (
+          ) : (
+            <Typography component="p" variant="body2" sx={lecturaValueSx}>
+              Sin actas labradas
+            </Typography>
+          )}
+          {tieneSeguimiento && !formEditingActive ? (
               <Box>
                 <Typography component="h3" sx={docModalSubheadingInCardSx}>
                   Seguimiento
@@ -1682,8 +1744,8 @@ export function ActuacionDetalleDialog({
                   />
                 </Box>
               </Box>
-            ) : null}
-            {tieneResultado ? (
+          ) : null}
+          {tieneResultado ? (
               <Box>
                 <Typography component="h3" sx={docModalSubheadingInCardSx}>
                   Resultado operativo
@@ -1692,10 +1754,9 @@ export function ActuacionDetalleDialog({
                   <ResultadoSeguimientoLectura draft={draft} />
                 </Box>
               </Box>
-            ) : null}
-          </Stack>
-        </DocumentalBloque>
-      ) : null}
+          ) : null}
+        </Stack>
+      </DocumentalBloque>
 
       {tieneSnapshotEpicollectLectura || tieneEvidenciasEpicollect ? (
         <DocumentalBloque overline="Evidencias de campo">
@@ -2492,7 +2553,12 @@ export function ActuacionDetalleDialog({
         />
       }
     >
-      <Box sx={{ position: "relative" }}>
+      <Box
+        sx={{
+          position: "relative",
+          pb: formEditingActive ? 0 : { xs: 4, sm: 3 },
+        }}
+      >
         <Box sx={{ display: formEditingActive ? "none" : "block" }} aria-hidden={formEditingActive}>
           {detalleVista}
         </Box>
