@@ -40,6 +40,7 @@ import { isReinspeccionPorNotificacion } from "./actuacionesExportPdfResumen";
 import {
   buildGestionSeguimientoPutFields,
   stripGestionSeguimientoDisallowedFromPut,
+  stripGestionSeguimientoResidualFromPut,
 } from "./actuacionGestionSeguimientoPut";
 import { buildObservacionesEjecucionPutFields } from "./actuacionObservacionesVisitaPut";
 import { buildActuacionUpdatePayload } from "./buildActuacionUpdatePayload";
@@ -455,12 +456,18 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   const actasQuitarEnPutTransaccional =
     actasPendingClear.length > 0 && (esReinspeccionNotificacion || tieneContraproducenciaFinal);
 
-  const gestionUiPolicy = rowToSubmit.ui_policy ?? null;
-  const seguimientoPutFields = buildGestionSeguimientoPutFields(rowToSubmit, gestionUiPolicy);
+  const gestionUiPolicy = rowToSubmit.ui_policy ?? originalRow?.ui_policy ?? null;
+  const seguimientoPutFields = buildGestionSeguimientoPutFields(
+    rowToSubmit,
+    gestionUiPolicy,
+    originalRow
+  );
   const observacionesPutFields = buildObservacionesEjecucionPutFields(rowToSubmit);
   const rowForCanal = stripGestionSeguimientoDisallowedFromPut(
     {
-      ...sanitizeActuacionRowForCanalActasPut(rowToSubmit),
+      ...stripGestionSeguimientoResidualFromPut(
+        sanitizeActuacionRowForCanalActasPut(rowToSubmit)
+      ),
       ...seguimientoPutFields,
       ...observacionesPutFields,
     },

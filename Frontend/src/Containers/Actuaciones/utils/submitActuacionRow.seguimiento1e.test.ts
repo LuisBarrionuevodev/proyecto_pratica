@@ -58,12 +58,13 @@ describe("submitActuacionRow seguimiento PUT 1E", () => {
     vi.mocked(updateActuacion).mockClear();
   });
 
-  it("incluye teléfono de seguimiento en el body del PUT", async () => {
+  it("incluye teléfono de seguimiento en el body del PUT si cambió respecto de la baseline", async () => {
+    const original = { ...baseRow(), solicita_carnet_manipulador: false, telefono_contacto_solicitud_carnet: null };
     const row = baseRow();
     const result = await submitActuacionRow({
       id: 42,
       fullRow: row,
-      originalRow: row,
+      originalRow: original,
       skipValidation: false,
       skipUpdate: false,
     });

@@ -90,4 +90,18 @@ describe("validateGestionSeguimientoFields", () => {
     });
     expect(Object.keys(errors)).toHaveLength(0);
   });
+
+  it("no valida seguimiento hidratado si la baseline no cambió", () => {
+    const row = {
+      ...base,
+      ui_policy: {
+        mostrar_solicitud_carnet_manipulador: true,
+        mostrar_subsanacion_notificacion: false,
+        puede_editar_seguimiento: true,
+      },
+      solicita_carnet_manipulador: true,
+      telefono_contacto_solicitud_carnet: "",
+    };
+    expect(validateGestionSeguimientoFields(row, row)).toEqual({});
+  });
 });

@@ -136,6 +136,8 @@ export type ActuacionFormValidationContext = {
   usaActasNuevaInspeccion?: boolean;
   /** Mis trabajos (Inspector): inspectores son solo lectura; no validar mínimo 2. */
   skipInspectoresValidation?: boolean;
+  /** Baseline de edición: no validar Seguimiento si el usuario no lo cambió. */
+  originalRow?: IActuacionListItem | null;
   /**
    * Alias estricto de `usaActasNuevaInspeccion` (FIX.4.1 / FIX.6.1).
    * True solo en Verificar + SI_INSPECCION; false explícito en otras ramas Oficio.
@@ -368,7 +370,10 @@ export function validateActuacionFormForSubmit(
   }
 
   if (crudEdit && "ui_policy" in form && (form as IActuacionListItem).ui_policy) {
-    Object.assign(fieldErrors, validateGestionSeguimientoFields(form as IActuacionListItem));
+    Object.assign(
+      fieldErrors,
+      validateGestionSeguimientoFields(form as IActuacionListItem, context.originalRow)
+    );
   }
 
   const globalError = buildActuacionFormGlobalError(fieldErrors, [...rowMessages, ...warnings]);
@@ -442,6 +447,7 @@ export function actuacionCrudValidationContext(
     skipNotificacionActaRules:
       isReinspeccionPorNotificacion(row) || !editable.canEditNotificacion || skipNotifPorOficio,
     skipInspectoresValidation: opts?.inspectorSelfService === true,
+    originalRow: opts?.originalRow ?? null,
   };
 }
 

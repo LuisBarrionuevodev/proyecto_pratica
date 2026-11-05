@@ -15,44 +15,84 @@ export function resolveActuacionGestionUiPolicy(
   return row.ui_policy ?? null;
 }
 
-/**
- * Campos de seguimiento para el body del PUT (tras sanitizar la fila).
- * Usa `ui_policy` capturada antes de `sanitizeActuacionRowForCanalActasPut`.
- */
-export function buildGestionSeguimientoPutFields(
-  row: IActuacionListItem,
-  policy: IActuacionGestionUiPolicy | null | undefined
-): Pick<
+export const GESTION_SEGUIMIENTO_PUT_KEYS = [
+  "solicita_carnet_manipulador",
+  "telefono_contacto_solicitud_carnet",
+  "faltas_notificacion_subsanadas",
+] as const;
+
+export type GestionSeguimientoPutFields = Pick<
   IActuacionListItem,
   | "solicita_carnet_manipulador"
   | "telefono_contacto_solicitud_carnet"
   | "faltas_notificacion_subsanadas"
-> {
-  const out: Pick<
-    IActuacionListItem,
-    | "solicita_carnet_manipulador"
-    | "telefono_contacto_solicitud_carnet"
-    | "faltas_notificacion_subsanadas"
-  > = {};
-  if (!policy?.puede_editar_seguimiento) {
+>;
+
+function normalizeSeguimientoBool(value: unknown): boolean | null {
+  return value === true ? true : value === false ? false : null;
+}
+
+function normalizeSeguimientoTelefono(value: unknown): string | null {
+  const trimmed = String(value ?? "").trim();
+  return trimmed || null;
+}
+
+function seguimientoCarnetSnapshot(row: IActuacionListItem): {
+  solicita: boolean | null;
+  telefono: string | null;
+} {
+  const merged = mergeActuacionSeguimientoFromApiRow(row);
+  const solicita = normalizeSeguimientoBool(merged.solicita_carnet_manipulador);
+  return {
+    solicita,
+    telefono: solicita === true ? normalizeSeguimientoTelefono(merged.telefono_contacto_solicitud_carnet) : null,
+  };
+}
+
+function seguimientoSubsanacionSnapshot(row: IActuacionListItem): boolean | null {
+  const merged = mergeActuacionSeguimientoFromApiRow(row);
+  return normalizeSeguimientoBool(merged.faltas_notificacion_subsanadas);
+}
+
+/** Quita siempre del body residual los tres campos de Seguimiento. */
+export function stripGestionSeguimientoResidualFromPut(row: IActuacionListItem): IActuacionListItem {
+  const copy: Record<string, unknown> = { ...row };
+  for (const key of GESTION_SEGUIMIENTO_PUT_KEYS) {
+    delete copy[key];
+  }
+  return copy as unknown as IActuacionListItem;
+}
+
+/**
+ * Campos de seguimiento para el body del PUT (tras sanitizar la fila).
+ * Solo reinserta lo que cambió semánticamente respecto de la baseline de edición.
+ */
+export function buildGestionSeguimientoPutFields(
+  row: IActuacionListItem,
+  policy: IActuacionGestionUiPolicy | null | undefined,
+  baseline?: IActuacionListItem | null
+): GestionSeguimientoPutFields {
+  const out: GestionSeguimientoPutFields = {};
+  if (!policy?.puede_editar_seguimiento || !baseline) {
     return out;
   }
-  const merged = mergeActuacionSeguimientoFromApiRow(row);
 
   if (policy.mostrar_solicitud_carnet_manipulador) {
-    const sol = merged.solicita_carnet_manipulador;
-    if (sol === true || sol === false) {
-      out.solicita_carnet_manipulador = sol;
-      out.telefono_contacto_solicitud_carnet = sol
-        ? (merged.telefono_contacto_solicitud_carnet ?? "").trim() || null
-        : null;
+    const current = seguimientoCarnetSnapshot(row);
+    const original = seguimientoCarnetSnapshot(baseline);
+    if (current.solicita !== original.solicita || current.telefono !== original.telefono) {
+      if (current.solicita === true || current.solicita === false) {
+        out.solicita_carnet_manipulador = current.solicita;
+        out.telefono_contacto_solicitud_carnet = current.solicita ? current.telefono : null;
+      }
     }
   }
 
   if (policy.mostrar_subsanacion_notificacion) {
-    const subs = merged.faltas_notificacion_subsanadas;
-    if (subs === true || subs === false) {
-      out.faltas_notificacion_subsanadas = subs;
+    const current = seguimientoSubsanacionSnapshot(row);
+    const original = seguimientoSubsanacionSnapshot(baseline);
+    if (current !== original && (current === true || current === false)) {
+      out.faltas_notificacion_subsanadas = current;
     }
   }
 
@@ -119,16 +159,55 @@ export function stripActuacionRowForListStorage(
 
 /** Validación cliente de seguimiento antes del PUT de Gestión. */
 export function validateGestionSeguimientoFields(
-  row: IActuacionListItem
+  row: IActuacionListItem,
+  baseline?: IActuacionListItem | null
 ): Record<string, string> {
   const policy = resolveActuacionGestionUiPolicy(row);
   if (!policy?.puede_editar_seguimiento) {
     return {};
   }
+  if (baseline) {
+    const pending = buildGestionSeguimientoPutFields(row, policy, baseline);
+    if (Object.keys(pending).length === 0) {
+      return {};
+    }
+    return validateGestionSeguimientoPutFields(row, policy, pending);
+  }
+  return validateGestionSeguimientoPutFields(
+    row,
+    policy,
+    buildGestionSeguimientoPutFieldsForValidation(row, policy)
+  );
+}
+
+function buildGestionSeguimientoPutFieldsForValidation(
+  row: IActuacionListItem,
+  policy: IActuacionGestionUiPolicy
+): GestionSeguimientoPutFields {
+  const out: GestionSeguimientoPutFields = {};
+  const merged = mergeActuacionSeguimientoFromApiRow(row);
+  if (policy.mostrar_solicitud_carnet_manipulador) {
+    out.solicita_carnet_manipulador = merged.solicita_carnet_manipulador ?? undefined;
+    out.telefono_contacto_solicitud_carnet = merged.telefono_contacto_solicitud_carnet ?? null;
+  }
+  if (policy.mostrar_subsanacion_notificacion) {
+    out.faltas_notificacion_subsanadas = merged.faltas_notificacion_subsanadas ?? undefined;
+  }
+  return out;
+}
+
+function validateGestionSeguimientoPutFields(
+  row: IActuacionListItem,
+  policy: IActuacionGestionUiPolicy,
+  pending: GestionSeguimientoPutFields
+): Record<string, string> {
   const merged = mergeActuacionSeguimientoFromApiRow(row);
   const errors: Record<string, string> = {};
+  const enviaCarnet =
+    "solicita_carnet_manipulador" in pending || "telefono_contacto_solicitud_carnet" in pending;
+  const enviaSubs = "faltas_notificacion_subsanadas" in pending;
 
-  if (policy.mostrar_solicitud_carnet_manipulador) {
+  if (policy.mostrar_solicitud_carnet_manipulador && enviaCarnet) {
     const sol = merged.solicita_carnet_manipulador;
     if (sol !== true && sol !== false) {
       errors.solicita_carnet_manipulador = "Indique si solicita carnet de manipulador.";
@@ -141,7 +220,7 @@ export function validateGestionSeguimientoFields(
     }
   }
 
-  if (policy.mostrar_subsanacion_notificacion) {
+  if (policy.mostrar_subsanacion_notificacion && enviaSubs) {
     const subs = merged.faltas_notificacion_subsanadas;
     if (subs !== true && subs !== false) {
       errors.faltas_notificacion_subsanadas =

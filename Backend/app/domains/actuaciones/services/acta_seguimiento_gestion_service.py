@@ -145,12 +145,21 @@ def _upsert_solicitud_carnet_gestion(
     telefono_raw: str | None,
     actor_user_id: int,
 ) -> None:
+    """
+    Crea o actualiza la solicitud de carnet de una actuación de Gestión.
+
+    Requiere `domicilio.contribuyente_id` real. Si falta, el error se asocia a
+    `solicita_carnet_manipulador` (no a `doc_nro`).
+
+    Errores:
+        ValidationError: falta inspección o contribuyente vinculado al domicilio.
+    """
     insp = _resolve_inspeccion(act)
     dom = act.domicilio
     contrib_id = getattr(dom, "contribuyente_id", None) if dom else None
     if contrib_id is None:
         _field_error(
-            ("doc_nro",),
+            ("solicita_carnet_manipulador",),
             "Para registrar solicitud de carnet se requiere contribuyente en el domicilio de la actuación.",
         )
     tel: str | None = None

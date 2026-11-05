@@ -6,6 +6,7 @@ import {
   stripActuacionRowForListStorage,
   buildGestionSeguimientoPutFields,
   stripGestionSeguimientoDisallowedFromPut,
+  stripGestionSeguimientoResidualFromPut,
 } from "./actuacionGestionSeguimientoPut";
 
 const baseRow = (): IActuacionListItem =>
@@ -101,7 +102,7 @@ describe("actuacionGestionSeguimientoPut", () => {
     expect(stripped.seguimiento).toBeUndefined();
   });
 
-  it("buildGestionSeguimientoPutFields incluye teléfono con policy explícita", () => {
+  it("buildGestionSeguimientoPutFields no envía seguimiento sin baseline o sin cambio", () => {
     const row = {
       ...baseRow(),
       ui_policy: {
@@ -110,13 +111,37 @@ describe("actuacionGestionSeguimientoPut", () => {
         puede_editar_seguimiento: true,
       },
     };
-    const fields = buildGestionSeguimientoPutFields(row, row.ui_policy);
+    expect(buildGestionSeguimientoPutFields(row, row.ui_policy)).toEqual({});
+    expect(buildGestionSeguimientoPutFields(row, row.ui_policy, row)).toEqual({});
+  });
+
+  it("buildGestionSeguimientoPutFields incluye teléfono solo si cambió semánticamente", () => {
+    const policy = {
+      mostrar_solicitud_carnet_manipulador: true,
+      mostrar_subsanacion_notificacion: false,
+      puede_editar_seguimiento: true,
+    };
+    const original = {
+      ...baseRow(),
+      ui_policy: policy,
+      solicita_carnet_manipulador: false,
+      telefono_contacto_solicitud_carnet: null,
+    };
+    const row = {
+      ...original,
+      solicita_carnet_manipulador: true,
+      telefono_contacto_solicitud_carnet: "351",
+    };
+    const fields = buildGestionSeguimientoPutFields(row, policy, original);
+    expect(fields.solicita_carnet_manipulador).toBe(true);
     expect(fields.telefono_contacto_solicitud_carnet).toBe("351");
-    const stripped = stripGestionSeguimientoDisallowedFromPut(
-      { ...row, ui_policy: undefined },
-      row.ui_policy
-    );
-    expect(stripped.telefono_contacto_solicitud_carnet).toBe("351");
+  });
+
+  it("stripGestionSeguimientoResidualFromPut quita siempre los tres campos", () => {
+    const stripped = stripGestionSeguimientoResidualFromPut(baseRow());
+    expect(stripped.solicita_carnet_manipulador).toBeUndefined();
+    expect(stripped.telefono_contacto_solicitud_carnet).toBeUndefined();
+    expect(stripped.faltas_notificacion_subsanadas).toBeUndefined();
   });
 
   it("applyGestionSeguimientoDraftToRow respeta policy", () => {

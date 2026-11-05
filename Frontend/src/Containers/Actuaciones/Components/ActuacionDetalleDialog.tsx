@@ -1612,7 +1612,7 @@ export function ActuacionDetalleDialog({
     }
 
     const segErrors = {
-      ...validateGestionSeguimientoFields(rowForSubmit),
+      ...validateGestionSeguimientoFields(rowForSubmit, editBaseline),
       ...validateObservacionesVisitaFields(rowForSubmit),
     };
     if (Object.keys(segErrors).length > 0) {
