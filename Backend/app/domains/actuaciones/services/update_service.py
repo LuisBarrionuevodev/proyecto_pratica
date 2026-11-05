@@ -202,6 +202,22 @@ def _sincronizar_domicilio_relevamiento_direccion_incorrecta_si_aplica(
         db.session.add(ini)
 
 
+def _contribuyente_payload_identificado(data: Any) -> bool:
+    """
+    True si el fragmento de contribuyente trae documento usable.
+
+    Un PUT ordinario no debe reasignar `domicilio.contribuyente_id` cuando llegan
+    campos de identidad incompletos o nulos (problema de frontend). El clear
+    explícito usa `contribuyente is None` (`limpiar_contribuyente`).
+    """
+    if not isinstance(data, dict):
+        return False
+    doc = data.get("doc_nro")
+    if doc is None:
+        return False
+    return bool(str(doc).strip())
+
+
 def aplicar_payload_actuacion(
     act: Actuaciones,
     payload: Dict[str, Any],
@@ -287,10 +303,12 @@ def aplicar_payload_actuacion(
     contrib = None
     contrib_clear = False
     if "contribuyente" in payload and not es_oficio_circuito:
-        if payload.get("contribuyente") is None:
+        raw_contrib = payload.get("contribuyente")
+        if raw_contrib is None:
             contrib_clear = True
-        else:
-            contrib = resolve_contribuyente(payload.get("contribuyente"))
+        elif _contribuyente_payload_identificado(raw_contrib):
+            contrib = resolve_contribuyente(raw_contrib)
+        # IDENTIDAD.1: identidad incompleta/nula no desvincula ni reasigna contribuyente_id.
     if "domicilio" in payload and not es_oficio_circuito:
         dom_payload = payload.get("domicilio") or {}
         ini_operativo = resolve_iniciador_operativo_actuacion(act_id) if act_id else None
@@ -300,7 +318,11 @@ def aplicar_payload_actuacion(
         # si mandan domicilio, exige que rubro/contrib estén presentes o ya existan
         if rubro is None:
             rubro = get_rubro_o_falla(payload.get("rubro_nombre"))
-        if contrib is None and not contrib_clear and payload.get("contribuyente"):
+        if (
+            contrib is None
+            and not contrib_clear
+            and _contribuyente_payload_identificado(payload.get("contribuyente"))
+        ):
             contrib = resolve_contribuyente(payload.get("contribuyente"))
 
         # Permitir domicilio sin rubro/contribuyente si no hay tipo y sí contraproducencia

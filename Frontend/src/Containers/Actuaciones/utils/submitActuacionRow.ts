@@ -28,7 +28,12 @@ import {
 } from "../validations/actuacionFormValidation";
 import { normalizeActuacionRowForCrudSubmit, detectActasClearedByUser } from "../validations/actuacionFormNormalize";
 import { applyContraproducenciaClearFlag } from "./contraproducenciaCrudOptions";
-import { applyContribuyenteClearFlag } from "./contribuyenteCrudOptions";
+import {
+  applyContribuyenteClearFlag,
+  buildGestionIdentidadPutFields,
+  stripGestionIdentidadResidualFromPut,
+  type ContribuyenteIdentityTouched,
+} from "./contribuyenteCrudOptions";
 import { detectBlockedActaClearAttempt } from "./actuacionEditRules";
 import {
   stripUntouchedInspeccionChecklistFromPut,
@@ -321,6 +326,8 @@ export type SubmitActuacionRowParams = {
   oficioValidationContext?: ReinspeccionOficioValidationContextInput;
   /** Semántica touched para checklist de inspección (legacy PUT protection). */
   inspeccionChecklistTouched?: { items?: boolean; carnets?: boolean };
+  /** Campos de identidad que el usuario tocó en el modal de edición. */
+  contribuyenteIdentityTouched?: ContribuyenteIdentityTouched;
   inspeccionChecklistCatalog?: import("../../../api/itemActaInspeccionCatalogApi").IItemActaInspeccionCatalogItem[];
   skipValidation: boolean;
   /** Inspector Mis trabajos: omitir POST /grid/validate-row (rol sin acceso al grid masivo). */
@@ -350,6 +357,7 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     actasClearedByOficioCorrection = [],
     oficioValidationContext,
     inspeccionChecklistTouched,
+    contribuyenteIdentityTouched,
     inspeccionChecklistCatalog,
     skipValidation,
     skipGridRowValidation = false,
@@ -463,12 +471,21 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     originalRow
   );
   const observacionesPutFields = buildObservacionesEjecucionPutFields(rowToSubmit);
+  const omiteIdentidadPut =
+    omiteIdentidadOperativaRow(rowToSubmit) ||
+    (originalRow != null && omiteIdentidadOperativaRow(originalRow));
+  const identidadPutFields = omiteIdentidadPut
+    ? {}
+    : buildGestionIdentidadPutFields(rowToSubmit, originalRow, contribuyenteIdentityTouched);
   const rowForCanal = stripGestionSeguimientoDisallowedFromPut(
     {
-      ...stripGestionSeguimientoResidualFromPut(
-        sanitizeActuacionRowForCanalActasPut(rowToSubmit)
+      ...stripGestionIdentidadResidualFromPut(
+        stripGestionSeguimientoResidualFromPut(
+          sanitizeActuacionRowForCanalActasPut(rowToSubmit)
+        )
       ),
       ...seguimientoPutFields,
+      ...identidadPutFields,
       ...observacionesPutFields,
     },
     gestionUiPolicy

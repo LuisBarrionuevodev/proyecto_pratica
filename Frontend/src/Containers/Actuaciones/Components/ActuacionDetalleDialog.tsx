@@ -124,6 +124,13 @@ import {
   validateGestionSeguimientoFields,
 } from "../utils/actuacionGestionSeguimientoPut";
 import {
+  CONTRIBUYENTE_CLEAR_CONFIRM_TITLE,
+  applyExplicitContribuyenteClear,
+  identitySnapshot,
+  shouldPromptContribuyenteClear,
+  type ContribuyenteIdentityTouched,
+} from "../utils/contribuyenteCrudOptions";
+import {
   OBSERVACIONES_VISITA_MAX_LENGTH,
   canEditObservacionesVisita,
   observacionesVisitaDisplayText,
@@ -185,6 +192,7 @@ export type ActuacionSaveOptions = {
   /** Estado destino del formulario Oficio para validación CRUD contextualizada. */
   oficioValidationContext?: ReinspeccionOficioValidationContextInput;
   inspeccionChecklistTouched?: { items?: boolean; carnets?: boolean };
+  contribuyenteIdentityTouched?: ContribuyenteIdentityTouched;
   inspeccionChecklistCatalog?: IItemActaInspeccionCatalogItem[];
   /** Mantiene el modal abierto tras PUT exitoso (p. ej. subida manual de fotos). */
   deferDialogClose?: boolean;
@@ -1306,6 +1314,9 @@ export function ActuacionDetalleDialog({
   const verificarInconsistentWarnedRef = useRef<number | string | null>(null);
   const mediaGalleryRef = useRef<ActuacionMediaGalleryHandle | null>(null);
   const [mediaDiscardConfirmOpen, setMediaDiscardConfirmOpen] = useState(false);
+  const [contribuyenteClearConfirmOpen, setContribuyenteClearConfirmOpen] = useState(false);
+  const pendingClearRowRef = useRef<IActuacionListItem | null>(null);
+  const identidadTouchedRef = useRef<ContribuyenteIdentityTouched>({});
   const [isEditing, setIsEditing] = useState(initialEditing);
   const [photosOnlyMode, setPhotosOnlyMode] = useState(false);
   const [editBaseline, setEditBaseline] = useState<IActuacionListItem | null>(null);
@@ -1377,6 +1388,9 @@ export function ActuacionDetalleDialog({
       setOficioFieldErrors({});
       verificarInconsistentWarnedRef.current = null;
       actaFlushRegistry.current.clear();
+      identidadTouchedRef.current = {};
+      pendingClearRowRef.current = null;
+      setContribuyenteClearConfirmOpen(false);
     }
     // Solo al abrir o cambiar de actuación: no resetear si el padre actualiza `draft` al entrar en edición.
   }, [open, draft.id, initialEditing, resetOficioFormFromRow]);
@@ -1496,6 +1510,7 @@ export function ActuacionDetalleDialog({
     }
     const hydrated = domicilioRowParaEdicionCalle({ ...draft });
     setEditBaseline({ ...hydrated });
+    identidadTouchedRef.current = {};
     setIsEditing(true);
     const patch: Partial<IActuacionListItem> = {};
     if (hydrated.calle !== draft.calle) patch.calle = hydrated.calle;
@@ -1526,19 +1541,25 @@ export function ActuacionDetalleDialog({
       feedback.error(MENSAJE_ERROR_GRAVE);
       return;
     }
-    const baseline = editBaseline ?? draft;
-    const blockedMsg = detectBlockedActaClearAttempt(draft, baseline);
+    const startingRow = pendingClearRowRef.current ?? draft;
+    pendingClearRowRef.current = null;
+    const baseline = editBaseline ?? startingRow;
+    if (shouldPromptContribuyenteClear(baseline, startingRow, identidadTouchedRef.current)) {
+      setContribuyenteClearConfirmOpen(true);
+      return;
+    }
+    const blockedMsg = detectBlockedActaClearAttempt(startingRow, baseline);
     if (blockedMsg) {
       feedback.warning(blockedMsg);
       return;
     }
 
-    let rowForSubmit: IActuacionListItem = draft;
+    let rowForSubmit: IActuacionListItem = startingRow;
     let oficioCorrectionApplied = false;
     let actasClearedByOficioCorrection: ActaCanalQuitarTipo[] = [];
-    const actasToClear = detectActasClearedByUser(baseline, draft).map((a) => a.tipo);
+    const actasToClear = detectActasClearedByUser(baseline, startingRow).map((a) => a.tipo);
 
-    const oficioCtx = resolveReinspeccionOficioFormContext({ row: draft, mode: "edit" });
+    const oficioCtx = resolveReinspeccionOficioFormContext({ row: startingRow, mode: "edit" });
     if (oficioCtx && editableFields.canEditResultadoOperativo) {
       const tieneActas = tieneActasInspeccionNormalPersistidas(draft);
       const validation = validateReinspeccionOficioForm({
@@ -1590,7 +1611,7 @@ export function ActuacionDetalleDialog({
           const updated = await corregirCierreOficio(Number(draft.id), payload);
           rowForSubmit = mergeActuacionAfterOficioCorrection({
             correctedRow: updated,
-            pendingDraft: draft,
+            pendingDraft: startingRow,
           });
           oficioCorrectionApplied = true;
           if (actasToClear.length > 0) {
@@ -1641,6 +1662,7 @@ export function ActuacionDetalleDialog({
           items: checklistItemsTouchedRef.current,
           carnets: personasSinCarnetTouchedRef.current,
         },
+        contribuyenteIdentityTouched: { ...identidadTouchedRef.current },
         inspeccionChecklistCatalog: catalogs.itemsActaInspeccion ?? [],
         deferDialogClose: true,
       });
@@ -1735,6 +1757,7 @@ export function ActuacionDetalleDialog({
     if (plan === "act_change") {
       checklistItemsTouchedRef.current = false;
       personasSinCarnetTouchedRef.current = false;
+      identidadTouchedRef.current = {};
       hydratedChecklistActIdRef.current = draft.id;
       setChecklistEstados(estadosMapFromRow(draft, catalog));
       return;
@@ -2193,7 +2216,10 @@ export function ActuacionDetalleDialog({
               appearance="glass"
               label="N.º de documento"
               value={draft.doc_nro ?? ""}
-              onChange={(ev) => onDraftChange({ doc_nro: ev.target.value })}
+              onChange={(ev) => {
+                identidadTouchedRef.current = { ...identidadTouchedRef.current, doc_nro: true };
+                onDraftChange({ doc_nro: ev.target.value });
+              }}
               disabled={!canContrib}
               error={!!e("doc_nro")}
               helperText={fieldHelper("doc_nro")}
@@ -2204,7 +2230,13 @@ export function ActuacionDetalleDialog({
               appearance="glass"
               label="Apellido"
               value={draft.contrib_apellido ?? ""}
-              onChange={(ev) => onDraftChange({ contrib_apellido: ev.target.value })}
+              onChange={(ev) => {
+                identidadTouchedRef.current = {
+                  ...identidadTouchedRef.current,
+                  contrib_apellido: true,
+                };
+                onDraftChange({ contrib_apellido: ev.target.value });
+              }}
               disabled={!canContrib}
               error={!!e("contrib_apellido")}
               helperText={fieldHelper("contrib_apellido")}
@@ -2215,7 +2247,13 @@ export function ActuacionDetalleDialog({
               appearance="glass"
               label="Nombre"
               value={draft.contrib_nombre ?? ""}
-              onChange={(ev) => onDraftChange({ contrib_nombre: ev.target.value })}
+              onChange={(ev) => {
+                identidadTouchedRef.current = {
+                  ...identidadTouchedRef.current,
+                  contrib_nombre: true,
+                };
+                onDraftChange({ contrib_nombre: ev.target.value });
+              }}
               disabled={!canContrib}
               error={!!e("contrib_nombre")}
               helperText={fieldHelper("contrib_nombre")}
@@ -2226,7 +2264,13 @@ export function ActuacionDetalleDialog({
               appearance="glass"
               label="Razón social"
               value={draft.razon_social ?? ""}
-              onChange={(ev) => onDraftChange({ razon_social: ev.target.value || null })}
+              onChange={(ev) => {
+                identidadTouchedRef.current = {
+                  ...identidadTouchedRef.current,
+                  razon_social: true,
+                };
+                onDraftChange({ razon_social: ev.target.value || null });
+              }}
               disabled={!canContrib}
               error={!!e("razon_social")}
               helperText={fieldHelper("razon_social")}
@@ -2779,6 +2823,39 @@ export function ActuacionDetalleDialog({
           </Box>
         ) : null}
       </Box>
+      <ConfirmDialog
+        open={contribuyenteClearConfirmOpen}
+        onClose={() => {
+          const baseline = editBaseline ?? draft;
+          const snap = identitySnapshot(baseline);
+          onDraftChange({
+            doc_nro: snap.doc_nro,
+            contrib_apellido: snap.contrib_apellido,
+            contrib_nombre: snap.contrib_nombre,
+            razon_social: snap.razon_social,
+            limpiar_contribuyente: undefined,
+          });
+          identidadTouchedRef.current = {};
+          setContribuyenteClearConfirmOpen(false);
+        }}
+        onConfirm={() => {
+          const cleared = applyExplicitContribuyenteClear(draft);
+          pendingClearRowRef.current = cleared;
+          onDraftChange({
+            limpiar_contribuyente: true,
+            doc_nro: null,
+            contrib_apellido: null,
+            contrib_nombre: null,
+            razon_social: null,
+          });
+          setContribuyenteClearConfirmOpen(false);
+          void handleSaveClick();
+        }}
+        title={CONTRIBUYENTE_CLEAR_CONFIRM_TITLE}
+        confirmLabel="Continuar"
+        cancelLabel="Cancelar"
+        destructive
+      />
       <ConfirmDialog
         open={mediaDiscardConfirmOpen}
         onClose={() => setMediaDiscardConfirmOpen(false)}

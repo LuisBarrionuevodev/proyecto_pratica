@@ -2,6 +2,7 @@ import type {
   IActuacionGestionUiPolicy,
   IActuacionListItem,
 } from "../../../api/actuacionesListApi";
+import { mergeActuacionIdentidadFromApiRow } from "./contribuyenteCrudOptions";
 import {
   faltasSubsanadasUiToBool,
   solicitaCarnetUiToBool,
@@ -139,7 +140,7 @@ export function mergeActuacionSeguimientoFromApiRow(
 export function prepareActuacionGestionModalRow(
   detail: IActuacionListItem
 ): IActuacionListItem {
-  return mergeActuacionSeguimientoFromApiRow(detail);
+  return mergeActuacionIdentidadFromApiRow(mergeActuacionSeguimientoFromApiRow(detail));
 }
 
 /** Quita datos sensibles/de detalle antes de fusionar en la grilla. */

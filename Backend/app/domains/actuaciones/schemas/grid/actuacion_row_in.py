@@ -715,9 +715,14 @@ class ActuacionGridRowIn(BaseModel):
                     "Si solo cargás OT/fecha, debés elegir una contraproducencia (p. ej. NO_HUBO)."
                 )
 
+        envia_identidad = bool(
+            {"doc_nro", "contrib_apellido", "contrib_nombre", "razon_social"}
+            & set(self.model_fields_set)
+        )
+
         if not omite_identidad:
             # 2) Contribuyente: si hay nombre/apellido/razón social, doc obligatorio
-            if not self.limpiar_contribuyente and (
+            if envia_identidad and not self.limpiar_contribuyente and (
                 self.contrib_apellido or self.contrib_nombre or self.razon_social
             ) and not self.doc_nro:
                 field_errors["doc_nro"] = "Documento obligatorio si cargás contribuyente."
@@ -743,7 +748,8 @@ class ActuacionGridRowIn(BaseModel):
                         field_errors["numero"] = "Número obligatorio cuando hay tipo de actuación."
                     if not self.rubro_nombre:
                         field_errors["rubro_nombre"] = "Rubro obligatorio si cargás domicilio."
-                    if not self.limpiar_contribuyente and not self.doc_nro:
+                    # Alta: domicilio exige documento. Edición: no exigir doc si no hay identidad útil.
+                    if not self.limpiar_contribuyente and not self.doc_nro and self.id is None:
                         field_errors["doc_nro"] = "Documento obligatorio si cargás domicilio."
             else:
                 # Si NO hay tipo pero hay contraproducencia + fecha: permitir con calle y número sin contribuyente

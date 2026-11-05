@@ -92,10 +92,17 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
         }
 
     # Contribuyente: omitido en modo histórico (snapshot en actuaciones).
+    # IDENTIDAD.1: solo emitir el grupo si el cliente envió identidad o un clear explícito.
     if not row.carga_solo_comprobacion:
+        envia_identidad = any(
+            key in row.model_fields_set
+            for key in ("doc_nro", "contrib_apellido", "contrib_nombre", "razon_social")
+        )
         if row.limpiar_contribuyente:
             payload["contribuyente"] = None
-        elif row.doc_nro or row.contrib_apellido or row.contrib_nombre or row.razon_social:
+        elif envia_identidad and (
+            row.doc_nro or row.contrib_apellido or row.contrib_nombre or row.razon_social
+        ):
             payload["contribuyente"] = {
                 "doc_nro": _clean_str(row.doc_nro),
                 "apellido": _clean_str(row.contrib_apellido),

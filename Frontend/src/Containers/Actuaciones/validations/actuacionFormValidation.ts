@@ -27,6 +27,10 @@ import {
   validateDocNro,
 } from "./actuacionFormNormalize";
 import { validateGestionSeguimientoFields } from "../utils/actuacionGestionSeguimientoPut";
+import {
+  detectContribuyenteClearedByUser,
+  identitySemanticChanged,
+} from "../utils/contribuyenteCrudOptions";
 
 /** Mensajes alineados a `CompletarTrabajoModal` (pre-submit) y reglas CRUD Editar Actuación. */
 export const ACTUACION_VALIDATION_MESSAGES = {
@@ -279,13 +283,24 @@ export function validateActuacionFormForSubmit(
     !esReinspeccionOficio &&
     context.canEditContribuyente !== false
   ) {
-    if (!hasTitularPersonaOrazonSocial(form)) {
-      fieldErrors.contrib_apellido = ACTUACION_VALIDATION_MESSAGES.titularRequerido;
-    }
+    const identityBaseline = context.originalRow ?? null;
+    const identityChanged =
+      identityBaseline != null &&
+      identitySemanticChanged(form as IActuacionListItem, identityBaseline);
+    const identityCleared =
+      identityBaseline != null &&
+      detectContribuyenteClearedByUser(identityBaseline, form as IActuacionListItem);
+    const validateIdentidad = identityBaseline == null || (identityChanged && !identityCleared);
 
-    const docError = validateDocNro(form.doc_nro);
-    if (docError) {
-      fieldErrors.doc_nro = docError;
+    if (validateIdentidad) {
+      if (!hasTitularPersonaOrazonSocial(form)) {
+        fieldErrors.contrib_apellido = ACTUACION_VALIDATION_MESSAGES.titularRequerido;
+      }
+
+      const docError = validateDocNro(form.doc_nro);
+      if (docError) {
+        fieldErrors.doc_nro = docError;
+      }
     }
 
     if (!context.skipInspectoresValidation) {

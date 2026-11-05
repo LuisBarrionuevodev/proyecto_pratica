@@ -2,8 +2,14 @@ import { describe, expect, it } from "vitest";
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import {
   applyContribuyenteClearFlag,
+  applyExplicitContribuyenteClear,
   baselineTeniaContribuyente,
+  buildGestionIdentidadPutFields,
   detectContribuyenteClearedByUser,
+  identitySemanticChanged,
+  mergeActuacionIdentidadFromApiRow,
+  shouldPromptContribuyenteClear,
+  stripGestionIdentidadResidualFromPut,
 } from "./contribuyenteCrudOptions";
 
 const baseRow = (overrides: Partial<IActuacionListItem> = {}): IActuacionListItem =>
@@ -42,7 +48,7 @@ const baseRow = (overrides: Partial<IActuacionListItem> = {}): IActuacionListIte
   }) as IActuacionListItem;
 
 describe("contribuyenteCrudOptions", () => {
-  it("detecta clear explícito cuando baseline tenía contribuyente", () => {
+  it("detecta clear cuando baseline tenía contribuyente", () => {
     const original = baseRow();
     const draft = baseRow({
       doc_nro: null,
@@ -68,13 +74,7 @@ describe("contribuyenteCrudOptions", () => {
     expect(applyContribuyenteClearFlag(original, draft).limpiar_contribuyente).toBeUndefined();
   });
 
-  it("no marca clear si solo cambian inspectores", () => {
-    const original = baseRow();
-    const draft = baseRow({ inspector1: "B", inspector2: "C" });
-    expect(applyContribuyenteClearFlag(original, draft).limpiar_contribuyente).toBeUndefined();
-  });
-
-  it("aplica flag limpiar_contribuyente", () => {
+  it("no infiere limpiar_contribuyente por inputs vacíos", () => {
     const original = baseRow();
     const draft = baseRow({
       doc_nro: null,
@@ -82,8 +82,65 @@ describe("contribuyenteCrudOptions", () => {
       contrib_nombre: null,
       razon_social: null,
     });
+    expect(applyContribuyenteClearFlag(original, draft).limpiar_contribuyente).toBeUndefined();
+    expect(buildGestionIdentidadPutFields(draft, original)).toEqual({});
+  });
+
+  it("conserva flag explícito de clear", () => {
+    const original = baseRow();
+    const draft = applyExplicitContribuyenteClear(baseRow());
     const out = applyContribuyenteClearFlag(original, draft);
     expect(out.limpiar_contribuyente).toBe(true);
-    expect(out.doc_nro).toBeNull();
+    expect(buildGestionIdentidadPutFields(draft, original)).toEqual({
+      limpiar_contribuyente: true,
+    });
+  });
+
+  it("identidad no tocada no entra al PUT", () => {
+    const original = baseRow();
+    const edited = baseRow({ observaciones_ejecucion: "nota" });
+    expect(identitySemanticChanged(edited, original)).toBe(false);
+    expect(buildGestionIdentidadPutFields(edited, original)).toEqual({});
+    const stripped = stripGestionIdentidadResidualFromPut(edited);
+    expect(stripped.doc_nro).toBeUndefined();
+    expect(stripped.limpiar_contribuyente).toBeUndefined();
+  });
+
+  it("editar solo apellido conserva el resto de la baseline", () => {
+    const original = baseRow();
+    const edited = baseRow({ contrib_apellido: "Chávez" });
+    expect(buildGestionIdentidadPutFields(edited, original)).toEqual({
+      doc_nro: "30123456",
+      contrib_apellido: "Chávez",
+      contrib_nombre: "Juan",
+      razon_social: null,
+    });
+  });
+
+  it("hidratar nested contribuyente no cuenta como cambio", () => {
+    const original = baseRow({
+      contrib_apellido: null,
+      contrib_nombre: null,
+      contribuyente: { apellido: "Pérez", nombre: "Juan" },
+    });
+    const hydrated = mergeActuacionIdentidadFromApiRow(original);
+    expect(hydrated.contrib_apellido).toBe("Pérez");
+    expect(buildGestionIdentidadPutFields(hydrated, original)).toEqual({});
+  });
+
+  it("vaciar todo con touch pide confirmación; cancelar no envía clear", () => {
+    const original = baseRow();
+    const emptied = baseRow({
+      doc_nro: null,
+      contrib_apellido: null,
+      contrib_nombre: null,
+      razon_social: null,
+    });
+    expect(
+      shouldPromptContribuyenteClear(original, emptied, { contrib_apellido: true })
+    ).toBe(true);
+    expect(buildGestionIdentidadPutFields(emptied, original, { contrib_apellido: true })).toEqual(
+      {}
+    );
   });
 });
