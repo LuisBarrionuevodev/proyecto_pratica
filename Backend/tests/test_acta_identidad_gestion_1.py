@@ -122,13 +122,73 @@ def test_put_cambia_solo_apellido_conserva_resto(app, client, app_ctx) -> None:
     assert contrib2.documento == doc
 
 
-def test_put_limpiar_contribuyente_explicito_desvincula(app, client, app_ctx) -> None:
+def test_put_sin_cambios_conserva_contribuyente(app, client, app_ctx) -> None:
     act, u = _cerrar_relevamiento_sin_carnet()
-    assert _contribuyente_id(act) is not None
+    cid = _contribuyente_id(act)
+    assert cid is not None
+
+    resp = _put_gestion_http(client, act, u.id)
+    assert resp.status_code == 200, resp.get_json()
+    assert _contribuyente_id(act) == cid
+
+
+def test_put_solo_acta_inspeccion_conserva_contribuyente(app, client, app_ctx) -> None:
+    act, u = _cerrar_relevamiento_sin_carnet()
+    cid = _contribuyente_id(act)
+    assert cid is not None
+    insp = act.inspeccion
+    assert insp is not None and insp.numero_acta
+    num = str(insp.numero_acta).strip()
+    alt = str((int(num) + 1) % 1000000).zfill(6) if num.isdigit() else "000201"
+
+    resp = _put_gestion_http(client, act, u.id, acta_inspeccion_num=alt)
+    assert resp.status_code == 200, resp.get_json()
+    assert _contribuyente_id(act) == cid
+
+
+def test_put_solo_carnet_conserva_contribuyente(app, client, app_ctx) -> None:
+    act, u = _cerrar_relevamiento_sin_carnet()
+    cid = _contribuyente_id(act)
+    assert cid is not None
+
+    resp = _put_gestion_http(
+        client,
+        act,
+        u.id,
+        solicita_carnet_manipulador=True,
+        telefono_contacto_solicitud_carnet="3515551234",
+    )
+    assert resp.status_code == 200, resp.get_json()
+    assert _contribuyente_id(act) == cid
+
+
+def test_put_limpiar_contribuyente_true_422_y_conserva_vinculo(app, client, app_ctx) -> None:
+    act, u = _cerrar_relevamiento_sin_carnet()
+    cid = _contribuyente_id(act)
+    assert cid is not None
 
     resp = _put_gestion_http(client, act, u.id, limpiar_contribuyente=True)
-    assert resp.status_code == 200, resp.get_json()
-    assert _contribuyente_id(act) is None
+    assert resp.status_code == 422, resp.get_json()
+    errors = resp.get_json()["errors"]
+    assert "limpiar_contribuyente" in errors
+    assert "desvinculación" in errors["limpiar_contribuyente"].lower()
+    assert _contribuyente_id(act) == cid
+
+
+def test_put_solo_flag_limpiar_contribuyente_422_sin_mutar(app, client, app_ctx) -> None:
+    act, u = _cerrar_relevamiento_sin_carnet()
+    cid = _contribuyente_id(act)
+    assert cid is not None
+
+    resp = client.put(
+        f"/actuaciones/{int(act.id)}",
+        headers=_auth_headers(u.id),
+        json={"limpiar_contribuyente": True},
+    )
+    assert resp.status_code == 422, resp.get_json()
+    errors = resp.get_json()["errors"]
+    assert "limpiar_contribuyente" in errors
+    assert _contribuyente_id(act) == cid
 
 
 def test_put_sin_contribuyente_cambios_comunes_200(app, client, app_ctx) -> None:

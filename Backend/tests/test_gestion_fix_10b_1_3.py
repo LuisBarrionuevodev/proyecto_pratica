@@ -73,7 +73,6 @@ def _fila_put_local_cerrado_quitar_acta(
         "calle": calle,
         "numero": numero,
         "rubro_nombre": rubro_nombre,
-        "limpiar_contribuyente": True,
         "contraproducencia": "LOCAL CERRADO",
         "actas_a_quitar": ["INSPECCION"],
     }
@@ -113,8 +112,8 @@ def test_t1_put_atomico_quita_acta_contra_y_contrib(app_ctx) -> None:
         )
     )
     payload = map_actuacion_row(row)
+    payload["contribuyente"] = None
     assert payload.get("actas_a_quitar") == ["INSPECCION"]
-    assert payload.get("contribuyente") is None
     assert payload.get("tipo_actuacion") == "INSPECCION"
 
     actualizar_actuacion(act_id, payload)

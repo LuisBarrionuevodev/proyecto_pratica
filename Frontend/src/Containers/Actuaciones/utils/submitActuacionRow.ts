@@ -29,7 +29,6 @@ import {
 import { normalizeActuacionRowForCrudSubmit, detectActasClearedByUser } from "../validations/actuacionFormNormalize";
 import { applyContraproducenciaClearFlag } from "./contraproducenciaCrudOptions";
 import {
-  applyContribuyenteClearFlag,
   buildGestionIdentidadPutFields,
   stripGestionIdentidadResidualFromPut,
   type ContribuyenteIdentityTouched,
@@ -418,7 +417,6 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   }
 
   rowToSubmit = applyContraproducenciaClearFlag(originalRow, rowToSubmit);
-  rowToSubmit = applyContribuyenteClearFlag(originalRow, rowToSubmit);
   const correccionCierre = Boolean(rowToSubmit.limpiar_contraproducencia);
 
   rowToSubmit = applyDomicilioCalleSubmitGuard(rowToSubmit, originalRow);
@@ -507,6 +505,7 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   if (actasQuitarEnPutTransaccional) {
     rowWithInspectores.actas_a_quitar = actasPendingClear.map(({ tipo }) => tipo);
   }
+  delete rowWithInspectores.limpiar_contribuyente;
 
   if (!skipValidation) {
     if (!skipGridRowValidation) {

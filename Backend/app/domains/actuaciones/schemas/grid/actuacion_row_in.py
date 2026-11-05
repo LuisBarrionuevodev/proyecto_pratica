@@ -131,6 +131,11 @@ def _only_digits(v: Any) -> Optional[str]:
     return s
 
 
+MSG_LIMPIAR_CONTRIBUYENTE_BLOQUEADO_EDICION = (
+    "La desvinculación de contribuyente no está permitida desde la edición general de actuaciones."
+)
+
+
 def _raise_field_errors(model_name: str, field_errors: Dict[str, str]) -> None:
     """
     Genera errores por campo (celda-friendly) usando ValidationError.from_exception_data.
@@ -639,6 +644,10 @@ class ActuacionGridRowIn(BaseModel):
         )
 
         field_errors: Dict[str, str] = {}
+
+        if self.limpiar_contribuyente:
+            field_errors["limpiar_contribuyente"] = MSG_LIMPIAR_CONTRIBUYENTE_BLOQUEADO_EDICION
+            _raise_field_errors(self.__class__.__name__, field_errors)
 
         if self._es_historica(ctx):
             field_errors.update(self._validar_rama_historica())

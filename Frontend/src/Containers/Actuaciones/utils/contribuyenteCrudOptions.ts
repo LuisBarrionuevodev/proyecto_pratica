@@ -136,9 +136,6 @@ export function buildGestionIdentidadPutFields(
   baseline?: IActuacionListItem | null,
   touched?: ContribuyenteIdentityTouched | null
 ): GestionIdentidadPutFields {
-  if (row.limpiar_contribuyente === true) {
-    return { limpiar_contribuyente: true };
-  }
   if (!baseline) {
     return {};
   }

@@ -16,7 +16,10 @@ from app.domains.actuaciones.presenters.actuacion_gestion_seguimiento_presenter 
     present_actuacion_gestion_detalle,
 )
 from app.domains.usuarios.security.inspector_scope_policy import InspectorScopeError
-from app.domains.actuaciones.schemas.grid.actuacion_row_in import ActuacionGridRowIn
+from app.domains.actuaciones.schemas.grid.actuacion_row_in import (
+    MSG_LIMPIAR_CONTRIBUYENTE_BLOQUEADO_EDICION,
+    ActuacionGridRowIn,
+)
 from app.domains.actuaciones.schemas.actuacion_inspector_patch_in import ActuacionInspectorPatchIn
 from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.actuaciones.utils.circuito_operativo import (
@@ -58,6 +61,19 @@ def actualizar_actuacion_route(actuacion_id: int):
                 422,
             )
         data: Dict[str, Any] = dict(raw_json) if isinstance(raw_json, dict) else {}
+
+        if data.get("limpiar_contribuyente") is True:
+            return (
+                jsonify(
+                    {
+                        "detail": "Validation error",
+                        "errors": {
+                            "limpiar_contribuyente": MSG_LIMPIAR_CONTRIBUYENTE_BLOQUEADO_EDICION
+                        },
+                    }
+                ),
+                422,
+            )
 
         user = resolve_user_from_identity()
         actor_user_id = get_current_user_id()

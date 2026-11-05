@@ -84,7 +84,6 @@ def _fila_put_local_cerrado_quitar_acta(
         "calle": calle,
         "numero": numero,
         "rubro_nombre": rubro_nombre,
-        "limpiar_contribuyente": True,
         "contraproducencia": "LOCAL CERRADO",
         "actas_a_quitar": actas_a_quitar if actas_a_quitar is not None else ["INSPECCION"],
     }
@@ -103,7 +102,7 @@ def _payload_put_local_cerrado(
     rubro_nombre: str,
     actas_a_quitar: list[str] | None = None,
 ) -> dict:
-    return map_actuacion_row(
+    payload = map_actuacion_row(
         ActuacionGridRowIn.model_validate(
             _fila_put_local_cerrado_quitar_acta(
                 act_id=act_id,
@@ -118,6 +117,8 @@ def _payload_put_local_cerrado(
             )
         )
     )
+    payload["contribuyente"] = None
+    return payload
 
 
 def _assert_estado_local_cerrado_limpio(act_id: int, dom_id: int) -> None:

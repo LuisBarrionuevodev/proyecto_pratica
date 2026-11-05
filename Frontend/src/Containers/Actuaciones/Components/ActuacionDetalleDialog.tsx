@@ -123,13 +123,7 @@ import {
   mergeActuacionSeguimientoFromApiRow,
   validateGestionSeguimientoFields,
 } from "../utils/actuacionGestionSeguimientoPut";
-import {
-  CONTRIBUYENTE_CLEAR_CONFIRM_TITLE,
-  applyExplicitContribuyenteClear,
-  identitySnapshot,
-  shouldPromptContribuyenteClear,
-  type ContribuyenteIdentityTouched,
-} from "../utils/contribuyenteCrudOptions";
+import { type ContribuyenteIdentityTouched } from "../utils/contribuyenteCrudOptions";
 import {
   OBSERVACIONES_VISITA_MAX_LENGTH,
   canEditObservacionesVisita,
@@ -1314,8 +1308,6 @@ export function ActuacionDetalleDialog({
   const verificarInconsistentWarnedRef = useRef<number | string | null>(null);
   const mediaGalleryRef = useRef<ActuacionMediaGalleryHandle | null>(null);
   const [mediaDiscardConfirmOpen, setMediaDiscardConfirmOpen] = useState(false);
-  const [contribuyenteClearConfirmOpen, setContribuyenteClearConfirmOpen] = useState(false);
-  const pendingClearRowRef = useRef<IActuacionListItem | null>(null);
   const identidadTouchedRef = useRef<ContribuyenteIdentityTouched>({});
   const [isEditing, setIsEditing] = useState(initialEditing);
   const [photosOnlyMode, setPhotosOnlyMode] = useState(false);
@@ -1389,8 +1381,6 @@ export function ActuacionDetalleDialog({
       verificarInconsistentWarnedRef.current = null;
       actaFlushRegistry.current.clear();
       identidadTouchedRef.current = {};
-      pendingClearRowRef.current = null;
-      setContribuyenteClearConfirmOpen(false);
     }
     // Solo al abrir o cambiar de actuación: no resetear si el padre actualiza `draft` al entrar en edición.
   }, [open, draft.id, initialEditing, resetOficioFormFromRow]);
@@ -1541,25 +1531,19 @@ export function ActuacionDetalleDialog({
       feedback.error(MENSAJE_ERROR_GRAVE);
       return;
     }
-    const startingRow = pendingClearRowRef.current ?? draft;
-    pendingClearRowRef.current = null;
-    const baseline = editBaseline ?? startingRow;
-    if (shouldPromptContribuyenteClear(baseline, startingRow, identidadTouchedRef.current)) {
-      setContribuyenteClearConfirmOpen(true);
-      return;
-    }
-    const blockedMsg = detectBlockedActaClearAttempt(startingRow, baseline);
+    const baseline = editBaseline ?? draft;
+    const blockedMsg = detectBlockedActaClearAttempt(draft, baseline);
     if (blockedMsg) {
       feedback.warning(blockedMsg);
       return;
     }
 
-    let rowForSubmit: IActuacionListItem = startingRow;
+    let rowForSubmit: IActuacionListItem = draft;
     let oficioCorrectionApplied = false;
     let actasClearedByOficioCorrection: ActaCanalQuitarTipo[] = [];
-    const actasToClear = detectActasClearedByUser(baseline, startingRow).map((a) => a.tipo);
+    const actasToClear = detectActasClearedByUser(baseline, draft).map((a) => a.tipo);
 
-    const oficioCtx = resolveReinspeccionOficioFormContext({ row: startingRow, mode: "edit" });
+    const oficioCtx = resolveReinspeccionOficioFormContext({ row: draft, mode: "edit" });
     if (oficioCtx && editableFields.canEditResultadoOperativo) {
       const tieneActas = tieneActasInspeccionNormalPersistidas(draft);
       const validation = validateReinspeccionOficioForm({
@@ -1611,7 +1595,7 @@ export function ActuacionDetalleDialog({
           const updated = await corregirCierreOficio(Number(draft.id), payload);
           rowForSubmit = mergeActuacionAfterOficioCorrection({
             correctedRow: updated,
-            pendingDraft: startingRow,
+            pendingDraft: draft,
           });
           oficioCorrectionApplied = true;
           if (actasToClear.length > 0) {
@@ -2823,39 +2807,6 @@ export function ActuacionDetalleDialog({
           </Box>
         ) : null}
       </Box>
-      <ConfirmDialog
-        open={contribuyenteClearConfirmOpen}
-        onClose={() => {
-          const baseline = editBaseline ?? draft;
-          const snap = identitySnapshot(baseline);
-          onDraftChange({
-            doc_nro: snap.doc_nro,
-            contrib_apellido: snap.contrib_apellido,
-            contrib_nombre: snap.contrib_nombre,
-            razon_social: snap.razon_social,
-            limpiar_contribuyente: undefined,
-          });
-          identidadTouchedRef.current = {};
-          setContribuyenteClearConfirmOpen(false);
-        }}
-        onConfirm={() => {
-          const cleared = applyExplicitContribuyenteClear(draft);
-          pendingClearRowRef.current = cleared;
-          onDraftChange({
-            limpiar_contribuyente: true,
-            doc_nro: null,
-            contrib_apellido: null,
-            contrib_nombre: null,
-            razon_social: null,
-          });
-          setContribuyenteClearConfirmOpen(false);
-          void handleSaveClick();
-        }}
-        title={CONTRIBUYENTE_CLEAR_CONFIRM_TITLE}
-        confirmLabel="Continuar"
-        cancelLabel="Cancelar"
-        destructive
-      />
       <ConfirmDialog
         open={mediaDiscardConfirmOpen}
         onClose={() => setMediaDiscardConfirmOpen(false)}

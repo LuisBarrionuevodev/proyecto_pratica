@@ -8,8 +8,10 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 
 from app.domains.actuaciones.schemas.corregir_cierre_oficio_in import ActaCanalQuitarTipo
 from app.domains.actuaciones.schemas.grid.actuacion_row_in import (
+    MSG_LIMPIAR_CONTRIBUYENTE_BLOQUEADO_EDICION,
     _clean_str,
     _coerce_catalog_value,
+    _raise_field_errors,
     _zfill6_if_digit,
 )
 from app.domains.actuaciones.services.actas_quitar_canal_actas_service import (
@@ -195,3 +197,13 @@ class ActuacionInspectorPatchIn(BaseModel):
     @classmethod
     def parse_motivo_comprobacion(cls, v: Any) -> Any:
         return _coerce_catalog_value(v, CatalogMotivoComprobacion, "motivo de comprobación")
+
+    @model_validator(mode="after")
+    def bloquear_limpiar_contribuyente_edicion(self) -> "ActuacionInspectorPatchIn":
+        """La desvinculación no pertenece al PUT genérico de Actuaciones."""
+        if self.limpiar_contribuyente:
+            _raise_field_errors(
+                self.__class__.__name__,
+                {"limpiar_contribuyente": MSG_LIMPIAR_CONTRIBUYENTE_BLOQUEADO_EDICION},
+            )
+        return self

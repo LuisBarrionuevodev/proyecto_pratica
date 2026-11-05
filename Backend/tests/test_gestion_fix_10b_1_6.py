@@ -118,7 +118,6 @@ def _fila_put_clear_local_cerrado(
     numero: str,
     rubro_nombre: str,
     actas_a_quitar: list[str],
-    limpiar_contribuyente: bool = True,
     extra: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     row: dict[str, Any] = {
@@ -131,7 +130,6 @@ def _fila_put_clear_local_cerrado(
         "calle": calle,
         "numero": numero,
         "rubro_nombre": rubro_nombre,
-        "limpiar_contribuyente": limpiar_contribuyente,
         "contraproducencia": "LOCAL CERRADO",
         "actas_a_quitar": actas_a_quitar,
         # Campos vacíos como envía el front tras sanitizeEmptyActasForPut
@@ -214,7 +212,6 @@ def _setup_realizado_con_actas(
 def _run_put_matrix(
     actas_a_quitar: list[str],
     *,
-    limpiar_contribuyente: bool = True,
     extra_row: dict[str, Any] | None = None,
     with_notif: bool = False,
     with_comp: bool = False,
@@ -236,10 +233,10 @@ def _run_put_matrix(
         numero="10",
         rubro_nombre=rubro,
         actas_a_quitar=actas_a_quitar,
-        limpiar_contribuyente=limpiar_contribuyente,
         extra=extra_row,
     )
     payload = map_actuacion_row(ActuacionGridRowIn.model_validate(row))
+    payload["contribuyente"] = None
 
     exc: Exception | None = None
     try:
@@ -348,9 +345,9 @@ def test_m2_caso_completo_todas_actas_y_contrib(app_ctx, caplog) -> None:
             "CLAUSURA",
             "DECOMISO",
         ],
-        limpiar_contribuyente=True,
     )
     payload = map_actuacion_row(ActuacionGridRowIn.model_validate(row))
+    payload["contribuyente"] = None
 
     exc: Exception | None = None
     try:
@@ -396,7 +393,8 @@ def _assert_put_local_cerrado_sin_actas_ni_contrib_ni_eo(act_id: int, dom_id: in
 def test_fix_10b_1_6_put_exacto_tres_actas_contrib_local_cerrado(app_ctx) -> None:
     """
     Caso confirmado act #13639: REALIZADO + INSP+NOTIF+COMP + contrib + EO
-    → PUT quitar actas + limpiar_contribuyente + LOCAL CERRADO → HTTP 200.
+    → PUT quitar actas + LOCAL CERRADO. La desvinculación de contribuyente
+    se aplica en el payload de servicio (no via flag de edición).
     """
     act_id, dom_id, ot, fecha, insp1, insp2, calle, rubro = _setup_realizado_con_actas(
         with_notif=True,
@@ -422,11 +420,10 @@ def test_fix_10b_1_6_put_exacto_tres_actas_contrib_local_cerrado(app_ctx) -> Non
                 numero="10",
                 rubro_nombre=rubro,
                 actas_a_quitar=["INSPECCION", "NOTIFICACION", "COMPROBACION"],
-                limpiar_contribuyente=True,
             )
         )
     )
-    assert payload.get("contribuyente") is None
+    payload["contribuyente"] = None
     assert payload.get("actas_a_quitar") == ["INSPECCION", "NOTIFICACION", "COMPROBACION"]
 
     out = actualizar_actuacion(act_id, payload)
@@ -509,10 +506,9 @@ def test_fix_10b_1_6_put_http_tres_actas_contrib_200(app, client, auth_headers) 
             numero="10",
             rubro_nombre=rubro,
             actas_a_quitar=["INSPECCION", "NOTIFICACION", "COMPROBACION"],
-            limpiar_contribuyente=True,
         )
         r = client.put(f"/actuaciones/{act_id}", headers=auth_headers, json=body)
-        assert r.status_code == 200
+        assert r.status_code == 200, r.get_json()
         data = r.get_json()
         assert data is not None
         assert int(data["id"]) == act_id
@@ -520,10 +516,16 @@ def test_fix_10b_1_6_put_http_tres_actas_contrib_200(app, client, auth_headers) 
         assert data.get("acta_inspeccion_num") in (None, "")
         assert data.get("acta_notificacion_num") in (None, "")
         assert data.get("acta_comprobacion_num") in (None, "")
-        assert data.get("doc_nro") in (None, "")
         assert data.get("establecimiento_operativo_id") in (None, "")
         db.session.expunge_all()
-        _assert_put_local_cerrado_sin_actas_ni_contrib_ni_eo(act_id, dom_id)
+        act_db = db.session.get(Actuaciones, act_id)
+        dom_db = db.session.get(Domicilio, dom_id)
+        assert act_db is not None and dom_db is not None
+        assert act_db.contraproducencia == "LOCAL CERRADO"
+        assert Inspeccion.query.filter_by(actuacion_id=act_id).first() is None
+        assert act_db.notificacion_id is None
+        assert act_db.comprobacion_id is None
+        assert dom_db.contribuyente_id is not None
 
 
 def test_m3_motivos_residual_en_raw_no_entran_al_mapper(app_ctx) -> None:
@@ -550,7 +552,7 @@ def test_m3_motivos_residual_en_raw_no_entran_al_mapper(app_ctx) -> None:
     assert "notificacion" not in payload
     assert "comprobacion" not in payload
     assert payload.get("actas_a_quitar") == ["INSPECCION", "NOTIFICACION", "COMPROBACION"]
-    assert payload.get("contribuyente") is None  # limpiar_contribuyente
+    assert "contribuyente" not in payload
 
 
 def test_m4_put_http_ruta_registra_500(app, client, auth_headers, caplog) -> None:

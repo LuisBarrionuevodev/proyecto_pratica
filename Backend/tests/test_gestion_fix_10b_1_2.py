@@ -6,6 +6,7 @@ import random
 from uuid import uuid4
 
 import pytest
+from pydantic import ValidationError
 
 from app.database import db
 from app.domains.actuaciones.mappers.grid.actuacion_row_mapper import map_actuacion_row
@@ -13,6 +14,7 @@ from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import
     CompletarTrabajoCierreCompletoIn,
 )
 from app.domains.actuaciones.schemas.grid.actuacion_row_in import ActuacionGridRowIn
+from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.actuaciones.services.completar_trabajo_cierre_service import (
     cerrar_completar_trabajo_por_ruta_item,
 )
@@ -92,34 +94,35 @@ def _put_local_cerrado_sin_contrib(
         "calle": calle,
         "numero": numero,
         "rubro_nombre": rubro_nombre,
-        "limpiar_contribuyente": True,
         "contraproducencia": "LOCAL CERRADO",
     }
     if actas_a_quitar:
         row_dict["actas_a_quitar"] = actas_a_quitar
     row = ActuacionGridRowIn.model_validate(row_dict)
     payload = map_actuacion_row(row)
-    assert "contribuyente" in payload and payload["contribuyente"] is None
+    payload["contribuyente"] = None
     actualizar_actuacion(act_id, payload)
     db.session.expunge_all()
 
 
-def test_a1_mapper_clear_contribuyente_emite_null(app_ctx) -> None:
+def test_a1_schema_rechaza_limpiar_contribuyente(app_ctx) -> None:
     _ensure_catalog_contraproducencia("LOCAL CERRADO")
-    row = ActuacionGridRowIn.model_validate(
-        {
-            "id": 1,
-            "orden_trabajo_numero": "000001",
-            "fecha_actuacion": "10/06/2026",
-            "calle": "San Martín",
-            "numero": "100",
-            "rubro_nombre": "Bar",
-            "limpiar_contribuyente": True,
-            "contraproducencia": "LOCAL CERRADO",
-        }
-    )
-    payload = map_actuacion_row(row)
-    assert payload.get("contribuyente") is None
+    with pytest.raises(ValidationError) as exc:
+        ActuacionGridRowIn.model_validate(
+            {
+                "id": 1,
+                "orden_trabajo_numero": "000001",
+                "fecha_actuacion": "10/06/2026",
+                "calle": "San Martín",
+                "numero": "100",
+                "rubro_nombre": "Bar",
+                "limpiar_contribuyente": True,
+                "contraproducencia": "LOCAL CERRADO",
+            }
+        )
+    errors = pydantic_errors_to_cell_map(exc.value)
+    assert "limpiar_contribuyente" in errors
+    assert "desvinculación" in errors["limpiar_contribuyente"].lower()
 
 
 def test_a1_clear_contribuyente_desvincula_domicilio(app_ctx) -> None:

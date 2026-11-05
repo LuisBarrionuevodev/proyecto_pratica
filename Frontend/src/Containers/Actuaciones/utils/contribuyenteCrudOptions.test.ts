@@ -86,14 +86,10 @@ describe("contribuyenteCrudOptions", () => {
     expect(buildGestionIdentidadPutFields(draft, original)).toEqual({});
   });
 
-  it("conserva flag explícito de clear", () => {
+  it("no reinserta limpiar_contribuyente aunque el row lo traiga", () => {
     const original = baseRow();
     const draft = applyExplicitContribuyenteClear(baseRow());
-    const out = applyContribuyenteClearFlag(original, draft);
-    expect(out.limpiar_contribuyente).toBe(true);
-    expect(buildGestionIdentidadPutFields(draft, original)).toEqual({
-      limpiar_contribuyente: true,
-    });
+    expect(buildGestionIdentidadPutFields(draft, original)).toEqual({});
   });
 
   it("identidad no tocada no entra al PUT", () => {

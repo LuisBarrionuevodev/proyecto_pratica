@@ -101,6 +101,49 @@ describe("submitActuacionRow identidad PUT 1", () => {
     expect(body.rubro_nombre).toBe("Carnicería");
   });
 
+  it("editar solo número de acta no envía identidad ni limpiar_contribuyente", async () => {
+    const original = baseRow();
+    const body = await putBody(baseRow({ acta_inspeccion_num: "200" }), original);
+    expect(body).not.toHaveProperty("limpiar_contribuyente");
+    expect(body).not.toHaveProperty("doc_nro");
+    expect(body.acta_inspeccion_num).toBeTruthy();
+  });
+
+  it("editar solo condiciones de inspección no envía limpiar_contribuyente", async () => {
+    const original = baseRow({
+      items_acta_inspeccion: [{ id: 1, codigo: "TIENE_BANO", estado: "BIEN" }],
+    });
+    const result = await submitActuacionRow({
+      id: 387,
+      fullRow: baseRow({
+        items_acta_inspeccion: [{ item_id: 1, estado: "OBSERVADO" }],
+      }),
+      originalRow: original,
+      inspeccionChecklistTouched: { items: true },
+      skipValidation: true,
+      skipUpdate: false,
+    });
+    expect(result.ok).toBe(true);
+    const body = vi.mocked(updateActuacion).mock.calls[0][1] as Record<string, unknown>;
+    expect(body).not.toHaveProperty("limpiar_contribuyente");
+    expect(body).not.toHaveProperty("doc_nro");
+    expect(body.items_acta_inspeccion).toEqual([{ item_id: 1, estado: "OBSERVADO" }]);
+  });
+
+  it("editar solo seguimiento/carnet no envía limpiar_contribuyente", async () => {
+    const original = baseRow();
+    const body = await putBody(
+      baseRow({
+        solicita_carnet_manipulador: true,
+        telefono_contacto_solicitud_carnet: "3515551234",
+      }),
+      original
+    );
+    expect(body).not.toHaveProperty("limpiar_contribuyente");
+    expect(body).not.toHaveProperty("doc_nro");
+    expect(body.solicita_carnet_manipulador).toBe(true);
+  });
+
   it("editar solo apellido envía el grupo completo y coherente", async () => {
     const original = baseRow();
     const body = await putBody(baseRow({ contrib_apellido: "Gómez" }), original, {
@@ -128,18 +171,18 @@ describe("submitActuacionRow identidad PUT 1", () => {
     expect(body).not.toHaveProperty("doc_nro");
   });
 
-  it("confirmación explícita envía solo limpiar_contribuyente", async () => {
+  it("guardar sin cambios no envía limpiar_contribuyente", async () => {
     const original = baseRow();
-    const cleared = baseRow({
-      doc_nro: null,
-      contrib_apellido: null,
-      contrib_nombre: null,
-      razon_social: null,
-      limpiar_contribuyente: true,
-    });
-    const body = await putBody(cleared, original);
-    expect(body.limpiar_contribuyente).toBe(true);
+    const body = await putBody(original, original);
+    expect(body).not.toHaveProperty("limpiar_contribuyente");
     expect(body).not.toHaveProperty("doc_nro");
+  });
+
+  it("un row interno con limpiar_contribuyente: true no lo manda en el PUT", async () => {
+    const original = baseRow();
+    const forced = baseRow({ limpiar_contribuyente: true });
+    const body = await putBody(forced, original);
+    expect(body).not.toHaveProperty("limpiar_contribuyente");
   });
 
   it("sin contribuyente asociado permite guardar cambios comunes", async () => {

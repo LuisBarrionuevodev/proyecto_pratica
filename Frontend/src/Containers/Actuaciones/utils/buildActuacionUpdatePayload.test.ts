@@ -73,6 +73,19 @@ describe("buildActuacionUpdatePayload", () => {
     expect(payload).not.toHaveProperty("actuacion_editable");
   });
 
+  it("excluye limpiar_contribuyente aunque el row lo traiga en true", () => {
+    const payload = buildActuacionUpdatePayload({
+      ...relevamientoRowWithMetadata(),
+      limpiar_contribuyente: true,
+    });
+    expect(payload).not.toHaveProperty("limpiar_contribuyente");
+    const inspectorPayload = buildActuacionUpdatePayload(
+      { ...relevamientoRowWithMetadata(), limpiar_contribuyente: true },
+      { inspectorSelfService: true }
+    );
+    expect(inspectorPayload).not.toHaveProperty("limpiar_contribuyente");
+  });
+
   it("payload Admin no incluye ninguna clave de solo lectura conocida", () => {
     const payload = buildActuacionUpdatePayload(relevamientoRowWithMetadata());
     const payloadKeys = new Set(Object.keys(payload));

@@ -15,7 +15,6 @@ export const ACTUACION_ADMIN_PUT_ALLOWED_KEYS: readonly string[] = [
   "tipo_actuacion",
   "contraproducencia",
   "limpiar_contraproducencia",
-  "limpiar_contribuyente",
   "actas_a_quitar",
   "inspectores",
   "inspector1",
@@ -54,7 +53,6 @@ export const ACTUACION_INSPECTOR_PUT_ALLOWED_KEYS: readonly string[] = [
   "tipo_actuacion",
   "contraproducencia",
   "limpiar_contraproducencia",
-  "limpiar_contribuyente",
   "actas_a_quitar",
   "calle",
   "numero",
@@ -118,7 +116,7 @@ export type BuildActuacionUpdatePayloadOptions = {
 
 function shouldIncludePutValue(key: string, value: unknown): boolean {
   if (value === undefined) return false;
-  if (key === "limpiar_contraproducencia" || key === "limpiar_contribuyente") {
+  if (key === "limpiar_contraproducencia") {
     return value === true;
   }
   return true;

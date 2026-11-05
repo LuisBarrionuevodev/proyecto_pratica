@@ -343,7 +343,7 @@ describe("submitActuacionRow pipeline", () => {
     const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
     expect(putBody.actas_a_quitar).toEqual(["INSPECCION"]);
     expect(putBody.contraproducencia).toBe("LOCAL CERRADO");
-    expect(putBody.limpiar_contribuyente).toBe(true);
+    expect(putBody).not.toHaveProperty("limpiar_contribuyente");
     expect(putBody.tipo_actuacion).toBe("INSPECCION");
     expect(putBody.acta_inspeccion_num).toBeNull();
   });
