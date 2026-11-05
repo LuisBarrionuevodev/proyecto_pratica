@@ -18,6 +18,7 @@ import {
   CrudDialogHeader,
   CrudGlassDialog,
 } from "../../../components/crudDialog";
+import { formatCrudDialogOtReference } from "../../../components/crudDialog/crudDialogReference";
 
 export type InspectorCargarFotosDialogProps = {
   open: boolean;
@@ -26,6 +27,12 @@ export type InspectorCargarFotosDialogProps = {
   onClose: () => void;
   disablePortal?: boolean;
 };
+
+function fotosHeaderReference(draft: IActuacionListItem): string {
+  const ot = formatCrudDialogOtReference(draft.orden_trabajo_numero) ?? `Actuación #${draft.id}`;
+  const year = String(draft.fecha_actuacion ?? "").match(/^(\d{4})/)?.[1];
+  return year && ot.startsWith("OT ") ? `${ot} · ${year}` : ot;
+}
 
 /**
  * Modal exclusivo de fotos para Inspector (Mis trabajos). Subida manual con GUARDAR FOTOS.
@@ -91,10 +98,10 @@ export function InspectorCargarFotosDialog({
         mobileFullScreen
         title={
           <CrudDialogHeader
-            domainChip="Mis trabajos"
             titulo="Cargar más fotos"
             subtitulo="Seleccioná fotos y guardalas cuando estés listo"
-            reference={draft.orden_trabajo_numero ?? String(draft.id)}
+            reference={fotosHeaderReference(draft)}
+            referenceProminent
           />
         }
         actions={

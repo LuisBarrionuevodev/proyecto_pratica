@@ -103,10 +103,12 @@ describe("ActuacionDetalleDialog seguimiento 1D", () => {
         onSave={() => undefined}
       />
     );
-    expect(html).toContain("Seguimiento de acta");
-    expect(html).toContain("Domicilio del contribuyente");
-    expect(html).toContain("Mitre 200");
-    expect(html).toContain("López María");
+    expect(html).toContain("Seguimiento");
+    expect(html).toContain("Datos del establecimiento");
+    expect(html).toContain("Mitre");
+    expect(html).toContain("200");
+    expect(html).toContain("López");
+    expect(html).toContain("María");
     const disabledToggles = html.match(/MuiToggleButton-root Mui-disabled/g) ?? [];
     expect(disabledToggles.length).toBe(0);
   });

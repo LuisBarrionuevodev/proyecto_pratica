@@ -264,6 +264,33 @@ const edicionGrid2ColSx = {
   alignItems: "end",
 } as const;
 
+const lecturaGridSx = {
+  display: "grid",
+  gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
+  gap: { xs: 1.5, sm: 2 },
+  width: "100%",
+} as const;
+
+const lecturaLabelSx = {
+  color: GLASS_COLORS.textSecondary,
+  fontSize: "0.6875rem",
+  fontWeight: 700,
+  textTransform: "uppercase" as const,
+  letterSpacing: "0.04em",
+  display: "block",
+  mb: 0.4,
+} as const;
+
+const lecturaValueSx = {
+  color: DOC_MODAL_TEXT,
+  fontSize: "0.875rem",
+  fontWeight: 500,
+  lineHeight: 1.5,
+  m: 0,
+  overflowWrap: "anywhere" as const,
+  whiteSpace: "pre-wrap" as const,
+} as const;
+
 const col = { display: "flex", flexDirection: "column" as const, gap: 1.5 };
 const labelMuted = { color: GLASS_COLORS.textMuted, fontFamily: FONT_FAMILY_UI } as const;
 
@@ -301,6 +328,34 @@ const dateFieldShrinkLabelProps = { shrink: true } as const;
 function dash(v: unknown): string {
   if (v === null || v === undefined || v === "") return "—";
   return String(v);
+}
+
+function LecturaDato({
+  label,
+  value,
+  fullWidth = false,
+}: {
+  label: string;
+  value: unknown;
+  fullWidth?: boolean;
+}) {
+  return (
+    <Box sx={fullWidth ? { gridColumn: "1 / -1", minWidth: 0 } : { minWidth: 0 }}>
+      <Typography component="span" sx={lecturaLabelSx}>
+        {label}
+      </Typography>
+      <Typography component="p" variant="body2" sx={lecturaValueSx}>
+        {dash(value)}
+      </Typography>
+    </Box>
+  );
+}
+
+function actuacionHeaderReference(row: IActuacionListItem): string | null {
+  const reference = resolveCrudDialogHeaderReference(row.orden_trabajo_numero, Number(row.id));
+  if (!reference?.startsWith("OT ")) return reference;
+  const year = String(row.fecha_actuacion ?? "").match(/^(\d{4})/)?.[1];
+  return year ? `${reference} · ${year}` : reference;
 }
 
 /** Texto de vinculación a establecimiento sin exponer IDs internos. */
@@ -504,64 +559,6 @@ function gestionSeguimientoBloqueVisible(draft: IActuacionListItem): boolean {
   );
 }
 
-function BloqueDomicilioContribuyenteContexto({ draft }: { draft: IActuacionListItem }) {
-  const domicilioLinea = formatGestionDomicilioLinea(draft);
-  const rubro = formatGestionRubroNombre(draft);
-  const contribuyente = formatGestionContribuyenteNombre(draft);
-
-  const lineSx = {
-    color: DOC_MODAL_TEXT,
-    fontSize: "0.875rem",
-    fontWeight: 500,
-    lineHeight: 1.5,
-    m: 0,
-  } as const;
-
-  const labelSx = {
-    color: GLASS_COLORS.textSecondary,
-    fontSize: "0.6875rem",
-    fontWeight: 700,
-    textTransform: "uppercase" as const,
-    letterSpacing: "0.04em",
-    display: "block",
-    mb: 0.5,
-  };
-
-  return (
-    <Box sx={{ mb: 2 }}>
-      <Typography component="h3" variant="subtitle2" sx={{ ...sectionTitleSx, mt: 0, mb: 1.25 }}>
-        Domicilio del contribuyente
-      </Typography>
-      <Stack spacing={1.5}>
-        <Box>
-          <Typography component="span" sx={labelSx}>
-            Domicilio del contribuyente
-          </Typography>
-          <Typography component="p" variant="body2" sx={lineSx}>
-            {gestionContextoDisplayValue(domicilioLinea)}
-          </Typography>
-        </Box>
-        <Box>
-          <Typography component="span" sx={labelSx}>
-            Rubro
-          </Typography>
-          <Typography component="p" variant="body2" sx={lineSx}>
-            {gestionContextoDisplayValue(rubro)}
-          </Typography>
-        </Box>
-        <Box>
-          <Typography component="span" sx={labelSx}>
-            Contribuyente
-          </Typography>
-          <Typography component="p" variant="body2" sx={lineSx}>
-            {gestionContextoDisplayValue(contribuyente)}
-          </Typography>
-        </Box>
-      </Stack>
-    </Box>
-  );
-}
-
 function resultadoSeguimientoHayContenido(draft: IActuacionListItem): boolean {
   const res = draft.resultado_cumplimiento_oficio;
   const tieneResultado = res != null && String(res).trim() !== "";
@@ -569,6 +566,52 @@ function resultadoSeguimientoHayContenido(draft: IActuacionListItem): boolean {
     tieneResultado ||
     documentacionTramiteModalTieneContenido(draft) ||
     tieneRestriccionesEdicion(draft)
+  );
+}
+
+function ContextoEdicionFallback({ draft }: { draft: IActuacionListItem }) {
+  const domicilio = formatGestionDomicilioLinea(draft);
+  const contribuyente = formatGestionContribuyenteNombre(draft);
+  const domicilioEditable = [draft.calle, draft.numero]
+    .map((value) => String(value ?? "").trim())
+    .filter(Boolean)
+    .join(" ");
+  const showDomicilio =
+    domicilio.trim() !== "" && domicilio.trim() !== domicilioEditable.trim();
+  const showContribuyente =
+    !String(draft.contrib_nombre ?? "").trim() &&
+    !String(draft.contrib_apellido ?? "").trim() &&
+    contribuyente.trim() !== "";
+  if (!showDomicilio && !showContribuyente) return null;
+
+  return (
+    <Box
+      sx={{
+        mb: 2,
+        p: 1.25,
+        borderRadius: 1.5,
+        bgcolor: "rgba(255,255,255,0.04)",
+        border: "1px solid rgba(255,255,255,0.08)",
+      }}
+    >
+      <Typography component="h3" sx={actaSubtituloMenorSx}>
+        Datos registrados
+      </Typography>
+      <Stack spacing={1}>
+        {showDomicilio ? (
+          <LecturaDato
+            label="Domicilio"
+            value={gestionContextoDisplayValue(domicilio)}
+          />
+        ) : null}
+        {showContribuyente ? (
+          <LecturaDato
+            label="Contribuyente"
+            value={gestionContextoDisplayValue(contribuyente)}
+          />
+        ) : null}
+      </Stack>
+    </Box>
   );
 }
 
@@ -1099,8 +1142,8 @@ export function ActuacionDetalleDialog({
   );
 
   const dialogHeaderReference = useMemo(
-    () => resolveCrudDialogHeaderReference(draft.orden_trabajo_numero, Number(draft.id)),
-    [draft.orden_trabajo_numero, draft.id]
+    () => actuacionHeaderReference(draft),
+    [draft]
   );
 
   const registerActaFlush = useCallback((fn: () => void) => {
@@ -1537,41 +1580,24 @@ export function ActuacionDetalleDialog({
     const gruposEvid = draft.epicollect_evidencias_grupos ?? [];
     const totalEvid = draft.epicollect_evidencias_total ?? 0;
     const tieneEvidenciasEpicollect = totalEvid > 0 && gruposEvid.length > 0;
+    const tieneActas = actasVisitaHayContenido(draft);
+    const tieneSeguimiento = gestionSeguimientoBloqueVisible(draft);
+    const tieneResultado = resultadoSeguimientoHayContenido(draft);
+    const observaciones = observacionesVisitaDisplayText(draft);
+    const contribuyenteNombre =
+      formatGestionContribuyenteNombre(draft) || draft.razon_social || "—";
 
     return (
     <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Ficha de la actuación">
-      <DocumentalBloque overline="Domicilio y establecimiento">
-        <BloqueDomicilioContribuyenteContexto draft={draft} />
-        <Box sx={{ ...edicionGrid2ColSx, ...edicionGapBloqueAPrimerControlSx }}>
-          <CrudFormSlot label="Calle" mode="view" value={dash(draft.calle)} />
-          <CrudFormSlot label="Número o referencia" mode="view" value={dash(draft.numero)} />
-          <CrudFormSlot
-            label="Tipo de numeración"
-            mode="view"
-            value={dash(draft.numero_tipo)}
-            sx={{ gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
+      <DocumentalBloque overline="Establecimiento">
+        <Box sx={lecturaGridSx}>
+          <LecturaDato
+            label="Nombre de fantasía / razón social"
+            value={draft.nombre_local}
           />
+          <LecturaDato label="Rubro" value={formatGestionRubroNombre(draft)} />
         </Box>
-        <CrudFormSlot label="Nombre de fantasía" mode="view" value={dash(draft.nombre_local)} sx={{ mt: 2 }} />
-        <Box sx={{ ...edicionGrid2ColSx, mt: 2 }}>
-          <CrudFormSlot label="Rubro" mode="view" value={dash(draft.rubro_nombre)} />
-          <CrudFormSlot label="N.º de documento" mode="view" value={dash(draft.doc_nro)} />
-          <CrudFormSlot label="Apellido" mode="view" value={dash(draft.contrib_apellido)} />
-          <CrudFormSlot label="Nombre" mode="view" value={dash(draft.contrib_nombre)} />
-          <CrudFormSlot
-            label="Razón social"
-            mode="view"
-            value={dash(draft.razon_social)}
-            sx={{ gridColumn: { xs: "1 / -1", sm: "1 / -1" } }}
-          />
-        </Box>
-        <CrudFormSlot
-          label="Vinculación a ficha de establecimiento"
-          mode="view"
-          value={establecimientoVinculacionTexto(draft)}
-          sx={{ mt: 2 }}
-        />
-        {draft.establecimiento_operativo_id != null ? (
+        {draft.establecimiento_operativo_id != null && !formEditingActive ? (
           <Box sx={{ mt: 1.5 }}>
             <AppButton
               dsVariant="secondary"
@@ -1587,59 +1613,92 @@ export function ActuacionDetalleDialog({
         ) : null}
       </DocumentalBloque>
 
-      <DocumentalBloque overline="Datos de la actuación">
-        <Box sx={edicionGrid2ColSx}>
-          <CrudFormSlot label="OT" mode="view" value={dash(draft.orden_trabajo_numero)} />
-          <CrudFormSlot label="Fecha de la visita" mode="view" value={dash(draft.fecha_actuacion)} />
-          <CrudFormSlot label="Tipo de actuación" mode="view" value={dash(draft.tipo_actuacion)} />
-          <CrudFormSlot label="Contraproducencia" mode="view" value={dash(draft.contraproducencia)} />
+      <DocumentalBloque overline="Domicilio">
+        <Box sx={lecturaGridSx}>
+          <LecturaDato label="Calle" value={draft.domicilio?.calle ?? draft.calle} />
+          <LecturaDato
+            label="Altura o referencia"
+            value={draft.domicilio?.numero ?? draft.domicilio?.esquina ?? draft.numero}
+          />
+          <LecturaDato label="Tipo de numeración" value={draft.numero_tipo} fullWidth />
         </Box>
-        <CrudFormSlot
-          label="Inspectores a cargo"
-          mode="view"
-          value={draft.inspectores_texto?.trim() || inspectoresLinea(draft)}
-          sx={{ mt: 2, width: "100%" }}
-        />
       </DocumentalBloque>
 
-      <DocumentalBloque overline="Observaciones de la visita">
-        <CrudFormSlot
-          label="Observaciones"
-          mode="view"
-          value={observacionesVisitaDisplayText(draft)}
-          sx={{ width: "100%" }}
-        />
+      <DocumentalBloque overline="Contribuyente">
+        <Box sx={lecturaGridSx}>
+          <LecturaDato label="CUIT / DNI" value={draft.doc_nro} />
+          <LecturaDato label="Nombre o razón social" value={contribuyenteNombre} />
+          <LecturaDato
+            label="Vinculación a ficha de establecimiento"
+            value={establecimientoVinculacionTexto(draft)}
+            fullWidth
+          />
+        </Box>
       </DocumentalBloque>
 
-      {actasVisitaHayContenido(draft) ? (
-        <DocumentalBloque overline="Actas labradas">
-          <ActasVisitaLectura
-            draft={draft}
-            catalog={catalogs.itemsActaInspeccion ?? []}
-            lockedNotif={draft.notificacion_editable === false}
+      <DocumentalBloque overline="Visita y actuación">
+        <Box sx={lecturaGridSx}>
+          <LecturaDato label="Fecha" value={draft.fecha_actuacion} />
+          <LecturaDato label="Tipo de actuación" value={draft.tipo_actuacion} />
+          <LecturaDato
+            label="Inspectores"
+            value={draft.inspectores_texto?.trim() || inspectoresLinea(draft)}
           />
-        </DocumentalBloque>
-      ) : null}
+          <LecturaDato label="Contraproducencia" value={draft.contraproducencia} />
+          {observaciones !== "—" ? (
+            <LecturaDato label="Observaciones de visita" value={observaciones} fullWidth />
+          ) : null}
+        </Box>
+      </DocumentalBloque>
 
-      {gestionSeguimientoBloqueVisible(draft) ? (
-        <DocumentalBloque overline="Seguimiento de acta">
-          <ActaSeguimientoGestionFields
-            draft={draft}
-            fieldErrors={fieldErrors}
-            saving={saving}
-            readOnly
-          />
-        </DocumentalBloque>
-      ) : null}
-
-      {resultadoSeguimientoHayContenido(draft) ? (
-        <DocumentalBloque overline="Resultado operativo">
-          <ResultadoSeguimientoLectura draft={draft} />
+      {tieneActas || tieneSeguimiento || tieneResultado ? (
+        <DocumentalBloque overline="Actas y resultado">
+          <Stack spacing={2} divider={<Divider sx={{ borderColor: GLASS_COLORS.borderLight }} />}>
+            {tieneActas ? (
+              <Box>
+                <Typography component="h3" sx={docModalSubheadingInCardSx}>
+                  Actas labradas
+                </Typography>
+                <Box sx={{ mt: 1 }}>
+                  <ActasVisitaLectura
+                    draft={draft}
+                    catalog={catalogs.itemsActaInspeccion ?? []}
+                    lockedNotif={draft.notificacion_editable === false}
+                  />
+                </Box>
+              </Box>
+            ) : null}
+            {tieneSeguimiento && !formEditingActive ? (
+              <Box>
+                <Typography component="h3" sx={docModalSubheadingInCardSx}>
+                  Seguimiento
+                </Typography>
+                <Box sx={{ mt: 1 }}>
+                  <ActaSeguimientoGestionFields
+                    draft={draft}
+                    fieldErrors={fieldErrors}
+                    saving={saving}
+                    readOnly
+                  />
+                </Box>
+              </Box>
+            ) : null}
+            {tieneResultado ? (
+              <Box>
+                <Typography component="h3" sx={docModalSubheadingInCardSx}>
+                  Resultado operativo
+                </Typography>
+                <Box sx={{ mt: 1 }}>
+                  <ResultadoSeguimientoLectura draft={draft} />
+                </Box>
+              </Box>
+            ) : null}
+          </Stack>
         </DocumentalBloque>
       ) : null}
 
       {tieneSnapshotEpicollectLectura || tieneEvidenciasEpicollect ? (
-        <DocumentalBloque overline="Formulario de campo y evidencias">
+        <DocumentalBloque overline="Evidencias de campo">
           {tieneSnapshotEpicollectLectura ? (
             <BloqueEpicollectDetalleLectura
               draft={draft}
@@ -1656,7 +1715,7 @@ export function ActuacionDetalleDialog({
       ) : null}
     </Stack>
     );
-  }, [draft, catalogs.itemsActaInspeccion, epicollectOtrosExpanded, onClose, navigate, toggleEpicollectOtros]);
+  }, [draft, catalogs.itemsActaInspeccion, epicollectOtrosExpanded, fieldErrors, saving, formEditingActive, onClose, navigate, toggleEpicollectOtros]);
 
   const edicionVista = useMemo(() => {
     const e = (key: string) => fieldErrors[key] ?? oficioFieldErrors[key] ?? "";
@@ -1837,8 +1896,38 @@ export function ActuacionDetalleDialog({
 
     return (
       <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Edición de la actuación">
-        <DocumentalBloque overline="Domicilio y establecimiento">
-          <BloqueDomicilioContribuyenteContexto draft={draft} />
+        <DocumentalBloque overline="Datos del establecimiento">
+          <ContextoEdicionFallback draft={draft} />
+          <Typography component="h3" sx={actaSubtituloMenorSx}>
+            Establecimiento
+          </Typography>
+          <Box sx={edicionGrid2ColSx}>
+            <AppTextField
+              appearance="glass"
+              label="Nombre de fantasía"
+              value={draft.nombre_local ?? ""}
+              onChange={(ev) => onDraftChange({ nombre_local: ev.target.value || null })}
+              disabled={!canNombreLocal}
+              error={!!e("nombre_local")}
+              helperText={fieldHelper("nombre_local")}
+              sx={!canNombreLocal ? roFieldSx : undefined}
+              fullWidth
+            />
+            <AppSelect
+              appearance="glass"
+              label="Rubro"
+              value={draft.rubro_nombre ?? ""}
+              onChange={(ev) => onDraftChange({ rubro_nombre: ev.target.value as string })}
+              options={rubrosOptions}
+              disabled={ro("rubro_nombre") || !canRubro}
+              error={!!e("rubro_nombre")}
+              helperText={fieldHelper("rubro_nombre")}
+              fullWidth
+            />
+          </Box>
+          <Typography component="h3" sx={{ ...actaSubtituloMenorSx, mt: 2 }}>
+            Domicilio
+          </Typography>
           {!canDom && domicilioBloqueoMotivo ? (
             <Typography variant="body2" sx={{ color: GLASS_COLORS.textSecondary, mb: 1 }}>
               {domicilioBloqueoMotivo}
@@ -1867,29 +1956,10 @@ export function ActuacionDetalleDialog({
               initialMode={draft.numero_tipo === "ESQUINA" ? "ESQUINA" : "NUMERO"}
             />
           </Box>
-          <AppTextField
-            appearance="glass"
-            label="Nombre de fantasía"
-            value={draft.nombre_local ?? ""}
-            onChange={(ev) => onDraftChange({ nombre_local: ev.target.value || null })}
-            disabled={!canNombreLocal}
-            error={!!e("nombre_local")}
-            helperText={fieldHelper("nombre_local")}
-            sx={{ mt: 2, ...(!canNombreLocal ? roFieldSx : {}) }}
-            fullWidth
-          />
+          <Typography component="h3" sx={{ ...actaSubtituloMenorSx, mt: 2 }}>
+            Contribuyente
+          </Typography>
           <Box sx={{ ...edicionGrid2ColSx, mt: 2 }}>
-            <AppSelect
-              appearance="glass"
-              label="Rubro"
-              value={draft.rubro_nombre ?? ""}
-              onChange={(ev) => onDraftChange({ rubro_nombre: ev.target.value as string })}
-              options={rubrosOptions}
-              disabled={ro("rubro_nombre") || !canRubro}
-              error={!!e("rubro_nombre")}
-              helperText={fieldHelper("rubro_nombre")}
-              fullWidth
-            />
             <AppTextField
               appearance="glass"
               label="N.º de documento"
@@ -1937,7 +2007,7 @@ export function ActuacionDetalleDialog({
           </Box>
         </DocumentalBloque>
 
-        <DocumentalBloque overline="Datos de la actuación">
+        <DocumentalBloque overline="Visita y actuación">
           <Box sx={edicionGapBloqueAPrimerControlSx}>
             <Box sx={edicionGrid2ColSx}>
               <AppTextField
@@ -2206,7 +2276,7 @@ export function ActuacionDetalleDialog({
         ) : null}
 
         {gestionSeguimientoBloqueVisible(draft) ? (
-          <DocumentalBloque overline="Seguimiento de acta">
+          <DocumentalBloque overline="Seguimiento">
             <ActaSeguimientoGestionFields
               draft={draft}
               onDraftChange={onDraftChange}
@@ -2267,7 +2337,7 @@ export function ActuacionDetalleDialog({
         ) : null}
 
         {muestraBloqueFormulario ? (
-          <DocumentalBloque overline="Formulario de campo y evidencias">
+          <DocumentalBloque overline="Evidencias">
             {ec5Trim !== "" ? (
               <AppTextField
                 appearance="glass"
@@ -2355,7 +2425,6 @@ export function ActuacionDetalleDialog({
       mobileFullScreen
       title={
         <CrudDialogHeader
-          domainChip={inspectorSelfService ? "Mis trabajos" : "Actuaciones"}
           titulo={
             inspectorVerTrabajoMode
               ? "Ver trabajo"
@@ -2363,14 +2432,8 @@ export function ActuacionDetalleDialog({
                 ? "Editar actuación"
                 : "Ver actuación"
           }
-          subtitulo={
-            inspectorVerTrabajoMode
-              ? "Consulta de datos y fotos del trabajo"
-              : isEditing
-                ? "Datos operativos y actas del día"
-                : "Consulta de ficha operativa"
-          }
           reference={dialogHeaderReference}
+          referenceProminent
         />
       }
       actions={
@@ -2446,7 +2509,7 @@ export function ActuacionDetalleDialog({
           ) : null}
           {edicionVista}
         </Box>
-        <DocumentalBloque overline="Fotos del trabajo">
+        <DocumentalBloque overline="Fotos y documentación">
           <MediaUploadPanelErrorBoundary
             resetKey={`${draft.id}-${draft.ruta_item_id ?? 0}`}
             rutaItemId={draft.ruta_item_id ?? null}

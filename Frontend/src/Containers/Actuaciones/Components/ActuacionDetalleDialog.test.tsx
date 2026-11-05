@@ -202,6 +202,7 @@ describe("ActuacionDetalleDialog", () => {
     );
 
     expect(html).toContain("Ver actuación");
+    expect(html).toContain("OT 12345 · 2026");
 
     expect(html).toContain("Editar");
 
@@ -210,7 +211,33 @@ describe("ActuacionDetalleDialog", () => {
     expect(html).not.toContain("MuiAlert-standardError");
 
     expect(html).not.toContain("Cancelar");
+    expect(html).not.toContain("Consulta de ficha operativa");
+    expect(html).not.toContain(">Actuaciones<");
 
+  });
+
+  it("modo lectura presenta datos documentales sin inputs deshabilitados", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={baseRow}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    const start = html.indexOf('aria-label="Ficha de la actuación"');
+    const end = html.indexOf('aria-label="Edición de la actuación"');
+    const lectura = html.slice(start, end);
+    expect(start).toBeGreaterThanOrEqual(0);
+    expect(end).toBeGreaterThan(start);
+    expect(lectura).toContain("Nombre de fantasía / razón social");
+    expect(lectura).not.toContain("<input");
   });
 
 
@@ -411,9 +438,12 @@ describe("ActuacionDetalleDialog", () => {
 
     expect(html).toContain("Actas labradas");
 
-    expect(html).toContain("Datos de la actuación");
+    expect(html).toContain("Visita y actuación");
 
-    expect(html).toContain("Domicilio y establecimiento");
+    expect(html).toContain("Establecimiento");
+    expect(html).toContain("Domicilio");
+    expect(html).toContain("Contribuyente");
+    expect(html).toContain("Actas y resultado");
 
   });
 

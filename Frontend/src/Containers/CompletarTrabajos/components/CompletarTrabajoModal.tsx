@@ -1727,10 +1727,10 @@ export function CompletarTrabajoModal({
       hideBackdrop={disablePortal}
       title={
         <CrudDialogHeader
-          domainChip="Completar trabajo"
-          titulo={tipoIniciadorLabel}
-          subtitulo={headerSubtitulo}
+          titulo="Completar trabajo"
+          subtitulo={`${tipoIniciadorLabel} · ${headerSubtitulo}`}
           reference={formatCrudDialogOtReference((resolvedRow ?? row)?.orden_trabajo_numero)}
+          referenceProminent
         />
       }
       actions={

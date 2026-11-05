@@ -22,6 +22,8 @@ export type CrudDialogHeaderProps = {
   mode?: CrudDialogMode;
   /** Identificador discreto (OT, actuación) alineado a la derecha del bloque de título. */
   reference?: string | null;
+  /** Destaca la referencia operativa (p. ej. OT) como dato principal de la cabecera. */
+  referenceProminent?: boolean;
 };
 
 /**
@@ -34,13 +36,14 @@ export function CrudDialogHeader({
   statusChip,
   mode,
   reference,
+  referenceProminent = false,
 }: CrudDialogHeaderProps) {
   const refLabel = (reference ?? "").trim();
   return (
     <Box
       sx={{
         display: "flex",
-        flexDirection: "row",
+        flexDirection: { xs: "column", sm: "row" },
         alignItems: "flex-start",
         gap: 1,
         width: "100%",
@@ -78,10 +81,17 @@ export function CrudDialogHeader({
           sx={mergeSx(docModalReferenceSx, {
             color: "text.primary",
             flexShrink: 0,
-            textAlign: "right",
-            maxWidth: "42%",
+            textAlign: { xs: "left", sm: "right" },
+            maxWidth: { xs: "100%", sm: "48%" },
             wordBreak: "break-word",
             pt: 0.25,
+            ...(referenceProminent
+              ? {
+                  fontSize: { xs: "0.95rem", sm: "0.9rem" },
+                  fontWeight: 700,
+                  lineHeight: 1.3,
+                }
+              : {}),
           })}
         >
           {refLabel}

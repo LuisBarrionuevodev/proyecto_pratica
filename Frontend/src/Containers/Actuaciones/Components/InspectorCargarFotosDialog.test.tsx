@@ -67,6 +67,9 @@ describe("InspectorCargarFotosDialog", () => {
     );
     expect(html).toContain("GUARDAR FOTOS");
     expect(html).toContain("Cargar más fotos");
+    expect(html).toContain("OT 555 · 2026");
+    expect(html).toContain("Galería");
     expect(html).not.toContain("Editar actuación");
+    expect(html).not.toContain(">Mis trabajos<");
   });
 });
