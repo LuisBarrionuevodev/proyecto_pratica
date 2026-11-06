@@ -65,6 +65,8 @@ import {
 } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
 import type { ChecklistUxValue } from "../../Actuaciones/utils/inspeccionChecklistSubmit";
 import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";
+import { InspeccionAtencionEstablecimientoFields } from "../../Actuaciones/Components/InspeccionAtencionEstablecimientoFields";
+import type { CaracterPersonaAtendio } from "../../Actuaciones/utils/inspeccionAtencion";
 /** Keys Glide (contrato `COLUMN_MAP_ACTUACIONES` / grilla). */
 const GLIDE_KEYS = [
   "Fecha actuación",
@@ -186,6 +188,10 @@ export function CargarActuacionNuevaModal() {
   const [personasSinCarnet, setPersonasSinCarnet] = useState("0");
   const [checklistItemsTouched, setChecklistItemsTouched] = useState(false);
   const [personasSinCarnetTouched, setPersonasSinCarnetTouched] = useState(false);
+  const [caracterPersonaAtendio, setCaracterPersonaAtendio] = useState<CaracterPersonaAtendio | null>(
+    null
+  );
+  const [contratoResiduos, setContratoResiduos] = useState<boolean | null>(null);
   const [catalogsReady, setCatalogsReady] = useState(false);
   /** True hasta que termine el primer fetch de catálogos (éxito o error); para paridad con preload de Completar trabajo. */
   const [catalogsBootstrapping, setCatalogsBootstrapping] = useState(true);
@@ -290,6 +296,8 @@ export function CargarActuacionNuevaModal() {
     setPersonasSinCarnet(checklistV2Reset.personasSinCarnet);
     setChecklistItemsTouched(checklistV2Reset.checklistItemsTouched);
     setPersonasSinCarnetTouched(checklistV2Reset.personasSinCarnetTouched);
+    setCaracterPersonaAtendio(null);
+    setContratoResiduos(null);
     setFieldErrors({});
     setRowId(generateRowId());
   }, []);
@@ -338,6 +346,8 @@ export function CargarActuacionNuevaModal() {
     setPersonasSinCarnet(checklistV2Reset.personasSinCarnet);
     setChecklistItemsTouched(false);
     setPersonasSinCarnetTouched(false);
+    setCaracterPersonaAtendio(null);
+    setContratoResiduos(null);
   }, []);
 
   const handleCargaSoloComprobacionChange = useCallback(
@@ -426,6 +436,15 @@ export function CargarActuacionNuevaModal() {
         (row as Record<string, unknown>).cantidad_personas_sin_carnet_sanidad = cantidad;
       }
     }
+    if (isValidActaInspeccionNum(texts["Acta inspección"])) {
+      if (caracterPersonaAtendio != null) {
+        (row as Record<string, unknown>).caracter_persona_atendio = caracterPersonaAtendio;
+      }
+      if (contratoResiduos != null) {
+        (row as Record<string, unknown>).posee_contrato_retiro_residuos_solidos_urbanos =
+          contratoResiduos;
+      }
+    }
 
     return row;
   }, [
@@ -439,6 +458,8 @@ export function CargarActuacionNuevaModal() {
     titularModo,
     notifMotivosSel,
     cargaSoloComprobacion,
+    caracterPersonaAtendio,
+    contratoResiduos,
   ]);
 
   const toSelectOptions = (columnId: string): AppSelectOption[] =>
@@ -764,6 +785,28 @@ export function CargarActuacionNuevaModal() {
           ) : null}
         </Box>
         </CargarActuacionBloque>
+
+        {!cargaSoloComprobacion && isValidActaInspeccionNum(texts["Acta inspección"]) ? (
+        <CargarActuacionBloque title="Atención en el establecimiento">
+          <InspeccionAtencionEstablecimientoFields
+            hideHeading
+            caracter={caracterPersonaAtendio}
+            contrato={contratoResiduos}
+            onCaracterChange={(value) => {
+              setCaracterPersonaAtendio(value);
+              clearFe("caracter_persona_atendio");
+            }}
+            onContratoChange={(value) => {
+              setContratoResiduos(value);
+              clearFe("posee_contrato_retiro_residuos_solidos_urbanos");
+            }}
+            errors={{
+              caracter: errorFor("caracter_persona_atendio"),
+              contrato: errorFor("posee_contrato_retiro_residuos_solidos_urbanos"),
+            }}
+          />
+        </CargarActuacionBloque>
+        ) : null}
 
         <CargarActuacionBloque title={cargaSoloComprobacion ? "Titular" : "Contribuyente / titular"}>
         <Box sx={{ ...col, width: "100%" }}>

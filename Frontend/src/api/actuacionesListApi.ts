@@ -87,6 +87,10 @@ export interface IActuacionListItem {
     /** EpiCollect5; solo lectura en UI; no se envía en PUT canal actas. */
     ec5_uuid?: string | null;
     acta_inspeccion_num: string | null;
+    /** V1.1-INSPECCION.1: carácter de quien atendió (TITULAR/ENCARGADO/EMPLEADO/OTRO). */
+    caracter_persona_atendio?: "TITULAR" | "ENCARGADO" | "EMPLEADO" | "OTRO" | null;
+    /** V1.1-INSPECCION.1: contrato de retiro de residuos sólidos urbanos. */
+    posee_contrato_retiro_residuos_solidos_urbanos?: boolean | null;
     /** Checklist inspección: lectura o escritura tipada (ESTADO / SI_NO). */
     items_acta_inspeccion?: Array<
       | {

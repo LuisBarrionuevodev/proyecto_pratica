@@ -41,6 +41,8 @@ export type CompletarTrabajoFormFields = {
   /** Verificar e informar: true = inspección normal; false = cierre sin actas normales. */
   realizo_nueva_inspeccion: string;
   acta_inspeccion_num: string;
+  caracter_persona_atendio: string;
+  posee_contrato_retiro_residuos_solidos_urbanos: string;
   items_acta_inspeccion: ItemActaInspeccionWrite[];
   cantidad_personas_sin_carnet_sanidad: string;
   acta_notificacion_num: string;
@@ -287,6 +289,22 @@ export function buildCompletarTrabajoCierreBody(
       body.resultado_cumplimiento_oficio = rc;
     }
     if (s(f.acta_inspeccion_num)) body.acta_inspeccion_num = s(f.acta_inspeccion_num);
+    if (fieldExplicit("caracter_persona_atendio", options)) {
+      const caracter = s(f.caracter_persona_atendio);
+      body.caracter_persona_atendio = caracter
+        ? (caracter as ICompletarTrabajoCierreBody["caracter_persona_atendio"])
+        : null;
+    }
+    if (fieldExplicit("posee_contrato_retiro_residuos_solidos_urbanos", options)) {
+      const raw = f.posee_contrato_retiro_residuos_solidos_urbanos.trim().toLowerCase();
+      if (raw === "true" || raw === "si" || raw === "sí" || raw === "1") {
+        body.posee_contrato_retiro_residuos_solidos_urbanos = true;
+      } else if (raw === "false" || raw === "no" || raw === "0") {
+        body.posee_contrato_retiro_residuos_solidos_urbanos = false;
+      } else {
+        body.posee_contrato_retiro_residuos_solidos_urbanos = null;
+      }
+    }
     if (fieldExplicit("items_acta_inspeccion", options)) {
       body.items_acta_inspeccion = checklistItemsForCierrePayload(f.items_acta_inspeccion);
     }
@@ -350,6 +368,8 @@ export const EMPTY_COMPLETAR_FORM: CompletarTrabajoFormFields = {
   resultado_cumplimiento_oficio: "",
   realizo_nueva_inspeccion: "",
   acta_inspeccion_num: "",
+  caracter_persona_atendio: "",
+  posee_contrato_retiro_residuos_solidos_urbanos: "",
   items_acta_inspeccion: [],
   cantidad_personas_sin_carnet_sanidad: "0",
   acta_notificacion_num: "",
@@ -469,6 +489,13 @@ function rowToFormFields(row: ICompletarTrabajoPendienteRow): CompletarTrabajoFo
     resultado_cumplimiento_oficio: row.resultado_cumplimiento_oficio ?? "",
     realizo_nueva_inspeccion: "",
     acta_inspeccion_num: row.acta_inspeccion_num ?? "",
+    caracter_persona_atendio: row.caracter_persona_atendio ?? "",
+    posee_contrato_retiro_residuos_solidos_urbanos:
+      row.posee_contrato_retiro_residuos_solidos_urbanos === true
+        ? "true"
+        : row.posee_contrato_retiro_residuos_solidos_urbanos === false
+          ? "false"
+          : "",
     items_acta_inspeccion: checklistItemsFromRow(row.items_acta_inspeccion ?? []),
     cantidad_personas_sin_carnet_sanidad: cantidadPersonasSinCarnetFromRow(row),
     acta_notificacion_num: row.acta_notificacion_num ?? "",
@@ -516,6 +543,14 @@ export function buildCompletarTrabajoCierreBodyFromInline(
   }
   if ("faltas_notificacion_subsanadas" in values) {
     fields.faltas_notificacion_subsanadas = strFromUnknown(values.faltas_notificacion_subsanadas);
+  }
+  if ("caracter_persona_atendio" in values) {
+    fields.caracter_persona_atendio = strFromUnknown(values.caracter_persona_atendio);
+  }
+  if ("posee_contrato_retiro_residuos_solidos_urbanos" in values) {
+    fields.posee_contrato_retiro_residuos_solidos_urbanos = strFromUnknown(
+      values.posee_contrato_retiro_residuos_solidos_urbanos
+    );
   }
   if (options?.omitPrecargadoPr2 === true) {
     applyOmitPrecargadoPr2(fields);

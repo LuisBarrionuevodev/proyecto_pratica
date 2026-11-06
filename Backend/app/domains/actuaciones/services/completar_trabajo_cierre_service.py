@@ -232,6 +232,8 @@ def _validar_payload_verificar_informar(
     if payload.realizo_nueva_inspeccion is False:
         acta_campos = (
             payload.acta_inspeccion_num,
+            payload.caracter_persona_atendio,
+            payload.posee_contrato_retiro_residuos_solidos_urbanos,
             payload.acta_notificacion_num,
             payload.acta_comprobacion_num,
             payload.acta_clausura_num,

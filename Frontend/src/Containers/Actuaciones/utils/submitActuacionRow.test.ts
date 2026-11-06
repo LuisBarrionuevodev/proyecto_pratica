@@ -897,3 +897,66 @@ describe("submitActuacionRow habilitación HOTFIX V1.1-CRUD-ACTUACIONES.1", () =
     expect(mockedUpdateActuacion).toHaveBeenCalledOnce();
   });
 });
+
+describe("submitActuacionRow atención inspección", () => {
+  const originalWithAtencion = {
+    ...baseRow,
+    caracter_persona_atendio: "ENCARGADO",
+    posee_contrato_retiro_residuos_solidos_urbanos: true,
+  } as IActuacionListItem;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+  });
+
+  it("touched: PUT incluye carácter y contrato", async () => {
+    await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...originalWithAtencion,
+        caracter_persona_atendio: "EMPLEADO",
+        posee_contrato_retiro_residuos_solidos_urbanos: false,
+      },
+      originalRow: originalWithAtencion,
+      inspeccionAtencionTouched: { caracter: true, contrato: true },
+      skipValidation: true,
+      skipUpdate: false,
+    });
+    const putBody = mockedUpdateActuacion.mock.calls[0]![1] as Record<string, unknown>;
+    expect(putBody.caracter_persona_atendio).toBe("EMPLEADO");
+    expect(putBody.posee_contrato_retiro_residuos_solidos_urbanos).toBe(false);
+  });
+
+  it("untouched: PUT no envía los campos (observaciones/otros no los pisan)", async () => {
+    await submitActuacionRow({
+      id: 1,
+      fullRow: originalWithAtencion,
+      originalRow: originalWithAtencion,
+      skipValidation: true,
+      skipUpdate: false,
+    });
+    const putBody = mockedUpdateActuacion.mock.calls[0]![1] as Record<string, unknown>;
+    expect(putBody.caracter_persona_atendio).toBeUndefined();
+    expect(putBody.posee_contrato_retiro_residuos_solidos_urbanos).toBeUndefined();
+  });
+
+  it("— limpia con null explícito", async () => {
+    await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...originalWithAtencion,
+        caracter_persona_atendio: null,
+        posee_contrato_retiro_residuos_solidos_urbanos: null,
+      },
+      originalRow: originalWithAtencion,
+      inspeccionAtencionTouched: { caracter: true, contrato: true },
+      skipValidation: true,
+      skipUpdate: false,
+    });
+    const putBody = mockedUpdateActuacion.mock.calls[0]![1] as Record<string, unknown>;
+    expect(putBody.caracter_persona_atendio).toBeNull();
+    expect(putBody.posee_contrato_retiro_residuos_solidos_urbanos).toBeNull();
+  });
+});

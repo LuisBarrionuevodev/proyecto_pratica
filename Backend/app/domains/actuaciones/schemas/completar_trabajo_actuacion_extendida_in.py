@@ -16,6 +16,8 @@ class CompletarTrabajoActuacionExtendidaIn(BaseModel):
 
     contraproducencia: Optional[str] = None
     acta_inspeccion_num: Optional[str] = None
+    caracter_persona_atendio: Optional[str] = None
+    posee_contrato_retiro_residuos_solidos_urbanos: Optional[bool] = None
     acta_notificacion_num: Optional[str] = None
     notificacion_motivo_1: Optional[str] = None
     notificacion_motivo_2: Optional[str] = None
@@ -39,6 +41,11 @@ class CompletarTrabajoActuacionExtendidaIn(BaseModel):
             return self
         bloque: list[tuple[str, bool]] = [
             ("acta_inspeccion_num", bool(self.acta_inspeccion_num)),
+            ("caracter_persona_atendio", bool(self.caracter_persona_atendio)),
+            (
+                "posee_contrato_retiro_residuos_solidos_urbanos",
+                self.posee_contrato_retiro_residuos_solidos_urbanos is not None,
+            ),
             ("acta_notificacion_num", bool(self.acta_notificacion_num)),
             ("acta_comprobacion_num", bool(self.acta_comprobacion_num)),
             ("acta_clausura_num", bool(self.acta_clausura_num)),

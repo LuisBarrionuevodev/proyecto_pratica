@@ -22,6 +22,10 @@ from app.domains.actuaciones.schemas.item_acta_inspeccion_estado_in import (
 from app.domains.actuaciones.services.actas_quitar_canal_actas_service import (
     normalizar_tipo_acta_canal,
 )
+from app.domains.actuaciones.utils.inspeccion_atencion import (
+    normalize_bool_nullable,
+    normalize_caracter_persona_atendio,
+)
 
 from app.database import db
 from app.domains.actuaciones.services.completar_trabajo_contraproducencia import (
@@ -222,6 +226,8 @@ class ActuacionGridRowIn(BaseModel):
     # Actas
     acta_inspeccion_num: Optional[str] = None
     items_acta_inspeccion: Optional[List[ItemActaInspeccionEstadoIn]] = None
+    caracter_persona_atendio: Optional[str] = None
+    posee_contrato_retiro_residuos_solidos_urbanos: Optional[bool] = None
 
     acta_notificacion_num: Optional[str] = None
     cantidad_personas_sin_carnet_sanidad: Optional[int] = Field(default=None, ge=0)
@@ -322,6 +328,16 @@ class ActuacionGridRowIn(BaseModel):
         if not isinstance(v, list):
             raise ValueError("items_acta_inspeccion debe ser una lista.")
         return v
+
+    @field_validator("caracter_persona_atendio", mode="before")
+    @classmethod
+    def parse_caracter_persona_atendio(cls, v: Any) -> Any:
+        return normalize_caracter_persona_atendio(v)
+
+    @field_validator("posee_contrato_retiro_residuos_solidos_urbanos", mode="before")
+    @classmethod
+    def parse_contrato_residuos(cls, v: Any) -> Any:
+        return normalize_bool_nullable(v)
 
     @field_validator(
         "solicita_carnet_manipulador",
@@ -560,6 +576,14 @@ class ActuacionGridRowIn(BaseModel):
             field_errors["items_acta_inspeccion"] = (
                 "Condiciones de inspección no son compatibles con carga histórica solo comprobación."
             )
+        if self.caracter_persona_atendio is not None:
+            field_errors["caracter_persona_atendio"] = (
+                "Atención en el establecimiento no es compatible con carga histórica solo comprobación."
+            )
+        if self.posee_contrato_retiro_residuos_solidos_urbanos is not None:
+            field_errors["posee_contrato_retiro_residuos_solidos_urbanos"] = (
+                "Contrato de residuos no es compatible con carga histórica solo comprobación."
+            )
         if _present(self.cantidad_personas_sin_carnet_sanidad):
             field_errors["cantidad_personas_sin_carnet_sanidad"] = (
                 "Personas sin carnet no es compatible con carga histórica solo comprobación."
@@ -610,6 +634,11 @@ class ActuacionGridRowIn(BaseModel):
         bloque: list[tuple[str, bool]] = [
             ("acta_inspeccion_num", bool(self.acta_inspeccion_num)),
             ("items_acta_inspeccion", self.items_acta_inspeccion is not None),
+            ("caracter_persona_atendio", self.caracter_persona_atendio is not None),
+            (
+                "posee_contrato_retiro_residuos_solidos_urbanos",
+                self.posee_contrato_retiro_residuos_solidos_urbanos is not None,
+            ),
             ("cantidad_personas_sin_carnet_sanidad", self.cantidad_personas_sin_carnet_sanidad is not None),
             ("acta_notificacion_num", bool(self.acta_notificacion_num)),
             ("acta_comprobacion_num", bool(self.acta_comprobacion_num)),

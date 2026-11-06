@@ -505,6 +505,37 @@ describe("buildCompletarTrabajoCierreBody checklist V2", () => {
     expect(body.items_acta_inspeccion).toBeUndefined();
   });
 
+  it("atención: envía ENCARGADO y contrato Sí", () => {
+    const body = buildCompletarTrabajoCierreBodyFromInline(baseRowCompletar, {
+      contraproducencia: "",
+      acta_inspeccion_num: "000123",
+      caracter_persona_atendio: "ENCARGADO",
+      posee_contrato_retiro_residuos_solidos_urbanos: true,
+    });
+    expect(body.caracter_persona_atendio).toBe("ENCARGADO");
+    expect(body.posee_contrato_retiro_residuos_solidos_urbanos).toBe(true);
+  });
+
+  it("atención: — envía null", () => {
+    const body = buildCompletarTrabajoCierreBodyFromInline(baseRowCompletar, {
+      contraproducencia: "",
+      acta_inspeccion_num: "000123",
+      caracter_persona_atendio: null,
+      posee_contrato_retiro_residuos_solidos_urbanos: null,
+    });
+    expect(body.caracter_persona_atendio).toBeNull();
+    expect(body.posee_contrato_retiro_residuos_solidos_urbanos).toBeNull();
+  });
+
+  it("atención: untouched no envía los campos", () => {
+    const body = buildCompletarTrabajoCierreBodyFromInline(baseRowCompletar, {
+      contraproducencia: "",
+      acta_inspeccion_num: "000123",
+    });
+    expect(body.caracter_persona_atendio).toBeUndefined();
+    expect(body.posee_contrato_retiro_residuos_solidos_urbanos).toBeUndefined();
+  });
+
   it("regresión 422 — Baño BIEN no pierde item_id en request", () => {
     const idBano = 1;
     const body = buildCompletarTrabajoCierreBodyFromInline(baseRowCompletar, {

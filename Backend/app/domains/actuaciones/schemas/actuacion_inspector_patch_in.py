@@ -14,6 +14,10 @@ from app.domains.actuaciones.schemas.grid.actuacion_row_in import (
     _raise_field_errors,
     _zfill6_if_digit,
 )
+from app.domains.actuaciones.utils.inspeccion_atencion import (
+    normalize_bool_nullable,
+    normalize_caracter_persona_atendio,
+)
 from app.domains.actuaciones.services.actas_quitar_canal_actas_service import (
     normalizar_tipo_acta_canal,
 )
@@ -57,6 +61,8 @@ class ActuacionInspectorPatchIn(BaseModel):
 
     acta_inspeccion_num: Optional[str] = None
     items_acta_inspeccion: Optional[List[ItemActaInspeccionEstadoIn]] = None
+    caracter_persona_atendio: Optional[str] = None
+    posee_contrato_retiro_residuos_solidos_urbanos: Optional[bool] = None
     cantidad_personas_sin_carnet_sanidad: Optional[int] = Field(default=None, ge=0)
 
     acta_notificacion_num: Optional[str] = None
@@ -176,6 +182,16 @@ class ActuacionInspectorPatchIn(BaseModel):
         if not isinstance(v, list):
             raise ValueError("items_acta_inspeccion debe ser una lista.")
         return v
+
+    @field_validator("caracter_persona_atendio", mode="before")
+    @classmethod
+    def parse_caracter_persona_atendio(cls, v: Any) -> Any:
+        return normalize_caracter_persona_atendio(v)
+
+    @field_validator("posee_contrato_retiro_residuos_solidos_urbanos", mode="before")
+    @classmethod
+    def parse_contrato_residuos(cls, v: Any) -> Any:
+        return normalize_bool_nullable(v)
 
     @field_validator("actas_a_quitar", mode="before")
     @classmethod

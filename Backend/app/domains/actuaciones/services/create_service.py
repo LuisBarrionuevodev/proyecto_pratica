@@ -9,6 +9,7 @@ from app.utils.fechas import parse_fecha_grid
 from .previas_service import resolver_previas
 from app.domains.actuaciones.attach.inspeccion import attach_inspeccion
 from app.domains.actuaciones.attach.inspeccion import aplicar_inspeccion_checklist_desde_payload
+from app.domains.actuaciones.attach.inspeccion import aplicar_inspeccion_atencion_desde_payload
 from app.domains.actuaciones.attach.notificacion import (
     aplicar_personas_sin_carnet_desde_payload,
     attach_notificacion,
@@ -162,6 +163,7 @@ def crear_actuacion_desde_payload(
     # Actas (si vienen)
     attach_inspeccion(act, payload.get("acta_inspeccion_num"), crear=True)
     aplicar_inspeccion_checklist_desde_payload(act, payload)
+    aplicar_inspeccion_atencion_desde_payload(act, payload)
     attach_notificacion(act, payload.get("notificacion"))
     aplicar_personas_sin_carnet_desde_payload(act, payload)
     attach_comprobacion(act, payload.get("comprobacion"))

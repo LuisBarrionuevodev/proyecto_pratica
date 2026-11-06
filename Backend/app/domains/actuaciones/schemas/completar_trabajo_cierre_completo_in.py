@@ -8,6 +8,10 @@ from app.domains.actuaciones.schemas.completar_trabajo_cierre_in import Completa
 from app.domains.actuaciones.schemas.item_acta_inspeccion_estado_in import (
     ItemActaInspeccionEstadoIn,
 )
+from app.domains.actuaciones.utils.inspeccion_atencion import (
+    normalize_bool_nullable,
+    normalize_caracter_persona_atendio,
+)
 from app.domains.actuaciones.services.completar_trabajo_contraproducencia import (
     es_contraproducencia_correctiva_direccion,
     es_contraproducencia_correctiva_rubro,
@@ -75,6 +79,8 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
 
     acta_inspeccion_num: Optional[str] = None
     items_acta_inspeccion: Optional[List[ItemActaInspeccionEstadoIn]] = None
+    caracter_persona_atendio: Optional[str] = None
+    posee_contrato_retiro_residuos_solidos_urbanos: Optional[bool] = None
     acta_notificacion_num: Optional[str] = None
     cantidad_personas_sin_carnet_sanidad: Optional[int] = None
     notificacion_motivo_1: Optional[str] = None
@@ -164,6 +170,16 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
             s = v.strip()
             return s or None
         return v
+
+    @field_validator("caracter_persona_atendio", mode="before")
+    @classmethod
+    def parse_caracter_persona_atendio(cls, v: object) -> object:
+        return normalize_caracter_persona_atendio(v)
+
+    @field_validator("posee_contrato_retiro_residuos_solidos_urbanos", mode="before")
+    @classmethod
+    def parse_contrato_residuos(cls, v: object) -> object:
+        return normalize_bool_nullable(v)
 
     @field_validator("solicita_carnet_manipulador", "faltas_notificacion_subsanadas", mode="before")
     @classmethod
@@ -311,6 +327,11 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
             bloque: list[tuple[str, bool]] = [
                 ("acta_inspeccion_num", bool(self.acta_inspeccion_num)),
                 ("items_acta_inspeccion", self.items_acta_inspeccion is not None),
+                ("caracter_persona_atendio", self.caracter_persona_atendio is not None),
+                (
+                    "posee_contrato_retiro_residuos_solidos_urbanos",
+                    self.posee_contrato_retiro_residuos_solidos_urbanos is not None,
+                ),
                 ("cantidad_personas_sin_carnet_sanidad", self.cantidad_personas_sin_carnet_sanidad is not None),
                 ("acta_notificacion_num", bool(self.acta_notificacion_num)),
                 ("acta_decomiso_num", bool(self.acta_decomiso_num)),
@@ -337,6 +358,11 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
             bloque = [
                 ("acta_inspeccion_num", bool(self.acta_inspeccion_num)),
                 ("items_acta_inspeccion", self.items_acta_inspeccion is not None),
+                ("caracter_persona_atendio", self.caracter_persona_atendio is not None),
+                (
+                    "posee_contrato_retiro_residuos_solidos_urbanos",
+                    self.posee_contrato_retiro_residuos_solidos_urbanos is not None,
+                ),
                 ("cantidad_personas_sin_carnet_sanidad", self.cantidad_personas_sin_carnet_sanidad is not None),
                 ("acta_notificacion_num", bool(self.acta_notificacion_num)),
                 ("acta_comprobacion_num", bool(self.acta_comprobacion_num)),

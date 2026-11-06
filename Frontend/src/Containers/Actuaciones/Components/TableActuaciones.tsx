@@ -368,6 +368,7 @@ const TablaActuaciones = ({
           actasClearedByOficioCorrection: options?.actasClearedByOficioCorrection ?? [],
           oficioValidationContext: options?.oficioValidationContext,
           inspeccionChecklistTouched: options?.inspeccionChecklistTouched,
+          inspeccionAtencionTouched: options?.inspeccionAtencionTouched,
           contribuyenteIdentityTouched: options?.contribuyenteIdentityTouched,
           inspeccionChecklistCatalog: options?.inspeccionChecklistCatalog,
           skipValidation,

@@ -64,6 +64,7 @@ from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     count_actuaciones_por_establecimiento_operativo_ids,
 )
 from app.domains.actuaciones.attach.inspeccion import items_acta_inspeccion_read_dtos
+from app.domains.actuaciones.utils.inspeccion_atencion import inspeccion_atencion_grid_fields
 from app.models import (
     Actuaciones,
     Comprobacion,
@@ -944,6 +945,7 @@ def actuacion_to_grid_row(
 
     acta_inspeccion_num = getattr(inspeccion, "numero_acta", None) if inspeccion else None
     items_acta_inspeccion = items_acta_inspeccion_read_dtos(inspeccion)
+    atencion_inspeccion = inspeccion_atencion_grid_fields(inspeccion)
     acta_clausura_num = getattr(clausura, "numero_acta", None) if clausura else None
     acta_decomiso_num = getattr(decomiso, "numero_acta", None) if decomiso else None
     decomiso_kilos_total = getattr(decomiso, "cantidad", None) if decomiso else None
@@ -1107,6 +1109,10 @@ def actuacion_to_grid_row(
 
         "acta_inspeccion_num": acta_inspeccion_num,
         "items_acta_inspeccion": items_acta_inspeccion,
+        "caracter_persona_atendio": atencion_inspeccion["caracter_persona_atendio"],
+        "posee_contrato_retiro_residuos_solidos_urbanos": atencion_inspeccion[
+            "posee_contrato_retiro_residuos_solidos_urbanos"
+        ],
         "cantidad_personas_sin_carnet_sanidad": cantidad_personas_sin_carnet_sanidad,
 
         "acta_notificacion_num": acta_notificacion_num,

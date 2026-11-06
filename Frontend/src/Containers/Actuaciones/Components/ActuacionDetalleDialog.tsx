@@ -124,6 +124,16 @@ import {
   validateGestionSeguimientoFields,
 } from "../utils/actuacionGestionSeguimientoPut";
 import { type ContribuyenteIdentityTouched } from "../utils/contribuyenteCrudOptions";
+import { InspeccionAtencionEstablecimientoFields } from "./InspeccionAtencionEstablecimientoFields";
+import {
+  caracterPersonaAtendioFromRow,
+  contratoResiduosFromRow,
+  hasActaInspeccionEnCurso,
+  inspeccionAtencionLecturaVisible,
+  labelCaracterPersonaAtendio,
+  labelContratoResiduos,
+  type InspeccionAtencionTouched,
+} from "../utils/inspeccionAtencion";
 import {
   OBSERVACIONES_VISITA_MAX_LENGTH,
   canEditObservacionesVisita,
@@ -186,6 +196,7 @@ export type ActuacionSaveOptions = {
   /** Estado destino del formulario Oficio para validación CRUD contextualizada. */
   oficioValidationContext?: ReinspeccionOficioValidationContextInput;
   inspeccionChecklistTouched?: { items?: boolean; carnets?: boolean };
+  inspeccionAtencionTouched?: InspeccionAtencionTouched;
   contribuyenteIdentityTouched?: ContribuyenteIdentityTouched;
   inspeccionChecklistCatalog?: IItemActaInspeccionCatalogItem[];
   /** Mantiene el modal abierto tras PUT exitoso (p. ej. subida manual de fotos). */
@@ -1309,6 +1320,7 @@ export function ActuacionDetalleDialog({
   const mediaGalleryRef = useRef<ActuacionMediaGalleryHandle | null>(null);
   const [mediaDiscardConfirmOpen, setMediaDiscardConfirmOpen] = useState(false);
   const identidadTouchedRef = useRef<ContribuyenteIdentityTouched>({});
+  const atencionTouchedRef = useRef<InspeccionAtencionTouched>({});
   const [isEditing, setIsEditing] = useState(initialEditing);
   const [photosOnlyMode, setPhotosOnlyMode] = useState(false);
   const [editBaseline, setEditBaseline] = useState<IActuacionListItem | null>(null);
@@ -1646,6 +1658,7 @@ export function ActuacionDetalleDialog({
           items: checklistItemsTouchedRef.current,
           carnets: personasSinCarnetTouchedRef.current,
         },
+        inspeccionAtencionTouched: { ...atencionTouchedRef.current },
         contribuyenteIdentityTouched: { ...identidadTouchedRef.current },
         inspeccionChecklistCatalog: catalogs.itemsActaInspeccion ?? [],
         deferDialogClose: true,
@@ -1742,6 +1755,7 @@ export function ActuacionDetalleDialog({
       checklistItemsTouchedRef.current = false;
       personasSinCarnetTouchedRef.current = false;
       identidadTouchedRef.current = {};
+      atencionTouchedRef.current = {};
       hydratedChecklistActIdRef.current = draft.id;
       setChecklistEstados(estadosMapFromRow(draft, catalog));
       return;
@@ -1886,6 +1900,25 @@ export function ActuacionDetalleDialog({
           </Box>
         ) : null}
       </LecturaBloque>
+
+      {inspeccionAtencionLecturaVisible(draft) ? (
+        <LecturaBloque titulo="Atención en el establecimiento">
+          <Box sx={lecturaGridSx}>
+            {labelCaracterPersonaAtendio(draft.caracter_persona_atendio) ? (
+              <LecturaDato
+                label="Atendió"
+                value={labelCaracterPersonaAtendio(draft.caracter_persona_atendio)}
+              />
+            ) : null}
+            {labelContratoResiduos(contratoResiduosFromRow(draft)) ? (
+              <LecturaDato
+                label="Contrato de retiro de residuos sólidos urbanos"
+                value={labelContratoResiduos(contratoResiduosFromRow(draft))}
+              />
+            ) : null}
+          </Box>
+        </LecturaBloque>
+      ) : null}
 
       <LecturaBloque titulo="Contribuyente">
         <Box sx={lecturaGridSx}>
@@ -2192,6 +2225,27 @@ export function ActuacionDetalleDialog({
               initialMode={draft.numero_tipo === "ESQUINA" ? "ESQUINA" : "NUMERO"}
             />
           </Box>
+          {hasActaInspeccionEnCurso(draft.acta_inspeccion_num) ? (
+            <Box sx={{ mt: 2 }}>
+              <InspeccionAtencionEstablecimientoFields
+                caracter={caracterPersonaAtendioFromRow(draft)}
+                contrato={contratoResiduosFromRow(draft)}
+                onCaracterChange={(value) => {
+                  atencionTouchedRef.current = { ...atencionTouchedRef.current, caracter: true };
+                  onDraftChange({ caracter_persona_atendio: value });
+                }}
+                onContratoChange={(value) => {
+                  atencionTouchedRef.current = { ...atencionTouchedRef.current, contrato: true };
+                  onDraftChange({ posee_contrato_retiro_residuos_solidos_urbanos: value });
+                }}
+                disabled={saving}
+                errors={{
+                  caracter: e("caracter_persona_atendio"),
+                  contrato: e("posee_contrato_retiro_residuos_solidos_urbanos"),
+                }}
+              />
+            </Box>
+          ) : null}
           <Typography component="h3" sx={{ ...actaSubtituloMenorSx, mt: 2 }}>
             Contribuyente
           </Typography>

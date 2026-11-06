@@ -179,6 +179,12 @@ def map_completar_trabajo_cierre_to_aplicar_payload(
             }
             for i in items
         ]
+    if "caracter_persona_atendio" in row.model_fields_set:
+        payload["caracter_persona_atendio"] = row.caracter_persona_atendio
+    if "posee_contrato_retiro_residuos_solidos_urbanos" in row.model_fields_set:
+        payload["posee_contrato_retiro_residuos_solidos_urbanos"] = (
+            row.posee_contrato_retiro_residuos_solidos_urbanos
+        )
     if "cantidad_personas_sin_carnet_sanidad" in row.model_fields_set:
         payload["cantidad_personas_sin_carnet_sanidad"] = row.cantidad_personas_sin_carnet_sanidad
 

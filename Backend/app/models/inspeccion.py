@@ -18,6 +18,8 @@ class Inspeccion(db.Model):
         unique=True,
         index=True,
     )
+    caracter_persona_atendio = db.Column(db.String(16), nullable=True)
+    posee_contrato_retiro_residuos_solidos_urbanos = db.Column(db.Boolean, nullable=True)
     created_at = db.Column(
         db.DateTime, nullable=False, server_default=db.func.current_timestamp()
     )
@@ -45,6 +47,10 @@ class Inspeccion(db.Model):
             "anio": self.anio,
             "mes": self.mes,
             "actuacion_id": self.actuacion_id,
+            "caracter_persona_atendio": self.caracter_persona_atendio,
+            "posee_contrato_retiro_residuos_solidos_urbanos": (
+                self.posee_contrato_retiro_residuos_solidos_urbanos
+            ),
             "created_at": self.created_at,
             "updated_at": self.updated_at,
         }

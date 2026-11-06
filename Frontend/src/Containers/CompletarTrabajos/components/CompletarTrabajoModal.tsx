@@ -38,6 +38,12 @@ import {
   InspeccionChecklistFields,
   isValidActaInspeccionNum,
 } from "../../Actuaciones/Components/InspeccionChecklistFields";
+import { InspeccionAtencionEstablecimientoFields } from "../../Actuaciones/Components/InspeccionAtencionEstablecimientoFields";
+import {
+  caracterPersonaAtendioFromRow,
+  contratoResiduosFromRow,
+  type CaracterPersonaAtendio,
+} from "../../Actuaciones/utils/inspeccionAtencion";
 import {
   PersonasSinCarnetField,
   isValidActaNotificacionNum,
@@ -410,6 +416,8 @@ type OperativoFieldSetters = {
   setActaClausura: (v: string) => void;
   setActaDecomiso: (v: string) => void;
   setDecomisoKilos: (v: string) => void;
+  setCaracterPersonaAtendio: (v: CaracterPersonaAtendio | null) => void;
+  setContratoResiduos: (v: boolean | null) => void;
 };
 
 function hydrateOperativoFieldsFromRow(
@@ -438,6 +446,8 @@ function hydrateOperativoFieldsFromRow(
   set.setActaClausura(h.actaClausura);
   set.setActaDecomiso(h.actaDecomiso);
   set.setDecomisoKilos(h.decomisoKilos);
+  set.setCaracterPersonaAtendio(caracterPersonaAtendioFromRow(row));
+  set.setContratoResiduos(contratoResiduosFromRow(row));
 }
 
 function clearOperativoFields(set: OperativoFieldSetters): void {
@@ -463,6 +473,8 @@ function clearOperativoFields(set: OperativoFieldSetters): void {
   set.setActaClausura("");
   set.setActaDecomiso("");
   set.setDecomisoKilos("");
+  set.setCaracterPersonaAtendio(null);
+  set.setContratoResiduos(null);
 }
 
 export type CompletarTrabajoModalProps = {
@@ -515,6 +527,10 @@ export function CompletarTrabajoModal({
   const [titularModo, setTitularModo] = useState<TitularModoCompletarTrabajo>("persona");
   const [nombreLocal, setNombreLocal] = useState("");
   const [actaInspeccion, setActaInspeccion] = useState("");
+  const [caracterPersonaAtendio, setCaracterPersonaAtendio] = useState<CaracterPersonaAtendio | null>(
+    null
+  );
+  const [contratoResiduos, setContratoResiduos] = useState<boolean | null>(null);
   const [checklistEstados, setChecklistEstados] = useState<Record<number, ChecklistUxValue>>({});
   const checklistEstadosRef = useRef<Record<number, ChecklistUxValue>>({});
   const checklistItemsTouchedRef = useRef(false);
@@ -624,6 +640,8 @@ export function CompletarTrabajoModal({
       setActaClausura,
       setActaDecomiso,
       setDecomisoKilos,
+      setCaracterPersonaAtendio,
+      setContratoResiduos,
     };
   }, []);
 
@@ -1688,6 +1706,10 @@ export function CompletarTrabajoModal({
         if (bloqueSubsanacionVisible && isValidActaInspeccionNum(actaInspeccion)) {
           values.faltas_notificacion_subsanadas = faltasNotificacionSubsanadas;
         }
+        if (isValidActaInspeccionNum(actaInspeccion)) {
+          values.caracter_persona_atendio = caracterPersonaAtendio;
+          values.posee_contrato_retiro_residuos_solidos_urbanos = contratoResiduos;
+        }
       } else if (esNoPermiteInspeccion) {
         Object.assign(values, {
           acta_comprobacion_num: actaNumForPayload(actaComprobacion),
@@ -2205,6 +2227,28 @@ export function CompletarTrabajoModal({
         </Box>
         </CompletarBloque>
         )}
+
+        {isValidActaInspeccionNum(actaInspeccion) ? (
+        <CompletarBloque title="Atención en el establecimiento">
+          <InspeccionAtencionEstablecimientoFields
+            hideHeading
+            caracter={caracterPersonaAtendio}
+            contrato={contratoResiduos}
+            onCaracterChange={(value) => {
+              setCaracterPersonaAtendio(value);
+              clearFe("caracter_persona_atendio");
+            }}
+            onContratoChange={(value) => {
+              setContratoResiduos(value);
+              clearFe("posee_contrato_retiro_residuos_solidos_urbanos");
+            }}
+            errors={{
+              caracter: fe("caracter_persona_atendio"),
+              contrato: fe("posee_contrato_retiro_residuos_solidos_urbanos"),
+            }}
+          />
+        </CompletarBloque>
+        ) : null}
 
         {(showContribDomicilioEditable || showIdentityVerificarInformar) && (
         <CompletarBloque title="Contribuyente / titular">

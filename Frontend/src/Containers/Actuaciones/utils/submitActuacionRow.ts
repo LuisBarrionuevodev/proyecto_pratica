@@ -49,6 +49,11 @@ import {
 import { buildObservacionesEjecucionPutFields } from "./actuacionObservacionesVisitaPut";
 import { buildActuacionUpdatePayload } from "./buildActuacionUpdatePayload";
 import {
+  buildInspeccionAtencionPutFields,
+  stripInspeccionAtencionResidualFromPut,
+  type InspeccionAtencionTouched,
+} from "./inspeccionAtencion";
+import {
   domicilioCalleCargadaEditable,
   domicilioEsTipoEsquina,
   domicilioNumeroEditable,
@@ -325,6 +330,8 @@ export type SubmitActuacionRowParams = {
   oficioValidationContext?: ReinspeccionOficioValidationContextInput;
   /** Semántica touched para checklist de inspección (legacy PUT protection). */
   inspeccionChecklistTouched?: { items?: boolean; carnets?: boolean };
+  /** Campos de atención/residuos tocados en el modal de edición. */
+  inspeccionAtencionTouched?: InspeccionAtencionTouched;
   /** Campos de identidad que el usuario tocó en el modal de edición. */
   contribuyenteIdentityTouched?: ContribuyenteIdentityTouched;
   inspeccionChecklistCatalog?: import("../../../api/itemActaInspeccionCatalogApi").IItemActaInspeccionCatalogItem[];
@@ -356,6 +363,7 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     actasClearedByOficioCorrection = [],
     oficioValidationContext,
     inspeccionChecklistTouched,
+    inspeccionAtencionTouched,
     contribuyenteIdentityTouched,
     inspeccionChecklistCatalog,
     skipValidation,
@@ -475,15 +483,23 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   const identidadPutFields = omiteIdentidadPut
     ? {}
     : buildGestionIdentidadPutFields(rowToSubmit, originalRow, contribuyenteIdentityTouched);
+  const atencionPutFields = buildInspeccionAtencionPutFields(
+    rowToSubmit,
+    originalRow,
+    inspeccionAtencionTouched
+  );
   const rowForCanal = stripGestionSeguimientoDisallowedFromPut(
     {
-      ...stripGestionIdentidadResidualFromPut(
-        stripGestionSeguimientoResidualFromPut(
-          sanitizeActuacionRowForCanalActasPut(rowToSubmit)
+      ...stripInspeccionAtencionResidualFromPut(
+        stripGestionIdentidadResidualFromPut(
+          stripGestionSeguimientoResidualFromPut(
+            sanitizeActuacionRowForCanalActasPut(rowToSubmit)
+          )
         )
       ),
       ...seguimientoPutFields,
       ...identidadPutFields,
+      ...atencionPutFields,
       ...observacionesPutFields,
     },
     gestionUiPolicy

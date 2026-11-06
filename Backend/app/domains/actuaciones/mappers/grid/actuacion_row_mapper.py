@@ -120,6 +120,12 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
             item_acta_inspeccion_estado_to_payload_dict(coerce_item_acta_inspeccion_estado(i))
             for i in items
         ]
+    if "caracter_persona_atendio" in row.model_fields_set:
+        payload["caracter_persona_atendio"] = row.caracter_persona_atendio
+    if "posee_contrato_retiro_residuos_solidos_urbanos" in row.model_fields_set:
+        payload["posee_contrato_retiro_residuos_solidos_urbanos"] = (
+            row.posee_contrato_retiro_residuos_solidos_urbanos
+        )
     if "cantidad_personas_sin_carnet_sanidad" in row.model_fields_set:
         payload["cantidad_personas_sin_carnet_sanidad"] = row.cantidad_personas_sin_carnet_sanidad
 

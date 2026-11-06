@@ -18,6 +18,8 @@ const INTERNAL_ERR_TO_GLIDE: Record<string, string> = {
   doc_nro: "DNI",
   acta_inspeccion_num: "Acta inspección",
   items_acta_inspeccion: "Condiciones de inspección",
+  caracter_persona_atendio: "caracter_persona_atendio",
+  posee_contrato_retiro_residuos_solidos_urbanos: "posee_contrato_retiro_residuos_solidos_urbanos",
   cantidad_personas_sin_carnet_sanidad: "Personas sin carnet de sanidad",
   acta_notificacion_num: "Acta notificación",
   notificacion_motivo_1: "Motivo notif 1",

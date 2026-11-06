@@ -19,6 +19,10 @@ from app.domains.actuaciones.utils.item_acta_inspeccion_coercion import (
     coerce_item_acta_inspeccion_estado,
     item_acta_inspeccion_estado_to_payload_dict,
 )
+from app.domains.actuaciones.utils.inspeccion_atencion import (
+    INSPECCION_ATENCION_PAYLOAD_KEYS,
+    raise_atencion_requiere_acta,
+)
 
 from .uniqueness import (
 
@@ -602,5 +606,38 @@ def attach_inspeccion(actuacion: Actuaciones, acta_num: Optional[Any], crear: bo
     ins = Inspeccion(numero_acta=numero, anio=anio, mes=mes, actuacion_id=actuacion.id)
 
     db.session.add(ins)
+
+
+def aplicar_inspeccion_atencion_desde_payload(actuacion: Actuaciones, payload: dict[str, Any]) -> None:
+    """
+    Persiste carácter de quien atendió y contrato de residuos en la Inspeccion de la actuación.
+
+    Qué hace:
+        Si el payload incluye alguno de los dos campos, los escribe sobre la Inspeccion
+        vinculada por ``actuacion_id``. Ausencia de clave no modifica el valor existente.
+        ``None`` explícito limpia (sin indicar).
+
+    Parámetros:
+        actuacion: actuación destino (debe tener ``id``).
+        payload: dict canónico (create/update/cierre).
+
+    Errores:
+        ValidationError: se envió algún campo y no hay (ni se está creando) Acta de Inspección.
+    """
+    keys = [k for k in INSPECCION_ATENCION_PAYLOAD_KEYS if k in payload]
+    if not keys:
+        return
+
+    inspeccion = Inspeccion.query.filter_by(actuacion_id=actuacion.id).first()
+    if inspeccion is None:
+        raise_atencion_requiere_acta(keys)
+
+    if "caracter_persona_atendio" in payload:
+        inspeccion.caracter_persona_atendio = payload.get("caracter_persona_atendio")
+    if "posee_contrato_retiro_residuos_solidos_urbanos" in payload:
+        inspeccion.posee_contrato_retiro_residuos_solidos_urbanos = payload.get(
+            "posee_contrato_retiro_residuos_solidos_urbanos"
+        )
+    db.session.add(inspeccion)
 
 

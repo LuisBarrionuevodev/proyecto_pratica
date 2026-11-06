@@ -34,6 +34,8 @@ export const ACTUACION_ROW_ERROR_KEY_MAP: Record<string, string> = {
   "Acta inspección": "acta_inspeccion_num",
   acta_inspeccion_num: "acta_inspeccion_num",
   nro_acta_inspeccion: "acta_inspeccion_num",
+  caracter_persona_atendio: "caracter_persona_atendio",
+  posee_contrato_retiro_residuos_solidos_urbanos: "posee_contrato_retiro_residuos_solidos_urbanos",
   "Acta notificación": "acta_notificacion_num",
   acta_notificacion_num: "acta_notificacion_num",
   nro_acta_notificacion: "acta_notificacion_num",
