@@ -33,4 +33,23 @@ describe("MediaUploadQueue", () => {
     );
     expect(html).toMatch(/Reintentar/i);
   });
+
+  it("archivo ilegible no ofrece Reintentar: solo Quitar", () => {
+    const html = renderToStaticMarkup(
+      <MediaUploadQueue
+        items={[
+          {
+            ...item("error"),
+            errorMessage:
+              "No se pudo leer la foto seleccionada. Quitala y volvé a elegirla desde Archivos o Galería del dispositivo.",
+          },
+        ]}
+        onRemove={vi.fn()}
+        onRetry={vi.fn()}
+      />
+    );
+    expect(html).not.toMatch(/Reintentar/i);
+    expect(html).toMatch(/Quitar/i);
+    expect(html).toContain("No se pudo leer la foto seleccionada");
+  });
 });

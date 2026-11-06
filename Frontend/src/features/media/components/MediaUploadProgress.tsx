@@ -3,6 +3,7 @@ import { Box, LinearProgress, Typography } from "@mui/material";
 import { AppButton } from "../../../ui";
 import { useDigitalizaTheme } from "../../../theme/DigitalizaThemeProvider";
 import type { MediaQueuedFile } from "../mediaTypes";
+import { isMediaUnreadableLocalFileMessage } from "../mediaApiErrors";
 import { mediaUploadProgressPanelSx } from "../mediaUploadProgressPanelStyles";
 import { resolveMediaUploadPanelPhase } from "../utils/mediaUploadPanelVisibility";
 
@@ -123,14 +124,16 @@ export const MediaUploadProgress = forwardRef<HTMLElement, Props>(function Media
           {detailLine}
         </Typography>
       ) : null}
-      {errorItem && onRetry ? (
+      {errorItem ? (
         <Box sx={{ mt: 1.5, display: "flex", alignItems: "center", gap: 1, flexWrap: "wrap" }}>
           <Typography variant="caption" sx={{ color: errorColor }}>
             {errorItem.errorMessage ?? "Error al subir"}
           </Typography>
-          <AppButton dsVariant="ghost" dsSize="sm" onClick={() => onRetry(errorItem.localId)}>
-            Reintentar
-          </AppButton>
+          {onRetry && !isMediaUnreadableLocalFileMessage(errorItem.errorMessage) ? (
+            <AppButton dsVariant="ghost" dsSize="sm" onClick={() => onRetry(errorItem.localId)}>
+              Reintentar
+            </AppButton>
+          ) : null}
         </Box>
       ) : null}
     </Box>

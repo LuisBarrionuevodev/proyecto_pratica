@@ -83,17 +83,17 @@ export async function uploadSingleQueuedFile(
     return { archivoId: item.archivoId };
   }
   const contentType = (item.file.type || "application/octet-stream").toLowerCase();
-  const sha256 = await sha256HexFromFile(item.file);
-  const body: UploadIntentBody = {
-    categoria: item.categoria,
-    filename: item.file.name,
-    content_type: contentType,
-    byte_size: item.file.size,
-    sha256,
-    upload_origin: item.uploadOrigin ?? MEDIA_UPLOAD_ORIGIN_COMPLETAR_TRABAJO,
-  };
   let archivoIdFromIntent: number | null = null;
   try {
+    const sha256 = await sha256HexFromFile(item.file);
+    const body: UploadIntentBody = {
+      categoria: item.categoria,
+      filename: item.file.name,
+      content_type: contentType,
+      byte_size: item.file.size,
+      sha256,
+      upload_origin: item.uploadOrigin ?? MEDIA_UPLOAD_ORIGIN_COMPLETAR_TRABAJO,
+    };
     const intent = await postMediaUploadIntent(rutaItemId, body);
     archivoIdFromIntent = intent.archivo_id;
     if (intent.status === "READY") {
@@ -119,11 +119,14 @@ export async function uploadSingleQueuedFile(
     if (e instanceof MediaUploadStepError) {
       throw e;
     }
+    if (e instanceof DOMException && e.name === "AbortError") {
+      throw e;
+    }
     const msg = mediaErrorMessageFromUnknown(e);
     if (archivoIdFromIntent != null) {
       throw new MediaUploadStepError(msg, archivoIdFromIntent);
     }
-    throw e instanceof Error ? e : new Error(msg);
+    throw new Error(msg);
   }
 }
 

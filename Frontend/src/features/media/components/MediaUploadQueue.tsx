@@ -3,6 +3,7 @@ import { AppButton } from "../../../ui";
 import PictureAsPdfIcon from "@mui/icons-material/PictureAsPdf";
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import type { MediaQueuedFile } from "../mediaTypes";
+import { isMediaUnreadableLocalFileMessage } from "../mediaApiErrors";
 
 function phaseLabel(
   item: MediaQueuedFile,
@@ -83,7 +84,9 @@ export function MediaUploadQueue({
             ) : null}
           </Box>
           <Stack direction="row" spacing={0.5}>
-            {item.phase === "error" && onRetry ? (
+            {item.phase === "error" &&
+            onRetry &&
+            !isMediaUnreadableLocalFileMessage(item.errorMessage) ? (
               <AppButton dsVariant="ghost" dsSize="sm" onClick={() => onRetry(item.localId)} disabled={disabled}>
                 Reintentar
               </AppButton>

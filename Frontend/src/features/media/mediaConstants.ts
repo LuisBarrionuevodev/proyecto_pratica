@@ -110,9 +110,13 @@ export const MEDIA_CATEGORY_CONFIG_1A: Record<
   },
 };
 
-export function mediaAcceptAttributeForCategoria(categoria: MediaCategoria): string {
-  if (categoria === MEDIA_CATEGORIA_FOTO_INSPECCION) {
-    return "image/jpeg,image/png,image/webp";
-  }
-  return "image/jpeg,image/png,image/webp,application/pdf";
+/**
+ * `accept` del input de las tres galerías.
+ * Unifica el selector nativo (Android no debe abrir Google Fotos solo en inspección).
+ * La restricción real de tipos sigue en `validateLocalMediaFile` (inspección no admite PDF).
+ */
+export const MEDIA_INPUT_ACCEPT = "image/jpeg,image/png,image/webp,application/pdf";
+
+export function mediaAcceptAttributeForCategoria(_categoria: MediaCategoria): string {
+  return MEDIA_INPUT_ACCEPT;
 }
