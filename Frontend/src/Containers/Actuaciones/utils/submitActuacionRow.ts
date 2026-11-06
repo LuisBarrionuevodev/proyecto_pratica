@@ -38,6 +38,7 @@ import {
   stripUntouchedInspeccionChecklistFromPut,
   stripUntouchedPersonasSinCarnetFromPut,
   estadosMapFromRow,
+  isValidActaInspeccionNum,
   validateTieneHabilitacionObligatoria,
 } from "./inspeccionChecklistSubmit";
 import { isReinspeccionPorNotificacion } from "./actuacionesExportPdfResumen";
@@ -483,11 +484,9 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   const identidadPutFields = omiteIdentidadPut
     ? {}
     : buildGestionIdentidadPutFields(rowToSubmit, originalRow, contribuyenteIdentityTouched);
-  const atencionPutFields = buildInspeccionAtencionPutFields(
-    rowToSubmit,
-    originalRow,
-    inspeccionAtencionTouched
-  );
+  const atencionPutFields = isValidActaInspeccionNum(rowToSubmit.acta_inspeccion_num)
+    ? buildInspeccionAtencionPutFields(rowToSubmit, originalRow, inspeccionAtencionTouched)
+    : {};
   const rowForCanal = stripGestionSeguimientoDisallowedFromPut(
     {
       ...stripInspeccionAtencionResidualFromPut(

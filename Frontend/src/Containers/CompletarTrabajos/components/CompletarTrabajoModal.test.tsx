@@ -441,4 +441,53 @@ describe("CompletarTrabajoModal", () => {
     expect(html).not.toContain("Cierre por oficio");
     expect(html).not.toContain("Tipo de actuación");
   });
+
+  it("Actas labradas: atención visible y deshabilitada sin acta válida", () => {
+    const html = render(
+      <CompletarTrabajoModal
+        open
+        disablePortal
+        row={buildRow()}
+        catalogs={{
+          ...catalogs,
+          itemsActaInspeccion: [
+            { id: 1, codigo: "TIENE_BANO", nombre: "Baño", orden: 1, tipo_respuesta: "ESTADO" },
+            { id: 2, codigo: "TIENE_SALON", nombre: "Salón", orden: 2, tipo_respuesta: "ESTADO" },
+          ],
+        }}
+        catalogsReady
+        onClose={() => undefined}
+        onSuccess={() => undefined}
+      />
+    );
+    expect(html).toContain("Actas labradas");
+    expect(html).toContain("N° acta de inspección");
+    expect(html).toContain("Carácter de quien atendió");
+    expect(html).toContain("contrato de retiro de residuos sólidos urbanos");
+    expect(html).toContain("Condiciones verificadas");
+    expect(html).toContain("FAMILIAR / BIEN");
+    expect(html).toContain("Salón");
+    expect(html).toContain("Mui-disabled");
+    expect(html).not.toContain("Atención en el establecimiento");
+    const iActa = html.indexOf("N° acta de inspección");
+    const iCaracter = html.indexOf("Carácter de quien atendió");
+    const iContrato = html.indexOf("contrato de retiro de residuos sólidos urbanos");
+    const iCond = html.indexOf("Condiciones verificadas");
+    expect(iActa).toBeGreaterThan(-1);
+    expect(iCaracter).toBeGreaterThan(iActa);
+    expect(iContrato).toBeGreaterThan(iCaracter);
+    expect(iCond).toBeGreaterThan(iContrato);
+  });
+
+  it("Actas labradas conserva el orden de atención en el fuente", () => {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const src = readFileSync(join(here, "CompletarTrabajoModal.tsx"), "utf8");
+    const iActa = src.indexOf('label="N° acta de inspección"');
+    const iAtencion = src.indexOf("<InspeccionAtencionEstablecimientoFields");
+    const iChecklist = src.indexOf("<InspeccionChecklistFields");
+    expect(iActa).toBeGreaterThan(-1);
+    expect(iAtencion).toBeGreaterThan(iActa);
+    expect(iChecklist).toBeGreaterThan(iAtencion);
+    expect(src).not.toContain('title="Atención en el establecimiento"');
+  });
 });

@@ -224,11 +224,24 @@ describe("DOCS-EXP.4 — export dataset Actuaciones", () => {
       expect(row.Detalles).toContain("Habilitación: No");
       expect(row.Detalles).toContain("Carnet de manipulador solicitado: Sí");
       expect(row.Detalles).toContain("Teléfono de contacto: 3814000000");
+      expect(row.Detalles).toContain("Carácter de quien atendió: —");
+      expect(row.Detalles).toContain("Contrato de retiro de residuos sólidos urbanos: —");
+      expect(row.Detalles).toContain("Baño: —");
     });
 
     it("PDF visual incluye detalles", () => {
-      const [row] = buildActuacionesVisualPdfRows([baseRow({ solicita_carnet_manipulador: false })]);
+      const [row] = buildActuacionesVisualPdfRows([
+        baseRow({
+          solicita_carnet_manipulador: false,
+          caracter_persona_atendio: "ENCARGADO",
+          posee_contrato_retiro_residuos_solidos_urbanos: true,
+          items_acta_inspeccion: [{ id: 1, codigo: "TIENE_BANO", nombre: "Baño", estado: "BIEN" }],
+        }),
+      ]);
       expect(row.detalles).toContain("Carnet de manipulador solicitado: No");
+      expect(row.detalles).toContain("Carácter de quien atendió: Encargado");
+      expect(row.detalles).toContain("Contrato de retiro de residuos sólidos urbanos: Sí");
+      expect(row.detalles).toContain("Baño: Familiar / Bien");
     });
 
     it("no altera otros campos del Excel", () => {
@@ -248,6 +261,10 @@ describe("DOCS-EXP.4 — export dataset Actuaciones", () => {
       expect(row["Tipo actuación"]).toBe("REINSPECCION");
       expect(row.Contraproducencia).toBe("LOCAL CERRADO");
       expect(row["Acta inspección Nº"]).toBe("111111");
+      expect(row["Carácter de quien atendió"]).toBe("");
+      expect(row["Solicita carnet de manipulador"]).toBe("");
+      expect(row["Contrato retiro residuos sólidos urbanos"]).toBe("");
+      expect(row.Baño).toBe("");
       expect(row.Expediente).toBe("99/2026");
       expect(row.Oficio).toBe("12/2026");
       expect(row.Inspectores).toBe("Pérez");

@@ -360,11 +360,84 @@ describe("ActuacionDetalleDialog", () => {
     const lectura = lecturaMarkup(html);
     expect(lectura).toContain("Condiciones verificadas");
     expect(lectura).toContain("Baño");
-    expect(lectura).toContain("Bien");
+    expect(lectura).toContain("Familiar / Bien");
     expect(lectura).toContain("Tiene habilitación");
     expect(lectura).toContain("Sí");
     expect(lectura).not.toContain("MuiToggleButton-root");
     expect(lectura).not.toContain("<input");
+  });
+
+  it("VER muestra carácter, carnet, contrato y Baño Familiar / Bien en Actas labradas", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={{
+          ...baseRow,
+          caracter_persona_atendio: "ENCARGADO",
+          posee_contrato_retiro_residuos_solidos_urbanos: false,
+          solicita_carnet_manipulador: true,
+          items_acta_inspeccion: [
+            { id: 1, codigo: "TIENE_BANO", nombre: "Baño", estado: "BIEN" },
+            { id: 2, codigo: "TIENE_SALON", nombre: "Salón", estado: "BIEN" },
+          ],
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogsWithChecklist}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    const lectura = lecturaMarkup(html);
+    expect(lectura).toContain("Carácter de quien atendió");
+    expect(lectura).toContain("Encargado");
+    expect(lectura).toContain("Solicitud de carnet de manipulador");
+    expect(lectura).toContain("Contrato de retiro de residuos sólidos urbanos");
+    expect(lectura).toContain("Familiar / Bien");
+    expect(lectura).toContain("Salón");
+    expect(lectura).toContain("Bien");
+    expect(lectura).not.toContain("Atención en el establecimiento");
+    const iActa = lectura.indexOf("N.º acta de inspección");
+    const iCaracter = lectura.indexOf("Carácter de quien atendió");
+    const iCarnet = lectura.indexOf("Solicitud de carnet de manipulador");
+    const iContrato = lectura.indexOf("Contrato de retiro de residuos sólidos urbanos");
+    const iCond = lectura.indexOf("Condiciones verificadas");
+    expect(iActa).toBeGreaterThan(-1);
+    expect(iCaracter).toBeGreaterThan(iActa);
+    expect(iCarnet).toBeGreaterThan(iCaracter);
+    expect(iContrato).toBeGreaterThan(iCarnet);
+    expect(iCond).toBeGreaterThan(iContrato);
+  });
+
+  it("edición: atención visible y deshabilitada sin acta válida", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        initialEditing
+        draft={{
+          ...baseRow,
+          acta_inspeccion_num: "",
+          caracter_persona_atendio: "TITULAR",
+          posee_contrato_retiro_residuos_solidos_urbanos: true,
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogsWithChecklist}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("Carácter de quien atendió");
+    expect(html).toContain("contrato de retiro de residuos sólidos urbanos");
+    expect(html).toContain("Condiciones verificadas");
+    expect(html).toContain("Mui-disabled");
+    expect(html).toContain("TITULAR");
   });
 
   it("modo lectura consolida una sola vez antecedentes por oficio", () => {
@@ -1113,6 +1186,7 @@ describe("ActuacionDetalleDialog", () => {
     );
     expect(html).toContain("Condiciones verificadas");
     expect(html).toContain("Baño");
+    expect(html).toContain("Familiar / Bien");
     expect(html).toContain("Depósito");
     expect(html).toContain("Salón");
     expect(html).toContain("Cocina / cuadra");

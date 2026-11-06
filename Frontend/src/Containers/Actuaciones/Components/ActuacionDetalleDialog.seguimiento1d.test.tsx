@@ -103,7 +103,8 @@ describe("ActuacionDetalleDialog seguimiento 1D", () => {
         onSave={() => undefined}
       />
     );
-    expect(html).toContain("Seguimiento");
+    expect(html).toContain("Actas labradas");
+    expect(html).toContain("carnet de manipulador de alimentos");
     expect(html).toContain("Datos del establecimiento");
     expect(html).toContain("Mitre");
     expect(html).toContain("200");
@@ -131,7 +132,7 @@ describe("ActuacionDetalleDialog seguimiento 1D", () => {
     const lecturaInicio = html.indexOf('aria-label="Ficha de la actuación"');
     const edicionInicio = html.indexOf('aria-label="Edición de la actuación"');
     const lectura = html.slice(lecturaInicio, edicionInicio);
-    expect(lectura).toContain("Solicitud de carnet");
+    expect(lectura).toContain("Solicitud de carnet de manipulador");
     expect(lectura).toContain("Sí");
     expect(lectura).toContain("381 555-0100");
     expect(lectura).not.toContain("MuiToggleButton-root");

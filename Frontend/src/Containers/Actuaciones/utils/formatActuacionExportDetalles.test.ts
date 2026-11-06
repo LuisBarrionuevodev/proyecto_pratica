@@ -42,7 +42,14 @@ describe("formatActuacionExportDetalles", () => {
   it("usa — cuando faltan datos; no infiere No", () => {
     const text = formatActuacionExportDetalles(row(), { exposeTelefono: true });
     expect(text).toBe(
-      "Habilitación: —\nCarnet de manipulador solicitado: —\nTeléfono de contacto: —"
+      [
+        "Carácter de quien atendió: —",
+        "Contrato de retiro de residuos sólidos urbanos: —",
+        "Baño: —",
+        "Habilitación: —",
+        "Carnet de manipulador solicitado: —",
+        "Teléfono de contacto: —",
+      ].join("\n")
     );
   });
 
@@ -59,6 +66,27 @@ describe("formatActuacionExportDetalles", () => {
     expect(text).toContain("Habilitación: Sí");
     expect(text).toContain("Carnet de manipulador solicitado: No");
     expect(text).toContain("Teléfono de contacto: —");
+    expect(text).toContain("Carácter de quien atendió: —");
+    expect(text).toContain("Contrato de retiro de residuos sólidos urbanos: —");
+    expect(text).toContain("Baño: —");
+  });
+
+  it("exporta carácter, contrato y Baño Familiar / Bien sin inferir No", () => {
+    const text = formatActuacionExportDetalles(
+      row({
+        caracter_persona_atendio: "ENCARGADO",
+        posee_contrato_retiro_residuos_solidos_urbanos: false,
+        items_acta_inspeccion: [
+          { id: 1, codigo: "TIENE_BANO", nombre: "Baño", estado: "BIEN" },
+          { id: 2, codigo: "TIENE_SALON", nombre: "Salón", estado: "BIEN" },
+        ],
+      }),
+      { exposeTelefono: true }
+    );
+    expect(text).toContain("Carácter de quien atendió: Encargado");
+    expect(text).toContain("Contrato de retiro de residuos sólidos urbanos: No");
+    expect(text).toContain("Baño: Familiar / Bien");
+    expect(text).not.toContain("Baño: Bien");
   });
 
   it("teléfono solo si fue solicitado, existe y está autorizado", () => {

@@ -220,7 +220,37 @@ export function sortCatalogItems(
 export const MSG_TIENE_HABILITACION_REQUERIDA =
   "Indicá si el establecimiento tiene habilitación.";
 
-const CODIGO_TIENE_HABILITACION = "TIENE_HABILITACION";
+export const CODIGO_TIENE_HABILITACION = "TIENE_HABILITACION";
+export const CODIGO_TIENE_BANO = "TIENE_BANO";
+
+/** N.º de acta de inspección válido: dígitos no vacíos. */
+export function isValidActaInspeccionNum(value: string | null | undefined): boolean {
+  const t = String(value ?? "").trim();
+  return t.length > 0 && /^\d+$/.test(t);
+}
+
+/**
+ * Etiqueta de lectura/export del estado BIEN.
+ * Baño muestra «Familiar / Bien» sin persistir un valor distinto.
+ */
+export function displayChecklistEstadoBienLabel(codigo?: string | null): string {
+  return codigo === CODIGO_TIENE_BANO ? "Familiar / Bien" : "Bien";
+}
+
+/** Texto del botón BIEN (mayúsculas, paridad con el resto del checklist). */
+export function displayChecklistEstadoBienButtonLabel(codigo?: string | null): string {
+  return codigo === CODIGO_TIENE_BANO ? "FAMILIAR / BIEN" : "BIEN";
+}
+
+/** Lectura de un estado de checklist; vacío → —. */
+export function displayChecklistEstadoLectura(
+  codigo: string | undefined,
+  estado: string | null | undefined
+): string {
+  if (estado === "BIEN") return displayChecklistEstadoBienLabel(codigo);
+  if (estado === "OBSERVADO") return "Observado";
+  return "—";
+}
 
 /** Lee estado UX del checklist tolerando claves numéricas serializadas como string. */
 export function checklistUxValueAt(

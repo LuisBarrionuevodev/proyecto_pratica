@@ -60,6 +60,7 @@ import {
 import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";
 import {
   cantidadPersonasSinCarnetFromRow,
+  displayChecklistEstadoBienLabel,
   estadosMapFromRow,
   itemsActaInspeccionWriteFromEstados,
   normalizeChecklistItems,
@@ -128,8 +129,6 @@ import { InspeccionAtencionEstablecimientoFields } from "./InspeccionAtencionEst
 import {
   caracterPersonaAtendioFromRow,
   contratoResiduosFromRow,
-  hasActaInspeccionEnCurso,
-  inspeccionAtencionLecturaVisible,
   labelCaracterPersonaAtendio,
   labelContratoResiduos,
   type InspeccionAtencionTouched,
@@ -547,6 +546,11 @@ function ActasVisitaLectura({
     !lockedNotif &&
     isValidActaNotificacionNum(nNot != null ? String(nNot) : null) &&
     String(nNot).trim() !== notificacionOrigen;
+  const seguimientoLectura = mergeActuacionSeguimientoFromApiRow(draft);
+  const showCarnetLectura =
+    Boolean(draft.ui_policy?.mostrar_solicitud_carnet_manipulador) ||
+    seguimientoLectura.solicita_carnet_manipulador === true ||
+    seguimientoLectura.solicita_carnet_manipulador === false;
   const estados = estadosMapFromRow(draft, catalog);
   const readItems = normalizeChecklistItems(draft.items_acta_inspeccion);
   const readById = new Map(readItems.map((item) => [item.id, item]));
@@ -563,7 +567,7 @@ function ActasVisitaLectura({
                 : value === "NO"
                   ? "No"
                   : value === "BIEN"
-                    ? "Bien"
+                    ? displayChecklistEstadoBienLabel(item.codigo)
                     : value === "OBSERVADO"
                       ? "Observado"
                       : "—",
@@ -580,7 +584,7 @@ function ActasVisitaLectura({
                   ? "No"
                   : "—"
               : item.estado === "BIEN"
-                ? "Bien"
+                ? displayChecklistEstadoBienLabel(item.codigo)
                 : item.estado === "OBSERVADO"
                   ? "Observado"
                   : "—",
@@ -592,6 +596,28 @@ function ActasVisitaLectura({
       {showInspeccion ? (
         <Box>
           <LecturaDato label="N.º acta de inspección" value={nIns} />
+          <Box sx={{ ...lecturaGridSx, mt: 1.5 }}>
+            <LecturaDato
+              label="Carácter de quien atendió"
+              value={labelCaracterPersonaAtendio(draft.caracter_persona_atendio) || "—"}
+            />
+            {showCarnetLectura ? (
+              <LecturaDato
+                label="Solicitud de carnet de manipulador"
+                value={siNoLectura(seguimientoLectura.solicita_carnet_manipulador)}
+              />
+            ) : null}
+            {showCarnetLectura && seguimientoLectura.telefono_contacto_solicitud_carnet?.trim() ? (
+              <LecturaDato
+                label="Teléfono de contacto"
+                value={seguimientoLectura.telefono_contacto_solicitud_carnet.trim()}
+              />
+            ) : null}
+            <LecturaDato
+              label="Contrato de retiro de residuos sólidos urbanos"
+              value={labelContratoResiduos(contratoResiduosFromRow(draft)) || "—"}
+            />
+          </Box>
           {checklist.length > 0 ? (
             <Box sx={{ mt: 1.5 }}>
               <Typography component="h4" sx={lecturaLabelSx}>
@@ -695,11 +721,13 @@ function inspectoresLinea(row: IActuacionListItem): string {
   return parts.length ? parts.join(", ") : "—";
 }
 
-function gestionSeguimientoBloqueVisible(draft: IActuacionListItem): boolean {
+function gestionSeguimientoBloqueVisible(
+  draft: IActuacionListItem,
+  opts?: { omitCarnet?: boolean }
+): boolean {
   const policy = draft.ui_policy;
-  return Boolean(
-    policy?.mostrar_solicitud_carnet_manipulador || policy?.mostrar_subsanacion_notificacion
-  );
+  const showCarnet = Boolean(policy?.mostrar_solicitud_carnet_manipulador) && !opts?.omitCarnet;
+  return Boolean(showCarnet || policy?.mostrar_subsanacion_notificacion);
 }
 
 function resultadoLecturaHayContenido(draft: IActuacionListItem): boolean {
@@ -713,10 +741,11 @@ function resultadoLecturaHayContenido(draft: IActuacionListItem): boolean {
 }
 
 function antecedentesSeguimientoHayContenido(draft: IActuacionListItem): boolean {
+  const hasActa = Boolean(String(draft.acta_inspeccion_num ?? "").trim());
   return Boolean(
     draft.origen_reinspeccion_oficio ||
       draft.origen_reinspeccion_notificacion ||
-      gestionSeguimientoBloqueVisible(draft)
+      gestionSeguimientoBloqueVisible(draft, { omitCarnet: hasActa })
   );
 }
 
@@ -935,7 +964,8 @@ function AntecedentesSeguimientoLectura({ draft }: { draft: IActuacionListItem }
         </Box>
       ) : null}
 
-      {policy?.mostrar_solicitud_carnet_manipulador ? (
+      {policy?.mostrar_solicitud_carnet_manipulador &&
+      !String(draft.acta_inspeccion_num ?? "").trim() ? (
         <Box>
           <Typography component="h3" sx={docModalSubheadingInCardSx}>
             Solicitud de carnet
@@ -1158,15 +1188,17 @@ function ActaSeguimientoGestionFields({
   fieldErrors,
   saving,
   readOnly,
+  omitCarnet = false,
 }: {
   draft: IActuacionListItem;
   onDraftChange?: (patch: Partial<IActuacionListItem> | IActuacionListItem) => void;
   fieldErrors: Record<string, string>;
   saving: boolean;
   readOnly: boolean;
+  omitCarnet?: boolean;
 }) {
   const policy = draft.ui_policy;
-  const showCarnet = Boolean(policy?.mostrar_solicitud_carnet_manipulador);
+  const showCarnet = Boolean(policy?.mostrar_solicitud_carnet_manipulador) && !omitCarnet;
   const showSubs = Boolean(policy?.mostrar_subsanacion_notificacion);
   if (!showCarnet && !showSubs) return null;
 
@@ -1393,6 +1425,7 @@ export function ActuacionDetalleDialog({
       verificarInconsistentWarnedRef.current = null;
       actaFlushRegistry.current.clear();
       identidadTouchedRef.current = {};
+      atencionTouchedRef.current = {};
     }
     // Solo al abrir o cambiar de actuación: no resetear si el padre actualiza `draft` al entrar en edición.
   }, [open, draft.id, initialEditing, resetOficioFormFromRow]);
@@ -1901,25 +1934,6 @@ export function ActuacionDetalleDialog({
         ) : null}
       </LecturaBloque>
 
-      {inspeccionAtencionLecturaVisible(draft) ? (
-        <LecturaBloque titulo="Atención en el establecimiento">
-          <Box sx={lecturaGridSx}>
-            {labelCaracterPersonaAtendio(draft.caracter_persona_atendio) ? (
-              <LecturaDato
-                label="Atendió"
-                value={labelCaracterPersonaAtendio(draft.caracter_persona_atendio)}
-              />
-            ) : null}
-            {labelContratoResiduos(contratoResiduosFromRow(draft)) ? (
-              <LecturaDato
-                label="Contrato de retiro de residuos sólidos urbanos"
-                value={labelContratoResiduos(contratoResiduosFromRow(draft))}
-              />
-            ) : null}
-          </Box>
-        </LecturaBloque>
-      ) : null}
-
       <LecturaBloque titulo="Contribuyente">
         <Box sx={lecturaGridSx}>
           <LecturaDato label="CUIT / DNI" value={draft.doc_nro} />
@@ -2225,27 +2239,6 @@ export function ActuacionDetalleDialog({
               initialMode={draft.numero_tipo === "ESQUINA" ? "ESQUINA" : "NUMERO"}
             />
           </Box>
-          {hasActaInspeccionEnCurso(draft.acta_inspeccion_num) ? (
-            <Box sx={{ mt: 2 }}>
-              <InspeccionAtencionEstablecimientoFields
-                caracter={caracterPersonaAtendioFromRow(draft)}
-                contrato={contratoResiduosFromRow(draft)}
-                onCaracterChange={(value) => {
-                  atencionTouchedRef.current = { ...atencionTouchedRef.current, caracter: true };
-                  onDraftChange({ caracter_persona_atendio: value });
-                }}
-                onContratoChange={(value) => {
-                  atencionTouchedRef.current = { ...atencionTouchedRef.current, contrato: true };
-                  onDraftChange({ posee_contrato_retiro_residuos_solidos_urbanos: value });
-                }}
-                disabled={saving}
-                errors={{
-                  caracter: e("caracter_persona_atendio"),
-                  contrato: e("posee_contrato_retiro_residuos_solidos_urbanos"),
-                }}
-              />
-            </Box>
-          ) : null}
           <Typography component="h3" sx={{ ...actaSubtituloMenorSx, mt: 2 }}>
             Contribuyente
           </Typography>
@@ -2472,6 +2465,57 @@ export function ActuacionDetalleDialog({
               error={!!e("acta_inspeccion_num")}
               helperText={fieldHelper("acta_inspeccion_num")}
             />
+            <InspeccionAtencionEstablecimientoFields
+              hideHeading
+              caracter={caracterPersonaAtendioFromRow(draft)}
+              contrato={contratoResiduosFromRow(draft)}
+              onCaracterChange={(value) => {
+                atencionTouchedRef.current = { ...atencionTouchedRef.current, caracter: true };
+                onDraftChange({ caracter_persona_atendio: value });
+              }}
+              onContratoChange={(value) => {
+                atencionTouchedRef.current = { ...atencionTouchedRef.current, contrato: true };
+                onDraftChange({ posee_contrato_retiro_residuos_solidos_urbanos: value });
+              }}
+              showCarnet={Boolean(draft.ui_policy?.mostrar_solicitud_carnet_manipulador)}
+              carnet={boolToSolicitaCarnetUi(
+                mergeActuacionSeguimientoFromApiRow(draft).solicita_carnet_manipulador
+              )}
+              onCarnetChange={(next) => {
+                if (!draft.ui_policy?.puede_editar_seguimiento) return;
+                const base = gestionSeguimientoDraftFromRow(draft);
+                const tel =
+                  (mergeActuacionSeguimientoFromApiRow(draft).telefono_contacto_solicitud_carnet ?? "").trim();
+                onDraftChange(
+                  applyGestionSeguimientoDraftToRow(draft, {
+                    ...base,
+                    solicitaCarnet: next,
+                    telefonoCarnet: next === "si" ? tel : "",
+                  })
+                );
+              }}
+              telefonoCarnet={
+                (mergeActuacionSeguimientoFromApiRow(draft).telefono_contacto_solicitud_carnet ?? "").trim()
+              }
+              onTelefonoCarnetChange={(value) => {
+                if (!draft.ui_policy?.puede_editar_seguimiento) return;
+                const base = gestionSeguimientoDraftFromRow(draft);
+                onDraftChange(
+                  applyGestionSeguimientoDraftToRow(draft, {
+                    ...base,
+                    telefonoCarnet: value,
+                  })
+                );
+              }}
+              carnetDisabled={!draft.ui_policy?.puede_editar_seguimiento}
+              disabled={!isValidActaInspeccionNum(draft.acta_inspeccion_num) || saving}
+              errors={{
+                caracter: e("caracter_persona_atendio"),
+                contrato: e("posee_contrato_retiro_residuos_solidos_urbanos"),
+                carnet: e("solicita_carnet_manipulador"),
+                telefonoCarnet: e("telefono_contacto_solicitud_carnet"),
+              }}
+            />
             <InspeccionChecklistFields
               catalog={catalogs.itemsActaInspeccion ?? []}
               estados={checklistEstados}
@@ -2586,7 +2630,7 @@ export function ActuacionDetalleDialog({
         </DocumentalBloque>
         ) : null}
 
-        {gestionSeguimientoBloqueVisible(draft) ? (
+        {gestionSeguimientoBloqueVisible(draft, { omitCarnet: mostrarInspeccion }) ? (
           <DocumentalBloque overline="Seguimiento">
             <ActaSeguimientoGestionFields
               draft={draft}
@@ -2594,6 +2638,7 @@ export function ActuacionDetalleDialog({
               fieldErrors={{ ...fieldErrors, ...seguimientoFieldErrors }}
               saving={saving}
               readOnly={false}
+              omitCarnet={mostrarInspeccion}
             />
           </DocumentalBloque>
         ) : null}

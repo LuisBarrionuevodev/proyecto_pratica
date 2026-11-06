@@ -2228,28 +2228,6 @@ export function CompletarTrabajoModal({
         </CompletarBloque>
         )}
 
-        {isValidActaInspeccionNum(actaInspeccion) ? (
-        <CompletarBloque title="Atención en el establecimiento">
-          <InspeccionAtencionEstablecimientoFields
-            hideHeading
-            caracter={caracterPersonaAtendio}
-            contrato={contratoResiduos}
-            onCaracterChange={(value) => {
-              setCaracterPersonaAtendio(value);
-              clearFe("caracter_persona_atendio");
-            }}
-            onContratoChange={(value) => {
-              setContratoResiduos(value);
-              clearFe("posee_contrato_retiro_residuos_solidos_urbanos");
-            }}
-            errors={{
-              caracter: fe("caracter_persona_atendio"),
-              contrato: fe("posee_contrato_retiro_residuos_solidos_urbanos"),
-            }}
-          />
-        </CompletarBloque>
-        ) : null}
-
         {(showContribDomicilioEditable || showIdentityVerificarInformar) && (
         <CompletarBloque title="Contribuyente / titular">
         <Box sx={{ ...col, width: "100%" }}>
@@ -2392,6 +2370,41 @@ export function CompletarTrabajoModal({
                 error={Boolean(fe("acta_inspeccion_num"))}
                 helperText={fe("acta_inspeccion_num") || undefined}
               />
+              <InspeccionAtencionEstablecimientoFields
+                hideHeading
+                caracter={caracterPersonaAtendio}
+                contrato={contratoResiduos}
+                onCaracterChange={(value) => {
+                  setCaracterPersonaAtendio(value);
+                  clearFe("caracter_persona_atendio");
+                }}
+                onContratoChange={(value) => {
+                  setContratoResiduos(value);
+                  clearFe("posee_contrato_retiro_residuos_solidos_urbanos");
+                }}
+                showCarnet={bloqueSolicitudCarnetVisible}
+                carnet={solicitaCarnetManipulador}
+                onCarnetChange={(next) => {
+                  setSolicitaCarnetManipulador(next);
+                  clearFe("solicita_carnet_manipulador");
+                  if (next !== "si") {
+                    setTelefonoSolicitudCarnet("");
+                    clearFe("telefono_contacto_solicitud_carnet");
+                  }
+                }}
+                telefonoCarnet={telefonoSolicitudCarnet}
+                onTelefonoCarnetChange={(value) => {
+                  setTelefonoSolicitudCarnet(value);
+                  clearFe("telefono_contacto_solicitud_carnet");
+                }}
+                disabled={!isValidActaInspeccionNum(actaInspeccion)}
+                errors={{
+                  caracter: fe("caracter_persona_atendio"),
+                  contrato: fe("posee_contrato_retiro_residuos_solidos_urbanos"),
+                  carnet: fe("solicita_carnet_manipulador"),
+                  telefonoCarnet: fe("telefono_contacto_solicitud_carnet"),
+                }}
+              />
               <InspeccionChecklistFields
                 appearance="glass"
                 catalog={catalogs?.itemsActaInspeccion ?? []}
@@ -2407,52 +2420,6 @@ export function CompletarTrabajoModal({
                   items: fe("items_acta_inspeccion"),
                 }}
               />
-              {bloqueSolicitudCarnetVisible ? (
-                <Box sx={{ ...col, width: "100%" }}>
-                  <Typography variant="subtitle2" sx={{ color: GLASS_COLORS.textSecondary }}>
-                    ¿El personal presente solicita carnet de manipulador de alimentos?
-                  </Typography>
-                  <ToggleButtonGroup
-                    exclusive
-                    size="small"
-                    value={solicitaCarnetManipulador}
-                    onChange={(_e, v: "" | "si" | "no" | null) => {
-                      const next = v ?? "";
-                      setSolicitaCarnetManipulador(next);
-                      clearFe("solicita_carnet_manipulador");
-                      if (next !== "si") {
-                        setTelefonoSolicitudCarnet("");
-                        clearFe("telefono_contacto_solicitud_carnet");
-                      }
-                    }}
-                    sx={{ mt: 1 }}
-                  >
-                    <ToggleButton value="si">Sí</ToggleButton>
-                    <ToggleButton value="no">No</ToggleButton>
-                  </ToggleButtonGroup>
-                  {fe("solicita_carnet_manipulador") ? (
-                    <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
-                      {fe("solicita_carnet_manipulador")}
-                    </Typography>
-                  ) : null}
-                  {solicitaCarnetManipulador === "si" ? (
-                    <AppTextField
-                      appearance="glass"
-                      label="Teléfono de contacto del personal solicitante"
-                      value={telefonoSolicitudCarnet}
-                      onChange={(e) => {
-                        setTelefonoSolicitudCarnet(e.target.value);
-                        clearFe("telefono_contacto_solicitud_carnet");
-                      }}
-                      fullWidth
-                      sx={{ mt: 1.5 }}
-                      inputProps={{ maxLength: 32 }}
-                      error={Boolean(fe("telefono_contacto_solicitud_carnet"))}
-                      helperText={fe("telefono_contacto_solicitud_carnet") || undefined}
-                    />
-                  ) : null}
-                </Box>
-              ) : null}
               {bloqueSubsanacionVisible ? (
                 <Box sx={{ ...col, width: "100%" }}>
                   <Typography variant="subtitle2" sx={{ color: GLASS_COLORS.textSecondary }}>

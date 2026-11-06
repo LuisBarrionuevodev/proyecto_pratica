@@ -786,28 +786,6 @@ export function CargarActuacionNuevaModal() {
         </Box>
         </CargarActuacionBloque>
 
-        {!cargaSoloComprobacion && isValidActaInspeccionNum(texts["Acta inspección"]) ? (
-        <CargarActuacionBloque title="Atención en el establecimiento">
-          <InspeccionAtencionEstablecimientoFields
-            hideHeading
-            caracter={caracterPersonaAtendio}
-            contrato={contratoResiduos}
-            onCaracterChange={(value) => {
-              setCaracterPersonaAtendio(value);
-              clearFe("caracter_persona_atendio");
-            }}
-            onContratoChange={(value) => {
-              setContratoResiduos(value);
-              clearFe("posee_contrato_retiro_residuos_solidos_urbanos");
-            }}
-            errors={{
-              caracter: errorFor("caracter_persona_atendio"),
-              contrato: errorFor("posee_contrato_retiro_residuos_solidos_urbanos"),
-            }}
-          />
-        </CargarActuacionBloque>
-        ) : null}
-
         <CargarActuacionBloque title={cargaSoloComprobacion ? "Titular" : "Contribuyente / titular"}>
         <Box sx={{ ...col, width: "100%" }}>
           <Typography variant="caption" sx={{ ...labelMutedSx, display: "block" }}>
@@ -887,6 +865,7 @@ export function CargarActuacionNuevaModal() {
         <CargarActuacionBloque title={cargaSoloComprobacion ? "Acta de comprobación" : "Actas labradas"}>
         <Box sx={{ ...col, width: "100%" }}>
           {!cargaSoloComprobacion ? (
+          <>
           <AppTextField
             appearance="glass"
             label="N° acta de inspección"
@@ -899,6 +878,25 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Acta inspección"))}
             helperText={errorFor("Acta inspección") || undefined}
           />
+          <InspeccionAtencionEstablecimientoFields
+            hideHeading
+            caracter={caracterPersonaAtendio}
+            contrato={contratoResiduos}
+            onCaracterChange={(value) => {
+              setCaracterPersonaAtendio(value);
+              clearFe("caracter_persona_atendio");
+            }}
+            onContratoChange={(value) => {
+              setContratoResiduos(value);
+              clearFe("posee_contrato_retiro_residuos_solidos_urbanos");
+            }}
+            disabled={!isValidActaInspeccionNum(texts["Acta inspección"])}
+            errors={{
+              caracter: errorFor("caracter_persona_atendio"),
+              contrato: errorFor("posee_contrato_retiro_residuos_solidos_urbanos"),
+            }}
+          />
+          </>
           ) : null}
           {!cargaSoloComprobacion ? (
           <InspeccionChecklistFields

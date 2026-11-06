@@ -959,4 +959,23 @@ describe("submitActuacionRow atención inspección", () => {
     expect(putBody.caracter_persona_atendio).toBeNull();
     expect(putBody.posee_contrato_retiro_residuos_solidos_urbanos).toBeNull();
   });
+
+  it("acta inválida: no envía atención aunque esté touched", async () => {
+    await submitActuacionRow({
+      id: 1,
+      fullRow: {
+        ...originalWithAtencion,
+        acta_inspeccion_num: "",
+        caracter_persona_atendio: "EMPLEADO",
+        posee_contrato_retiro_residuos_solidos_urbanos: false,
+      },
+      originalRow: originalWithAtencion,
+      inspeccionAtencionTouched: { caracter: true, contrato: true },
+      skipValidation: true,
+      skipUpdate: false,
+    });
+    const putBody = mockedUpdateActuacion.mock.calls[0]![1] as Record<string, unknown>;
+    expect(putBody.caracter_persona_atendio).toBeUndefined();
+    expect(putBody.posee_contrato_retiro_residuos_solidos_urbanos).toBeUndefined();
+  });
 });

@@ -109,6 +109,24 @@ describe("InspeccionChecklistFields", () => {
     expect(html).toContain("Mui-disabled");
   });
 
+  it("Baño BIEN se muestra como FAMILIAR / BIEN; otros ítems siguen BIEN", () => {
+    const html = render(
+      <InspeccionChecklistFields
+        catalog={[
+          catalog[0],
+          { id: 2, codigo: "TIENE_SALON", nombre: "Salón", orden: 2, tipo_respuesta: "ESTADO" },
+        ]}
+        estados={{ 1: "BIEN", 2: "BIEN" }}
+        onEstadosChange={vi.fn()}
+      />
+    );
+    expect(html).toContain("FAMILIAR / BIEN");
+    expect(html).toContain(">BIEN<");
+    expect(html).toContain("Baño");
+    expect(html).toContain("Salón");
+    expect(html).toContain('value="BIEN"');
+  });
+
   it("marca selección exclusiva en estado BIEN", () => {
     const html = render(
       <InspeccionChecklistFields

@@ -1,7 +1,13 @@
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import { contribuyenteBandejaLabel } from "../../../utils/contribuyenteBandejaText";
 import { domicilioLineaOperativo } from "../../../utils/formatDomicilioLineaVisible";
-import { formatActuacionExportDetalles } from "./formatActuacionExportDetalles";
+import {
+  formatActuacionExportDetalles,
+  formatBanoExcel,
+  formatCaracterAtendioExcel,
+  formatSiNoExcel,
+} from "./formatActuacionExportDetalles";
+import { contratoResiduosFromRow } from "./inspeccionAtencion";
 
 function cell(value: unknown): string | number {
   if (value === null || value === undefined) return "";
@@ -76,6 +82,10 @@ export function buildActuacionesNormalizedExcelRows(
       Documento: cell(row.doc_nro),
       Inspectores: inspectoresText(row),
       "Acta inspección Nº": cell(row.acta_inspeccion_num),
+      "Carácter de quien atendió": formatCaracterAtendioExcel(row),
+      "Solicita carnet de manipulador": formatSiNoExcel(row.solicita_carnet_manipulador),
+      "Contrato retiro residuos sólidos urbanos": formatSiNoExcel(contratoResiduosFromRow(row)),
+      Baño: formatBanoExcel(row),
       "Acta notificación Nº": cell(row.acta_notificacion_num),
       "Motivos notificación": joinParts([
         row.notificacion_motivo_1,

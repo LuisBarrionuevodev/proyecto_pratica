@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  displayChecklistEstadoBienButtonLabel,
+  displayChecklistEstadoBienLabel,
+  displayChecklistEstadoLectura,
   estadosMapFromRow,
   itemsActaInspeccionWriteFromEstados,
   planChecklistHydration,
@@ -22,6 +25,17 @@ const baseRow = {
 } as IActuacionListItem;
 
 describe("inspeccionChecklistSubmit V2", () => {
+  it("Baño BIEN se lee Familiar / Bien; otros ítems Bien", () => {
+    expect(displayChecklistEstadoBienLabel("TIENE_BANO")).toBe("Familiar / Bien");
+    expect(displayChecklistEstadoBienLabel("TIENE_SALON")).toBe("Bien");
+    expect(displayChecklistEstadoBienButtonLabel("TIENE_BANO")).toBe("FAMILIAR / BIEN");
+    expect(displayChecklistEstadoBienButtonLabel("TIENE_SALON")).toBe("BIEN");
+    expect(displayChecklistEstadoLectura("TIENE_BANO", "BIEN")).toBe("Familiar / Bien");
+    expect(displayChecklistEstadoLectura("TIENE_SALON", "BIEN")).toBe("Bien");
+    expect(displayChecklistEstadoLectura("TIENE_BANO", "OBSERVADO")).toBe("Observado");
+    expect(displayChecklistEstadoLectura("TIENE_BANO", null)).toBe("—");
+  });
+
   it("todos NONE → []", () => {
     const estados = estadosMapFromRow({}, catalog);
     expect(itemsActaInspeccionWriteFromEstados(estados, catalog)).toEqual([]);
