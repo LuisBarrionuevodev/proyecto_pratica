@@ -1,4 +1,8 @@
-import type { IComprobacionRecorridoRow } from "../../../api/actuacionesComprobacionActasApi";
+import type {
+  IComprobacionRecorridoDetalle,
+  IComprobacionRecorridoRow,
+} from "../../../api/actuacionesComprobacionActasApi";
+import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
 import { humanizarCumplimientoOficio, humanizarTipoVisitaRecorrido } from "./documentalLabelFormat";
 
 export type OficioRecorridoResumenItem = NonNullable<IComprobacionRecorridoRow["oficios_resumen"]>[number];
@@ -234,6 +238,180 @@ export function filasEstadoTramiteRecorrido(
     { etiqueta: "Inspectores", valor: inspectores },
     { etiqueta: "Tipo de visita labrada", valor: tipoVisitaMostrar === "—" && ejec == null ? "—" : tipoVisitaMostrar },
     { etiqueta: "Resultado final", valor: resultadoFinal },
+  ];
+}
+
+function ejecucionUtil(raw: unknown): Record<string, unknown> | null {
+  if (raw == null || typeof raw !== "object") return null;
+  return Object.keys(raw as object).length > 0 ? (raw as Record<string, unknown>) : null;
+}
+
+function pushSiValor(filas: EstadoTramiteRecorridoFila[], etiqueta: string, valor: string): void {
+  const t = valor.trim();
+  if (!t || t === "—") return;
+  filas.push({ etiqueta, valor: t });
+}
+
+/** Número compacto del oficio para títulos y filas documentales. */
+export function oficioRecorridoNumeroTexto(item: OficioRecorridoResumenItem): string {
+  return (
+    (item.oficio_texto ?? "").trim() ||
+    parNumAnio(item.numero_oficio ?? item.numero, item.anio_oficio ?? item.anio)
+  );
+}
+
+export function oficioRecorridoBloqueTitulo(item: OficioRecorridoResumenItem): string {
+  const n = oficioRecorridoNumeroTexto(item);
+  return n ? `Oficio ${n}` : "Oficio";
+}
+
+/**
+ * Ejecución de reinspección propia del oficio.
+ * No reutiliza la visita de otro oficio cuando hay varios.
+ */
+export function ejecucionReinspeccionDeOficio(
+  item: OficioRecorridoResumenItem,
+  detalle: Pick<IComprobacionRecorridoDetalle, "reinspeccion_por_oficio"> | null,
+  totalOficios: number
+): Record<string, unknown> | null {
+  const propia = ejecucionUtil(item.ejecucion_reinspeccion);
+  if (propia) return propia;
+  const rein = detalle?.reinspeccion_por_oficio as
+    | { iniciador_id?: unknown; ejecucion_reinspeccion?: unknown }
+    | null
+    | undefined;
+  const global = ejecucionUtil(rein?.ejecucion_reinspeccion);
+  if (!global) return null;
+  const globalIni = Number(rein?.iniciador_id);
+  if (item.iniciador_id != null && !Number.isNaN(globalIni) && Number(item.iniciador_id) === globalIni) {
+    return global;
+  }
+  if (totalOficios === 1) return global;
+  return null;
+}
+
+/** Relato de un oficio: causa/expediente, estado y reinspección propia si existe. */
+export function filasOficioRecorridoDocumental(
+  item: OficioRecorridoResumenItem,
+  detalle: Pick<IComprobacionRecorridoDetalle, "reinspeccion_por_oficio"> | null,
+  totalOficios: number
+): EstadoTramiteRecorridoFila[] {
+  const exp =
+    (item.expediente_texto ?? "").trim() || parNumAnio(item.numero_expediente, item.anio_expediente);
+  const filas: EstadoTramiteRecorridoFila[] = [
+    { etiqueta: "Número de oficio", valor: textoOGuion(oficioRecorridoNumeroTexto(item)) },
+    { etiqueta: "Causa", valor: textoOGuion(item.causa) },
+    { etiqueta: "Expediente", valor: textoOGuion(exp) },
+    { etiqueta: "Estado", valor: resultadoSeguimientoOficioLabel(item) },
+  ];
+  const ejec = ejecucionReinspeccionDeOficio(item, detalle, totalOficios);
+  if (ejec) {
+    pushSiValor(filas, "Fecha de reinspección", String(ejec.fecha_actuacion ?? "").trim());
+    pushSiValor(
+      filas,
+      "Orden de trabajo",
+      String(ejec.orden_trabajo_numero ?? item.orden_trabajo_numero ?? item.orden_trabajo ?? "").trim()
+    );
+    pushSiValor(filas, "Inspectores", inspectoresDesdeEjecucion(ejec));
+    const tipoRaw = ejec.tipo_inspeccion_labrada;
+    if (tipoRaw != null && String(tipoRaw).trim()) {
+      const h = humanizarTipoVisitaRecorrido(tipoRaw);
+      pushSiValor(filas, "Tipo de visita", h === "—" ? String(tipoRaw).trim() : h);
+    }
+    pushSiValor(filas, "Acta de inspección", String(ejec.acta_inspeccion_num ?? "").trim());
+    pushSiValor(filas, "Acta de comprobación", String(ejec.acta_comprobacion_num ?? "").trim());
+    pushSiValor(filas, "Acta de notificación", String(ejec.acta_notificacion_num ?? "").trim());
+    pushSiValor(filas, "Acta de clausura", String(ejec.acta_clausura_num ?? "").trim());
+    pushSiValor(filas, "Acta de decomiso", String(ejec.acta_decomiso_num ?? "").trim());
+    pushSiValor(filas, "Motivo de comprobación", String(ejec.comprobacion_motivo ?? "").trim());
+  } else {
+    pushSiValor(
+      filas,
+      "Orden de trabajo",
+      String(item.orden_trabajo_numero ?? item.orden_trabajo ?? "").trim()
+    );
+    pushSiValor(
+      filas,
+      "Motivo de comprobación",
+      String((item as { comprobacion_motivo?: unknown }).comprobacion_motivo ?? "").trim()
+    );
+  }
+  return filas;
+}
+
+function inspectoresDesdeRow(row: IComprobacionRecorridoRow): string {
+  const t = String(row.inspectores_texto ?? "").trim();
+  if (t) return t;
+  return [row.inspector1, row.inspector2, row.inspector3]
+    .map((s) => String(s ?? "").trim())
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/** Cabecera documental del acta de comprobación (origen del recorrido). */
+export function filasActaComprobacionRecorrido(row: IComprobacionRecorridoRow): EstadoTramiteRecorridoFila[] {
+  const filas: EstadoTramiteRecorridoFila[] = [
+    { etiqueta: "N.º de acta", valor: textoOGuion(row.acta_comprobacion_num) },
+    { etiqueta: "Fecha", valor: textoOGuion(row.fecha_actuacion) },
+    { etiqueta: "Orden de trabajo", valor: textoOGuion(row.orden_trabajo_numero) },
+    {
+      etiqueta: "Domicilio",
+      valor: textoOGuion(
+        formatActuacionListDomicilioLinea({
+          calle: row.calle,
+          numero: row.numero,
+          numero_tipo: typeof row.numero_tipo === "string" ? row.numero_tipo : null,
+        })
+      ),
+    },
+    { etiqueta: "Inspectores", valor: textoOGuion(inspectoresDesdeRow(row)) },
+  ];
+  pushSiValor(filas, "Motivo de comprobación", String(row.comprobacion_motivo ?? "").trim());
+  return filas;
+}
+
+/** Referencia de cabecera: acta · fecha · OT. */
+export function recorridoHeaderReference(
+  row: IComprobacionRecorridoRow,
+  detalle: IComprobacionRecorridoDetalle | null
+): string | null {
+  const n =
+    (row.acta_comprobacion_num ?? "").toString().trim() ||
+    (detalle ? String(detalle.acta_comprobacion?.numero ?? "").trim() : "");
+  const fecha = (row.fecha_actuacion ?? "").trim();
+  const ot = (row.orden_trabajo_numero ?? "").toString().trim();
+  const parts: string[] = [];
+  if (n) parts.push(`Acta N.º ${n}`);
+  if (fecha) parts.push(fecha);
+  if (ot) parts.push(`OT ${ot}`);
+  return parts.length ? parts.join(" · ") : null;
+}
+
+/** Oficios a narrar: `oficios_resumen` o, si falta, el oficio único del detalle. */
+export function oficiosResumenParaDocumental(
+  row: IComprobacionRecorridoRow,
+  detalle: IComprobacionRecorridoDetalle | null
+): OficioRecorridoResumenItem[] {
+  const resumen = (detalle?.oficios_resumen ?? row.oficios_resumen ?? []) as OficioRecorridoResumenItem[];
+  if (resumen.length > 0) return resumen;
+  const ofi = detalle?.oficio;
+  const n = (ofi?.numero_oficio ?? row.oficio_numero ?? "").toString().trim();
+  const a = ofi?.anio ?? row.oficio_anio;
+  if (!n && a == null) return [];
+  const rein = detalle?.reinspeccion_por_oficio as Record<string, unknown> | null | undefined;
+  return [
+    {
+      numero_oficio: n || null,
+      anio_oficio: a ?? null,
+      oficio_texto: n || a != null ? [n, a != null ? String(a) : ""].filter(Boolean).join("/") : "",
+      causa: ofi?.causa ?? null,
+      iniciador_id: rein?.iniciador_id != null ? Number(rein.iniciador_id) : null,
+      estado_iniciador: rein?.estado_iniciador != null ? String(rein.estado_iniciador) : null,
+      tipo_iniciador: rein?.tipo_iniciador != null ? String(rein.tipo_iniciador) : null,
+      ejecucion_reinspeccion: ejecucionUtil(rein?.ejecucion_reinspeccion),
+      resultado: detalle?.resultado_final?.resultado_cumplimiento_oficio ?? null,
+      resultado_cumplimiento_oficio: detalle?.resultado_final?.resultado_cumplimiento_oficio ?? null,
+    },
   ];
 }
 

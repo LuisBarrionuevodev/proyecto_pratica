@@ -38,12 +38,20 @@ const listRow = {
   id: 11,
   fecha_actuacion: "2026-07-10",
   acta_comprobacion_num: "009345",
+  orden_trabajo_numero: "123456",
+  calle: "San Martín",
+  numero: "450",
+  inspector1: "García",
+  inspector2: "López",
   estado_recorrido: "Pendiente reinspección por oficio",
   oficio_numero: "100",
   oficio_anio: 2026,
   oficios_resumen: [
     {
       oficio_texto: "100/2026",
+      causa: "Control de higiene",
+      numero_expediente: "12",
+      anio_expediente: 2026,
       iniciador_id: 4,
       estado_iniciador: "PENDIENTE",
     },
@@ -68,7 +76,7 @@ const detalle: IComprobacionRecorridoDetalle = {
 };
 
 describe("RecorridoDetalleDocumentalDialog", () => {
-  it("muestra Estado del trámite antes de las tarjetas de oficio", () => {
+  it("encabeza el acta y narra cada oficio como bloque documental", () => {
     const html = render(
       <RecorridoDetalleDocumentalDialog
         open
@@ -82,11 +90,92 @@ describe("RecorridoDetalleDocumentalDialog", () => {
       />
     );
     expect(html).toContain("Historial documental");
-    expect(html).toContain("Estado del trámite");
-    expect(html).toContain("Estado actual");
-    expect(html).toContain("Oficio asociado");
-    expect(html).toContain("Fecha de reinspección");
-    expect(html).toContain("Resultado final");
-    expect(html).toContain("100/2026");
+    expect(html).toContain("Acta N.º 009345");
+    expect(html).toContain("2026-07-10");
+    expect(html).toContain("OT 123456");
+    expect(html).toContain("Acta de comprobación");
+    expect(html).toContain("San Martín 450");
+    expect(html).toContain("García");
+    expect(html).toContain("Oficio 100/2026");
+    expect(html).toContain("Número de oficio");
+    expect(html).toContain("Control de higiene");
+    expect(html).toContain("Pendiente de reinspección");
+    expect(html).not.toContain("Estado del trámite");
+    const iActa = html.indexOf("Acta de comprobación");
+    const iOficio = html.indexOf("Oficio 100/2026");
+    expect(iActa).toBeGreaterThan(-1);
+    expect(iOficio).toBeGreaterThan(iActa);
+  });
+
+  it("no mezcla el cierre de oficios distintos", () => {
+    const html = render(
+      <RecorridoDetalleDocumentalDialog
+        open
+        disablePortal
+        actuacionId={11}
+        listRow={{
+          ...listRow,
+          oficios_resumen: [
+            {
+              oficio_texto: "432/2026",
+              resultado: "CUMPLE",
+              resultado_cumplimiento_oficio: "CUMPLE",
+              ejecucion_reinspeccion: {
+                fecha_actuacion: "2026-08-01",
+                orden_trabajo_numero: "111",
+                inspectores_texto: "Pérez",
+              },
+            },
+            {
+              oficio_texto: "1989/2026",
+              resultado: "NO_CUMPLE",
+              resultado_cumplimiento_oficio: "NO_CUMPLE",
+              iniciador_id: 9,
+              estado_iniciador: "PENDIENTE",
+            },
+          ],
+        }}
+        detalle={{
+          ...detalle,
+          oficios_resumen: [
+            {
+              oficio_texto: "432/2026",
+              resultado: "CUMPLE",
+              resultado_cumplimiento_oficio: "CUMPLE",
+              ejecucion_reinspeccion: {
+                fecha_actuacion: "2026-08-01",
+                orden_trabajo_numero: "111",
+                inspectores_texto: "Pérez",
+              },
+            },
+            {
+              oficio_texto: "1989/2026",
+              resultado: "NO_CUMPLE",
+              resultado_cumplimiento_oficio: "NO_CUMPLE",
+              iniciador_id: 9,
+              estado_iniciador: "PENDIENTE",
+            },
+          ],
+        }}
+        loading={false}
+        juzgados={[]}
+        defaultFechaAlta="2026-07-10"
+      />
+    );
+    expect(html).toContain("Oficio 432/2026");
+    expect(html).toContain("Oficio 1989/2026");
+    expect(html).toContain("Cumple");
+    expect(html).toContain("No cumple");
+    const i432 = html.indexOf("Oficio 432/2026");
+    const i1989 = html.indexOf("Oficio 1989/2026");
+    const iCumple = html.indexOf("Cumple");
+    const iNoCumple = html.indexOf("No cumple");
+    expect(i432).toBeGreaterThan(-1);
+    expect(i1989).toBeGreaterThan(i432);
+    expect(iCumple).toBeGreaterThan(i432);
+    expect(iCumple).toBeLessThan(i1989);
+    expect(iNoCumple).toBeGreaterThan(i1989);
+    expect(html).toContain("2026-08-01");
+    expect(html).toContain("Pérez");
   });
 });

@@ -21,12 +21,17 @@ import {
 } from "../../../components/crudDialog";
 import {
   BloqueExpedienteEnvioReinspeccionDetalle,
-  BloqueReferenciaReinspeccionDetalle,
   DOC_MODAL_BLOCK_STACK_SPACING,
   DocumentalBloque,
   DocumentalFila,
 } from "./comprobacionOperativoBlocks";
-import { filasEstadoTramiteRecorrido } from "../utils/recorridoOficioExpLabels";
+import {
+  filasActaComprobacionRecorrido,
+  filasOficioRecorridoDocumental,
+  oficioRecorridoBloqueTitulo,
+  oficiosResumenParaDocumental,
+  recorridoHeaderReference,
+} from "../utils/recorridoOficioExpLabels";
 import { docModalEmptyStateSx, documentalGlassAlertSx } from "../../../styles/documentalModalTokens";
 import { parseApiError } from "../../../utils/parseApiError";
 import {
@@ -66,15 +71,8 @@ function mergeRecorridoDisplayRow(
 function recorridoSubtitulo(
   ctx: IComprobacionRecorridoRow,
   detalle: IComprobacionRecorridoDetalle | null
-): string {
-  const n =
-    (ctx.acta_comprobacion_num ?? "").trim() ||
-    (detalle ? String(detalle.acta_comprobacion?.numero ?? "").trim() : "");
-  const acta = n ? `Acta N.º ${n}` : null;
-  const fecha = (ctx.fecha_actuacion ?? "").trim();
-  const fechaPart = fecha ? `Fecha: ${fecha}` : null;
-  const parts = [acta, fechaPart].filter(Boolean);
-  return parts.length ? parts.join(" · ") : "Historial documental";
+): string | null {
+  return recorridoHeaderReference(ctx, detalle);
 }
 
 function ejecucionReinspeccionUtil(detalle: IComprobacionRecorridoDetalle): boolean {
@@ -266,7 +264,8 @@ export function RecorridoDetalleDocumentalDialog({
         <CrudDialogHeader
           domainChip="Comprobación"
           titulo="Historial documental"
-          subtitulo={actuacionId != null ? recorridoSubtitulo(ctx, detalle) : null}
+          reference={actuacionId != null ? recorridoSubtitulo(ctx, detalle) : null}
+          referenceProminent
         />
       }
     >
@@ -282,14 +281,20 @@ export function RecorridoDetalleDocumentalDialog({
           aria-label="Detalle del recorrido por etapas"
         >
           <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING}>
-            <BloqueReferenciaReinspeccionDetalle row={circuitRow} />
-            {notaReferencia}
-            <BloqueExpedienteEnvioReinspeccionDetalle row={circuitRow} />
-            <DocumentalBloque overline="Estado del trámite">
-              {filasEstadoTramiteRecorrido(ctx, detalle).map((f) => (
+            <DocumentalBloque overline="Acta de comprobación">
+              {filasActaComprobacionRecorrido(ctx).map((f) => (
                 <DocumentalFila key={f.etiqueta} etiqueta={f.etiqueta} valor={f.valor} />
               ))}
             </DocumentalBloque>
+            {notaReferencia}
+            <BloqueExpedienteEnvioReinspeccionDetalle row={circuitRow} />
+            {oficiosResumenParaDocumental(ctx, detalle).map((item, idx, all) => (
+              <DocumentalBloque key={`${oficioRecorridoBloqueTitulo(item)}-${idx}`} overline={oficioRecorridoBloqueTitulo(item)}>
+                {filasOficioRecorridoDocumental(item, detalle, all.length).map((f) => (
+                  <DocumentalFila key={f.etiqueta} etiqueta={f.etiqueta} valor={f.valor} />
+                ))}
+              </DocumentalBloque>
+            ))}
           </Stack>
 
           {actuacionId != null ? (

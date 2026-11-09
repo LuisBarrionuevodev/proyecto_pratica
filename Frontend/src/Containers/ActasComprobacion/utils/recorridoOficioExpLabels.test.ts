@@ -1,10 +1,13 @@
 import { describe, expect, it } from "vitest";
 import {
+  filasActaComprobacionRecorrido,
   filasEstadoTramiteRecorrido,
+  filasOficioRecorridoDocumental,
   recCompOficioExpMotivoChips,
   recOficioExpDetalleChips,
   recOficioExpItemLabel,
   recorridoColumnChips,
+  recorridoHeaderReference,
   recorridoResultadoSeguimientoChips,
   recorridoVisitaResumenLinea,
 } from "./recorridoOficioExpLabels";
@@ -197,5 +200,83 @@ describe("recorridoOficioExpLabels", () => {
     );
     expect(filas.find((f) => f.etiqueta === "Oficio asociado")?.valor).toBe("432/2026 · 1989/2026");
     expect(filas.find((f) => f.etiqueta === "Resultado final")?.valor).toBe("—");
+  });
+
+  it("cabecera documental del acta incluye acta, fecha, OT, domicilio e inspectores", () => {
+    const filas = filasActaComprobacionRecorrido({
+      id: 1,
+      acta_comprobacion_num: "009345",
+      fecha_actuacion: "2026-07-10",
+      orden_trabajo_numero: "123456",
+      calle: "San Martín",
+      numero: "450",
+      inspector1: "García",
+      inspector2: "López",
+    } as IComprobacionRecorridoRow);
+    expect(filas.find((f) => f.etiqueta === "N.º de acta")?.valor).toBe("009345");
+    expect(filas.find((f) => f.etiqueta === "Fecha")?.valor).toBe("2026-07-10");
+    expect(filas.find((f) => f.etiqueta === "Orden de trabajo")?.valor).toBe("123456");
+    expect(filas.find((f) => f.etiqueta === "Domicilio")?.valor).toBe("San Martín 450");
+    expect(filas.find((f) => f.etiqueta === "Inspectores")?.valor).toBe("García · López");
+    expect(
+      recorridoHeaderReference(
+        {
+          id: 1,
+          acta_comprobacion_num: "009345",
+          fecha_actuacion: "2026-07-10",
+          orden_trabajo_numero: "123456",
+        } as IComprobacionRecorridoRow,
+        null
+      )
+    ).toBe("Acta N.º 009345 · 2026-07-10 · OT 123456");
+  });
+
+  it("cada oficio conserva su propio estado y no hereda la visita ajena", () => {
+    const cumple = {
+      oficio_texto: "432/2026",
+      causa: "Higiene",
+      numero_expediente: "1",
+      anio_expediente: 2026,
+      resultado: "CUMPLE",
+      resultado_cumplimiento_oficio: "CUMPLE",
+      ejecucion_reinspeccion: {
+        fecha_actuacion: "2026-08-01",
+        orden_trabajo_numero: "111",
+        inspectores_texto: "Pérez",
+        acta_inspeccion_num: "50",
+      },
+    };
+    const noCumple = {
+      oficio_texto: "1989/2026",
+      resultado: "NO_CUMPLE",
+      resultado_cumplimiento_oficio: "NO_CUMPLE",
+      iniciador_id: 9,
+      estado_iniciador: "PENDIENTE",
+    };
+    const a = filasOficioRecorridoDocumental(cumple, null, 2);
+    const b = filasOficioRecorridoDocumental(noCumple, {
+      reinspeccion_por_oficio: {
+        iniciador_id: 4,
+        ejecucion_reinspeccion: { fecha_actuacion: "2026-09-99", inspectores_texto: "Ajeno" },
+      },
+    }, 2);
+    expect(a.find((f) => f.etiqueta === "Estado")?.valor).toBe("Cumple");
+    expect(a.find((f) => f.etiqueta === "Fecha de reinspección")?.valor).toBe("2026-08-01");
+    expect(a.find((f) => f.etiqueta === "Acta de inspección")?.valor).toBe("50");
+    expect(a.find((f) => f.etiqueta === "Causa")?.valor).toBe("Higiene");
+    expect(b.find((f) => f.etiqueta === "Estado")?.valor).toBe("No cumple");
+    expect(b.find((f) => f.etiqueta === "Fecha de reinspección")).toBeUndefined();
+    expect(b.some((f) => f.valor === "Ajeno")).toBe(false);
+  });
+
+  it("oficio pendiente no inventa cumple ni muestra reinspección vacía", () => {
+    const filas = filasOficioRecorridoDocumental(
+      { oficio_texto: "100/2026", iniciador_id: 4, estado_iniciador: "PENDIENTE" },
+      null,
+      1
+    );
+    expect(filas.find((f) => f.etiqueta === "Estado")?.valor).toBe("Pendiente de reinspección");
+    expect(filas.find((f) => f.etiqueta === "Fecha de reinspección")).toBeUndefined();
+    expect(filas.find((f) => f.etiqueta === "Resultado final")).toBeUndefined();
   });
 });
