@@ -26,6 +26,7 @@ from app.models import (
     Domicilio,
     Expediente,
     IniciadorRuta,
+    Inspeccion,
     Notificacion,
     NotificacionResultadoReinspeccion,
     Oficio,
@@ -175,12 +176,27 @@ def test_historial_reinspeccion_faltas_no_subsanadas(app_ctx) -> None:
     try:
         act, noti, u = _mk_notificacion_origen()
         rein = _mk_reinspeccion(noti=noti, comprobacion_num="REIN02")
+        acta_insp = _unique_num()
+        db.session.add(
+            Inspeccion(
+                numero_acta=acta_insp,
+                anio=2026,
+                mes=4,
+                actuacion_id=rein.id,
+            )
+        )
+        db.session.flush()
         _mk_resultado(noti=noti, act_rein=rein, u=u, faltas_subsanadas=False)
         row = _row_notificacion(act)
         seg = row["seguimiento_notificacion"]
         assert seg["estado"] == "FALTAS_NO_SUBSANADAS"
         assert seg["faltas_subsanadas"] is False
         assert seg["actuacion_id"] == rein.id
+        assert seg["acta_comprobacion_num"] == "REIN02"
+        assert seg["comprobacion_motivo"] == "rein"
+        assert seg["acta_inspeccion_num"] == acta_insp
+        assert seg["orden_trabajo_numero"] == rein.orden_trabajo.numero_acta
+        assert seg["orden_trabajo_numero"]
     finally:
         db.session.rollback()
 
@@ -209,6 +225,9 @@ def test_historial_sin_reinspeccion_estado_correcto(app_ctx) -> None:
         assert seg["actuacion_id"] is None
         assert seg["faltas_subsanadas"] is None
         assert seg["fecha_reinspeccion"] is None
+        assert seg["orden_trabajo_numero"] is None
+        assert seg["acta_inspeccion_num"] is None
+        assert seg["comprobacion_motivo"] is None
         assert row["comprobacion_posterior_acta_num"] is None
     finally:
         db.session.rollback()

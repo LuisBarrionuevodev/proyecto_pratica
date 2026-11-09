@@ -20,7 +20,10 @@ export interface ISeguimientoNotificacion {
   estado: SeguimientoNotificacionEstado;
   actuacion_id: number | null;
   fecha_reinspeccion: string | null;
+  orden_trabajo_numero?: string | null;
+  acta_inspeccion_num?: string | null;
   acta_comprobacion_num: string | null;
+  comprobacion_motivo?: string | null;
   inspectores_texto: string | null;
   faltas_subsanadas: boolean | null;
 }

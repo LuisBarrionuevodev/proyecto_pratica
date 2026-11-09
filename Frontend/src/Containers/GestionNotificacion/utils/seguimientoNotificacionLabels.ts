@@ -13,7 +13,10 @@ export function seguimientoNotificacionDeFila(
       estado: seg.estado ?? "SIN_REINSPECCION",
       actuacion_id: seg.actuacion_id ?? null,
       fecha_reinspeccion: seg.fecha_reinspeccion ?? null,
+      orden_trabajo_numero: seg.orden_trabajo_numero ?? null,
+      acta_inspeccion_num: seg.acta_inspeccion_num ?? null,
       acta_comprobacion_num: seg.acta_comprobacion_num ?? null,
+      comprobacion_motivo: seg.comprobacion_motivo ?? null,
       inspectores_texto: seg.inspectores_texto ?? null,
       faltas_subsanadas: typeof seg.faltas_subsanadas === "boolean" ? seg.faltas_subsanadas : null,
     };
@@ -22,7 +25,10 @@ export function seguimientoNotificacionDeFila(
     estado: "SIN_REINSPECCION",
     actuacion_id: null,
     fecha_reinspeccion: null,
+    orden_trabajo_numero: null,
+    acta_inspeccion_num: null,
     acta_comprobacion_num: null,
+    comprobacion_motivo: null,
     inspectores_texto: null,
     faltas_subsanadas: null,
   };
@@ -79,6 +85,11 @@ export function cierreNotificacionResultadoFaltasLabel(seg: ISeguimientoNotifica
   return "No informado";
 }
 
+function textoSeguimiento(val: string | null | undefined): string {
+  const t = (val ?? "").trim();
+  return t || "—";
+}
+
 export function cierreNotificacionFilas(row: IActuacionesPendientesItem): { etiqueta: string; valor: string }[] {
   const seg = seguimientoNotificacionDeFila(row);
   const fecha =
@@ -86,13 +97,25 @@ export function cierreNotificacionFilas(row: IActuacionesPendientesItem): { etiq
   const insp =
     (seg.inspectores_texto ?? "").trim() ||
     (row.comprobacion_posterior_inspectores_texto ?? "").trim();
-  const acta =
+  const actaComp =
     (seg.acta_comprobacion_num ?? "").trim() || (row.comprobacion_posterior_acta_num ?? "").trim();
-  return [
+  const filas: { etiqueta: string; valor: string }[] = [
     { etiqueta: "Estado del trámite", valor: cierreNotificacionEstadoTramiteLabel(seg) },
     { etiqueta: "Fecha de reinspección", valor: fecha || "—" },
+    { etiqueta: "Orden de trabajo", valor: textoSeguimiento(seg.orden_trabajo_numero) },
     { etiqueta: "Inspectores", valor: insp || "—" },
-    { etiqueta: "Acta de comprobación N.º", valor: acta || "—" },
-    { etiqueta: "Resultado de las faltas", valor: cierreNotificacionResultadoFaltasLabel(seg) },
+    { etiqueta: "Acta de inspección N.º", valor: textoSeguimiento(seg.acta_inspeccion_num) },
   ];
+  /** Estado del trámite ya cubre Subsanadas / No subsanadas; no repetir esa fila. */
+  if (seg.estado !== "FALTAS_SUBSANADAS" && seg.estado !== "FALTAS_NO_SUBSANADAS") {
+    filas.push({
+      etiqueta: "Resultado de las faltas",
+      valor: cierreNotificacionResultadoFaltasLabel(seg),
+    });
+  }
+  filas.push(
+    { etiqueta: "Acta de comprobación N.º", valor: actaComp || "—" },
+    { etiqueta: "Motivo de comprobación", valor: textoSeguimiento(seg.comprobacion_motivo) }
+  );
+  return filas;
 }

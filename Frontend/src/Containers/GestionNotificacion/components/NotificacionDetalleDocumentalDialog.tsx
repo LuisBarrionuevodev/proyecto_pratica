@@ -76,19 +76,6 @@ function inspectoresLinea(row: IActuacionesPendientesItem): string {
   return parts.length ? parts.join(" · ") : "—";
 }
 
-function campoTextoUtil(s: unknown): boolean {
-  return s != null && String(s).trim() !== "";
-}
-
-function visitaBaseHayContenido(row: IActuacionesPendientesItem): boolean {
-  return (
-    campoTextoUtil(row.orden_trabajo_numero) ||
-    campoTextoUtil(row.tipo_actuacion) ||
-    campoTextoUtil(row.acta_inspeccion_num) ||
-    inspectoresLinea(row) !== "—"
-  );
-}
-
 function motivosNotificacionLista(row: IActuacionesPendientesItem): string[] {
   return [row.notificacion_motivo_1, row.notificacion_motivo_2, row.notificacion_motivo_3]
     .map((s) => (s ?? "").trim())
@@ -221,7 +208,7 @@ function NotificacionProrrogaExpedientesCard({
   }, [errEx, feedback]);
 
   return (
-    <DocumentalBloque overline="Plazos y expedientes" layout="stack">
+    <DocumentalBloque overline="Plazos y prórrogas" layout="stack">
       {loading ? (
         <Box sx={{ display: "flex", justifyContent: "center", py: 2 }}>
           <CircularProgress size={28} />
@@ -643,24 +630,25 @@ export function NotificacionDetalleDocumentalDialog({
         <Stack spacing={DOC_MODAL_BLOCK_STACK_SPACING} component="section" aria-label="Historial de la notificación">
           <BloqueReferenciaNotificacion row={row} perfil="documental" />
 
-          {visitaBaseHayContenido(row) ? (
-            <DocumentalBloque overline="La visita">
-              <DocumentalFila etiqueta="Orden de trabajo" valor={textoValor(row.orden_trabajo_numero)} />
-              <DocumentalFila etiqueta="Inspectores" valor={inspectoresLinea(row)} />
-              <DocumentalFila etiqueta="Tipo de actuación" valor={humanizarTipoActuacion(row.tipo_actuacion)} />
-              <DocumentalFila etiqueta="Acta de inspección Nº" valor={textoValor(row.acta_inspeccion_num)} />
-            </DocumentalBloque>
-          ) : null}
+          <DocumentalBloque overline="Inspección de origen">
+            <DocumentalFila etiqueta="Fecha de actuación" valor={textoValor(row.fecha_actuacion)} />
+            <DocumentalFila etiqueta="Orden de trabajo" valor={textoValor(row.orden_trabajo_numero)} />
+            <DocumentalFila etiqueta="Inspectores" valor={inspectoresLinea(row)} />
+            <DocumentalFila etiqueta="Tipo de actuación" valor={humanizarTipoActuacion(row.tipo_actuacion)} />
+            <DocumentalFila etiqueta="Acta de inspección N.º" valor={textoValor(row.acta_inspeccion_num)} />
+          </DocumentalBloque>
 
-          {motivosNotificacionLista(row).length > 0 ? (
-            <DocumentalBloque overline="Motivos de notificación">
+          <DocumentalBloque overline="Motivos de notificación">
+            {motivosNotificacionLista(row).length > 0 ? (
               <CrudFormSlot
                 label="Motivos"
                 mode="view"
                 value={motivosNotificacionLista(row).join(" · ")}
               />
-            </DocumentalBloque>
-          ) : null}
+            ) : (
+              <DocumentalFila etiqueta="Motivos" valor="—" />
+            )}
+          </DocumentalBloque>
 
           {row.source_type !== "COMPROBACION" ? (
             <NotificacionProrrogaExpedientesCard
@@ -674,7 +662,7 @@ export function NotificacionDetalleDocumentalDialog({
           ) : null}
 
           {row.source_type !== "COMPROBACION" ? (
-            <DocumentalBloque overline="Cierre de la notificación">
+            <DocumentalBloque overline="Reinspección y cierre">
               {cierreNotificacionFilas(row).map((f) => (
                 <DocumentalFila key={f.etiqueta} etiqueta={f.etiqueta} valor={f.valor} />
               ))}

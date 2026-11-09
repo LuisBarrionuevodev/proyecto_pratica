@@ -120,24 +120,52 @@ describe("NotificacionDetalleDocumentalDialog", () => {
     expect(html).not.toContain(">Prórroga<");
   });
 
-  it("historial no muestra Fecha de actuación duplicada", () => {
+  it("historial relata las cuatro etapas con fecha de origen", () => {
     const html = render(
       <NotificacionDetalleDocumentalDialog {...dialogProps} row={baseRow} variant="documental" />
     );
-    expect(html).not.toContain("Fecha de actuación");
+    expect(html).toContain("Inspección de origen");
+    expect(html).toContain("Fecha de actuación");
+    expect(html).toContain("2026-06-01");
+    expect(html).toContain("Motivos de notificación");
+    expect(html).toContain("Plazos y prórrogas");
+    expect(html).toContain("Reinspección y cierre");
+    expect(html.indexOf("Inspección de origen")).toBeLessThan(html.indexOf("Motivos de notificación"));
+    expect(html.indexOf("Motivos de notificación")).toBeLessThan(html.indexOf("Plazos y prórrogas"));
+    expect(html.indexOf("Plazos y prórrogas")).toBeLessThan(html.indexOf("Reinspección y cierre"));
+    expect(html).not.toContain("La visita");
+    expect(html).not.toContain("Cierre de la notificación");
+    expect(html).not.toContain("segunda inspección");
   });
 
-  it("historial muestra Cierre de la notificación", () => {
+  it("Reinspección y cierre no duplica faltas no subsanadas y muestra motivo", () => {
     const html = render(
-      <NotificacionDetalleDocumentalDialog {...dialogProps} row={baseRow} variant="documental" />
+      <NotificacionDetalleDocumentalDialog
+        {...dialogProps}
+        row={{
+          ...baseRow,
+          seguimiento_notificacion: {
+            estado: "FALTAS_NO_SUBSANADAS",
+            actuacion_id: 8,
+            fecha_reinspeccion: "2026-04-10",
+            orden_trabajo_numero: "OT99",
+            acta_inspeccion_num: "654321",
+            acta_comprobacion_num: "REIN02",
+            comprobacion_motivo: "Higiene del local",
+            inspectores_texto: "Pérez",
+            faltas_subsanadas: false,
+          },
+        }}
+        variant="documental"
+      />
     );
-    expect(html).toContain("Cierre de la notificación");
-    expect(html).toContain("Estado del trámite");
-    expect(html).toContain("Fecha de reinspección");
-    expect(html).toContain("Acta de comprobación N.º");
-    expect(html).toContain("Resultado de las faltas");
-    expect(html).not.toContain("Resultado y seguimiento");
-    expect(html).not.toContain("segunda inspección");
+    expect(html).toContain("Reinspección y cierre");
+    expect(html).toContain("Faltas no subsanadas");
+    expect(html).toContain("Motivo de comprobación");
+    expect(html).toContain("Higiene del local");
+    expect(html).toContain("Acta de inspección N.º");
+    expect(html).toContain("OT99");
+    expect(html).not.toContain("Resultado de las faltas");
   });
 
   it("histórico incompleto muestra resultado no informado", () => {
@@ -160,6 +188,7 @@ describe("NotificacionDetalleDocumentalDialog", () => {
     );
     expect(html).toContain("Reinspección realizada · resultado no informado");
     expect(html).toContain("No informado");
+    expect(html).toContain("Motivo de comprobación");
     expect(html).not.toContain("Faltas subsanadas");
   });
 });

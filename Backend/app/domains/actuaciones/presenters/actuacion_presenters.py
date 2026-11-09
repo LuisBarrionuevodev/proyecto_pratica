@@ -1247,7 +1247,10 @@ def _seguimiento_notificacion_dto_vacio() -> Dict[str, Any]:
         "estado": "SIN_REINSPECCION",
         "actuacion_id": None,
         "fecha_reinspeccion": None,
+        "orden_trabajo_numero": None,
+        "acta_inspeccion_num": None,
         "acta_comprobacion_num": None,
+        "comprobacion_motivo": None,
         "inspectores_texto": None,
         "faltas_subsanadas": None,
     }

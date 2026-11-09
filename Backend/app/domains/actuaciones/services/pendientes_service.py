@@ -543,7 +543,10 @@ def _seguimiento_notificacion_vacio() -> Dict[str, Any]:
         "estado": "SIN_REINSPECCION",
         "actuacion_id": None,
         "fecha_reinspeccion": None,
+        "orden_trabajo_numero": None,
+        "acta_inspeccion_num": None,
         "acta_comprobacion_num": None,
+        "comprobacion_motivo": None,
         "inspectores_texto": None,
         "faltas_subsanadas": None,
     }
@@ -580,7 +583,12 @@ def find_reinspecciones_vinculadas_por_actuacion_id(
     rein_direct = (
         Actuaciones.query.filter(Actuaciones.notificacion_id.in_(noti_ids))
         .filter(Actuaciones.tipo == "REINSPECCION")
-        .options(joinedload(Actuaciones.inspector), joinedload(Actuaciones.comprobacion))
+        .options(
+            joinedload(Actuaciones.inspector),
+            joinedload(Actuaciones.comprobacion),
+            joinedload(Actuaciones.inspeccion),
+            joinedload(Actuaciones.orden_trabajo),
+        )
         .all()
     )
     by_noti: Dict[int, List[Actuaciones]] = defaultdict(list)
@@ -597,7 +605,12 @@ def find_reinspecciones_vinculadas_por_actuacion_id(
         .filter(IniciadorRuta.deleted_at.is_(None))
         .filter(RutaItem.deleted_at.is_(None))
         .filter(Actuaciones.tipo == "REINSPECCION")
-        .options(joinedload(Actuaciones.inspector), joinedload(Actuaciones.comprobacion))
+        .options(
+            joinedload(Actuaciones.inspector),
+            joinedload(Actuaciones.comprobacion),
+            joinedload(Actuaciones.inspeccion),
+            joinedload(Actuaciones.orden_trabajo),
+        )
         .all()
     )
     for noti_id, act_rein in item_rows:
@@ -693,13 +706,23 @@ def build_seguimiento_notificacion_por_actuacion_id(acts: List[Actuaciones]) -> 
             estado = "FALTAS_NO_SUBSANADAS"
         else:
             estado = "REINSPECCION_REALIZADA_SIN_RESULTADO"
+        ot = getattr(visit, "orden_trabajo", None)
+        ot_num = None
+        if ot is not None:
+            ot_num = getattr(ot, "numero_acta", None) or getattr(ot, "numero", None)
+        insp = getattr(visit, "inspeccion", None)
+        acta_insp = getattr(insp, "numero_acta", None) if insp is not None else None
         comp = getattr(visit, "comprobacion", None)
         acta = getattr(comp, "numero_acta", None) if comp is not None else None
+        motivo = getattr(comp, "motivo", None) if comp is not None else None
         out[int(act.id)] = {
             "estado": estado,
             "actuacion_id": int(visit.id),
             "fecha_reinspeccion": visit.fecha.isoformat() if visit.fecha else None,
+            "orden_trabajo_numero": ot_num,
+            "acta_inspeccion_num": acta_insp,
             "acta_comprobacion_num": acta,
+            "comprobacion_motivo": motivo,
             "inspectores_texto": _inspectores_joined_text_from_orm(visit),
             "faltas_subsanadas": faltas if faltas is not None else None,
         }

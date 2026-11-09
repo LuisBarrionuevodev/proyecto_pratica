@@ -40,7 +40,7 @@ describe("seguimientoNotificacionLabels", () => {
     expect(seguimientoNotificacionChipLabel("FALTAS_NO_SUBSANADAS")).toBe("Faltas no subsanadas");
   });
 
-  it("modal cierre: sin reinspección usa guión en resultado de faltas", () => {
+  it("modal cierre: sin reinspección usa guión y no inventa motivo", () => {
     const filas = cierreNotificacionFilas({
       id: 1,
       source_type: "NOTIFICACION",
@@ -58,23 +58,48 @@ describe("seguimientoNotificacionLabels", () => {
     );
     expect(filas.find((f) => f.etiqueta === "Resultado de las faltas")?.valor).toBe("—");
     expect(filas.find((f) => f.etiqueta === "Fecha de reinspección")?.valor).toBe("—");
+    expect(filas.find((f) => f.etiqueta === "Orden de trabajo")?.valor).toBe("—");
+    expect(filas.find((f) => f.etiqueta === "Motivo de comprobación")?.valor).toBe("—");
   });
 
-  it("modal cierre: no usa segunda inspección como etiqueta", () => {
+  it("faltas no subsanadas no duplica resultado y muestra motivo", () => {
     const filas = cierreNotificacionFilas({
       id: 1,
       seguimiento_notificacion: {
-        estado: "FALTAS_SUBSANADAS",
+        estado: "FALTAS_NO_SUBSANADAS",
         actuacion_id: 2,
         fecha_reinspeccion: "2026-04-10",
+        orden_trabajo_numero: "OT1",
+        acta_inspeccion_num: "111111",
         acta_comprobacion_num: "99",
+        comprobacion_motivo: "Falta de higiene",
         inspectores_texto: "Gómez",
-        faltas_subsanadas: true,
+        faltas_subsanadas: false,
       },
     } as IActuacionesPendientesItem);
     const texto = filas.map((f) => `${f.etiqueta} ${f.valor}`).join(" ");
     expect(texto).toContain("Fecha de reinspección");
     expect(texto).not.toContain("segunda inspección");
-    expect(filas.find((f) => f.etiqueta === "Resultado de las faltas")?.valor).toBe("Subsanadas");
+    expect(filas.find((f) => f.etiqueta === "Estado del trámite")?.valor).toBe("Faltas no subsanadas");
+    expect(filas.find((f) => f.etiqueta === "Resultado de las faltas")).toBeUndefined();
+    expect(filas.find((f) => f.etiqueta === "Motivo de comprobación")?.valor).toBe("Falta de higiene");
+    expect(filas.find((f) => f.etiqueta === "Acta de inspección N.º")?.valor).toBe("111111");
+    expect(filas.find((f) => f.etiqueta === "Orden de trabajo")?.valor).toBe("OT1");
+  });
+
+  it("reinspección sin resultado informa faltas y no inventa motivo", () => {
+    const filas = cierreNotificacionFilas({
+      id: 1,
+      seguimiento_notificacion: {
+        estado: "REINSPECCION_REALIZADA_SIN_RESULTADO",
+        actuacion_id: 3,
+        fecha_reinspeccion: "2026-04-10",
+        acta_comprobacion_num: "REIN03",
+        inspectores_texto: "Pérez",
+        faltas_subsanadas: null,
+      },
+    } as IActuacionesPendientesItem);
+    expect(filas.find((f) => f.etiqueta === "Resultado de las faltas")?.valor).toBe("No informado");
+    expect(filas.find((f) => f.etiqueta === "Motivo de comprobación")?.valor).toBe("—");
   });
 });
