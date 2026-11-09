@@ -3,6 +3,7 @@ import type {
   OficioComprobacionItem,
 } from "../../../api/actuacionesPendientesApi";
 import { humanizarEstadoIniciador, humanizarEstadoOperativoOficio } from "./documentalLabelFormat";
+import { resultadoSeguimientoOficioLabel } from "./recorridoOficioExpLabels";
 
 export type OficioOperativoChip = {
   label: string;
@@ -34,6 +35,44 @@ export function oficioOperativoChips(item: OficioComprobacionItem): OficioOperat
     });
   } else if (item.en_ruta_borrador) {
     chips.push({ label: "Ruta borrador", color: "info" });
+  }
+  if (item.editable === false) {
+    chips.push({ label: "Edición bloqueada", color: "error" });
+  }
+  return chips;
+}
+
+function colorCierreDocumental(label: string): OficioOperativoChip["color"] {
+  if (label === "Cumple") return "success";
+  if (label === "No cumple") return "error";
+  if (label === "Reinspección realizada") return "info";
+  if (label === "Pendiente de reinspección") return "warning";
+  return "default";
+}
+
+/**
+ * Un único estado de cierre documental en el encabezado de la tarjeta de oficio.
+ * No usa «Cumplido» operativo; no infiere Cumple/No cumple.
+ */
+export function oficioCierreDocumentalChips(
+  item: OficioComprobacionItem,
+  ejecucion?: Record<string, unknown> | null
+): OficioOperativoChip[] {
+  const resEjec =
+    ejecucion?.resultado_cumplimiento_oficio != null
+      ? String(ejecucion.resultado_cumplimiento_oficio)
+      : null;
+  const label = resultadoSeguimientoOficioLabel({
+    resultado_cumplimiento_oficio: item.resultado_cumplimiento_oficio ?? item.resultado ?? resEjec,
+    resultado: item.resultado,
+    ejecucion_reinspeccion: ejecucion ?? item.ejecucion_reinspeccion,
+    estado_iniciador: item.iniciador_estado,
+    estado_ejecucion: item.estado_ejecucion,
+    iniciador_id: item.iniciador_id,
+  });
+  const chips: OficioOperativoChip[] = [];
+  if (label && label !== "—") {
+    chips.push({ label, color: colorCierreDocumental(label) });
   }
   if (item.editable === false) {
     chips.push({ label: "Edición bloqueada", color: "error" });

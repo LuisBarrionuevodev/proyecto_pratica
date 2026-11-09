@@ -25,13 +25,7 @@ import {
   DocumentalBloque,
   DocumentalFila,
 } from "./comprobacionOperativoBlocks";
-import {
-  filasActaComprobacionRecorrido,
-  filasOficioRecorridoDocumental,
-  oficioRecorridoBloqueTitulo,
-  oficiosResumenParaDocumental,
-  recorridoHeaderReference,
-} from "../utils/recorridoOficioExpLabels";
+import { filasActaComprobacionRecorrido, recorridoHeaderReference } from "../utils/recorridoOficioExpLabels";
 import { docModalEmptyStateSx, documentalGlassAlertSx } from "../../../styles/documentalModalTokens";
 import { parseApiError } from "../../../utils/parseApiError";
 import {
@@ -288,13 +282,6 @@ export function RecorridoDetalleDocumentalDialog({
             </DocumentalBloque>
             {notaReferencia}
             <BloqueExpedienteEnvioReinspeccionDetalle row={circuitRow} />
-            {oficiosResumenParaDocumental(ctx, detalle).map((item, idx, all) => (
-              <DocumentalBloque key={`${oficioRecorridoBloqueTitulo(item)}-${idx}`} overline={oficioRecorridoBloqueTitulo(item)}>
-                {filasOficioRecorridoDocumental(item, detalle, all.length).map((f) => (
-                  <DocumentalFila key={f.etiqueta} etiqueta={f.etiqueta} valor={f.valor} />
-                ))}
-              </DocumentalBloque>
-            ))}
           </Stack>
 
           {actuacionId != null ? (
@@ -325,6 +312,7 @@ export function RecorridoDetalleDocumentalDialog({
                 ejecucionReinspeccion={ejecPayload}
                 ejecucionReinspeccionCtx={ejecucionCtx}
                 resultadoCircuito={detalle.resultado_final}
+                cierreUnicoEnEncabezado
               />
             ) : !docLoading ? (
               <Alert severity="info" sx={documentalGlassAlertSx}>

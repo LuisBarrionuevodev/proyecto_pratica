@@ -26,6 +26,8 @@ function tipoInspeccionLabel(raw: unknown): string {
 export type OficioComprobacionReinspeccionEnCardProps = {
   ejecucion: Record<string, unknown>;
   resultadoCircuito?: IComprobacionRecorridoResultadoFinal | null;
+  /** El cierre ya está en el encabezado de la tarjeta: no repetir Cumple/Cumplido. */
+  ocultarCierre?: boolean;
 };
 
 /**
@@ -35,12 +37,13 @@ export type OficioComprobacionReinspeccionEnCardProps = {
 export function OficioComprobacionReinspeccionEnCard({
   ejecucion,
   resultadoCircuito,
+  ocultarCierre = false,
 }: OficioComprobacionReinspeccionEnCardProps) {
   const cumplEj = humanizarCumplimientoOficio(ejecucion.resultado_cumplimiento_oficio);
   const cumplFinal = humanizarCumplimientoOficio(resultadoCircuito?.resultado_cumplimiento_oficio);
-  const cumpl = cumplEj !== "—" ? cumplEj : cumplFinal;
+  const cumpl = ocultarCierre ? "—" : cumplEj !== "—" ? cumplEj : cumplFinal;
 
-  const situacion = textoValor(resultadoCircuito?.estado_recorrido);
+  const situacion = ocultarCierre ? "—" : textoValor(resultadoCircuito?.estado_recorrido);
   const ot = textoValor(ejecucion.orden_trabajo_numero);
   const fecha = textoValor(ejecucion.fecha_actuacion);
   const insp = inspectoresLinea(ejecucion);

@@ -19,6 +19,7 @@ import { humanizarEstadoIniciador } from "../utils/documentalLabelFormat";
 import {
   documentalDesdeOficioItem,
   mergeOficiosConLegacyDocumental,
+  oficioCierreDocumentalChips,
   oficioComprobacionEtiquetaCompacta,
   oficioComprobacionSubtituloIniciador,
   oficioComprobacionTieneBloqueCompleto,
@@ -107,6 +108,7 @@ const OficioComprobacionCard = memo(function OficioComprobacionCard({
   ejecucionReinspeccion,
   resultadoCircuito,
   ejecucionCtx,
+  cierreUnicoEnEncabezado,
 }: {
   item: OficioComprobacionItem;
   selected: boolean;
@@ -119,9 +121,9 @@ const OficioComprobacionCard = memo(function OficioComprobacionCard({
   ejecucionReinspeccion: Record<string, unknown> | null;
   resultadoCircuito: IComprobacionRecorridoResultadoFinal | null | undefined;
   ejecucionCtx: EjecucionReinspeccionPorOficioCtx;
+  cierreUnicoEnEncabezado: boolean;
 }) {
   const subtitulo = oficioComprobacionSubtituloIniciador(item);
-  const chips = oficioOperativoChips(item);
   const documentalItem = useMemo(() => {
     if (!documental) return null;
     return documentalDesdeOficioItem(documental, item);
@@ -134,6 +136,9 @@ const OficioComprobacionCard = memo(function OficioComprobacionCard({
   const muestraReinspeccionGlobal =
     ejecucionReinspeccion != null && oficioMuestraEjecucionReinspeccion(item, ejecucionCtx);
   const ejecucionCard = ejecucionItem ?? (muestraReinspeccionGlobal ? ejecucionReinspeccion : null);
+  const chips = cierreUnicoEnEncabezado
+    ? oficioCierreDocumentalChips(item, ejecucionCard)
+    : oficioOperativoChips(item);
 
   const otResumen = (item.orden_trabajo_numero ?? item.orden_trabajo ?? "").toString().trim();
   const concResumen = (item.conclusion ?? "").toString().trim();
@@ -166,7 +171,7 @@ const OficioComprobacionCard = memo(function OficioComprobacionCard({
                 sx={{ height: 22, fontSize: "0.7rem" }}
               />
             ))
-          : item.iniciador_estado ? (
+          : !cierreUnicoEnEncabezado && item.iniciador_estado ? (
               <Chip
                 size="small"
                 label={humanizarEstadoIniciador(item.iniciador_estado)}
@@ -176,7 +181,7 @@ const OficioComprobacionCard = memo(function OficioComprobacionCard({
               />
             ) : null}
       </Stack>
-      {subtitulo && chips.length === 0 && !item.iniciador_estado ? (
+      {subtitulo && !cierreUnicoEnEncabezado && chips.length === 0 && !item.iniciador_estado ? (
         <Typography variant="caption" sx={{ ...docModalCaptionSx, display: "block", mt: 0.5 }}>
           {subtitulo}
         </Typography>
@@ -193,6 +198,7 @@ const OficioComprobacionCard = memo(function OficioComprobacionCard({
             oficioEditable={item.editable}
             bloqueadoMotivo={item.bloqueado_motivo}
             embedEnCard
+            ocultarMotivoBloqueo={cierreUnicoEnEncabezado}
           />
         ) : (
           <OficioComprobacionDetalleLectura item={item} />
@@ -202,8 +208,9 @@ const OficioComprobacionCard = memo(function OficioComprobacionCard({
           <OficioComprobacionReinspeccionEnCard
             ejecucion={ejecucionCard}
             resultadoCircuito={ejecucionItem ? null : resultadoCircuito}
+            ocultarCierre={cierreUnicoEnEncabezado}
           />
-        ) : otResumen || concResumen ? (
+        ) : !cierreUnicoEnEncabezado && (otResumen || concResumen) ? (
           <Box sx={{ mt: 1.25, pt: 1.25, borderTop: "1px solid rgba(255,255,255,0.1)" }}>
             <DocumentalFila etiqueta="OT" valor={otResumen || "Sin OT"} />
             <DocumentalFila etiqueta="Conclusión" valor={concResumen || "Sin conclusión"} />
@@ -238,6 +245,11 @@ export type ComprobacionOficiosTribunalSectionProps = {
   ejecucionReinspeccion?: Record<string, unknown> | null;
   ejecucionReinspeccionCtx?: EjecucionReinspeccionPorOficioCtx | null;
   resultadoCircuito?: IComprobacionRecorridoResultadoFinal | null;
+  /**
+   * Historial documental: un solo estado de cierre en el encabezado de cada tarjeta
+   * (Cumple / No cumple / Reinspección realizada / Pendiente de reinspección).
+   */
+  cierreUnicoEnEncabezado?: boolean;
 };
 
 /**
@@ -262,6 +274,7 @@ export const ComprobacionOficiosTribunalSection = memo(function ComprobacionOfic
   ejecucionReinspeccion = null,
   ejecucionReinspeccionCtx = null,
   resultadoCircuito = null,
+  cierreUnicoEnEncabezado = false,
 }: ComprobacionOficiosTribunalSectionProps) {
   const [selectedOficioId, setSelectedOficioId] = useState<number | null>(null);
   const [modoAlta, setModoAlta] = useState(false);
@@ -341,6 +354,7 @@ export const ComprobacionOficiosTribunalSection = memo(function ComprobacionOfic
                 ejecucionReinspeccion={ejecucionReinspeccion}
                 resultadoCircuito={resultadoCircuito}
                 ejecucionCtx={ejecucionCtx}
+                cierreUnicoEnEncabezado={cierreUnicoEnEncabezado}
               />
             ))}
           </Stack>

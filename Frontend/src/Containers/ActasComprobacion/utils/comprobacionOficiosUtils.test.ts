@@ -4,6 +4,7 @@ import type { IComprobacionDocumentalResponse, OficioComprobacionItem } from "..
 import {
   documentalDesdeOficioItem,
   mergeOficiosConLegacyDocumental,
+  oficioCierreDocumentalChips,
   oficioComprobacionEtiquetaCompacta,
   oficioComprobacionSubtituloIniciador,
   oficioOperativoChips,
@@ -112,5 +113,33 @@ describe("comprobacionOficiosUtils", () => {
     const snap = documentalDesdeOficioItem(base, item);
     expect(snap?.oficio?.id).toBe(9);
     expect(snap?.expediente_respuesta?.numero_expediente).toBe("130");
+  });
+
+  it("cierre documental muestra Cumple una sola vez y Edición bloqueada", () => {
+    const chips = oficioCierreDocumentalChips({
+      id: 350,
+      numero_oficio: "350",
+      anio: 2026,
+      expediente_numero: "013151",
+      expediente_anio: 2026,
+      estado_operativo: "cumplido",
+      iniciador_estado: "CUMPLIDO",
+      resultado_cumplimiento_oficio: "CUMPLE",
+      editable: false,
+      bloqueado_motivo: "Iniciador en estado CUMPLIDO.",
+    });
+    expect(chips.map((c) => c.label)).toEqual(["Cumple", "Edición bloqueada"]);
+  });
+
+  it("cierre documental pendiente no inventa cumple", () => {
+    const chips = oficioCierreDocumentalChips({
+      id: 1,
+      numero_oficio: "100",
+      anio: 2026,
+      iniciador_id: 4,
+      iniciador_estado: "PENDIENTE",
+      estado_operativo: "pendiente",
+    });
+    expect(chips.map((c) => c.label)).toEqual(["Pendiente de reinspección"]);
   });
 });

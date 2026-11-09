@@ -99,13 +99,23 @@ export function recorridoVisitaResumenLinea(item: OficioRecorridoResumenItem): s
   return head;
 }
 
-function resultadoCumplimientoOficioKey(item: OficioRecorridoResumenItem): string {
+/** Campos mínimos para el estado de cierre documental de un oficio. */
+export type CierreSeguimientoOficioFuente = {
+  resultado_cumplimiento_oficio?: string | null;
+  resultado?: string | null;
+  ejecucion_reinspeccion?: unknown;
+  estado_iniciador?: string | null;
+  estado_ejecucion?: string | null;
+  iniciador_id?: number | null;
+};
+
+function resultadoCumplimientoOficioKey(item: CierreSeguimientoOficioFuente): string {
   return String(item.resultado_cumplimiento_oficio ?? item.resultado ?? "")
     .trim()
     .toUpperCase();
 }
 
-function oficioTieneVisitaReinspeccion(item: OficioRecorridoResumenItem): boolean {
+function oficioTieneVisitaReinspeccion(item: CierreSeguimientoOficioFuente): boolean {
   const estadoIni = String(item.estado_iniciador ?? "").trim().toUpperCase();
   const estadoEjec = String(item.estado_ejecucion ?? "").trim().toUpperCase();
   const ejec = item.ejecucion_reinspeccion;
@@ -117,7 +127,7 @@ function oficioTieneVisitaReinspeccion(item: OficioRecorridoResumenItem): boolea
  * Chip compacto de resultado / seguimiento por oficio.
  * No infiere Cumple/No cumple si no hay resultado persistido.
  */
-export function resultadoSeguimientoOficioLabel(item: OficioRecorridoResumenItem): string {
+export function resultadoSeguimientoOficioLabel(item: CierreSeguimientoOficioFuente): string {
   const res = resultadoCumplimientoOficioKey(item);
   if (res === "CUMPLE") return "Cumple";
   if (res === "NO_CUMPLE") return "No cumple";

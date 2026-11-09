@@ -99,6 +99,7 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
   oficioEditable,
   bloqueadoMotivo,
   embedEnCard = false,
+  ocultarMotivoBloqueo = false,
 }: {
   open: boolean;
   actuacionId: number;
@@ -110,6 +111,8 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
   bloqueadoMotivo?: string | null;
   /** Dentro de card de oficio: sin overline de bloque general duplicado. */
   embedEnCard?: boolean;
+  /** El encabezado ya muestra Edición bloqueada: no repetir el motivo técnico. */
+  ocultarMotivoBloqueo?: boolean;
 }) {
   const feedback = useAppFeedback();
   const [editing, setEditing] = useState(false);
@@ -196,7 +199,7 @@ export const OperativoOficioYRespuestaEditable = memo(function OperativoOficioYR
 
   const formBody = (
     <>
-      {!puede && motivoBloqueo ? (
+      {!puede && motivoBloqueo && !ocultarMotivoBloqueo ? (
         <DocumentalCrudFullSpan>
           <Alert severity="warning" sx={documentalGlassAlertSx}>
             <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
