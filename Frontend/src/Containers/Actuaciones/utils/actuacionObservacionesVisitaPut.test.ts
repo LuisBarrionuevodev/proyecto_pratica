@@ -4,6 +4,7 @@ import {
   buildObservacionesEjecucionPutFields,
   canEditObservacionesVisita,
   observacionesVisitaDisplayText,
+  stripObservacionesEjecucionResidualFromPut,
   validateObservacionesVisitaFields,
 } from "./actuacionObservacionesVisitaPut";
 
@@ -37,6 +38,15 @@ describe("actuacionObservacionesVisitaPut", () => {
       buildObservacionesEjecucionPutFields({ ...base, observaciones_ejecucion: "   " })
     ).toEqual({ observaciones_ejecucion: null });
     expect(buildObservacionesEjecucionPutFields({ ...base, ruta_item_id: null })).toEqual({});
+  });
+
+  it("ACT-EDIT.1A: strip residual quita observaciones aunque el GET las traiga", () => {
+    const stripped = stripObservacionesEjecucionResidualFromPut({
+      ...base,
+      ruta_item_id: null,
+      observaciones_ejecucion: null,
+    });
+    expect(stripped).not.toHaveProperty("observaciones_ejecucion");
   });
 
   it("validateObservacionesVisitaFields limita longitud", () => {

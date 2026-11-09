@@ -17,6 +17,28 @@ export function canEditObservacionesVisita(row: IActuacionListItem): boolean {
   return id != null && id > 0;
 }
 
+/**
+ * Quita siempre `observaciones_ejecucion` del body residual.
+ *
+ * El GET de una actuación manual trae la clave (null). Si viaja en el PUT,
+ * el backend aborta todo el guardado pidiendo un RutaItem. El campo se
+ * reinserta solo con `buildObservacionesEjecucionPutFields` cuando hay ítem.
+ */
+export function stripObservacionesEjecucionResidualFromPut(
+  row: IActuacionListItem
+): IActuacionListItem {
+  const copy: Record<string, unknown> = { ...row };
+  delete copy.observaciones_ejecucion;
+  return copy as unknown as IActuacionListItem;
+}
+
+/**
+ * Campos de observaciones para el PUT de Gestión.
+ *
+ * Con RutaItem: conserva el flujo actual (envía el valor recortado).
+ * Sin RutaItem: no incluye la clave. El PUT general no persiste este campo
+ * (vive en el ítem de ruta); no bloquear calle/rubro/actas por su ausencia.
+ */
 export function buildObservacionesEjecucionPutFields(
   row: IActuacionListItem
 ): Pick<IActuacionListItem, "observaciones_ejecucion"> {

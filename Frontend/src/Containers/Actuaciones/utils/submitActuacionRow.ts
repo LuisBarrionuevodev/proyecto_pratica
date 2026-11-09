@@ -47,7 +47,10 @@ import {
   stripGestionSeguimientoDisallowedFromPut,
   stripGestionSeguimientoResidualFromPut,
 } from "./actuacionGestionSeguimientoPut";
-import { buildObservacionesEjecucionPutFields } from "./actuacionObservacionesVisitaPut";
+import {
+  buildObservacionesEjecucionPutFields,
+  stripObservacionesEjecucionResidualFromPut,
+} from "./actuacionObservacionesVisitaPut";
 import { buildActuacionUpdatePayload } from "./buildActuacionUpdatePayload";
 import {
   buildInspeccionAtencionPutFields,
@@ -494,8 +497,10 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
     {
       ...stripInspeccionAtencionResidualFromPut(
         stripGestionIdentidadResidualFromPut(
-          stripGestionSeguimientoResidualFromPut(
-            sanitizeActuacionRowForCanalActasPut(rowToSubmit)
+          stripObservacionesEjecucionResidualFromPut(
+            stripGestionSeguimientoResidualFromPut(
+              sanitizeActuacionRowForCanalActasPut(rowToSubmit)
+            )
           )
         )
       ),
