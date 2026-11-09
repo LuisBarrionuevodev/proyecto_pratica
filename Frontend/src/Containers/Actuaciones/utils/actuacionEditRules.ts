@@ -184,7 +184,39 @@ export function debeMostrarCampoActaEnEdicion(
   return persisted;
 }
 
+/**
+ * True cuando el GET marca domicilio bloqueado por reinspección, pero la fila es la
+ * actuación **base** (modo normal). El iniciador `REINSPECCION_NOTIFICACION` derivado
+ * (sync de vencimiento) no debe activar por sí solo el modo reinspección.
+ *
+ * Conserva el bloqueo de una visita real (circuito/tipo/origen RN-Oficio) y de Denuncia
+ * (`can_edit_rubro === true` con domicilio cerrado).
+ */
+export function esBloqueoFalsoReinspeccionEnActuacionBase(
+  row: IActuacionListItem,
+  modo: ActuacionModoEdicion
+): boolean {
+  if (modo !== "normal") return false;
+  if (row.can_edit_domicilio !== false) return false;
+  if (row.can_edit_rubro === true) return false;
+  const tipo = String(row.tipo_actuacion ?? "")
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (tipo.includes("REINSPECCION") || tipo.includes("RATIFICACION") || tipo.includes("VERIFICAR")) {
+    return false;
+  }
+  const reason = String(row.domicilio_edit_blocked_reason ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  if (reason.includes("circuito posterior")) return false;
+  return reason.includes("reinspecci");
+}
+
 function resolveCanEditDomicilio(row: IActuacionListItem, modo: ActuacionModoEdicion): boolean {
+  if (esBloqueoFalsoReinspeccionEnActuacionBase(row, modo)) return true;
   if (row.can_edit_domicilio === true) return true;
   if (row.can_edit_domicilio === false) return false;
   // Fallback sin flag backend (tests locales / datos viejos).
@@ -192,6 +224,7 @@ function resolveCanEditDomicilio(row: IActuacionListItem, modo: ActuacionModoEdi
 }
 
 function resolveCanEditRubro(row: IActuacionListItem, modo: ActuacionModoEdicion): boolean {
+  if (esBloqueoFalsoReinspeccionEnActuacionBase(row, modo)) return true;
   if (row.can_edit_rubro === true) return true;
   if (row.can_edit_rubro === false) return false;
   // Fallback sin flag backend: paridad con domicilio en modo normal.
@@ -257,12 +290,17 @@ export function getActuacionEditableFields(
   const canEditResultadoOperativo =
     modo === "ratificacion" || modo === "verificar_informar" || modo === "reinspeccion_oficio";
 
+  const canEditDomicilio = esOficioHardBlock ? false : resolveCanEditDomicilio(row, modo);
+  const canEditRubro = esOficioHardBlock ? false : resolveCanEditRubro(row, modo);
+
   return {
     canEditContribuyente: esOficioHardBlock ? false : normal,
-    canEditDomicilio: esOficioHardBlock ? false : resolveCanEditDomicilio(row, modo),
-    domicilioEditBlockedReason: row.domicilio_edit_blocked_reason ?? null,
-    canEditRubro: esOficioHardBlock ? false : resolveCanEditRubro(row, modo),
-    rubroEditBlockedReason: row.rubro_edit_blocked_reason ?? null,
+    canEditDomicilio,
+    domicilioEditBlockedReason: canEditDomicilio
+      ? null
+      : (row.domicilio_edit_blocked_reason ?? null),
+    canEditRubro,
+    rubroEditBlockedReason: canEditRubro ? null : (row.rubro_edit_blocked_reason ?? null),
     canEditNombreLocal: esOficioHardBlock ? false : normal,
     canEditActas,
     usaInspeccionNormal,

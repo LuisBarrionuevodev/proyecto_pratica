@@ -545,6 +545,86 @@ describe("submitActuacionRow pipeline", () => {
     expect(putBody.inspector1).toBe("Otro");
   });
 
+  it("ACT-EDIT.1: actuación base con bloqueo RN derivado envía calle y número al corregir", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    const originalRow: IActuacionListItem = {
+      ...baseRow,
+      tipo_actuacion: "INSPECCION",
+      can_edit_domicilio: false,
+      can_edit_rubro: false,
+      domicilio_edit_blocked_reason:
+        "La actuación proviene de una reinspección y el domicilio no puede modificarse.",
+      documentacion_contexto: { circuito: "COMUN_NOTIFICACION", propia: {} },
+      calle: "Mendoza",
+      numero: "500",
+      rubro_nombre: "Bar",
+      doc_nro: "20345678901",
+      contrib_apellido: "Pérez",
+      contrib_nombre: "Juan",
+    };
+    const fullRow: IActuacionListItem = {
+      ...originalRow,
+      calle: "Catamarca",
+      numero: "501",
+      rubro_nombre: "Carnicería",
+    };
+
+    await submitActuacionRow({
+      id: 1,
+      fullRow,
+      originalRow,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.calle).toBe("Catamarca");
+    expect(putBody.numero).toBe("501");
+    expect(putBody.rubro_nombre).toBe("Carnicería");
+    expect(putBody).not.toHaveProperty("limpiar_contribuyente");
+  });
+
+  it("ACT-EDIT.1: guardar sin cambios en base con RN derivado omite calle y conserva identidad", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    const originalRow: IActuacionListItem = {
+      ...baseRow,
+      tipo_actuacion: "INSPECCION",
+      can_edit_domicilio: false,
+      can_edit_rubro: false,
+      domicilio_edit_blocked_reason:
+        "La actuación proviene de una reinspección y el domicilio no puede modificarse.",
+      documentacion_contexto: { circuito: "COMUN_NOTIFICACION", propia: {} },
+      calle: "Mendoza",
+      numero: "500",
+      doc_nro: "20345678901",
+      contrib_apellido: "Pérez",
+      contrib_nombre: "Juan",
+      razon_social: "Pérez SA",
+    };
+
+    await submitActuacionRow({
+      id: 1,
+      fullRow: { ...originalRow, nombre_local: "Mismo titular" },
+      originalRow,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.calle).toBeUndefined();
+    expect(putBody.numero).toBeUndefined();
+    expect(putBody).not.toHaveProperty("limpiar_contribuyente");
+    expect(putBody).not.toHaveProperty("doc_nro");
+    expect(putBody).not.toHaveProperty("contrib_apellido");
+    expect(putBody).not.toHaveProperty("contrib_nombre");
+    expect(putBody).not.toHaveProperty("razon_social");
+    expect(putBody.nombre_local).toBe("Mismo titular");
+  });
+
   it("PR7.15d: domicilio bloqueado omite calle y número del PUT y valida sin error domicilio", async () => {
     mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
     mockedUpdateActuacion.mockResolvedValue({} as any);

@@ -33,7 +33,7 @@ import {
   stripGestionIdentidadResidualFromPut,
   type ContribuyenteIdentityTouched,
 } from "./contribuyenteCrudOptions";
-import { detectBlockedActaClearAttempt } from "./actuacionEditRules";
+import { detectBlockedActaClearAttempt, getActuacionEditableFields } from "./actuacionEditRules";
 import {
   stripUntouchedInspeccionChecklistFromPut,
   stripUntouchedPersonasSinCarnetFromPut,
@@ -163,8 +163,11 @@ function applyDomicilioCalleSubmitGuard(
 ): IActuacionListItem {
   const baseline = originalRow ?? row;
   let out: IActuacionListItem = row;
+  const canEditDomicilio =
+    getActuacionEditableFields(row).canEditDomicilio ||
+    getActuacionEditableFields(baseline).canEditDomicilio;
 
-  if (row.can_edit_domicilio === true) {
+  if (canEditDomicilio) {
     const baselineCalle = domicilioCalleCargadaEditable(baseline);
     const baselineNumero = domicilioNumeroEditable(baseline);
     const editedCalle = String(row.calle ?? "").trim();

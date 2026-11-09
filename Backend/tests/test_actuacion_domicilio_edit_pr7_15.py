@@ -21,6 +21,7 @@ from app.domains.actuaciones.services.actuacion_domicilio_edit_service import (
     MSG_REINSPECCION,
     MSG_SOLO_RELEVAMIENTO,
     puede_editar_domicilio_actuacion,
+    puede_editar_rubro_actuacion,
 )
 from app.domains.actuaciones.services.completar_trabajo_cierre_service import (
     cerrar_completar_trabajo_por_ruta_item,
@@ -283,6 +284,95 @@ def test_actuacion_con_notificacion_iniciador_pendiente_sin_ruta_permite(app_ctx
     puede, motivo = puede_editar_domicilio_actuacion(act)
     assert puede is True
     assert motivo is None
+
+
+def test_actuacion_base_iniciador_rn_derivado_sin_ruta_permite_domicilio(app_ctx) -> None:
+    """ACT-EDIT.1: RN PENDIENTE con actuacion_id en la base no bloquea calle/rubro."""
+    rub = _rubro()
+    doc = str(random.randint(10_000_000, 99_999_999))
+    c = Contribuyente(apellido="ActEdit1", nombre="Base", documento=doc)
+    db.session.add(c)
+    db.session.flush()
+    ot = OrdenTrabajo(numero_acta=_unique_num(), anio=2026, mes=7)
+    db.session.add(ot)
+    db.session.flush()
+    dom = Domicilio(calle="Mendoza", numero="500", rubro_id=rub.id, contribuyente_id=c.id)
+    db.session.add(dom)
+    db.session.flush()
+    act = Actuaciones(
+        fecha=date(2026, 7, 1),
+        mes=7,
+        anio=2026,
+        tipo="INSPECCION",
+        orden_trabajo_id=ot.id,
+        domicilio_id=dom.id,
+    )
+    db.session.add(act)
+    db.session.flush()
+    noti = Notificacion(numero_acta=_unique_num(), anio=2026, mes=7)
+    db.session.add(noti)
+    db.session.flush()
+    act.notificacion_id = noti.id
+    u = _user()
+    ini = IniciadorRuta(
+        tipo_iniciador="REINSPECCION_NOTIFICACION",
+        estado_iniciador="PENDIENTE",
+        fecha_origen=date(2026, 7, 1),
+        anio=2026,
+        mes=7,
+        domicilio_id=dom.id,
+        notificacion_id=noti.id,
+        actuacion_id=act.id,
+        created_by_user_id=u.id,
+    )
+    db.session.add(ini)
+    db.session.commit()
+    act_id = int(act.id)
+    contrib_id = int(c.id)
+    ini_id = int(ini.id)
+
+    puede_dom, motivo_dom = puede_editar_domicilio_actuacion(act)
+    assert puede_dom is True
+    assert motivo_dom is None
+    puede_rubro, _motivo_rubro = puede_editar_rubro_actuacion(act)
+    assert puede_rubro is True
+
+    row = actuacion_to_grid_row(act)
+    assert row["can_edit_domicilio"] is True
+    assert row["can_edit_rubro"] is True
+    assert row.get("documentacion_contexto", {}).get("circuito") != "REINSPECCION_NOTIFICACION"
+
+    with patch(
+        "app.domains.geolocalizacion.geocoding.services.geocode_orchestrator.on_domicilio_changed"
+    ):
+        actualizar_actuacion(
+            act_id,
+            {
+                "fecha_actuacion": "01/07/2026",
+                "tipo_actuacion": "INSPECCION",
+                "rubro_nombre": rub.nombre,
+                "contribuyente": {
+                    "doc_nro": doc,
+                    "apellido": "ActEdit1",
+                    "nombre": "Base",
+                },
+                "domicilio": {"calle": "Catamarca", "numero": "501", "numero_tipo": "NUMERO"},
+                "inspectores": [],
+            },
+        )
+
+    db.session.expunge_all()
+    act_db = Actuaciones.query.get(act_id)
+    assert act_db is not None
+    dom_db = Domicilio.query.get(act_db.domicilio_id)
+    assert dom_db is not None
+    assert dom_db.calle == "Catamarca"
+    assert dom_db.numero == "501"
+    assert int(dom_db.contribuyente_id) == contrib_id
+    ini_db = IniciadorRuta.query.get(ini_id)
+    assert ini_db is not None
+    assert ini_db.tipo_iniciador == "REINSPECCION_NOTIFICACION"
+    assert ini_db.actuacion_id == act_id
 
 
 def test_actuacion_con_notificacion_iniciador_en_uso_bloquea(app_ctx) -> None:

@@ -36,13 +36,18 @@ _ESTADOS_INICIADOR_USO_OPERATIVO = frozenset({"EN_EJECUCION", "CUMPLIDO"})
 
 def resolve_iniciador_operativo_actuacion(actuacion_id: int) -> IniciadorRuta | None:
     """
-    Resuelve el iniciador operativo de una actuación (ruta publicada o vínculo directo).
+    Resuelve el iniciador operativo de una actuación (visita publicada en ruta).
+
+    ``IniciadorRuta.actuacion_id`` en RN/Oficio/Denuncia apunta a la actuación **base**
+    (p. ej. sync de notificación vencida), no a la visita de reinspección. Ese fallback
+    no debe clasificar la base como reinspección.
 
     Parámetros:
         actuacion_id: id de la actuación.
 
     Retorno:
-        ``IniciadorRuta`` vigente o ``None``.
+        ``IniciadorRuta`` de la visita (``RutaItem``) o, si no hay ítem, un iniciador
+        no derivado (p. ej. relevamiento). ``None`` si no hay visita operativa.
     """
     from app.domains.actuaciones.presenters.actuacion_presenters import (
         build_iniciador_ruta_por_actuacion_id,
@@ -52,7 +57,7 @@ def resolve_iniciador_operativo_actuacion(actuacion_id: int) -> IniciadorRuta | 
     ini = m.get(int(actuacion_id))
     if ini is not None and ini.deleted_at is None:
         return ini
-    return (
+    fallback = (
         IniciadorRuta.query.filter(
             IniciadorRuta.actuacion_id == int(actuacion_id),
             IniciadorRuta.deleted_at.is_(None),
@@ -60,6 +65,12 @@ def resolve_iniciador_operativo_actuacion(actuacion_id: int) -> IniciadorRuta | 
         .order_by(IniciadorRuta.id.desc())
         .first()
     )
+    if fallback is None:
+        return None
+    tipo = (fallback.tipo_iniciador or "").strip().upper()
+    if tipo in _TIPOS_INICIADOR_BLOQUEAN_DOMICILIO:
+        return None
+    return fallback
 
 
 def _tipo_actuacion_posterior_bloqueado(act: Actuaciones) -> bool:
