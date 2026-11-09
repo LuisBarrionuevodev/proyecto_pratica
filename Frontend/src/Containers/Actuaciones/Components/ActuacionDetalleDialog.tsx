@@ -34,10 +34,18 @@ import {
   CrudDialogActions,
   CrudDialogHeader,
   CrudDialogSection,
+  CrudFieldView,
   CrudFormSlot,
   CrudGlassDialog,
   useCrudDialogScrollContainer,
 } from "../../../components/crudDialog";
+import {
+  CRUD_FIELD_INPUT_HEIGHT_PX,
+  crudFieldGridSx,
+  crudFieldSlotLabelSx,
+  crudReadonlyFieldShellSx,
+  crudReadonlyFieldValueSx,
+} from "../../../styles/crudDialogTokens";
 import {
   DOC_MODAL_BLOCK_STACK_SPACING,
   DOC_MODAL_TEXT,
@@ -48,6 +56,7 @@ import {
 import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { CSS_VAR_NAMES as V } from "../../../theme/applyCssVariables";
 import { resolveCrudDialogHeaderReference } from "../../../components/crudDialog/crudDialogReference";
+import { mergeSx } from "../../../utils/muiSx";
 import { NumeroEsquinaFreeEditor } from "./NumeroEsquinaFreeEditor";
 import { AppButton, AppSelect, AppTextField } from "../../../ui";
 import { COLORS } from "../styles/filtroStyles";
@@ -278,12 +287,7 @@ const edicionGrid2ColSx = {
   alignItems: "end",
 } as const;
 
-const lecturaGridSx = {
-  display: "grid",
-  gridTemplateColumns: { xs: "1fr", sm: "repeat(2, minmax(0, 1fr))" },
-  gap: { xs: 1.5, sm: 2 },
-  width: "100%",
-} as const;
+const lecturaGridSx = crudFieldGridSx;
 
 const lecturaLabelSx = {
   color: DOC_MODAL_TEXT,
@@ -359,19 +363,54 @@ function LecturaDato({
   label,
   value,
   fullWidth = false,
+  plain = false,
 }: {
   label: string;
   value: unknown;
   fullWidth?: boolean;
+  /** Condiciones verificadas u otros datos no-campo: sin shell documental. */
+  plain?: boolean;
 }) {
+  const wrapSx = fullWidth ? { gridColumn: "1 / -1", minWidth: 0, width: "100%" } : { minWidth: 0, width: "100%" };
+  if (plain) {
+    return (
+      <Box sx={wrapSx}>
+        <Typography component="span" sx={lecturaLabelSx}>
+          {label}
+        </Typography>
+        <Typography component="p" variant="body2" sx={lecturaValueSx}>
+          {dash(value)}
+        </Typography>
+      </Box>
+    );
+  }
+  const texto = String(value ?? "").trim();
+  const multilinea = texto.includes("\n") || texto.length > 48;
+  if (!multilinea) {
+    return (
+      <Box sx={wrapSx}>
+        <CrudFieldView label={label} value={value} />
+      </Box>
+    );
+  }
   return (
-    <Box sx={fullWidth ? { gridColumn: "1 / -1", minWidth: 0 } : { minWidth: 0 }}>
-      <Typography component="span" sx={lecturaLabelSx}>
+    <Box sx={wrapSx}>
+      <Typography component="label" sx={crudFieldSlotLabelSx}>
         {label}
       </Typography>
-      <Typography component="p" variant="body2" sx={lecturaValueSx}>
-        {dash(value)}
-      </Typography>
+      <Box
+        sx={mergeSx(crudReadonlyFieldShellSx, {
+          height: "auto",
+          minHeight: CRUD_FIELD_INPUT_HEIGHT_PX,
+          maxHeight: "none",
+          alignItems: "flex-start",
+          py: 1,
+        })}
+      >
+        <Typography variant="body2" sx={crudReadonlyFieldValueSx}>
+          {dash(value)}
+        </Typography>
+      </Box>
     </Box>
   );
 }
@@ -625,7 +664,7 @@ function ActasVisitaLectura({
               </Typography>
               <Box sx={lecturaGridSx}>
                 {checklist.map((item) => (
-                  <LecturaDato key={item.id} label={item.label} value={item.value} />
+                  <LecturaDato key={item.id} label={item.label} value={item.value} plain />
                 ))}
               </Box>
             </Box>
@@ -782,12 +821,14 @@ function ContextoEdicionFallback({ draft }: { draft: IActuacionListItem }) {
           <LecturaDato
             label="Domicilio"
             value={gestionContextoDisplayValue(domicilio)}
+            plain
           />
         ) : null}
         {showContribuyente ? (
           <LecturaDato
             label="Contribuyente"
             value={gestionContextoDisplayValue(contribuyente)}
+            plain
           />
         ) : null}
       </Stack>
@@ -861,18 +902,11 @@ function ResultadoOperativoLectura({ draft }: { draft: IActuacionListItem }) {
         <LecturaDato label="Resultado de cumplimiento" value={resultado} />
       ) : null}
       {tramitePropio.length > 0 ? (
-        <Box>
-          <Typography component="h4" sx={lecturaLabelSx}>
-            Trámite documental
-          </Typography>
-          <Stack spacing={0.5}>
-            {tramitePropio.map((line) => (
-              <Typography key={line} component="p" variant="body2" sx={lecturaValueSx}>
-                {line}
-              </Typography>
-            ))}
-          </Stack>
-        </Box>
+        <LecturaDato
+          label="Trámite documental"
+          value={tramitePropio.join("\n")}
+          fullWidth
+        />
       ) : null}
     </Stack>
   );
@@ -1892,22 +1926,18 @@ export function ActuacionDetalleDialog({
           <Box
             sx={{
               mt: 1.5,
-              pt: 1.25,
-              borderTop: `1px solid ${GLASS_COLORS.borderLight}`,
               display: "flex",
               flexDirection: { xs: "column", sm: "row" },
-              alignItems: { xs: "flex-start", sm: "center" },
+              alignItems: { xs: "stretch", sm: "flex-end" },
               justifyContent: "space-between",
-              gap: 1,
+              gap: 1.5,
             }}
           >
-            <Box sx={{ minWidth: 0 }}>
-              <Typography component="span" sx={lecturaLabelSx}>
-                Vinculación a ficha de establecimiento
-              </Typography>
-              <Typography component="p" variant="body2" sx={lecturaValueSx}>
-                {establecimientoVinculacionTexto(draft)}
-              </Typography>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <LecturaDato
+                label="Vinculación a ficha de establecimiento"
+                value={establecimientoVinculacionTexto(draft)}
+              />
             </Box>
             <AppButton
               dsVariant="primary"
@@ -1924,14 +1954,12 @@ export function ActuacionDetalleDialog({
       </LecturaBloque>
 
       <LecturaBloque titulo="Domicilio">
-        <Typography component="p" variant="body1" sx={{ ...lecturaValueSx, fontSize: "0.95rem", fontWeight: 600 }}>
-          {domicilioLinea}
-        </Typography>
-        {numeroTipoVisible ? (
-          <Box sx={{ mt: 1 }}>
+        <Box sx={lecturaGridSx}>
+          <LecturaDato label="Dirección" value={domicilioLinea} fullWidth />
+          {numeroTipoVisible ? (
             <LecturaDato label="Tipo de numeración" value={numeroTipoVisible} />
-          </Box>
-        ) : null}
+          ) : null}
+        </Box>
       </LecturaBloque>
 
       <LecturaBloque titulo="Contribuyente">

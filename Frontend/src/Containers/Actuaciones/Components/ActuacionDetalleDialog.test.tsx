@@ -255,6 +255,79 @@ describe("ActuacionDetalleDialog", () => {
     expect(lectura).not.toContain("<input");
   });
 
+  it("modo lectura muestra valores en campos documentales delimitados", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={baseRow}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    const lectura = lecturaMarkup(html);
+    expect(lectura).toContain("Visita y actuación");
+    expect(lectura).toContain("Establecimiento");
+    expect(lectura).toContain("Domicilio");
+    expect(lectura).toContain("Dirección");
+    expect(lectura).toContain("Contribuyente");
+    expect(lectura).toContain("Actas y resultado");
+    expect(lectura).toContain("<label");
+    expect(lectura).toContain("Fecha");
+    expect(lectura).toContain("CUIT / DNI");
+    expect(lectura).not.toContain("<input");
+    expect(lectura).not.toContain('type="text"');
+    expect(lectura).not.toContain("contenteditable");
+    const iVisita = lectura.indexOf("Visita y actuación");
+    const iEst = lectura.indexOf("Establecimiento");
+    const iDom = lectura.indexOf("Domicilio");
+    const iCont = lectura.indexOf("Contribuyente");
+    const iActas = lectura.indexOf("Actas y resultado");
+    expect(iVisita).toBeGreaterThan(-1);
+    expect(iEst).toBeGreaterThan(iVisita);
+    expect(iDom).toBeGreaterThan(iEst);
+    expect(iCont).toBeGreaterThan(iDom);
+    expect(iActas).toBeGreaterThan(iCont);
+    expect(html.indexOf("Fotos y documentación")).toBeGreaterThan(html.indexOf("Actas y resultado"));
+  });
+
+  it("modo lectura muestra — en campos históricos vacíos y no admite edición", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={{
+          ...baseRow,
+          doc_nro: null,
+          nombre_local: null,
+          contrib_apellido: null,
+          contrib_nombre: null,
+          contribuyente: undefined,
+          razon_social: null,
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    const lectura = lecturaMarkup(html);
+    expect(lectura).toContain("CUIT / DNI");
+    expect(lectura).toContain("Nombre de fantasía / razón social");
+    expect(lectura).toContain("—");
+    expect(lectura).not.toContain("<input");
+    expect(lectura).not.toContain("contenteditable");
+    expect(lectura).not.toContain("<textarea");
+  });
+
   it("modo lectura une calle y altura y oculta el tipo NUMERO", () => {
     const draft = {
       ...baseRow,
@@ -478,6 +551,11 @@ describe("ActuacionDetalleDialog", () => {
     expect(occurrences(lectura, "OF-8/2025")).toBe(1);
     expect(occurrences(lectura, "Control de cumplimiento")).toBe(1);
     expect(occurrences(lectura, "Cumple")).toBe(1);
+    expect(lectura).toContain("Comprobación de origen");
+    expect(lectura).toContain("Expediente");
+    expect(lectura).toContain("Oficio");
+    expect(lectura).toContain("<label");
+    expect(lectura).not.toContain("<input");
     expect(lectura).not.toContain("Edición en canal actas");
   });
 
@@ -518,6 +596,8 @@ describe("ActuacionDetalleDialog", () => {
     expect(occurrences(lectura, "000050/2025")).toBe(1);
     expect(occurrences(lectura, "Notificación de origen")).toBe(1);
     expect(occurrences(lectura, "Faltas subsanadas")).toBe(1);
+    expect(lectura).toContain("<label");
+    expect(lectura).not.toContain("<input");
     expect(lectura).not.toContain("MuiToggleButton-root");
   });
 
