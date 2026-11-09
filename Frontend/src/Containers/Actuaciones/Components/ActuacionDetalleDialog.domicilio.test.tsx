@@ -124,6 +124,37 @@ describe("ActuacionDetalleDialog domicilio sin catálogo", () => {
     expect(html).toContain('value="500"');
   });
 
+  it("ACT-EDIT.1B: Inspección de Relevamiento no muestra mensaje de reinspección", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        initialEditing
+        draft={{
+          ...baseRow,
+          tipo_actuacion: "INSPECCION",
+          can_edit_domicilio: false,
+          can_edit_rubro: true,
+          domicilio_edit_blocked_reason:
+            "La actuación proviene de una reinspección y el domicilio no puede modificarse.",
+          documentacion_contexto: { circuito: "DESCONOCIDO", propia: {} },
+          calle: "Mendoza",
+          numero: "500",
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain('value="Mendoza"');
+    expect(html).toContain('value="500"');
+    expect(html).not.toContain("La actuación proviene de una reinspección");
+  });
+
   it("ACT-EDIT.1: actuación base con iniciador RN derivado habilita calle y número", () => {
     const html = render(
       <ActuacionDetalleDialog

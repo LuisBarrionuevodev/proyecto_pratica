@@ -75,11 +75,10 @@ describe("V1.1-ACT-EDIT.1 actuación base vs reinspección", () => {
     expect(fields.domicilioEditBlockedReason).toContain("reinspección");
   });
 
-  it("denuncia sigue con domicilio bloqueado y rubro editable", () => {
+  it("denuncia FIX.6 sin mensaje de reinspección conserva domicilio bloqueado y rubro editable", () => {
     const row = baseInspeccion({
       can_edit_domicilio: false,
       can_edit_rubro: true,
-      domicilio_edit_blocked_reason: MSG_REINSPECCION,
     });
     const fields = getActuacionEditableFields(row);
     expect(fields.modoEdicion).toBe("normal");

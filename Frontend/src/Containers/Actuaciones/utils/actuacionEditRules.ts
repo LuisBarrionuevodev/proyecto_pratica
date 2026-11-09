@@ -8,6 +8,7 @@ import {
   isRatificacionClausura,
   isRatificacionDecomiso,
   isReinspeccionPorNotificacion,
+  isReinspeccionPorOficio,
   isVerificarEInformar,
   tieneClausuraLabrada,
   tieneComprobacionLabrada,
@@ -15,6 +16,10 @@ import {
   tieneInspeccionLabrada,
   tieneNotificacionLabradaMotivos,
 } from "./actuacionesExportPdfResumen";
+
+/** Solo una visita de reinspección real (RutaItem / circuito / origen / tipo). */
+export const MENSAJE_BLOQUEO_REINSPECCION_DOMICILIO =
+  "La actuación proviene de una reinspección y el domicilio no puede modificarse.";
 
 /** Mensaje estándar cuando la edición está bloqueada por expediente en notificación/comprobación. */
 export const MENSAJE_BLOQUEO_EXPEDIENTE_EDICION =
@@ -185,34 +190,51 @@ export function debeMostrarCampoActaEnEdicion(
 }
 
 /**
- * True cuando el GET marca domicilio bloqueado por reinspección, pero la fila es la
- * actuación **base** (modo normal). El iniciador `REINSPECCION_NOTIFICACION` derivado
- * (sync de vencimiento) no debe activar por sí solo el modo reinspección.
+ * Visita de reinspección real: circuito documental, origen de la visita o tipo REINSPECCION.
  *
- * Conserva el bloqueo de una visita real (circuito/tipo/origen RN-Oficio) y de Denuncia
- * (`can_edit_rubro === true` con domicilio cerrado).
+ * No usa existencia genérica de iniciador, `actuacion_id` de la base, actas asociadas
+ * ni el solo hecho de provenir de Completar trabajo (`ruta_item_id`).
+ */
+export function esReinspeccionReal(row: IActuacionListItem): boolean {
+  const circuito = row.documentacion_contexto?.circuito;
+  if (circuito === "REINSPECCION_NOTIFICACION" || circuito === "REINSPECCION_OFICIO") {
+    return true;
+  }
+  if (isReinspeccionPorNotificacion(row) || isReinspeccionPorOficio(row)) return true;
+  if (isRatificacionClausura(row) || isRatificacionDecomiso(row)) return true;
+  if (isVerificarEInformar(row)) return true;
+  return false;
+}
+
+function reasonLooksLikeReinspeccion(reason: string | null | undefined): boolean {
+  const n = String(reason ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return n.includes("reinspecci");
+}
+
+function reasonLooksLikeCircuitoPosterior(reason: string | null | undefined): boolean {
+  const n = String(reason ?? "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+  return n.includes("circuito posterior");
+}
+
+/**
+ * True cuando el GET marca domicilio bloqueado por reinspección, pero la fila no es
+ * una visita de reinspección real (Inspección de Relevamiento, carga manual, etc.).
  */
 export function esBloqueoFalsoReinspeccionEnActuacionBase(
   row: IActuacionListItem,
   modo: ActuacionModoEdicion
 ): boolean {
   if (modo !== "normal") return false;
+  if (esReinspeccionReal(row)) return false;
   if (row.can_edit_domicilio !== false) return false;
-  if (row.can_edit_rubro === true) return false;
-  const tipo = String(row.tipo_actuacion ?? "")
-    .trim()
-    .toUpperCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-  if (tipo.includes("REINSPECCION") || tipo.includes("RATIFICACION") || tipo.includes("VERIFICAR")) {
-    return false;
-  }
-  const reason = String(row.domicilio_edit_blocked_reason ?? "")
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-  if (reason.includes("circuito posterior")) return false;
-  return reason.includes("reinspecci");
+  if (reasonLooksLikeCircuitoPosterior(row.domicilio_edit_blocked_reason)) return false;
+  return reasonLooksLikeReinspeccion(row.domicilio_edit_blocked_reason);
 }
 
 function resolveCanEditDomicilio(row: IActuacionListItem, modo: ActuacionModoEdicion): boolean {
@@ -292,13 +314,21 @@ export function getActuacionEditableFields(
 
   const canEditDomicilio = esOficioHardBlock ? false : resolveCanEditDomicilio(row, modo);
   const canEditRubro = esOficioHardBlock ? false : resolveCanEditRubro(row, modo);
+  const reinspeccionReal = esReinspeccionReal(rowForModo) || esReinspeccionReal(row);
+  let domicilioEditBlockedReason: string | null = null;
+  if (!canEditDomicilio) {
+    const rawReason = row.domicilio_edit_blocked_reason ?? null;
+    if (reinspeccionReal || modo !== "normal" || esOficioHardBlock) {
+      domicilioEditBlockedReason = rawReason?.trim() || MENSAJE_BLOQUEO_REINSPECCION_DOMICILIO;
+    } else if (!reasonLooksLikeReinspeccion(rawReason)) {
+      domicilioEditBlockedReason = rawReason;
+    }
+  }
 
   return {
     canEditContribuyente: esOficioHardBlock ? false : normal,
     canEditDomicilio,
-    domicilioEditBlockedReason: canEditDomicilio
-      ? null
-      : (row.domicilio_edit_blocked_reason ?? null),
+    domicilioEditBlockedReason,
     canEditRubro,
     rubroEditBlockedReason: canEditRubro ? null : (row.rubro_edit_blocked_reason ?? null),
     canEditNombreLocal: esOficioHardBlock ? false : normal,

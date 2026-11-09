@@ -545,6 +545,41 @@ describe("submitActuacionRow pipeline", () => {
     expect(putBody.inspector1).toBe("Otro");
   });
 
+  it("ACT-EDIT.1B: Inspección de Relevamiento con rubro editable envía calle al corregir", async () => {
+    mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
+    mockedUpdateActuacion.mockResolvedValue({} as any);
+
+    const originalRow: IActuacionListItem = {
+      ...baseRow,
+      tipo_actuacion: "INSPECCION",
+      ruta_item_id: 120,
+      can_edit_domicilio: false,
+      can_edit_rubro: true,
+      domicilio_edit_blocked_reason:
+        "La actuación proviene de una reinspección y el domicilio no puede modificarse.",
+      documentacion_contexto: { circuito: "DESCONOCIDO", propia: {} },
+      calle: "San Martín",
+      numero: "100",
+      doc_nro: "20345678901",
+      contrib_apellido: "Pérez",
+      contrib_nombre: "Juan",
+    };
+
+    await submitActuacionRow({
+      id: 1,
+      fullRow: { ...originalRow, calle: "Catamarca", numero: "100" },
+      originalRow,
+      skipValidation: false,
+      skipUpdate: false,
+    });
+
+    const putBody = mockedUpdateActuacion.mock.calls[0][1] as Record<string, unknown>;
+    expect(putBody.calle).toBe("Catamarca");
+    expect(putBody.numero).toBe("100");
+    expect(putBody).not.toHaveProperty("limpiar_contribuyente");
+    expect(putBody).not.toHaveProperty("doc_nro");
+  });
+
   it("ACT-EDIT.1: actuación base con bloqueo RN derivado envía calle y número al corregir", async () => {
     mockedValidateRow.mockResolvedValue({ ok: true, errors: {}, normalized: {} } as any);
     mockedUpdateActuacion.mockResolvedValue({} as any);
