@@ -38,6 +38,7 @@ import {
   InspeccionChecklistFields,
   isValidActaInspeccionNum,
 } from "../../Actuaciones/Components/InspeccionChecklistFields";
+import { InspeccionActaSegmentedRow } from "../../Actuaciones/Components/InspeccionActaSegmentedRow";
 import { InspeccionAtencionEstablecimientoFields } from "../../Actuaciones/Components/InspeccionAtencionEstablecimientoFields";
 import {
   caracterPersonaAtendioFromRow,
@@ -2422,27 +2423,20 @@ export function CompletarTrabajoModal({
               />
               {bloqueSubsanacionVisible ? (
                 <Box sx={{ ...col, width: "100%" }}>
-                  <Typography variant="subtitle2" sx={{ color: GLASS_COLORS.textSecondary }}>
-                    ¿Se subsanaron las faltas por las cuales se labró la notificación?
-                  </Typography>
-                  <ToggleButtonGroup
-                    exclusive
-                    size="small"
+                  <InspeccionActaSegmentedRow
+                    label="¿Se subsanaron las faltas por las cuales se labró la notificación?"
                     value={faltasNotificacionSubsanadas}
-                    onChange={(_e, v: "" | "si" | "no" | null) => {
-                      setFaltasNotificacionSubsanadas(v ?? "");
+                    allowDeselect
+                    onChange={(next) => {
+                      setFaltasNotificacionSubsanadas((next as "" | "si" | "no") || "");
                       clearFe("faltas_notificacion_subsanadas");
                     }}
-                    sx={{ mt: 1 }}
-                  >
-                    <ToggleButton value="si">Sí</ToggleButton>
-                    <ToggleButton value="no">No</ToggleButton>
-                  </ToggleButtonGroup>
-                  {fe("faltas_notificacion_subsanadas") ? (
-                    <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
-                      {fe("faltas_notificacion_subsanadas")}
-                    </Typography>
-                  ) : null}
+                    options={[
+                      { value: "si", label: "Sí", ariaLabel: "Sí" },
+                      { value: "no", label: "No", ariaLabel: "No" },
+                    ]}
+                    error={fe("faltas_notificacion_subsanadas") || undefined}
+                  />
                 </Box>
               ) : null}
               <ResponsiveFormGrid sx={completarModalFormGridSx}>

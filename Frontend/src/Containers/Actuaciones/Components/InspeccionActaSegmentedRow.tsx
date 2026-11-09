@@ -19,6 +19,8 @@ export type InspeccionActaSegmentedRowProps = {
   disabled?: boolean;
   readOnly?: boolean;
   error?: string;
+  /** Si true, volver a pulsar la opción activa la limpia (mismo comportamiento que ToggleButtonGroup exclusive). */
+  allowDeselect?: boolean;
 };
 
 export const inspeccionActaToggleSx = {
@@ -59,6 +61,7 @@ export function InspeccionActaSegmentedRow({
   disabled = false,
   readOnly = false,
   error,
+  allowDeselect = false,
 }: InspeccionActaSegmentedRowProps) {
   const interactionDisabled = disabled || readOnly;
   const toggleSx = {
@@ -101,7 +104,11 @@ export function InspeccionActaSegmentedRow({
           value={value}
           onChange={(_, next: string | null) => {
             if (interactionDisabled) return;
-            if (next == null) return;
+            if (next == null) {
+              if (!allowDeselect) return;
+              onChange("");
+              return;
+            }
             onChange(next);
           }}
           sx={{

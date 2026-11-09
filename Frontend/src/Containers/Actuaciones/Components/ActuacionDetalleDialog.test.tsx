@@ -440,19 +440,30 @@ describe("ActuacionDetalleDialog", () => {
     expect(lectura).not.toContain("<input");
   });
 
-  it("VER muestra carácter, carnet, contrato y Baño Familiar / Bien en Actas labradas", () => {
+  it("VER integra carácter, contrato, checklist, carnet y teléfono en Condiciones verificadas", () => {
     const html = render(
       <ActuacionDetalleDialog
         open
         disablePortal
         draft={{
           ...baseRow,
-          caracter_persona_atendio: "ENCARGADO",
+          caracter_persona_atendio: "TITULAR",
           posee_contrato_retiro_residuos_solidos_urbanos: false,
           solicita_carnet_manipulador: true,
+          telefono_contacto_solicitud_carnet: "381 419-8780",
           items_acta_inspeccion: [
             { id: 1, codigo: "TIENE_BANO", nombre: "Baño", estado: "BIEN" },
             { id: 2, codigo: "TIENE_SALON", nombre: "Salón", estado: "BIEN" },
+            { id: 3, codigo: "TIENE_DEPOSITO", nombre: "Depósito", estado: "OBSERVADO" },
+            { id: 4, codigo: "TIENE_COCINA_MESA_TRABAJO", nombre: "Cocina / mesa de trabajo", estado: "BIEN" },
+            { id: 5, codigo: "VAJILLA_MANTEL", nombre: "Vajilla / mantel", estado: "OBSERVADO" },
+            {
+              id: 6,
+              codigo: "TIENE_HABILITACION",
+              nombre: "Tiene habilitación",
+              tipo_respuesta: "SI_NO",
+              valor_si_no: true,
+            },
           ],
         }}
         fieldErrors={{}}
@@ -465,24 +476,70 @@ describe("ActuacionDetalleDialog", () => {
       />
     );
     const lectura = lecturaMarkup(html);
-    expect(lectura).toContain("Carácter de quien atendió");
-    expect(lectura).toContain("Encargado");
-    expect(lectura).toContain("Solicitud de carnet de manipulador");
-    expect(lectura).toContain("Contrato de retiro de residuos sólidos urbanos");
+    expect(lectura).toContain("Condiciones verificadas");
+    expect(lectura).toContain("Titular");
     expect(lectura).toContain("Familiar / Bien");
-    expect(lectura).toContain("Salón");
-    expect(lectura).toContain("Bien");
+    expect(lectura).toContain("Cocina / cuadra");
+    expect(lectura).toContain("Solicita carnet de manipulador");
+    expect(lectura).toContain("381 419-8780");
     expect(lectura).not.toContain("Atención en el establecimiento");
+    expect(lectura).not.toContain("<input");
     const iActa = lectura.indexOf("N.º acta de inspección");
-    const iCaracter = lectura.indexOf("Carácter de quien atendió");
-    const iCarnet = lectura.indexOf("Solicitud de carnet de manipulador");
-    const iContrato = lectura.indexOf("Contrato de retiro de residuos sólidos urbanos");
     const iCond = lectura.indexOf("Condiciones verificadas");
+    const iCaracter = lectura.indexOf("Carácter de quien atendió");
+    const iContrato = lectura.indexOf("Contrato de retiro de residuos sólidos urbanos");
+    const iBano = lectura.indexOf("Baño");
+    const iSalon = lectura.indexOf("Salón");
+    const iDeposito = lectura.indexOf("Depósito");
+    const iCocina = lectura.indexOf("Cocina / cuadra");
+    const iVajilla = lectura.indexOf("Vajilla / mantel");
+    const iHab = lectura.indexOf("Tiene habilitación");
+    const iCarnet = lectura.indexOf("Solicita carnet de manipulador");
+    const iTel = lectura.indexOf("Teléfono de contacto");
     expect(iActa).toBeGreaterThan(-1);
-    expect(iCaracter).toBeGreaterThan(iActa);
-    expect(iCarnet).toBeGreaterThan(iCaracter);
-    expect(iContrato).toBeGreaterThan(iCarnet);
-    expect(iCond).toBeGreaterThan(iContrato);
+    expect(iCond).toBeGreaterThan(iActa);
+    expect(iCaracter).toBeGreaterThan(iCond);
+    expect(iContrato).toBeGreaterThan(iCaracter);
+    expect(iBano).toBeGreaterThan(iContrato);
+    expect(iSalon).toBeGreaterThan(iBano);
+    expect(iDeposito).toBeGreaterThan(iSalon);
+    expect(iCocina).toBeGreaterThan(iDeposito);
+    expect(iVajilla).toBeGreaterThan(iCocina);
+    expect(iHab).toBeGreaterThan(iVajilla);
+    expect(iCarnet).toBeGreaterThan(iHab);
+    expect(iTel).toBeGreaterThan(iCarnet);
+  });
+
+  it("VER muestra — en carácter, contrato y carnet vacíos y omite teléfono sin valor", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={{
+          ...baseRow,
+          caracter_persona_atendio: null,
+          posee_contrato_retiro_residuos_solidos_urbanos: null,
+          solicita_carnet_manipulador: null,
+          telefono_contacto_solicitud_carnet: null,
+          seguimiento: undefined,
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogsWithChecklist}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    const lectura = lecturaMarkup(html);
+    expect(lectura).toContain("Condiciones verificadas");
+    expect(lectura).toContain("Carácter de quien atendió");
+    expect(lectura).toContain("Contrato de retiro de residuos sólidos urbanos");
+    expect(lectura).toContain("Solicita carnet de manipulador");
+    expect(lectura).toContain("—");
+    expect(lectura).not.toContain("Teléfono de contacto");
+    expect(lectura).not.toContain("<input");
   });
 
   it("edición: atención visible y deshabilitada sin acta válida", () => {
@@ -511,6 +568,37 @@ describe("ActuacionDetalleDialog", () => {
     expect(html).toContain("Condiciones verificadas");
     expect(html).toContain("Mui-disabled");
     expect(html).toContain("TITULAR");
+  });
+
+  it("edición: selector de faltas subsanadas usa el azul de condiciones verificadas", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        initialEditing
+        draft={{
+          ...baseRow,
+          ui_policy: {
+            mostrar_solicitud_carnet_manipulador: false,
+            mostrar_subsanacion_notificacion: true,
+            puede_editar_seguimiento: true,
+          },
+          seguimiento: { faltas_notificacion_subsanadas: true },
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("¿Se subsanaron las faltas por las cuales se labró la notificación?");
+    expect(html).toContain("--d-action-tab-primary-selected");
+    expect(html).toContain("Mui-selected");
+    expect(html).toContain('value="si"');
+    expect(html).toContain('value="no"');
   });
 
   it("modo lectura consolida una sola vez antecedentes por oficio", () => {

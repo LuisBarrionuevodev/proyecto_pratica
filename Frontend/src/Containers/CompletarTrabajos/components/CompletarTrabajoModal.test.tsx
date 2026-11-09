@@ -421,6 +421,14 @@ describe("CompletarTrabajoModal", () => {
     expect(src).not.toMatch(/handleClose[\s\S]{0,80}if\s*\(\s*saving\s*\)\s*return/);
   });
 
+  it("reinspección por notificación usa el selector segmentado azul de condiciones", () => {
+    const here = dirname(fileURLToPath(import.meta.url));
+    const src = readFileSync(join(here, "CompletarTrabajoModal.tsx"), "utf8");
+    expect(src).toContain("InspeccionActaSegmentedRow");
+    expect(src).toContain("¿Se subsanaron las faltas por las cuales se labró la notificación?");
+    expect(src).toContain("faltas_notificacion_subsanadas");
+  });
+
   it("reinspección por notificación mantiene flujo sin regresión de oficio", () => {
     const html = render(
       <CompletarTrabajoModal

@@ -135,6 +135,7 @@ import {
 } from "../utils/actuacionGestionSeguimientoPut";
 import { type ContribuyenteIdentityTouched } from "../utils/contribuyenteCrudOptions";
 import { InspeccionAtencionEstablecimientoFields } from "./InspeccionAtencionEstablecimientoFields";
+import { InspeccionActaSegmentedRow } from "./InspeccionActaSegmentedRow";
 import {
   caracterPersonaAtendioFromRow,
   contratoResiduosFromRow,
@@ -586,10 +587,7 @@ function ActasVisitaLectura({
     isValidActaNotificacionNum(nNot != null ? String(nNot) : null) &&
     String(nNot).trim() !== notificacionOrigen;
   const seguimientoLectura = mergeActuacionSeguimientoFromApiRow(draft);
-  const showCarnetLectura =
-    Boolean(draft.ui_policy?.mostrar_solicitud_carnet_manipulador) ||
-    seguimientoLectura.solicita_carnet_manipulador === true ||
-    seguimientoLectura.solicita_carnet_manipulador === false;
+  const telefonoCarnetLectura = seguimientoLectura.telefono_contacto_solicitud_carnet?.trim() ?? "";
   const estados = estadosMapFromRow(draft, catalog);
   const readItems = normalizeChecklistItems(draft.items_acta_inspeccion);
   const readById = new Map(readItems.map((item) => [item.id, item]));
@@ -630,45 +628,51 @@ function ActasVisitaLectura({
         }))
   ).filter((item) => item.value !== "—" || readById.has(item.id));
 
+  const condicionesOperativas: Array<{ id: string; label: string; value: string }> = [
+    {
+      id: "caracter",
+      label: "Carácter de quien atendió",
+      value: labelCaracterPersonaAtendio(draft.caracter_persona_atendio) || "—",
+    },
+    {
+      id: "contrato",
+      label: "Contrato de retiro de residuos sólidos urbanos",
+      value: labelContratoResiduos(contratoResiduosFromRow(draft)) || "—",
+    },
+    ...checklist.map((item) => ({
+      id: `item-${item.id}`,
+      label: item.label,
+      value: item.value,
+    })),
+    {
+      id: "carnet",
+      label: "Solicita carnet de manipulador",
+      value: siNoLectura(seguimientoLectura.solicita_carnet_manipulador),
+    },
+  ];
+  if (telefonoCarnetLectura) {
+    condicionesOperativas.push({
+      id: "telefono",
+      label: "Teléfono de contacto",
+      value: telefonoCarnetLectura,
+    });
+  }
+
   return (
     <Box sx={{ ...col, width: "100%" }}>
       {showInspeccion ? (
         <Box>
           <LecturaDato label="N.º acta de inspección" value={nIns} />
-          <Box sx={{ ...lecturaGridSx, mt: 1.5 }}>
-            <LecturaDato
-              label="Carácter de quien atendió"
-              value={labelCaracterPersonaAtendio(draft.caracter_persona_atendio) || "—"}
-            />
-            {showCarnetLectura ? (
-              <LecturaDato
-                label="Solicitud de carnet de manipulador"
-                value={siNoLectura(seguimientoLectura.solicita_carnet_manipulador)}
-              />
-            ) : null}
-            {showCarnetLectura && seguimientoLectura.telefono_contacto_solicitud_carnet?.trim() ? (
-              <LecturaDato
-                label="Teléfono de contacto"
-                value={seguimientoLectura.telefono_contacto_solicitud_carnet.trim()}
-              />
-            ) : null}
-            <LecturaDato
-              label="Contrato de retiro de residuos sólidos urbanos"
-              value={labelContratoResiduos(contratoResiduosFromRow(draft)) || "—"}
-            />
-          </Box>
-          {checklist.length > 0 ? (
-            <Box sx={{ mt: 1.5 }}>
-              <Typography component="h4" sx={lecturaLabelSx}>
-                Condiciones verificadas
-              </Typography>
-              <Box sx={lecturaGridSx}>
-                {checklist.map((item) => (
-                  <LecturaDato key={item.id} label={item.label} value={item.value} plain />
-                ))}
-              </Box>
+          <Box sx={{ mt: 1.5 }}>
+            <Typography component="h4" sx={lecturaLabelSx}>
+              Condiciones verificadas
+            </Typography>
+            <Box sx={lecturaGridSx}>
+              {condicionesOperativas.map((item) => (
+                <LecturaDato key={item.id} label={item.label} value={item.value} plain />
+              ))}
             </Box>
-          ) : null}
+          </Box>
         </Box>
       ) : null}
       <Box sx={lecturaGridSx}>
@@ -1325,27 +1329,21 @@ function ActaSeguimientoGestionFields({
               sx={{ mb: 1.25 }}
             />
           ) : null}
-          <Typography variant="body2" sx={{ color: DOC_MODAL_TEXT, mb: 1 }}>
-            ¿Se subsanaron las faltas por las cuales se labró la notificación?
-          </Typography>
-          <ToggleButtonGroup
-            exclusive
-            size="small"
+          <InspeccionActaSegmentedRow
+            label="¿Se subsanaron las faltas por las cuales se labró la notificación?"
             value={subsUi}
+            allowDeselect
             disabled={!controlsEnabled}
-            onChange={(_e, v: "" | "si" | "no" | null) => {
+            onChange={(next) => {
               if (!controlsEnabled) return;
-              patchSeguimiento({ faltasSubsanadas: v ?? "" });
+              patchSeguimiento({ faltasSubsanadas: (next as "" | "si" | "no") || "" });
             }}
-          >
-            <ToggleButton value="si">Sí</ToggleButton>
-            <ToggleButton value="no">No</ToggleButton>
-          </ToggleButtonGroup>
-          {fe("faltas_notificacion_subsanadas") ? (
-            <Typography variant="caption" color="error" sx={{ mt: 0.5, display: "block" }}>
-              {fe("faltas_notificacion_subsanadas")}
-            </Typography>
-          ) : null}
+            options={[
+              { value: "si", label: "Sí", ariaLabel: "Sí" },
+              { value: "no", label: "No", ariaLabel: "No" },
+            ]}
+            error={fe("faltas_notificacion_subsanadas") || undefined}
+          />
         </Box>
       ) : null}
     </Box>
