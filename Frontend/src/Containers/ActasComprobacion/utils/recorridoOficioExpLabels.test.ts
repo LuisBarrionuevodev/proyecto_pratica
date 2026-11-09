@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  filasEstadoTramiteRecorrido,
   recCompOficioExpMotivoChips,
   recOficioExpDetalleChips,
   recOficioExpItemLabel,
   recorridoColumnChips,
+  recorridoResultadoSeguimientoChips,
   recorridoVisitaResumenLinea,
 } from "./recorridoOficioExpLabels";
 import type { IComprobacionRecorridoRow } from "../../../api/actuacionesComprobacionActasApi";
@@ -131,5 +133,69 @@ describe("recorridoOficioExpLabels", () => {
         motivo_no_realizado: "LOCAL_CERRADO",
       })
     ).toBe("Oficio 432/2026 · No realizada · Local cerrado");
+  });
+
+  it("Resultado / seguimiento: sin oficios es guión", () => {
+    expect(recorridoResultadoSeguimientoChips({ id: 1 } as IComprobacionRecorridoRow)).toEqual(["—"]);
+  });
+
+  it("Resultado / seguimiento: oficio pendiente", () => {
+    expect(
+      recorridoResultadoSeguimientoChips({
+        id: 1,
+        oficios_resumen: [{ oficio_texto: "100/2026", iniciador_id: 4, estado_iniciador: "PENDIENTE" }],
+      } as IComprobacionRecorridoRow)
+    ).toEqual(["Pendiente de reinspección"]);
+  });
+
+  it("Resultado / seguimiento: visita sin resultado no inventa cumple", () => {
+    expect(
+      recorridoResultadoSeguimientoChips({
+        id: 1,
+        oficios_resumen: [
+          {
+            oficio_texto: "100/2026",
+            estado_iniciador: "CUMPLIDO",
+            estado_ejecucion: "REALIZADO",
+            resultado: null,
+            ejecucion_reinspeccion: { actuacion_id: 9 },
+          },
+        ],
+      } as IComprobacionRecorridoRow)
+    ).toEqual(["Reinspección realizada"]);
+  });
+
+  it("Resultado / seguimiento: CUMPLE y NO_CUMPLE separados", () => {
+    expect(
+      recorridoResultadoSeguimientoChips({
+        id: 1,
+        oficios_resumen: [
+          { oficio_texto: "432/2026", resultado: "CUMPLE", resultado_cumplimiento_oficio: "CUMPLE" },
+          { oficio_texto: "1989/2026", resultado: "NO_CUMPLE", resultado_cumplimiento_oficio: "NO_CUMPLE" },
+        ],
+      } as IComprobacionRecorridoRow)
+    ).toEqual(["432/2026 · Cumple", "1989/2026 · No cumple"]);
+  });
+
+  it("Estado del trámite resume sin mezclar oficios", () => {
+    const filas = filasEstadoTramiteRecorrido(
+      {
+        id: 1,
+        estado_recorrido: "Reinspección cumplida",
+        oficios_resumen: [
+          { oficio_texto: "432/2026", resultado: "CUMPLE" },
+          { oficio_texto: "1989/2026", resultado: "NO_CUMPLE" },
+        ],
+      } as IComprobacionRecorridoRow,
+      {
+        resultado_final: { estado_recorrido: "Reinspección cumplida" },
+        oficios_resumen: [
+          { oficio_texto: "432/2026", resultado: "CUMPLE" },
+          { oficio_texto: "1989/2026", resultado: "NO_CUMPLE" },
+        ],
+      }
+    );
+    expect(filas.find((f) => f.etiqueta === "Oficio asociado")?.valor).toBe("432/2026 · 1989/2026");
+    expect(filas.find((f) => f.etiqueta === "Resultado final")?.valor).toBe("—");
   });
 });

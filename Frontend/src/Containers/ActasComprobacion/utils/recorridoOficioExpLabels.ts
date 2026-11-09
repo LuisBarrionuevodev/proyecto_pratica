@@ -95,6 +95,148 @@ export function recorridoVisitaResumenLinea(item: OficioRecorridoResumenItem): s
   return head;
 }
 
+function resultadoCumplimientoOficioKey(item: OficioRecorridoResumenItem): string {
+  return String(item.resultado_cumplimiento_oficio ?? item.resultado ?? "")
+    .trim()
+    .toUpperCase();
+}
+
+function oficioTieneVisitaReinspeccion(item: OficioRecorridoResumenItem): boolean {
+  const estadoIni = String(item.estado_iniciador ?? "").trim().toUpperCase();
+  const estadoEjec = String(item.estado_ejecucion ?? "").trim().toUpperCase();
+  const ejec = item.ejecucion_reinspeccion;
+  const ejecUtil = ejec != null && typeof ejec === "object" && Object.keys(ejec).length > 0;
+  return ejecUtil || estadoIni === "CUMPLIDO" || estadoEjec === "REALIZADO";
+}
+
+/**
+ * Chip compacto de resultado / seguimiento por oficio.
+ * No infiere Cumple/No cumple si no hay resultado persistido.
+ */
+export function resultadoSeguimientoOficioLabel(item: OficioRecorridoResumenItem): string {
+  const res = resultadoCumplimientoOficioKey(item);
+  if (res === "CUMPLE") return "Cumple";
+  if (res === "NO_CUMPLE") return "No cumple";
+  if (oficioTieneVisitaReinspeccion(item)) return "Reinspección realizada";
+  const estadoIni = String(item.estado_iniciador ?? "").trim().toUpperCase();
+  if (item.iniciador_id != null || estadoIni === "PENDIENTE") return "Pendiente de reinspección";
+  return "—";
+}
+
+/** Columna Recorrido «Resultado / seguimiento»: una línea por oficio, sin mezclar resultados. */
+export function recorridoResultadoSeguimientoChips(r: IComprobacionRecorridoRow): string[] {
+  const resumen = r.oficios_resumen ?? [];
+  if (resumen.length === 0) return ["—"];
+  if (resumen.length === 1) return [resultadoSeguimientoOficioLabel(resumen[0])];
+  return resumen.map((item) => {
+    const of = (item.oficio_texto ?? "").trim();
+    const lab = resultadoSeguimientoOficioLabel(item);
+    return of ? `${of} · ${lab}` : lab;
+  });
+}
+
+export function recorridoResultadoSeguimientoSortKey(r: IComprobacionRecorridoRow): string {
+  return recorridoResultadoSeguimientoChips(r).join(" | ");
+}
+
+export type EstadoTramiteRecorridoFila = { etiqueta: string; valor: string };
+
+function textoOGuion(val: unknown): string {
+  const t = val == null ? "" : String(val).trim();
+  return t || "—";
+}
+
+function inspectoresDesdeEjecucion(ejec: Record<string, unknown> | null | undefined): string {
+  if (!ejec) return "";
+  const t = String(ejec.inspectores_texto ?? "").trim();
+  if (t) return t;
+  return [ejec.inspector1, ejec.inspector2, ejec.inspector3]
+    .map((s) => String(s ?? "").trim())
+    .filter(Boolean)
+    .join(" · ");
+}
+
+/**
+ * Resumen visible «Estado del trámite» (modal historial documental).
+ * No mezcla resultados de oficios distintos ni inventa Cumple/No cumple.
+ */
+export function filasEstadoTramiteRecorrido(
+  row: IComprobacionRecorridoRow,
+  detalle: {
+    oficio?: { numero_oficio?: string | null; anio?: number | null } | null;
+    resultado_final?: { estado_recorrido?: string | null; tipo_visita?: string | null } | null;
+    oficios_resumen?: IComprobacionRecorridoRow["oficios_resumen"];
+    reinspeccion_por_oficio?: Record<string, unknown> | null;
+  } | null
+): EstadoTramiteRecorridoFila[] {
+  const resumen = (detalle?.oficios_resumen ?? row.oficios_resumen ?? []) as OficioRecorridoResumenItem[];
+  const estadoActual =
+    textoOGuion(detalle?.resultado_final?.estado_recorrido) !== "—"
+      ? textoOGuion(detalle?.resultado_final?.estado_recorrido)
+      : textoOGuion(row.estado_recorrido);
+
+  const oficiosTexto = resumen
+    .map((item) => (item.oficio_texto ?? "").trim())
+    .filter(Boolean);
+  if (oficiosTexto.length === 0) {
+    const n = (detalle?.oficio?.numero_oficio ?? row.oficio_numero ?? "").toString().trim();
+    const a = detalle?.oficio?.anio ?? row.oficio_anio;
+    const compact = n || a != null ? [n, a != null ? String(a) : ""].filter(Boolean).join("/") : "";
+    if (compact) oficiosTexto.push(compact);
+  }
+
+  const ejecGlobal = (detalle?.reinspeccion_por_oficio as { ejecucion_reinspeccion?: Record<string, unknown> | null } | null)
+    ?.ejecucion_reinspeccion;
+  const ejecItem = resumen
+    .map((item) => item.ejecucion_reinspeccion as Record<string, unknown> | null | undefined)
+    .find((ej) => ej != null && typeof ej === "object" && Object.keys(ej).length > 0);
+  const ejec = ejecGlobal ?? ejecItem ?? null;
+
+  const fecha =
+    textoOGuion(ejec?.fecha_actuacion) !== "—"
+      ? textoOGuion(ejec?.fecha_actuacion)
+      : textoOGuion(resumen.find((i) => (i.fecha_conclusion ?? "").toString().trim())?.fecha_conclusion);
+
+  const otVisita =
+    textoOGuion(ejec?.orden_trabajo_numero) !== "—"
+      ? textoOGuion(ejec?.orden_trabajo_numero)
+      : textoOGuion(
+          resumen.find((i) => (i.orden_trabajo_numero ?? i.orden_trabajo ?? "").toString().trim())
+            ?.orden_trabajo_numero ??
+            resumen.find((i) => (i.orden_trabajo ?? "").toString().trim())?.orden_trabajo
+        );
+
+  const inspectores = inspectoresDesdeEjecucion(ejec) || "—";
+
+  const tipoVisitaRaw = ejec?.tipo_inspeccion_labrada ?? detalle?.resultado_final?.tipo_visita;
+  const tipoVisita = tipoVisitaRaw ? humanizarTipoVisitaRecorrido(tipoVisitaRaw) : "—";
+  const tipoVisitaMostrar =
+    tipoVisita !== "—" && ejec != null ? tipoVisita : ejec != null ? textoOGuion(tipoVisitaRaw) : "—";
+
+  const labels = resumen.map(resultadoSeguimientoOficioLabel);
+  const unicos = [...new Set(labels)];
+  let resultadoFinal = "—";
+  if (unicos.length === 1 && (unicos[0] === "Cumple" || unicos[0] === "No cumple")) {
+    resultadoFinal = unicos[0];
+  } else if (unicos.some((l) => l === "Reinspección realizada") && !unicos.some((l) => l === "Cumple" || l === "No cumple")) {
+    resultadoFinal = "No informado";
+  } else if (unicos.length > 1 && unicos.every((l) => l === "Cumple" || l === "No cumple")) {
+    resultadoFinal = "—";
+  } else if (unicos.length === 1 && unicos[0] === "Reinspección realizada") {
+    resultadoFinal = "No informado";
+  }
+
+  return [
+    { etiqueta: "Estado actual", valor: estadoActual },
+    { etiqueta: "Oficio asociado", valor: oficiosTexto.length ? oficiosTexto.join(" · ") : "—" },
+    { etiqueta: "Fecha de reinspección", valor: fecha },
+    { etiqueta: "Orden de trabajo de la visita de seguimiento", valor: otVisita },
+    { etiqueta: "Inspectores", valor: inspectores },
+    { etiqueta: "Tipo de visita labrada", valor: tipoVisitaMostrar === "—" && ejec == null ? "—" : tipoVisitaMostrar },
+    { etiqueta: "Resultado final", valor: resultadoFinal },
+  ];
+}
+
 /** Chips para columna Recorrido: una línea por oficio/visita. */
 export function recorridoColumnChips(r: IComprobacionRecorridoRow): string[] {
   const resumen = r.oficios_resumen ?? [];

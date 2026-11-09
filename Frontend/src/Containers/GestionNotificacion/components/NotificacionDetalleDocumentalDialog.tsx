@@ -43,6 +43,7 @@ import {
 } from "../../ActasComprobacion/components/comprobacionOperativoBlocks";
 import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
 import { humanizarTipoActuacion } from "../../ActasComprobacion/utils/documentalLabelFormat";
+import { cierreNotificacionFilas } from "../utils/seguimientoNotificacionLabels";
 
 type DocumentalCardShell = "glass" | "actuacion";
 
@@ -75,17 +76,6 @@ function inspectoresLinea(row: IActuacionesPendientesItem): string {
   return parts.length ? parts.join(" · ") : "—";
 }
 
-function filasResultadoEstado(row: IActuacionesPendientesItem): { etiqueta: string; valor: string }[] {
-  const fecha = (row.comprobacion_posterior_fecha ?? "").trim();
-  const insp = (row.comprobacion_posterior_inspectores_texto ?? "").trim();
-  const acta = (row.comprobacion_posterior_acta_num ?? "").trim();
-  return [
-    { etiqueta: "Fecha de comprobación", valor: fecha || "—" },
-    { etiqueta: "Inspectores", valor: insp || "—" },
-    { etiqueta: "Acta de comprobación Nº", valor: acta || "—" },
-  ];
-}
-
 function campoTextoUtil(s: unknown): boolean {
   return s != null && String(s).trim() !== "";
 }
@@ -104,15 +94,6 @@ function motivosNotificacionLista(row: IActuacionesPendientesItem): string[] {
     .map((s) => (s ?? "").trim())
     .filter(Boolean);
 }
-
-function resultadoComprobacionPosteriorHayContenido(row: IActuacionesPendientesItem): boolean {
-  return (
-    campoTextoUtil(row.comprobacion_posterior_fecha) ||
-    campoTextoUtil(row.comprobacion_posterior_inspectores_texto) ||
-    campoTextoUtil(row.comprobacion_posterior_acta_num)
-  );
-}
-
 
 function extractApiDetail(e: unknown): string | null {
   if (e && typeof e === "object" && "response" in e) {
@@ -692,9 +673,9 @@ export function NotificacionDetalleDocumentalDialog({
             />
           ) : null}
 
-          {resultadoComprobacionPosteriorHayContenido(row) ? (
-            <DocumentalBloque overline="Resultado y seguimiento">
-              {filasResultadoEstado(row).map((f) => (
+          {row.source_type !== "COMPROBACION" ? (
+            <DocumentalBloque overline="Cierre de la notificación">
+              {cierreNotificacionFilas(row).map((f) => (
                 <DocumentalFila key={f.etiqueta} etiqueta={f.etiqueta} valor={f.valor} />
               ))}
             </DocumentalBloque>

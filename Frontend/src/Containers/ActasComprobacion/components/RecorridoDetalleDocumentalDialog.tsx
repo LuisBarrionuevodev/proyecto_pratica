@@ -23,7 +23,10 @@ import {
   BloqueExpedienteEnvioReinspeccionDetalle,
   BloqueReferenciaReinspeccionDetalle,
   DOC_MODAL_BLOCK_STACK_SPACING,
+  DocumentalBloque,
+  DocumentalFila,
 } from "./comprobacionOperativoBlocks";
+import { filasEstadoTramiteRecorrido } from "../utils/recorridoOficioExpLabels";
 import { docModalEmptyStateSx, documentalGlassAlertSx } from "../../../styles/documentalModalTokens";
 import { parseApiError } from "../../../utils/parseApiError";
 import {
@@ -282,6 +285,11 @@ export function RecorridoDetalleDocumentalDialog({
             <BloqueReferenciaReinspeccionDetalle row={circuitRow} />
             {notaReferencia}
             <BloqueExpedienteEnvioReinspeccionDetalle row={circuitRow} />
+            <DocumentalBloque overline="Estado del trámite">
+              {filasEstadoTramiteRecorrido(ctx, detalle).map((f) => (
+                <DocumentalFila key={f.etiqueta} etiqueta={f.etiqueta} valor={f.valor} />
+              ))}
+            </DocumentalBloque>
           </Stack>
 
           {actuacionId != null ? (

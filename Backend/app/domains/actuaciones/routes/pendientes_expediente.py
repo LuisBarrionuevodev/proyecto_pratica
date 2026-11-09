@@ -10,6 +10,7 @@ from app.domains.actuaciones.services.pendientes_service import (
     build_notificacion_expediente_bandeja_metrics,
     build_posterior_comprobacion_por_actuacion_id,
     build_reinspeccion_comprobacion_por_actuacion_id,
+    build_seguimiento_notificacion_por_actuacion_id,
     get_historial_notificacion_expediente_paginado,
     get_pendientes_expediente,
     _historial_paginacion_solicitada,
@@ -84,6 +85,11 @@ def pendientes_expediente_list():
         else:
             posterior_map = build_posterior_comprobacion_por_actuacion_id(acts)
         reinspeccion_comp_map = build_reinspeccion_comprobacion_por_actuacion_id(acts)
+        seguimiento_map = (
+            build_seguimiento_notificacion_por_actuacion_id(acts)
+            if list_channel == "notificacion"
+            else {}
+        )
         force_no_elegible = plazo_slice_param in ("en_plazo", "por_vencer")
         ini_ids: list[int] = []
         if list_channel == "notificacion" and not force_no_elegible:
@@ -109,6 +115,7 @@ def pendientes_expediente_list():
                 counts_by_eo=counts_by_eo,
                 posterior_por_actuacion_id=posterior_map,
                 reinspeccion_comprobacion_por_actuacion_id=reinspeccion_comp_map,
+                seguimiento_notificacion_por_actuacion_id=seguimiento_map or None,
                 expediente_list_channel=list_channel,
             )
             if list_channel == "notificacion":

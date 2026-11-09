@@ -17,6 +17,7 @@ from app.models import (
     IniciadorRuta,
     Motivo,
     Notificacion,
+    NotificacionResultadoReinspeccion,
     OrdenTrabajo,
     RutaItem,
 )
@@ -536,18 +537,38 @@ def get_historial_notificacion_legacy_ids(filters: ActuacionesPendientesFilters)
     return [int(a.id) for a in acts]
 
 
-def build_reinspeccion_comprobacion_por_actuacion_id(acts: List[Actuaciones]) -> Dict[int, Optional[Actuaciones]]:
+def _seguimiento_notificacion_vacio() -> Dict[str, Any]:
+    """DTO de seguimiento cuando no hay reinspección vinculada a la notificación."""
+    return {
+        "estado": "SIN_REINSPECCION",
+        "actuacion_id": None,
+        "fecha_reinspeccion": None,
+        "acta_comprobacion_num": None,
+        "inspectores_texto": None,
+        "faltas_subsanadas": None,
+    }
+
+
+def find_reinspecciones_vinculadas_por_actuacion_id(
+    acts: List[Actuaciones],
+) -> Dict[int, Optional[Actuaciones]]:
     """
-    Comprobación de seguimiento en historial de notificación: la realizada en la actuación
-    ``REINSPECCION`` vinculada a la misma ``notificacion_id`` (reinspección por notificación vencida).
+    Reinspección ligada a la misma notificación (solo lectura).
 
-    No usa comprobación de la actuación origen ni búsqueda genérica por domicilio.
+    Vínculos admitidos:
+    - misma ``notificacion_id`` y ``tipo=REINSPECCION``;
+    - circuito ``IniciadorRuta`` ``REINSPECCION_NOTIFICACION`` + ``RutaItem``.
 
-    Args:
-        acts: actuaciones devueltas por bandeja / historial de notificaciones.
+    No busca por domicilio. No exige acta de comprobación (puede haber visita sin resultado).
 
-    Returns:
-        Mapa ``actuacion_id`` origen -> actuación REINSPECCION con comprobación, o ``None``.
+    Parámetros:
+        acts: actuaciones origen del historial / bandeja.
+
+    Retorno:
+        Mapa ``actuacion_id`` origen → actuación de reinspección, o ``None``.
+
+    Errores:
+        Ninguno.
     """
     out: Dict[int, Optional[Actuaciones]] = {int(a.id): None for a in acts}
     refs = [a for a in acts if getattr(a, "notificacion_id", None)]
@@ -559,7 +580,6 @@ def build_reinspeccion_comprobacion_por_actuacion_id(acts: List[Actuaciones]) ->
     rein_direct = (
         Actuaciones.query.filter(Actuaciones.notificacion_id.in_(noti_ids))
         .filter(Actuaciones.tipo == "REINSPECCION")
-        .filter(Actuaciones.comprobacion_id.isnot(None))
         .options(joinedload(Actuaciones.inspector), joinedload(Actuaciones.comprobacion))
         .all()
     )
@@ -577,7 +597,6 @@ def build_reinspeccion_comprobacion_por_actuacion_id(acts: List[Actuaciones]) ->
         .filter(IniciadorRuta.deleted_at.is_(None))
         .filter(RutaItem.deleted_at.is_(None))
         .filter(Actuaciones.tipo == "REINSPECCION")
-        .filter(Actuaciones.comprobacion_id.isnot(None))
         .options(joinedload(Actuaciones.inspector), joinedload(Actuaciones.comprobacion))
         .all()
     )
@@ -593,15 +612,97 @@ def build_reinspeccion_comprobacion_por_actuacion_id(acts: List[Actuaciones]) ->
     for ref in refs:
         rid = int(ref.id)
         nid = int(ref.notificacion_id)  # type: ignore[arg-type]
+        if getattr(ref, "tipo", None) == "REINSPECCION":
+            out[rid] = ref
+            continue
         candidates: List[Actuaciones] = [c for c in by_noti.get(nid, []) if int(c.id) != rid]
         via = rein_via_item.get(nid)
         if via is not None and int(via.id) != rid:
             candidates.append(via)
         if not candidates:
             continue
-        candidates.sort(key=lambda x: ((x.fecha or date.min), int(x.id)))
-        out[rid] = candidates[-1]
+        unique: Dict[int, Actuaciones] = {}
+        for c in candidates:
+            unique[int(c.id)] = c
+        ordered = list(unique.values())
+        ordered.sort(key=lambda x: ((x.fecha or date.min), int(x.id)))
+        out[rid] = ordered[-1]
 
+    return out
+
+
+def build_reinspeccion_comprobacion_por_actuacion_id(acts: List[Actuaciones]) -> Dict[int, Optional[Actuaciones]]:
+    """
+    Comprobación de seguimiento en historial de notificación: la realizada en la actuación
+    ``REINSPECCION`` vinculada a la misma ``notificacion_id`` (reinspección por notificación vencida).
+
+    No usa comprobación de la actuación origen ni búsqueda genérica por domicilio.
+
+    Args:
+        acts: actuaciones devueltas por bandeja / historial de notificaciones.
+
+    Returns:
+        Mapa ``actuacion_id`` origen -> actuación REINSPECCION con comprobación, o ``None``.
+    """
+    linked = find_reinspecciones_vinculadas_por_actuacion_id(acts)
+    return {
+        k: (v if v is not None and getattr(v, "comprobacion_id", None) else None)
+        for k, v in linked.items()
+    }
+
+
+def build_seguimiento_notificacion_por_actuacion_id(acts: List[Actuaciones]) -> Dict[int, Dict[str, Any]]:
+    """
+    DTO de cierre de notificación: reinspección vinculada + resultado persistido de faltas.
+
+    No infiere subsanación por existir un acta de comprobación. Si hay visita y no hay
+    ``NotificacionResultadoReinspeccion``, el estado es ``REINSPECCION_REALIZADA_SIN_RESULTADO``.
+
+    Parámetros:
+        acts: actuaciones origen del historial / bandeja de notificaciones.
+
+    Retorno:
+        Mapa ``actuacion_id`` → ``seguimiento_notificacion``.
+
+    Errores:
+        Ninguno.
+    """
+    from app.domains.actuaciones.presenters.actuacion_presenters import (
+        _inspectores_joined_text_from_orm,
+    )
+
+    linked = find_reinspecciones_vinculadas_por_actuacion_id(acts)
+    rein_ids = [int(v.id) for v in linked.values() if v is not None]
+    faltas_by_act: Dict[int, bool] = {}
+    if rein_ids:
+        for row in NotificacionResultadoReinspeccion.query.filter(
+            NotificacionResultadoReinspeccion.actuacion_id.in_(rein_ids)
+        ).all():
+            faltas_by_act[int(row.actuacion_id)] = bool(row.faltas_subsanadas)
+
+    out: Dict[int, Dict[str, Any]] = {}
+    for act in acts:
+        visit = linked.get(int(act.id))
+        if visit is None:
+            out[int(act.id)] = _seguimiento_notificacion_vacio()
+            continue
+        faltas = faltas_by_act.get(int(visit.id))
+        if faltas is True:
+            estado = "FALTAS_SUBSANADAS"
+        elif faltas is False:
+            estado = "FALTAS_NO_SUBSANADAS"
+        else:
+            estado = "REINSPECCION_REALIZADA_SIN_RESULTADO"
+        comp = getattr(visit, "comprobacion", None)
+        acta = getattr(comp, "numero_acta", None) if comp is not None else None
+        out[int(act.id)] = {
+            "estado": estado,
+            "actuacion_id": int(visit.id),
+            "fecha_reinspeccion": visit.fecha.isoformat() if visit.fecha else None,
+            "acta_comprobacion_num": acta,
+            "inspectores_texto": _inspectores_joined_text_from_orm(visit),
+            "faltas_subsanadas": faltas if faltas is not None else None,
+        }
     return out
 
 

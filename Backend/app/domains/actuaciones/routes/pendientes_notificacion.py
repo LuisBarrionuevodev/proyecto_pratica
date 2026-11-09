@@ -18,6 +18,7 @@ from app.domains.actuaciones.services.notificacion_iniciador_service import (
 from app.domains.actuaciones.services.pendientes_service import (
     build_notificacion_expediente_bandeja_metrics,
     build_reinspeccion_comprobacion_por_actuacion_id,
+    build_seguimiento_notificacion_por_actuacion_id,
 )
 from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
@@ -92,6 +93,7 @@ def get_pendientes_notificacion():
     plazos_map, venc_map, prorroga_dias_map = build_notificacion_expediente_bandeja_metrics(acts)
     counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
     rein_comp_map = build_reinspeccion_comprobacion_por_actuacion_id(acts)
+    seguimiento_map = build_seguimiento_notificacion_por_actuacion_id(acts)
     ini_by_act = _iniciador_id_por_actuacion_base([int(a.id) for a in acts])
     ini_ids = list(ini_by_act.values())
     estado_map = build_estado_operativo_pool_por_iniciador(ini_ids)
@@ -104,6 +106,7 @@ def get_pendientes_notificacion():
             prorroga_dias_por_notificacion=prorroga_dias_map,
             counts_by_eo=counts_by_eo,
             reinspeccion_comprobacion_por_actuacion_id=rein_comp_map,
+            seguimiento_notificacion_por_actuacion_id=seguimiento_map,
             expediente_list_channel="notificacion",
         )
         ini_id = ini_by_act.get(int(act.id))

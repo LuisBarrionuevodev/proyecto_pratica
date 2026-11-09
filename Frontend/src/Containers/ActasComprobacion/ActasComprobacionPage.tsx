@@ -125,6 +125,8 @@ import {
   recCompOficioExpMotivoSortKey,
   recorridoColumnChips,
   recorridoColumnSortKey,
+  recorridoResultadoSeguimientoChips,
+  recorridoResultadoSeguimientoSortKey,
 } from "./utils/recorridoOficioExpLabels";
 import {
   buildOperativaComprobacionFiltroPayloadForTab,
@@ -1794,6 +1796,16 @@ const ActasComprobacionPage = () => {
         accessorFn: (r) => recorridoColumnSortKey(r),
         sortingFn: "alphanumeric",
         Cell: ({ row }) => <BandejaSegmentChipsCell segments={recorridoColumnChips(row.original)} />,
+      },
+      {
+        id: "resultado_seguimiento",
+        header: "Resultado / seguimiento",
+        size: 168,
+        accessorFn: (r) => recorridoResultadoSeguimientoSortKey(r),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => (
+          <BandejaSegmentChipsCell segments={recorridoResultadoSeguimientoChips(row.original)} />
+        ),
       },
       {
         id: "ver",

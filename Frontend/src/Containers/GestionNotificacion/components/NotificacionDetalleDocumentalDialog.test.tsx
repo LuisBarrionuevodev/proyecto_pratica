@@ -126,6 +126,42 @@ describe("NotificacionDetalleDocumentalDialog", () => {
     );
     expect(html).not.toContain("Fecha de actuación");
   });
+
+  it("historial muestra Cierre de la notificación", () => {
+    const html = render(
+      <NotificacionDetalleDocumentalDialog {...dialogProps} row={baseRow} variant="documental" />
+    );
+    expect(html).toContain("Cierre de la notificación");
+    expect(html).toContain("Estado del trámite");
+    expect(html).toContain("Fecha de reinspección");
+    expect(html).toContain("Acta de comprobación N.º");
+    expect(html).toContain("Resultado de las faltas");
+    expect(html).not.toContain("Resultado y seguimiento");
+    expect(html).not.toContain("segunda inspección");
+  });
+
+  it("histórico incompleto muestra resultado no informado", () => {
+    const html = render(
+      <NotificacionDetalleDocumentalDialog
+        {...dialogProps}
+        row={{
+          ...baseRow,
+          seguimiento_notificacion: {
+            estado: "REINSPECCION_REALIZADA_SIN_RESULTADO",
+            actuacion_id: 8,
+            fecha_reinspeccion: "2026-04-10",
+            acta_comprobacion_num: "REIN03",
+            inspectores_texto: "Pérez",
+            faltas_subsanadas: null,
+          },
+        }}
+        variant="documental"
+      />
+    );
+    expect(html).toContain("Reinspección realizada · resultado no informado");
+    expect(html).toContain("No informado");
+    expect(html).not.toContain("Faltas subsanadas");
+  });
 });
 
 describe("PlazosNotificacionResumenFilas", () => {

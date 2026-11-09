@@ -153,6 +153,11 @@ import {
 import {
   notificacionEstadoOperativoChipColor,
 } from "./utils/notificacionEstadoOperativo";
+import {
+  seguimientoNotificacionChipColor,
+  seguimientoNotificacionChipLabel,
+  seguimientoNotificacionDeFila,
+} from "./utils/seguimientoNotificacionLabels";
 import { formatEstadoOperativoPoolLabel } from "../../utils/formatEstadoOperativoPoolLabel";
 import { perfLog, perfTimed } from "../../utils/perfLog";
 import { FONT_FAMILY_UI } from "../../theme/typography";
@@ -1206,6 +1211,26 @@ const GestionNotificacionPage = () => {
   const columnsHistorial = useMemo<MRT_ColumnDef<IActuacionesPendientesItem>[]>(
     () => [
       ...columnsDataCompact,
+      {
+        id: "seguimiento",
+        header: "Seguimiento",
+        size: 148,
+        accessorFn: (row) => seguimientoNotificacionChipLabel(seguimientoNotificacionDeFila(row).estado),
+        sortingFn: "alphanumeric",
+        Cell: ({ row }) => {
+          const seg = seguimientoNotificacionDeFila(row.original);
+          const label = seguimientoNotificacionChipLabel(seg.estado);
+          return (
+            <Chip
+              size="small"
+              label={label}
+              color={seguimientoNotificacionChipColor(seg.estado)}
+              variant="outlined"
+              sx={{ maxWidth: "100%" }}
+            />
+          );
+        },
+      },
       {
         id: "ver",
         header: "Acción",

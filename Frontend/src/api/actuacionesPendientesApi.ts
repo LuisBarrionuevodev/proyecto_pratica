@@ -10,6 +10,21 @@ export interface IActuacionesPendientesSummary {
   notificaciones: number;
 }
 
+export type SeguimientoNotificacionEstado =
+  | "SIN_REINSPECCION"
+  | "REINSPECCION_REALIZADA_SIN_RESULTADO"
+  | "FALTAS_SUBSANADAS"
+  | "FALTAS_NO_SUBSANADAS";
+
+export interface ISeguimientoNotificacion {
+  estado: SeguimientoNotificacionEstado;
+  actuacion_id: number | null;
+  fecha_reinspeccion: string | null;
+  acta_comprobacion_num: string | null;
+  inspectores_texto: string | null;
+  faltas_subsanadas: boolean | null;
+}
+
 export interface IActuacionesPendientesItem extends IActuacionListItem {
   /** Solo rama NOTIFICACION; vencimiento operativo desde `Notificacion.fecha_vencimiento`. */
   dias_restantes?: number | null;
@@ -19,6 +34,8 @@ export interface IActuacionesPendientesItem extends IActuacionListItem {
   comprobacion_posterior_fecha?: string | null;
   comprobacion_posterior_inspectores_texto?: string | null;
   comprobacion_posterior_acta_num?: string | null;
+  /** Cierre de trámite de notificación: reinspección vinculada + faltas persistidas (solo lectura). */
+  seguimiento_notificacion?: ISeguimientoNotificacion | null;
   /** Con `source_type=notificacion` en el GET puede ser NOTIFICACION aunque la actuación tenga también comprobación (canal paralelo). */
   source_type?: "NOTIFICACION" | "COMPROBACION";
   /** FKs de contexto (bandeja expediente); útiles para normalizar canal en UI. */

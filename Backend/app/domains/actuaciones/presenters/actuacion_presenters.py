@@ -1241,6 +1241,18 @@ def _inspectores_joined_text_from_orm(act: Actuaciones) -> Optional[str]:
     return ", ".join(nombres) if nombres else None
 
 
+def _seguimiento_notificacion_dto_vacio() -> Dict[str, Any]:
+    """Estructura de solo lectura cuando no hay mapa de seguimiento o no hay visita vinculada."""
+    return {
+        "estado": "SIN_REINSPECCION",
+        "actuacion_id": None,
+        "fecha_reinspeccion": None,
+        "acta_comprobacion_num": None,
+        "inspectores_texto": None,
+        "faltas_subsanadas": None,
+    }
+
+
 def actuacion_to_pendiente_expediente_row(
     act: Actuaciones,
     *,
@@ -1250,6 +1262,7 @@ def actuacion_to_pendiente_expediente_row(
     counts_by_eo: dict[int, int] | None = None,
     posterior_por_actuacion_id: dict[int, Actuaciones | None] | None = None,
     reinspeccion_comprobacion_por_actuacion_id: dict[int, Actuaciones | None] | None = None,
+    seguimiento_notificacion_por_actuacion_id: dict[int, dict[str, Any]] | None = None,
     expediente_list_channel: str | None = None,
 ) -> Dict[str, Any]:
     """
@@ -1271,6 +1284,9 @@ def actuacion_to_pendiente_expediente_row(
     ``build_reinspeccion_comprobacion_por_actuacion_id``. No se usa la comprobación cargada en la
     actuación origen mixta ni una posterior genérica por domicilio en canal ``notificacion``.
     ``posterior_por_actuacion_id`` (domicilio) solo aplica fuera del canal notificación.
+
+    ``seguimiento_notificacion``: cierre de trámite (reinspección vinculada + faltas persistidas).
+    No se infiere por domicilio ni por la sola existencia de un acta de comprobación.
     """
     full = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
     source_type = _pendiente_expediente_source_type_for_list(act, expediente_list_channel)
@@ -1314,6 +1330,14 @@ def actuacion_to_pendiente_expediente_row(
         full["comprobacion_posterior_fecha"] = None
         full["comprobacion_posterior_inspectores_texto"] = None
         full["comprobacion_posterior_acta_num"] = None
+
+    if seguimiento_notificacion_por_actuacion_id is not None:
+        full["seguimiento_notificacion"] = (
+            seguimiento_notificacion_por_actuacion_id.get(int(act.id))
+            or _seguimiento_notificacion_dto_vacio()
+        )
+    else:
+        full["seguimiento_notificacion"] = _seguimiento_notificacion_dto_vacio()
 
     return full
 
