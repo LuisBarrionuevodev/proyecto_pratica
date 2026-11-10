@@ -111,6 +111,9 @@ def test_ratificacion_contra_a_cumple(
 
 
 def test_ratificacion_clausura_cumple_a_no_cumple(app_ctx) -> None:
+    from tests.test_completar_trabajo_stab4 import _ensure_tipo_actuacion
+
+    _ensure_tipo_actuacion("RATIFICACION DE CLAUSURA")
     item, act, ini, u = _mk_reinspeccion_oficio_item(uuid4().hex[:8])
     act_cerrada = _cerrar_item(
         item,
@@ -136,7 +139,7 @@ def test_ratificacion_clausura_cumple_a_no_cumple(app_ctx) -> None:
     ini_db = db.session.get(IniciadorRuta, ini.id)
     assert ini_db is not None
     assert ini_db.tipo_iniciador == "RATIFICACION_CLAUSURA_OFICIO"
-    assert ini_db.estado_iniciador == "PENDIENTE"
+    assert ini_db.estado_iniciador == "CUMPLIDO"
 
 
 def test_ratificacion_cumple_a_contra(app_ctx) -> None:

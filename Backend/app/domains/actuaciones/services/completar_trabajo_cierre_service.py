@@ -656,6 +656,7 @@ def cerrar_completar_trabajo_por_ruta_item(
             ini.estado_iniciador = "CUMPLIDO"
             ini.cerrado_at = None
             ini.cerrado_motivo = None
+            # NO_CUMPLE simple permanece CUMPLIDO; solo reencola si hay contra (defensivo).
             reencolar_iniciador_si_oficio_no_cumple(ini=ini, act=act, item=item, now=now)
             _vincular_notificacion_reinspeccion_en_acta(act=act, ini=ini, bucket=bucket)
             persistir_acta_seguimiento_tras_cierre(

@@ -235,7 +235,10 @@ def test_oficio_ambas_actuaciones_en_listado(app_ctx) -> None:
 
 
 def test_oficio_no_cumple_sin_contra_no_resetea_generico(app_ctx) -> None:
-    """NO_CUMPLE con visita realizada mantiene iniciador promovido (sin reset FIX.5)."""
+    """NO_CUMPLE simple: visita realizada, iniciador promovido y CUMPLIDO (sin reset FIX.5)."""
+    from tests.test_completar_trabajo_stab4 import _ensure_tipo_actuacion
+
+    _ensure_tipo_actuacion("RATIFICACION DE CLAUSURA")
     item, _act, ini, u = _mk_reinspeccion_oficio_item(uuid4().hex[:8])
     user_id = int(u.id)
     cerrar_completar_trabajo_por_ruta_item(
@@ -252,7 +255,7 @@ def test_oficio_no_cumple_sin_contra_no_resetea_generico(app_ctx) -> None:
     ini_db = db.session.get(IniciadorRuta, ini.id)
     assert ini_db is not None
     assert ini_db.tipo_iniciador == "RATIFICACION_CLAUSURA_OFICIO"
-    assert ini_db.estado_iniciador == "PENDIENTE"
+    assert ini_db.estado_iniciador == "CUMPLIDO"
 
 
 def _republicar_iniciador_generico(ini: IniciadorRuta, user_id: int, fecha: date) -> RutaItem:

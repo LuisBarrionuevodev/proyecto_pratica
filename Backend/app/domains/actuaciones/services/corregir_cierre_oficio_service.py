@@ -147,7 +147,7 @@ def _aplicar_no_cumple_sin_contra(
     ini: IniciadorRuta,
     now: datetime,
 ) -> None:
-    """NO_CUMPLE sin contraproducencia: visita realizada + reencolado OFICIO_NO_CUMPLE."""
+    """NO_CUMPLE sin contraproducencia: visita realizada; iniciador CUMPLIDO (no reencola)."""
     act.contraproducencia = None
     act.resultado_cumplimiento_oficio = "NO_CUMPLE"
     act.realizo_nueva_inspeccion = None

@@ -342,7 +342,8 @@ def _tramite_reinspeccion_oficio_cumplido(ini: IniciadorRuta | None) -> bool:
     """
     True si el trámite de reinspección por oficio ya cerró operativamente.
 
-    Reencolados por contraproducencia quedan en ``PENDIENTE`` y siguen listables.
+    Incluye ``CUMPLIDO`` por Cumple o por NO_CUMPLE simple. Reencolados por
+    contraproducencia quedan en ``PENDIENTE`` y siguen listables.
     """
     if ini is None:
         return False

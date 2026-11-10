@@ -1,4 +1,4 @@
-"""STAB-4: Completar trabajo — NO_HUBO rechazado, tipo iniciador, NO_CUMPLE reencola."""
+"""STAB-4: Completar trabajo — NO_HUBO rechazado, tipo iniciador, NO_CUMPLE simple cierra."""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from app.domains.actuaciones.utils.contraproducencia_por_tipo_iniciador import (
 from app.models import (
     Actuaciones,
     CatalogContraproducencia,
+    CatalogTipoActuacion,
     Contribuyente,
     Domicilio,
     IniciadorRuta,
@@ -64,6 +65,12 @@ def test_contraproducencia_por_tipo_reinspeccion_sin_rubro_correctivo() -> None:
         "REINSPECCION_NOTIFICACION", "NO SE RATIFICÓ"
     )
     assert not contraproducencia_permitida_en_completar_trabajo("REINSPECCION_OFICIO", "NO_HUBO")
+
+
+def _ensure_tipo_actuacion(nombre: str) -> None:
+    if CatalogTipoActuacion.query.filter_by(nombre=nombre).first() is None:
+        db.session.add(CatalogTipoActuacion(nombre=nombre))
+        db.session.commit()
 
 
 def _ot_num() -> str:
@@ -163,7 +170,8 @@ def test_cierre_rechaza_no_hubo_en_completar_trabajo(app_ctx) -> None:
         )
 
 
-def test_no_cumple_reencola_iniciador_a_pendiente(app_ctx) -> None:
+def test_no_cumple_simple_cierra_iniciador_cumplido(app_ctx) -> None:
+    _ensure_tipo_actuacion("RATIFICACION DE CLAUSURA")
     suf = uuid4().hex[:8]
     item, act, ini, u = _mk_reinspeccion_oficio_item(suf)
     payload = CompletarTrabajoCierreCompletoIn.model_validate(
@@ -182,11 +190,11 @@ def test_no_cumple_reencola_iniciador_a_pendiente(app_ctx) -> None:
     act_db = Actuaciones.query.get(act.id)
     item_db = RutaItem.query.get(item.id)
     assert item_db is not None and item_db.estado_ejecucion == "REALIZADO"
+    assert item_db.estado_ruta_item == "FINALIZADO"
     assert act_db is not None and act_db.resultado_cumplimiento_oficio == "NO_CUMPLE"
     assert ini_db is not None
-    assert ini_db.estado_iniciador == "PENDIENTE"
-    assert ini_db.cerrado_motivo == "OFICIO_NO_CUMPLE"
-    assert int(ini_db.prioridad or 0) >= 5
+    assert ini_db.estado_iniciador == "CUMPLIDO"
+    assert ini_db.cerrado_motivo is None
 
 
 def test_no_cumple_no_mezcla_con_contraproducencia(app_ctx) -> None:

@@ -168,6 +168,22 @@ describe("recorridoOficioExpLabels", () => {
     ).toEqual(["Reinspección realizada"]);
   });
 
+  it("CUMPLIDO técnico con NO_CUMPLE muestra No cumple, nunca Cumple", () => {
+    expect(
+      recorridoResultadoSeguimientoChips({
+        id: 1,
+        oficios_resumen: [
+          {
+            estado_iniciador: "CUMPLIDO",
+            estado_ejecucion: "REALIZADO",
+            resultado_cumplimiento_oficio: "NO_CUMPLE",
+            conclusion: "No cumple",
+          },
+        ],
+      } as IComprobacionRecorridoRow)
+    ).toEqual(["No cumple"]);
+  });
+
   it("Resultado / seguimiento: CUMPLE y NO_CUMPLE separados", () => {
     expect(
       recorridoResultadoSeguimientoChips({

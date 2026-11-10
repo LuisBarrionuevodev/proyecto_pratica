@@ -275,9 +275,14 @@ def test_ruta_item_finalizado_no_realizado_no_bloquea_planificable(app_ctx) -> N
     assert len(q) == 1
 
 
-def test_no_cumple_oficio_reencolado_aparece_en_planificable(app_ctx) -> None:
-    """NO_CUMPLE deja item REALIZADO; iniciador PENDIENTE debe seguir planificable."""
-    from tests.test_completar_trabajo_stab4 import _mk_reinspeccion_oficio_item, _ot_num
+def test_no_cumple_oficio_simple_no_aparece_en_planificable(app_ctx) -> None:
+    """NO_CUMPLE simple deja item REALIZADO e iniciador CUMPLIDO fuera del pool."""
+    from tests.test_completar_trabajo_stab4 import (
+        _ensure_tipo_actuacion,
+        _mk_reinspeccion_oficio_item,
+    )
+
+    _ensure_tipo_actuacion("RATIFICACION DE CLAUSURA")
 
     item, _act, ini, u = _mk_reinspeccion_oficio_item(uuid4().hex[:8])
     payload = CompletarTrabajoCierreCompletoIn.model_validate(
@@ -293,6 +298,6 @@ def test_no_cumple_oficio_reencolado_aparece_en_planificable(app_ctx) -> None:
     )
     db.session.expunge_all()
     ini_db = db.session.get(IniciadorRuta, ini.id)
-    assert ini_db is not None and ini_db.estado_iniciador == "PENDIENTE"
+    assert ini_db is not None and ini_db.estado_iniciador == "CUMPLIDO"
     planif_ids = {row.id for row in planificable_iniciadores_base_query().all()}
-    assert ini.id in planif_ids
+    assert ini.id not in planif_ids

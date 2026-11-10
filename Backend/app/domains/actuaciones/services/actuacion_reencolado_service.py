@@ -361,6 +361,30 @@ def aplicar_reencolado_iniciador(
     db.session.add(ini)
 
 
+def _contraproducencia_reencolable(act: Actuaciones) -> bool:
+    """
+    True si la actuación tiene contraproducencia válida de reingreso.
+
+    NO_EXISTE_LOCAL cierra el origen y no reencola. Valores vacíos o no normalizables
+    no reencolan (NO_CUMPLE simple permanece CUMPLIDO).
+    """
+    raw = getattr(act, "contraproducencia", None)
+    if raw is None:
+        return False
+    text = str(raw).strip()
+    if not text:
+        return False
+    try:
+        stored, bucket = normalize_contraproducencia(text)
+    except ValueError:
+        return False
+    if not stored or bucket == ContrapBucket.NONE:
+        return False
+    if bucket == ContrapBucket.NO_EXISTE_LOCAL:
+        return False
+    return True
+
+
 def reencolar_iniciador_si_oficio_no_cumple(
     *,
     ini: IniciadorRuta,
@@ -369,11 +393,14 @@ def reencolar_iniciador_si_oficio_no_cumple(
     now: datetime,
 ) -> None:
     """
-    Reinspección por oficio con NO_CUMPLE vuelve a pendientes si no hay otra ruta activa.
+    Reencola reinspección por oficio solo si NO_CUMPLE va acompañado de contraproducencia.
+
+    NO_CUMPLE simple deja el iniciador CUMPLIDO (cierre técnico del circuito) y no
+    vuelve a Pendientes. El resultado documental permanece NO_CUMPLE.
 
     Parámetros:
         ini: iniciador del ítem.
-        act: actuación corregida.
+        act: actuación del cierre o corrección.
         item: ítem de ruta vinculado.
         now: timestamp UTC naive.
 
@@ -383,6 +410,8 @@ def reencolar_iniciador_si_oficio_no_cumple(
     if not es_flujo_cumplimiento_oficio(ini.tipo_iniciador):
         return
     if getattr(act, "resultado_cumplimiento_oficio", None) != "NO_CUMPLE":
+        return
+    if not _contraproducencia_reencolable(act):
         return
     if iniciador_tiene_item_abierto_en_ruta_operativa(ini.id, excluir_ruta_item_id=item.id):
         return

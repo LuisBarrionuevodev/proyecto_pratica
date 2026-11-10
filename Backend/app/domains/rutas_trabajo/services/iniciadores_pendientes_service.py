@@ -43,8 +43,9 @@ def planificable_iniciadores_base_query() -> Query:
     """
     Query base: iniciadores PENDIENTE, no eliminados, no asignados a ítem activo en ruta BORRADOR.
 
-    No excluye iniciadores reencolados con visitas previas FINALIZADO+REALIZADO (p. ej. oficio NO_CUMPLE):
-    el filtro operativo es ``estado_iniciador == PENDIENTE``.
+    No excluye iniciadores reencolados con visitas previas FINALIZADO (p. ej. oficio NO_CUMPLE
+    con contraproducencia: ítem NO_REALIZADO). El filtro operativo es ``estado_iniciador == PENDIENTE``.
+    NO_CUMPLE simple cierra el iniciador en CUMPLIDO y no entra al pool.
 
     Requiere llamar antes assert_ruta_borrador_para_planificacion si se necesita validar ruta.
     """

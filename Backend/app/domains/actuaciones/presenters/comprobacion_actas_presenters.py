@@ -114,6 +114,16 @@ def estado_recorrido_label(act: Actuaciones) -> str:
         if item is not None and item.estado_ejecucion == "NO_REALIZADO":
             return "Visita no realizada"
         tipo = (ini.tipo_iniciador or "").strip()
+        resultado = resultado_cumplimiento_recorrido(act)
+        res_key = str(resultado).strip().upper() if resultado else ""
+        if res_key == "NO_CUMPLE":
+            if tipo == "VERIFICAR_INFORMAR_OFICIO":
+                return "Verificar e informar — no cumple"
+            if tipo == "RATIFICACION_CLAUSURA_OFICIO":
+                return "Ratificación de clausura — no cumple"
+            if tipo == "RATIFICACION_DECOMISO_OFICIO":
+                return "Ratificación de decomiso — no cumple"
+            return "No cumple"
         if tipo == "VERIFICAR_INFORMAR_OFICIO":
             return "Verificar e informar — visita realizada"
         if tipo == "RATIFICACION_CLAUSURA_OFICIO":
