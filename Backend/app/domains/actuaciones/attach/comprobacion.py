@@ -8,6 +8,9 @@ from app.utils.actas import acta_6
 from app.domains.actuaciones.attach.acta_reactivation_helpers import (
     otra_actuacion_usa_comprobacion,
 )
+from app.domains.actuaciones.services.comprobacion_motivos_sync_service import (
+    sync_unico_vinculo_desde_texto_historico,
+)
 
 
 def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) -> None:
@@ -21,6 +24,9 @@ def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
     - Si `actuacion.comprobacion_id` ya apunta a una fila, solo se actualiza esa misma fila.
 
     Valida `motivo` como obligatorio (no vacío tras `strip()`).
+    Persiste el texto en la columna legado `comprobacion.motivo` y sincroniza
+    un único vínculo relacional si ese texto coincide exactamente con el
+    catálogo (sin concatenar ni inferir).
 
     Args:
         actuacion: Actuación destino (debe tener `id`, `anio`, `mes` y opcionalmente `tipo`).
@@ -86,6 +92,7 @@ def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
             db.session.add(comp)
 
     db.session.flush()
+    sync_unico_vinculo_desde_texto_historico(comp)
 
     if actuacion.tipo is not None:
         existe_mismo_tipo = (

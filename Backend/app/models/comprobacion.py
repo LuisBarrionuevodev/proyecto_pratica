@@ -1,6 +1,11 @@
+from __future__ import annotations
+
 from datetime import datetime
 
 from app.database import db
+from app.models.comprobacion_motivo import comprobacion_motivo
+
+SEPARADOR_TEXTO_MOTIVOS_COMPROBACION = " · "
 
 
 class Comprobacion(db.Model):
@@ -45,9 +50,51 @@ class Comprobacion(db.Model):
     actuaciones = db.relationship("Actuaciones", back_populates="comprobacion")
     oficio = db.relationship("Oficio", back_populates="comprobacion")
     expediente = db.relationship("Expediente", back_populates="comprobacion")
+    motivos_catalogo = db.relationship(
+        "CatalogMotivoComprobacion",
+        secondary=comprobacion_motivo,
+        back_populates="comprobaciones",
+        order_by="CatalogMotivoComprobacion.nombre",
+    )
     __table_args__ = (
         db.UniqueConstraint("numero_acta", "anio", name="uq_acomp_numero_anio"),
     )
+
+    def motivos_comprobacion_ordenados(self):
+        """
+        Lectura ordenada de motivos de catálogo vinculados (preparada para MOTIVOS.2).
+
+        Returns:
+            Lista de `CatalogMotivoComprobacion` ordenada por `nombre`.
+        """
+        rows = [m for m in (self.motivos_catalogo or []) if m is not None]
+        rows.sort(key=lambda m: ((m.nombre or ""), int(m.id or 0)))
+        return rows
+
+    def motivos_comprobacion_as_dicts(self) -> list[dict]:
+        """
+        Forma futura de API: `motivos_comprobacion: [{id, nombre}, ...]`.
+
+        Returns:
+            Lista de dicts `{id, nombre}` en el mismo orden que
+            `motivos_comprobacion_ordenados`.
+        """
+        return [{"id": int(m.id), "nombre": m.nombre} for m in self.motivos_comprobacion_ordenados()]
+
+    def texto_derivado_motivos_comprobacion(self) -> str | None:
+        """
+        Texto derivado futuro para consumidores históricos: `Motivo A · Motivo B`.
+
+        No escribe ni reemplaza la columna legado `motivo`.
+
+        Returns:
+            String unido con `SEPARADOR_TEXTO_MOTIVOS_COMPROBACION`, o `None`
+            si no hay vínculos.
+        """
+        nombres = [m.nombre for m in self.motivos_comprobacion_ordenados() if m.nombre]
+        if not nombres:
+            return None
+        return SEPARADOR_TEXTO_MOTIVOS_COMPROBACION.join(nombres)
 
     def to_dict(self, include_relations=False):
         data = {

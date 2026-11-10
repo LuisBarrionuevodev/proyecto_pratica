@@ -5,6 +5,9 @@ from typing import Any, Dict
 from app.database import db
 from app.models import Actuaciones, Comprobacion, Notificacion
 from app.utils.actas import acta_6
+from app.domains.actuaciones.services.comprobacion_motivos_sync_service import (
+    sync_unico_vinculo_desde_texto_historico,
+)
 
 
 def resolver_previas(act: Actuaciones, payload: Dict[str, Any]) -> None:
@@ -25,8 +28,10 @@ def resolver_previas(act: Actuaciones, payload: Dict[str, Any]) -> None:
         - Busca `Comprobacion` por `(numero_acta, anio)` usando el `anio/mes` de `act`.
         - Si no existe, la crea de forma mínima con `mes=act.mes` y `motivo`:
             - `payload["comprobacion_previa_motivo"]` si viene y no está vacío, o
-            - `"PENDIENTE"` como placeholder explícito.
+            - `"PENDIENTE"` como placeholder explícito (fuera de la puente
+              `comprobacion_motivo`).
         - Si existe y viene `comprobacion_previa_motivo`, actualiza `motivo` (y `mes`).
+        - Sincroniza el vínculo relacional 0..1 sin alterar el texto histórico.
         - Asigna `act.comprobacion_id`.
 
     Parámetros:
@@ -101,6 +106,9 @@ def resolver_previas(act: Actuaciones, payload: Dict[str, Any]) -> None:
                 comp.motivo = motivo_prev
                 comp.mes = mes
                 db.session.add(comp)
+
+        db.session.flush()
+        sync_unico_vinculo_desde_texto_historico(comp)
 
         # validar que no exista actuación activa con mismo tipo para esta comprobación
         if act.tipo is not None:

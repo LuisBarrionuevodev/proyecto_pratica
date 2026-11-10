@@ -1,4 +1,5 @@
 from app.database import db
+from app.models.comprobacion_motivo import comprobacion_motivo
 
 
 class CatalogMotivoComprobacion(db.Model):
@@ -16,6 +17,12 @@ class CatalogMotivoComprobacion(db.Model):
         nullable=False,
         server_default=db.func.current_timestamp(),
         onupdate=db.func.current_timestamp(),
+    )
+
+    comprobaciones = db.relationship(
+        "Comprobacion",
+        secondary=comprobacion_motivo,
+        back_populates="motivos_catalogo",
     )
 
     def to_dict(self):
