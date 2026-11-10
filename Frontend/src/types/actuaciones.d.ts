@@ -53,7 +53,7 @@ export interface IActuacion {
     calle_sugerida?: string | null;
     calle_mostrar?: string | null;
     calle_catalogo_id?: number | null;
-    [key: string]: string | number | null | undefined;
+    [key: string]: string | number | string[] | null | undefined;
 }
 
 export interface IActuacionListado {

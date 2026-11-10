@@ -109,6 +109,6 @@ describe("mapActuacionApiFieldKey", () => {
   });
 
   it("alias comprobacion_exige_motivo_si_hay_acta", () => {
-    expect(mapActuacionApiFieldKey("comprobacion_exige_motivo_si_hay_acta")).toBe("comprobacion_motivo");
+    expect(mapActuacionApiFieldKey("comprobacion_exige_motivo_si_hay_acta")).toBe("motivos_comprobacion");
   });
 });

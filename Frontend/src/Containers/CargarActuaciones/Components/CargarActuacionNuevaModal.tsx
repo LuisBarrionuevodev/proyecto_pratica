@@ -203,18 +203,6 @@ export function CargarActuacionNuevaModal() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(false);
 
-  const catalogs = useMemo(
-    () => ({
-      inspectores: catalogInspectores,
-      motivos: catalogMotivos,
-      rubros: catalogRubros,
-      tipos: [] as string[],
-      contraproducencias: [] as string[],
-      motivosComprobacion: catalogMotivosComprobacion,
-    }),
-    [catalogInspectores, catalogMotivos, catalogRubros, catalogMotivosComprobacion]
-  );
-
   const motivosNotifCatalogSorted = useMemo(
     () => mergeMotivosNotifCatalogStrings(catalogMotivos, notifMotivosSel),
     [catalogMotivos, notifMotivosSel]

@@ -341,7 +341,6 @@ export function validateActuacionFormForSubmit(
 
   const actaComprobacion = trim(form.acta_comprobacion_num);
   const motivosComp = hydrateMotivosComprobacion(form);
-  const comprobacionMotivo = motivosComp[0] ?? trim(form.comprobacion_motivo);
   const actaInspeccion = trim(form.acta_inspeccion_num);
   const actaNotificacion = trim(form.acta_notificacion_num);
 
