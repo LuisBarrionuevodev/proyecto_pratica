@@ -59,7 +59,7 @@ describe("seguimientoNotificacionLabels", () => {
     expect(filas.find((f) => f.etiqueta === "Resultado de las faltas")?.valor).toBe("—");
     expect(filas.find((f) => f.etiqueta === "Fecha de reinspección")?.valor).toBe("—");
     expect(filas.find((f) => f.etiqueta === "Orden de trabajo")?.valor).toBe("—");
-    expect(filas.find((f) => f.etiqueta === "Motivo de comprobación")?.valor).toBe("—");
+    expect(filas.find((f) => f.etiqueta === "Motivos de comprobación")?.valor).toBe("—");
   });
 
   it("faltas no subsanadas no duplica resultado y muestra motivo", () => {
@@ -82,9 +82,26 @@ describe("seguimientoNotificacionLabels", () => {
     expect(texto).not.toContain("segunda inspección");
     expect(filas.find((f) => f.etiqueta === "Estado del trámite")?.valor).toBe("Faltas no subsanadas");
     expect(filas.find((f) => f.etiqueta === "Resultado de las faltas")).toBeUndefined();
-    expect(filas.find((f) => f.etiqueta === "Motivo de comprobación")?.valor).toBe("Falta de higiene");
+    expect(filas.find((f) => f.etiqueta === "Motivos de comprobación")?.valor).toBe("Falta de higiene");
     expect(filas.find((f) => f.etiqueta === "Acta de inspección N.º")?.valor).toBe("111111");
     expect(filas.find((f) => f.etiqueta === "Orden de trabajo")?.valor).toBe("OT1");
+  });
+
+  it("muestra todos los motivos de comprobación en compacto", () => {
+    const filas = cierreNotificacionFilas({
+      id: 1,
+      seguimiento_notificacion: {
+        estado: "FALTAS_NO_SUBSANADAS",
+        actuacion_id: 2,
+        fecha_reinspeccion: "2026-04-10",
+        acta_comprobacion_num: "99",
+        comprobacion_motivo: "Falta de higiene",
+        motivos_comprobacion: ["Falta de higiene", "Falta de habilitación"],
+      },
+    } as IActuacionesPendientesItem);
+    expect(filas.find((f) => f.etiqueta === "Motivos de comprobación")?.valor).toBe(
+      "Falta de higiene · Falta de habilitación"
+    );
   });
 
   it("reinspección sin resultado informa faltas y no inventa motivo", () => {
@@ -100,6 +117,6 @@ describe("seguimientoNotificacionLabels", () => {
       },
     } as IActuacionesPendientesItem);
     expect(filas.find((f) => f.etiqueta === "Resultado de las faltas")?.valor).toBe("No informado");
-    expect(filas.find((f) => f.etiqueta === "Motivo de comprobación")?.valor).toBe("—");
+    expect(filas.find((f) => f.etiqueta === "Motivos de comprobación")?.valor).toBe("—");
   });
 });

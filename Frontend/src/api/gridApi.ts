@@ -54,6 +54,7 @@ export interface GridRow {
   "Motivo notif 3"?: string | null;
   "Acta comprobación"?: string | null;
   "Motivo comprobación"?: string | null;
+  motivos_comprobacion?: string[] | null;
   "Acta clausura"?: string | null;
   "Acta decomiso"?: string | null;
   "Kilos decomiso"?: number | null;

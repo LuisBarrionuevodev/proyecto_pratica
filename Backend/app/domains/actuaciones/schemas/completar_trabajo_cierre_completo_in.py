@@ -4,6 +4,10 @@ from typing import Any, List, Literal, Optional
 
 from pydantic import ConfigDict, Field, ValidationError, field_validator, model_validator
 
+from app.domains.actuaciones.schemas.comprobacion_motivos_in import (
+    motivos_comprobacion_efectivos,
+    parse_lista_motivos_comprobacion,
+)
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_in import CompletarTrabajoCierreIn
 from app.domains.actuaciones.schemas.item_acta_inspeccion_estado_in import (
     ItemActaInspeccionEstadoIn,
@@ -88,6 +92,7 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
     notificacion_motivo_3: Optional[str] = None
     acta_comprobacion_num: Optional[str] = None
     comprobacion_motivo: Optional[str] = None
+    motivos_comprobacion: Optional[List[str]] = None
     acta_clausura_num: Optional[str] = None
     acta_decomiso_num: Optional[str] = None
     decomiso_kilos_total: Optional[float] = None
@@ -274,9 +279,19 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
             return u
         raise ValueError("numero_tipo inválido.")
 
+    @field_validator("motivos_comprobacion", mode="before")
+    @classmethod
+    def parse_motivos_comprobacion(cls, v: object) -> object:
+        return parse_lista_motivos_comprobacion(v)
+
     @model_validator(mode="after")
     def comprobacion_exige_motivo_si_hay_acta(self) -> "CompletarTrabajoCierreCompletoIn":
-        if self.acta_comprobacion_num and not (self.comprobacion_motivo and str(self.comprobacion_motivo).strip()):
+        motivos = motivos_comprobacion_efectivos(
+            motivos_comprobacion=self.motivos_comprobacion,
+            comprobacion_motivo=self.comprobacion_motivo,
+            fields_set=self.model_fields_set,
+        )
+        if self.acta_comprobacion_num and not motivos:
             msg = (
                 "Si cargás acta de comprobación, el motivo de comprobación es obligatorio "
                 "(catálogo motivos comprobación)."
@@ -286,11 +301,18 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
                 [
                     {
                         "type": "value_error",
+                        "loc": ("motivos_comprobacion",),
+                        "msg": "Value error",
+                        "input": None,
+                        "ctx": {"error": msg},
+                    },
+                    {
+                        "type": "value_error",
                         "loc": ("comprobacion_motivo",),
                         "msg": "Value error",
                         "input": None,
                         "ctx": {"error": msg},
-                    }
+                    },
                 ],
             )
         return self
@@ -379,6 +401,7 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
                     ),
                 ),
                 ("comprobacion_motivo", bool(self.comprobacion_motivo)),
+                ("motivos_comprobacion", bool(self.motivos_comprobacion)),
                 ("decomiso_kilos_total", self.decomiso_kilos_total is not None),
                 ("resultado_cumplimiento_oficio", self.resultado_cumplimiento_oficio is not None),
                 ("solicita_carnet_manipulador", self.solicita_carnet_manipulador is not None),
@@ -403,9 +426,13 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
         ):
             return self
         acta = (self.acta_comprobacion_num or "").strip()
-        motivo = (self.comprobacion_motivo or "").strip()
+        motivos = motivos_comprobacion_efectivos(
+            motivos_comprobacion=self.motivos_comprobacion,
+            comprobacion_motivo=self.comprobacion_motivo,
+            fields_set=self.model_fields_set,
+        )
         tiene_acta = bool(acta)
-        tiene_motivo = bool(motivo)
+        tiene_motivo = bool(motivos)
         if not tiene_acta and not tiene_motivo:
             return self
         if tiene_acta != tiene_motivo:
@@ -422,6 +449,13 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
                     },
                     {
                         "type": "value_error",
+                        "loc": ("motivos_comprobacion",),
+                        "msg": "Value error",
+                        "input": None,
+                        "ctx": {"error": msg},
+                    },
+                    {
+                        "type": "value_error",
                         "loc": ("comprobacion_motivo",),
                         "msg": "Value error",
                         "input": None,
@@ -429,7 +463,7 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
                     },
                 ],
             )
-        if not motivo_comprobacion_es_no_permite_inspeccion(motivo):
+        if not any(motivo_comprobacion_es_no_permite_inspeccion(m) for m in motivos):
             msg = (
                 'Si usás la contraproducencia «No permite inspección» con acta de comprobación, '
                 "el motivo debe ser «No Permite la Inspección»."
@@ -439,11 +473,18 @@ class CompletarTrabajoCierreCompletoIn(CompletarTrabajoCierreIn):
                 [
                     {
                         "type": "value_error",
+                        "loc": ("motivos_comprobacion",),
+                        "msg": "Value error",
+                        "input": None,
+                        "ctx": {"error": msg},
+                    },
+                    {
+                        "type": "value_error",
                         "loc": ("comprobacion_motivo",),
                         "msg": "Value error",
                         "input": None,
                         "ctx": {"error": msg},
-                    }
+                    },
                 ],
             )
         return self

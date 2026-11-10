@@ -7,6 +7,7 @@ import {
 } from "../../CompletarTrabajos/utils/completarTrabajoContraproducencia";
 import { getActuacionEditableFields } from "../utils/actuacionEditRules";
 import { esFamiliaNoExisteLocalContraproducencia } from "../utils/contraproducenciaNoExisteLocal";
+import { hydrateMotivosComprobacion } from "../../../utils/motivosComprobacion";
 import { motivosNotificacionFromSlots } from "../../../utils/motivosNotificacionSlots";
 import { buildActuacionFormGlobalError } from "../utils/actuacionFormErrors";
 import { buildInspectoresForCanal } from "../utils/buildInspectoresForCanal";
@@ -77,6 +78,7 @@ export type ActuacionFormValidationInput = Pick<
   | "nombre_local"
   | "acta_comprobacion_num"
   | "comprobacion_motivo"
+  | "motivos_comprobacion"
   | "acta_notificacion_num"
   | "notificacion_motivo_1"
   | "notificacion_motivo_2"
@@ -338,7 +340,8 @@ export function validateActuacionFormForSubmit(
   }
 
   const actaComprobacion = trim(form.acta_comprobacion_num);
-  const comprobacionMotivo = trim(form.comprobacion_motivo);
+  const motivosComp = hydrateMotivosComprobacion(form);
+  const comprobacionMotivo = motivosComp[0] ?? trim(form.comprobacion_motivo);
   const actaInspeccion = trim(form.acta_inspeccion_num);
   const actaNotificacion = trim(form.acta_notificacion_num);
 
@@ -347,18 +350,27 @@ export function validateActuacionFormForSubmit(
   }
 
   if (!lockedComp) {
-    if (validarReglasActasDocumentales && visitaRealizada && actaComprobacion && !comprobacionMotivo) {
+    if (validarReglasActasDocumentales && visitaRealizada && actaComprobacion && motivosComp.length === 0) {
       fieldErrors.comprobacion_motivo = ACTUACION_VALIDATION_MESSAGES.comprobacionMotivoSiHayActa;
+      fieldErrors.motivos_comprobacion = ACTUACION_VALIDATION_MESSAGES.comprobacionMotivoSiHayActa;
     }
     if (validarReglasActasDocumentales && esNoPermiteInspeccion) {
       const tieneActa = Boolean(actaComprobacion);
-      const tieneMotivo = Boolean(comprobacionMotivo);
+      const tieneMotivo = motivosComp.length > 0;
       if (tieneActa !== tieneMotivo) {
         const msg = ACTUACION_VALIDATION_MESSAGES.comprobacionNoPermiteIncompleta;
         if (!actaComprobacion) fieldErrors.acta_comprobacion_num = msg;
-        if (!comprobacionMotivo) fieldErrors.comprobacion_motivo = msg;
-      } else if (tieneActa && tieneMotivo && !esMotivoComprobacionNoPermiteInspeccion(comprobacionMotivo)) {
+        if (!tieneMotivo) {
+          fieldErrors.comprobacion_motivo = msg;
+          fieldErrors.motivos_comprobacion = msg;
+        }
+      } else if (
+        tieneActa &&
+        tieneMotivo &&
+        !motivosComp.some((m) => esMotivoComprobacionNoPermiteInspeccion(m))
+      ) {
         fieldErrors.comprobacion_motivo = ACTUACION_VALIDATION_MESSAGES.comprobacionNoPermiteMotivoInvalido;
+        fieldErrors.motivos_comprobacion = ACTUACION_VALIDATION_MESSAGES.comprobacionNoPermiteMotivoInvalido;
       }
     }
   }

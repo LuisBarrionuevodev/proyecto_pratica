@@ -21,13 +21,17 @@ import { fetchCompletarTrabajoCatalogsCached } from "../../CompletarTrabajos/hoo
 import { mergeLegacyRubroNames } from "../../../utils/rubrosCatalogCache";
 import { useAppFeedback } from "../../../components/feedback";
 import { extractDataColumns, generateRowId } from "../utils/gridHelpers";
-import { getDropdownOptions } from "../config/dropdownOptions";
 import { dedupeInspectoresPreserveOrder } from "../utils/inspectoresGridHelpers";
 import {
   mergeMotivosNotifCatalogStrings,
   MOTIVOS_NOTIFICACION_MAX,
   slotsToMotivosApi,
 } from "../../../utils/motivosNotificacionSlots";
+import {
+  mergeMotivosCompCatalogStrings,
+  orderedMotivosComprobacion,
+  primerMotivoComprobacionLegado,
+} from "../../../utils/motivosComprobacion";
 import { normalizeActuacionApiError } from "../../Actuaciones/validations/normalizeActuacionApiError";
 import { notifyActuacionApiError } from "../../Actuaciones/utils/actuacionSaveFeedback";
 import { getCargarActuacionChecklistV2ResetState } from "../utils/cargarActuacionModalLifecycle";
@@ -44,11 +48,9 @@ import { GLASS_COLORS, moduleHeroCardSx } from "../../../styles/GlassStyles";
 import { CSS_VAR_NAMES as V } from "../../../theme/applyCssVariables";
 import {
   AppButton,
-  AppSelect,
   AppTextField,
   CardGlass,
   ResponsiveFormGrid,
-  type AppSelectOption,
 } from "../../../ui";
 import {
   InspeccionChecklistFields,
@@ -168,6 +170,8 @@ export function CargarActuacionNuevaModal() {
 
   const [texts, setTexts] = useState<Record<GlideTextKey, string>>(emptyTextFields);
   const [notifMotivosSel, setNotifMotivosSel] = useState<string[]>([]);
+  const [compMotivosSel, setCompMotivosSel] = useState<string[]>([]);
+  const [compMotivosAddInput, setCompMotivosAddInput] = useState("");
   const [inspectoresList, setInspectoresList] = useState<string[]>([]);
   /** Texto de búsqueda en Autocomplete “agregar ítem”; se limpia tras cada selección para permitir otra búsqueda. */
   const [inspectoresAddInput, setInspectoresAddInput] = useState("");
@@ -218,6 +222,14 @@ export function CargarActuacionNuevaModal() {
   const motivosDisponiblesNueva = useMemo(
     () => motivosNotifCatalogSorted.filter((m) => !notifMotivosSel.includes(m)),
     [motivosNotifCatalogSorted, notifMotivosSel]
+  );
+  const motivosCompCatalogSorted = useMemo(
+    () => mergeMotivosCompCatalogStrings(catalogMotivosComprobacion, compMotivosSel),
+    [catalogMotivosComprobacion, compMotivosSel]
+  );
+  const motivosCompDisponiblesNueva = useMemo(
+    () => motivosCompCatalogSorted.filter((m) => !compMotivosSel.includes(m)),
+    [motivosCompCatalogSorted, compMotivosSel]
   );
 
   const rubroAutocompleteOptions = useMemo(
@@ -287,6 +299,8 @@ export function CargarActuacionNuevaModal() {
     const checklistV2Reset = getCargarActuacionChecklistV2ResetState();
     setTexts(emptyTextFields());
     setNotifMotivosSel([]);
+    setCompMotivosSel([]);
+    setCompMotivosAddInput("");
     setInspectoresList([]);
     setInspectoresAddInput("");
     setNotifMotivosAddInput("");
@@ -373,7 +387,8 @@ export function CargarActuacionNuevaModal() {
         "Fecha actuación": texts["Fecha actuación"].trim() || null,
         Inspectores: dedupeInspectoresPreserveOrder(inspectoresList),
         "Acta comprobación": texts["Acta comprobación"].trim() || null,
-        "Motivo comprobación": texts["Motivo comprobación"].trim() || null,
+        "Motivo comprobación": primerMotivoComprobacionLegado(compMotivosSel),
+        motivos_comprobacion: orderedMotivosComprobacion(compMotivosSel),
         Calle: texts["Calle"].trim() || null,
         Número: texts["Número"].trim() || null,
       };
@@ -425,6 +440,8 @@ export function CargarActuacionNuevaModal() {
     (row as Record<string, unknown>)["Motivo notif 1"] = slots.m1 || null;
     (row as Record<string, unknown>)["Motivo notif 2"] = slots.m2 || null;
     (row as Record<string, unknown>)["Motivo notif 3"] = slots.m3 || null;
+    row["Motivo comprobación"] = primerMotivoComprobacionLegado(compMotivosSel);
+    row.motivos_comprobacion = orderedMotivosComprobacion(compMotivosSel);
 
     if (checklistItemsTouched) {
       (row as Record<string, unknown>).items_acta_inspeccion =
@@ -457,16 +474,11 @@ export function CargarActuacionNuevaModal() {
     texts,
     titularModo,
     notifMotivosSel,
+    compMotivosSel,
     cargaSoloComprobacion,
     caracterPersonaAtendio,
     contratoResiduos,
   ]);
-
-  const toSelectOptions = (columnId: string): AppSelectOption[] =>
-    getDropdownOptions(columnId, catalogs).map((label) => ({
-      value: label,
-      label: label === "" ? "—" : label,
-    }));
 
   const handleSubmit = async () => {
     setFieldErrors({});
@@ -1023,21 +1035,62 @@ export function CargarActuacionNuevaModal() {
             error={Boolean(errorFor("Acta comprobación"))}
             helperText={errorFor("Acta comprobación") || undefined}
           />
-          <AppSelect
-            appearance="glass"
-            label="Motivo de comprobación"
-            value={texts["Motivo comprobación"]}
-            onChange={(e) => {
-              setText("Motivo comprobación", String(e.target.value));
-              clearFe("Motivo comprobación");
-            }}
-            fullWidth
-            disabled={!catalogsReady || catalogsBootstrapping}
-            options={toSelectOptions("Motivo comprobación")}
-            error={Boolean(errorFor("Motivo comprobación"))}
-            helperText={errorFor("Motivo comprobación") || undefined}
-          />
           </ResponsiveFormGrid>
+          <Typography variant="caption" sx={{ ...labelMutedSx, display: "block" }}>
+            Motivos de comprobación
+          </Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
+            {compMotivosSel.length === 0 ? (
+              <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted }}>
+                —
+              </Typography>
+            ) : (
+              compMotivosSel.map((name, idx) => (
+                <Chip
+                  key={`${idx}-${name}`}
+                  label={name}
+                  size="small"
+                  onDelete={() => {
+                    setCompMotivosSel((prev) => prev.filter((_, i) => i !== idx));
+                    clearFe("Motivo comprobación");
+                  }}
+                  sx={modalChipSx}
+                />
+              ))
+            )}
+          </Box>
+          <Autocomplete
+            size="small"
+            options={motivosCompDisponiblesNueva}
+            value={null}
+            inputValue={compMotivosAddInput}
+            onInputChange={(_, newInput, reason) => {
+              if (reason === "input") setCompMotivosAddInput(newInput);
+              else if (reason === "clear" || reason === "reset") setCompMotivosAddInput("");
+            }}
+            onChange={(_, value) => {
+              if (value && !compMotivosSel.includes(value)) {
+                setCompMotivosSel((prev) => [...prev, value]);
+                clearFe("Motivo comprobación");
+                setCompMotivosAddInput("");
+              }
+            }}
+            disabled={
+              !catalogsReady ||
+              catalogsBootstrapping ||
+              motivosCompDisponiblesNueva.length === 0
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Agregar motivo"
+                placeholder={catalogsReady ? "Catálogo" : "…"}
+                sx={modalAuxInputSx}
+                error={Boolean(errorFor("Motivo comprobación"))}
+                helperText={errorFor("Motivo comprobación") || undefined}
+              />
+            )}
+          />
           {!cargaSoloComprobacion ? (
           <>
           <ResponsiveFormGrid sx={cargarModalFormGridSx}>

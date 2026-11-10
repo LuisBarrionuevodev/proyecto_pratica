@@ -11,6 +11,7 @@ export const ACTUACION_VALIDATION_FIELD_LABELS: Record<string, string> = {
   acta_clausura_num: "N.º de acta de clausura",
   acta_decomiso_num: "N.º de acta de decomiso",
   comprobacion_motivo: "Motivo de comprobación",
+  motivos_comprobacion: "Motivos de comprobación",
   notificacion_motivo_1: "Motivo de notificación",
   notificacion_motivo_2: "Motivo de notificación (2)",
   notificacion_motivo_3: "Motivo de notificación (3)",

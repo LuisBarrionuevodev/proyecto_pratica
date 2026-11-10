@@ -138,4 +138,17 @@ def test_map_no_permite_inspeccion_solo_comprobacion_y_clausura() -> None:
     )
     m = map_no_permite_inspeccion_actas_to_aplicar_payload(row)
     assert "comprobacion" in m and "clausura" in m
-    assert m["comprobacion"]["motivo"] == "Falta de Higiene"
+    assert m["comprobacion"]["motivo"] == "No Permite la Inspección"
+    assert "motivos" not in m["comprobacion"]
+
+
+def test_map_no_permite_incluye_lista_motivos_cuando_el_cliente_la_envia() -> None:
+    row = CompletarTrabajoCierreCompletoIn.model_construct(
+        acta_comprobacion_num="12",
+        comprobacion_motivo="No Permite la Inspección",
+        motivos_comprobacion=["No Permite la Inspección", "Falta de Higiene"],
+        acta_clausura_num="99",
+    )
+    m = map_no_permite_inspeccion_actas_to_aplicar_payload(row)
+    assert m["comprobacion"]["motivo"] == "No Permite la Inspección"
+    assert m["comprobacion"]["motivos"] == ["No Permite la Inspección", "Falta de Higiene"]

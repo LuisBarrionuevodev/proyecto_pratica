@@ -3,6 +3,11 @@ import type {
   IComprobacionRecorridoRow,
 } from "../../../api/actuacionesComprobacionActasApi";
 import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
+import {
+  hydrateMotivosComprobacion,
+  motivosComprobacionTexto,
+  type MotivosComprobacionSource,
+} from "../../../utils/motivosComprobacion";
 import { humanizarCumplimientoOficio, humanizarTipoVisitaRecorrido } from "./documentalLabelFormat";
 
 export type OficioRecorridoResumenItem = NonNullable<IComprobacionRecorridoRow["oficios_resumen"]>[number];
@@ -333,7 +338,11 @@ export function filasOficioRecorridoDocumental(
     pushSiValor(filas, "Acta de notificación", String(ejec.acta_notificacion_num ?? "").trim());
     pushSiValor(filas, "Acta de clausura", String(ejec.acta_clausura_num ?? "").trim());
     pushSiValor(filas, "Acta de decomiso", String(ejec.acta_decomiso_num ?? "").trim());
-    pushSiValor(filas, "Motivo de comprobación", String(ejec.comprobacion_motivo ?? "").trim());
+    pushSiValor(
+      filas,
+      "Motivos de comprobación",
+      motivosComprobacionTexto(hydrateMotivosComprobacion(ejec as MotivosComprobacionSource))
+    );
   } else {
     pushSiValor(
       filas,
@@ -342,8 +351,8 @@ export function filasOficioRecorridoDocumental(
     );
     pushSiValor(
       filas,
-      "Motivo de comprobación",
-      String((item as { comprobacion_motivo?: unknown }).comprobacion_motivo ?? "").trim()
+      "Motivos de comprobación",
+      motivosComprobacionTexto(hydrateMotivosComprobacion(item as MotivosComprobacionSource))
     );
   }
   return filas;
@@ -376,7 +385,11 @@ export function filasActaComprobacionRecorrido(row: IComprobacionRecorridoRow): 
     },
     { etiqueta: "Inspectores", valor: textoOGuion(inspectoresDesdeRow(row)) },
   ];
-  pushSiValor(filas, "Motivo de comprobación", String(row.comprobacion_motivo ?? "").trim());
+  pushSiValor(
+    filas,
+    "Motivos de comprobación",
+    motivosComprobacionTexto(hydrateMotivosComprobacion(row))
+  );
   return filas;
 }
 
@@ -457,7 +470,7 @@ export function recCompOficioExpMotivoChips(r: IComprobacionRecorridoRow): strin
   const n = (r.acta_comprobacion_num ?? "").toString().trim();
   const comp = n ? `Comp. ${n}` : "Comp. —";
   const oficioExp = recOficiosExpChips(r);
-  const inf = (r.comprobacion_motivo ?? "").toString().trim();
+  const inf = motivosComprobacionTexto(hydrateMotivosComprobacion(r));
   return [comp, ...oficioExp, inf || "Sin infracción o motivo cargado"];
 }
 

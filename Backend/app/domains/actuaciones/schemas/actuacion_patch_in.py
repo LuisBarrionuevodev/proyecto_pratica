@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import List, Optional
 from datetime import date
 
 from pydantic import BaseModel
@@ -40,6 +40,7 @@ class ActuacionPatchIn(BaseModel):
     notificacion_motivo_3: Optional[str] = None
     acta_comprobacion_num: Optional[str] = None
     comprobacion_motivo: Optional[str] = None
+    motivos_comprobacion: Optional[List[str]] = None
     acta_clausura_num: Optional[str] = None
     acta_decomiso_num: Optional[str] = None
     decomiso_kilos_total: Optional[float] = None

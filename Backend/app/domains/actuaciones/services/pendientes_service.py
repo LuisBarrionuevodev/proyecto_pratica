@@ -24,6 +24,9 @@ from app.models import (
 from app.models.notificacion_motivo import notificacion_motivo
 from app.utils.actas import acta_6
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
+from app.domains.actuaciones.presenters.comprobacion_motivos_presenters import (
+    payload_motivos_comprobacion,
+)
 from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     build_counts_by_eo_from_actuaciones,
 )
@@ -547,6 +550,8 @@ def _seguimiento_notificacion_vacio() -> Dict[str, Any]:
         "acta_inspeccion_num": None,
         "acta_comprobacion_num": None,
         "comprobacion_motivo": None,
+        "motivos_comprobacion": [],
+        "motivos_comprobacion_texto": None,
         "inspectores_texto": None,
         "faltas_subsanadas": None,
     }
@@ -714,7 +719,7 @@ def build_seguimiento_notificacion_por_actuacion_id(acts: List[Actuaciones]) -> 
         acta_insp = getattr(insp, "numero_acta", None) if insp is not None else None
         comp = getattr(visit, "comprobacion", None)
         acta = getattr(comp, "numero_acta", None) if comp is not None else None
-        motivo = getattr(comp, "motivo", None) if comp is not None else None
+        motivos_comp = payload_motivos_comprobacion(comp)
         out[int(act.id)] = {
             "estado": estado,
             "actuacion_id": int(visit.id),
@@ -722,7 +727,9 @@ def build_seguimiento_notificacion_por_actuacion_id(acts: List[Actuaciones]) -> 
             "orden_trabajo_numero": ot_num,
             "acta_inspeccion_num": acta_insp,
             "acta_comprobacion_num": acta,
-            "comprobacion_motivo": motivo,
+            "comprobacion_motivo": motivos_comp["comprobacion_motivo"],
+            "motivos_comprobacion": motivos_comp["motivos_comprobacion"],
+            "motivos_comprobacion_texto": motivos_comp["motivos_comprobacion_texto"],
             "inspectores_texto": _inspectores_joined_text_from_orm(visit),
             "faltas_subsanadas": faltas if faltas is not None else None,
         }

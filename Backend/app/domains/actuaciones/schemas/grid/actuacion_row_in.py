@@ -32,6 +32,10 @@ from app.domains.actuaciones.services.completar_trabajo_contraproducencia import
     contraproducencia_es_familia_no_existe_local,
     map_contraproducencia_alias_to_catalog_nombre,
 )
+from app.domains.actuaciones.schemas.comprobacion_motivos_in import (
+    motivos_comprobacion_efectivos,
+    parse_lista_motivos_comprobacion,
+)
 from app.models import (
     CatalogTipoActuacion,
     CatalogContraproducencia,
@@ -237,6 +241,7 @@ class ActuacionGridRowIn(BaseModel):
 
     acta_comprobacion_num: Optional[str] = None
     comprobacion_motivo: Optional[str] = None
+    motivos_comprobacion: Optional[List[str]] = None
 
     acta_clausura_num: Optional[str] = None
 
@@ -496,6 +501,11 @@ class ActuacionGridRowIn(BaseModel):
     def parse_motivo_comprobacion(cls, v: Any) -> Any:
         # Normaliza y valida motivos de comprobación como enum (UI dropdown)
         return _coerce_catalog_value(v, CatalogMotivoComprobacion, "motivo de comprobación")
+
+    @field_validator("motivos_comprobacion", mode="before")
+    @classmethod
+    def parse_motivos_comprobacion(cls, v: Any) -> Any:
+        return parse_lista_motivos_comprobacion(v)
     @field_validator("calle")
     @classmethod
     def normalize_calle(cls, v: Optional[str]) -> Optional[str]:
@@ -601,7 +611,12 @@ class ActuacionGridRowIn(BaseModel):
             field_errors["inspectores"] = "Seleccione al menos un inspector."
         if not self.acta_comprobacion_num:
             field_errors["acta_comprobacion_num"] = "Ingrese el número de acta de comprobación."
-        if not self.comprobacion_motivo:
+        if not motivos_comprobacion_efectivos(
+            motivos_comprobacion=self.motivos_comprobacion,
+            comprobacion_motivo=self.comprobacion_motivo,
+            fields_set=self.model_fields_set,
+        ):
+            field_errors["motivos_comprobacion"] = "Seleccione el motivo del acta de comprobación."
             field_errors["comprobacion_motivo"] = "Seleccione el motivo del acta de comprobación."
 
         if not self.calle:
@@ -656,6 +671,7 @@ class ActuacionGridRowIn(BaseModel):
                 ),
             ),
             ("comprobacion_motivo", bool(self.comprobacion_motivo)),
+            ("motivos_comprobacion", bool(self.motivos_comprobacion)),
             ("decomiso_kilos_total", self.decomiso_kilos_total is not None),
         ]
         msg = "No aplica con visita no realizada (NO EXISTE LOCAL)."
@@ -802,6 +818,19 @@ class ActuacionGridRowIn(BaseModel):
         if self.acta_notificacion_num:
             if not any([self.notificacion_motivo_1, self.notificacion_motivo_2, self.notificacion_motivo_3]):
                 field_errors["notificacion_motivo_1"] = "La notificación requiere al menos un motivo."
+
+        # Comprobación: acta ⇒ al menos un motivo (lista nueva o escalar legado)
+        if self.acta_comprobacion_num and not motivos_comprobacion_efectivos(
+            motivos_comprobacion=self.motivos_comprobacion,
+            comprobacion_motivo=self.comprobacion_motivo,
+            fields_set=self.model_fields_set,
+        ):
+            field_errors["motivos_comprobacion"] = (
+                "Si cargás acta de comprobación, elegí al menos un motivo de comprobación."
+            )
+            field_errors["comprobacion_motivo"] = (
+                "Si cargás acta de comprobación, elegí al menos un motivo de comprobación."
+            )
 
         if field_errors:
             _raise_field_errors(self.__class__.__name__, field_errors)

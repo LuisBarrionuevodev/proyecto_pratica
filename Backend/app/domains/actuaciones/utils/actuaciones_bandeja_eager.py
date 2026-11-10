@@ -6,7 +6,7 @@ from typing import List
 
 from sqlalchemy.orm import joinedload, selectinload
 
-from app.models import ActaInspeccionItem, Actuaciones, Domicilio, Inspeccion, Notificacion
+from app.models import ActaInspeccionItem, Actuaciones, Comprobacion, Domicilio, Inspeccion, Notificacion
 
 
 def options_actuacion_bandeja_grid() -> tuple:
@@ -25,7 +25,7 @@ def options_actuacion_bandeja_grid() -> tuple:
         joinedload(Actuaciones.clausura),
         joinedload(Actuaciones.decomiso),
         joinedload(Actuaciones.notificacion).selectinload(Notificacion.motivos),
-        joinedload(Actuaciones.comprobacion),
+        joinedload(Actuaciones.comprobacion).selectinload(Comprobacion.motivos_catalogo),
     )
 
 

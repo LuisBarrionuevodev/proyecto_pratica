@@ -8,8 +8,9 @@ from app.utils.actas import acta_6
 from app.domains.actuaciones.attach.acta_reactivation_helpers import (
     otra_actuacion_usa_comprobacion,
 )
+from app.models.comprobacion import SEPARADOR_TEXTO_MOTIVOS_COMPROBACION
 from app.domains.actuaciones.services.comprobacion_motivos_sync_service import (
-    sync_unico_vinculo_desde_texto_historico,
+    apply_motivos_desde_payload,
 )
 
 
@@ -23,21 +24,21 @@ def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
       si el par ya existe en BD y esta actuación aún no tenía la suya, es conflicto.
     - Si `actuacion.comprobacion_id` ya apunta a una fila, solo se actualiza esa misma fila.
 
-    Valida `motivo` como obligatorio (no vacío tras `strip()`).
-    Persiste el texto en la columna legado `comprobacion.motivo` y sincroniza
-    un único vínculo relacional si ese texto coincide exactamente con el
-    catálogo (sin concatenar ni inferir).
+    Valida al menos un motivo (lista `motivos` o escalar `motivo`).
+    La lista, si viene, reemplaza atómicamente la relación. El escalar legado
+    no puede reducir un conjunto de 2+ motivos (ValidationError 422).
 
     Args:
         actuacion: Actuación destino (debe tener `id`, `anio`, `mes` y opcionalmente `tipo`).
-        data: dict opcional con `acta_num` y `motivo`.
+        data: dict opcional con `acta_num`, `motivo` y/o `motivos`.
 
     Returns:
         None
 
     Raises:
-        ValueError: si `motivo` es vacío.
+        ValueError: si no hay ningún motivo.
         ValueError: conflicto de acta ya existente / ya vinculada a otra actuación.
+        ValidationError: lista vacía o intento de reducir varios motivos con legado.
     """
     if not data:
         return
@@ -49,7 +50,13 @@ def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
     anio = actuacion.anio
     mes = actuacion.mes
 
-    motivo = (data.get("motivo") or "").strip()
+    motivos_raw = data.get("motivos")
+    if isinstance(motivos_raw, list):
+        nombres = [(str(x) if x is not None else "").strip() for x in motivos_raw]
+        nombres = [n for n in nombres if n]
+        motivo = SEPARADOR_TEXTO_MOTIVOS_COMPROBACION.join(nombres)
+    else:
+        motivo = (data.get("motivo") or "").strip()
     if not motivo:
         raise ValueError("Motivo de comprobación es obligatorio.")
 
@@ -92,7 +99,7 @@ def attach_comprobacion(actuacion: Actuaciones, data: Optional[Dict[str, Any]]) 
             db.session.add(comp)
 
     db.session.flush()
-    sync_unico_vinculo_desde_texto_historico(comp)
+    apply_motivos_desde_payload(comp, data)
 
     if actuacion.tipo is not None:
         existe_mismo_tipo = (

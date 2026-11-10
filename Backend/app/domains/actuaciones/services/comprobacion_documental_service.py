@@ -295,6 +295,8 @@ def get_comprobacion_documental_for_actuacion(actuacion_id: int) -> Dict[str, An
     acta_comp = {
         "numero": grid.get("acta_comprobacion_num"),
         "motivo": grid.get("comprobacion_motivo"),
+        "motivos": grid.get("motivos_comprobacion") or [],
+        "motivos_texto": grid.get("motivos_comprobacion_texto"),
     }
 
     comp = db.session.get(Comprobacion, cid)

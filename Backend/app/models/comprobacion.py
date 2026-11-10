@@ -54,7 +54,7 @@ class Comprobacion(db.Model):
         "CatalogMotivoComprobacion",
         secondary=comprobacion_motivo,
         back_populates="comprobaciones",
-        order_by="CatalogMotivoComprobacion.nombre",
+        order_by=comprobacion_motivo.c.created_at,
     )
     __table_args__ = (
         db.UniqueConstraint("numero_acta", "anio", name="uq_acomp_numero_anio"),
@@ -62,14 +62,12 @@ class Comprobacion(db.Model):
 
     def motivos_comprobacion_ordenados(self):
         """
-        Lectura ordenada de motivos de catálogo vinculados (preparada para MOTIVOS.2).
+        Lectura de motivos de catálogo en el orden en que fueron agregados.
 
         Returns:
-            Lista de `CatalogMotivoComprobacion` ordenada por `nombre`.
+            Lista de `CatalogMotivoComprobacion` según `comprobacion_motivo.created_at`.
         """
-        rows = [m for m in (self.motivos_catalogo or []) if m is not None]
-        rows.sort(key=lambda m: ((m.nombre or ""), int(m.id or 0)))
-        return rows
+        return [m for m in (self.motivos_catalogo or []) if m is not None]
 
     def motivos_comprobacion_as_dicts(self) -> list[dict]:
         """

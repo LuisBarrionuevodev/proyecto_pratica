@@ -240,6 +240,8 @@ def actualizar_actuacion_parcial(actuacion_id: int, patch: ActuacionPatchIn) -> 
             comp_payload = {"numero_acta": patch_dict["acta_comprobacion_num"]}
             if "comprobacion_motivo" in patch_dict:
                 comp_payload["motivo"] = patch_dict["comprobacion_motivo"]
+            if "motivos_comprobacion" in patch_dict and patch_dict["motivos_comprobacion"] is not None:
+                comp_payload["motivos"] = patch_dict["motivos_comprobacion"]
             
             print(f"[PATCH] Actualizando comprobación: {comp_payload}")
             from app.domains.actuaciones.attach.comprobacion import attach_comprobacion

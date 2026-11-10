@@ -29,6 +29,8 @@ export interface IActuacion {
     notificacion_motivo_3?: string | null;
     acta_comprobacion_num?: string | null;
     comprobacion_motivo?: string | null;
+    motivos_comprobacion?: string[] | null;
+    motivos_comprobacion_texto?: string | null;
     acta_clausura_num?: string | null;
     clausura_motivo?: string | null;
     acta_decomiso_num?: string | null;
@@ -78,6 +80,8 @@ export interface IActuacionListado {
     notificacion_motivo_3?: string | null;
     acta_comprobacion_num?: string | null;
     comprobacion_motivo?: string | null;
+    motivos_comprobacion?: string[] | null;
+    motivos_comprobacion_texto?: string | null;
     acta_clausura_num?: string | null;
     clausura_motivo?: string | null;
     acta_decomiso_num?: string | null;

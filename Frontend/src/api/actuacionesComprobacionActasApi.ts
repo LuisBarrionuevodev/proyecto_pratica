@@ -152,6 +152,8 @@ export interface IComprobacionRecorridoRow {
   orden_trabajo_numero: string | null;
   acta_comprobacion_num: string | null;
   comprobacion_motivo: string | null;
+  motivos_comprobacion?: string[] | null;
+  motivos_comprobacion_texto?: string | null;
   rubro_nombre: string | null;
   calle: string | null;
   numero: string | null;
@@ -276,6 +278,8 @@ export interface IComprobacionRecorridoReferenciaActuacion {
   rubro_nombre?: string | null;
   /** Motivo de la comprobación (misma fuente que la grilla). */
   comprobacion_motivo?: string | null;
+  motivos_comprobacion?: string[] | null;
+  motivos_comprobacion_texto?: string | null;
   acta_inspeccion_num?: string | null;
   acta_comprobacion_num?: string | null;
   inspectores_texto?: string | null;

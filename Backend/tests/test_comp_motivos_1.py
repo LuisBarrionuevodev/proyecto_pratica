@@ -165,7 +165,7 @@ def test_set_motivos_catalogo_admite_dos_distintos_ordenados(app_ctx) -> None:
         db.session.flush()
         set_motivos_catalogo(comp, [b.nombre, a.nombre])
         db.session.flush()
-        esperados = sorted([a.nombre, b.nombre])
+        esperados = [b.nombre, a.nombre]
         assert [m.nombre for m in comp.motivos_comprobacion_ordenados()] == esperados
         assert (
             comp.texto_derivado_motivos_comprobacion()
@@ -210,7 +210,8 @@ def test_endpoint_grid_conserva_payload_escalar(app_ctx) -> None:
         db.session.flush()
         row = actuacion_to_grid_row(act)
         assert row["comprobacion_motivo"] == cat.nombre
-        assert "motivos_comprobacion" not in row
+        assert row["motivos_comprobacion"] == [cat.nombre]
+        assert row["motivos_comprobacion_texto"] == cat.nombre
         dumped = act.comprobacion.to_dict()
         assert dumped["motivo"] == cat.nombre
         assert "motivos_comprobacion" not in dumped

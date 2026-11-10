@@ -24,6 +24,8 @@ export interface ISeguimientoNotificacion {
   acta_inspeccion_num?: string | null;
   acta_comprobacion_num: string | null;
   comprobacion_motivo?: string | null;
+  motivos_comprobacion?: string[] | null;
+  motivos_comprobacion_texto?: string | null;
   inspectores_texto: string | null;
   faltas_subsanadas: boolean | null;
 }
@@ -116,6 +118,8 @@ export interface IPendientesOficioItem {
   tipo_actuacion?: string | null;
   acta_comprobacion_num: string | null;
   comprobacion_motivo: string | null;
+  motivos_comprobacion?: string[] | null;
+  motivos_comprobacion_texto?: string | null;
   contrib_apellido?: string | null;
   contrib_nombre?: string | null;
   /** Persona jurídica; si el backend la envía, la bandeja puede mostrarla. */
@@ -466,6 +470,8 @@ export type IComprobacionDocumentalReferenciaActuacion = Record<string, unknown>
 export interface IComprobacionDocumentalActaComprobacion {
   numero?: string | null;
   motivo?: string | null;
+  motivos?: string[] | null;
+  motivos_texto?: string | null;
 }
 
 export interface IComprobacionDocumentalResponse {

@@ -27,6 +27,7 @@ const INTERNAL_ERR_TO_GLIDE: Record<string, string> = {
   notificacion_motivo_3: "Motivo notif 3",
   acta_comprobacion_num: "Acta comprobación",
   comprobacion_motivo: "Motivo comprobación",
+  motivos_comprobacion: "Motivo comprobación",
   acta_clausura_num: "Acta clausura",
   acta_decomiso_num: "Acta decomiso",
   decomiso_kilos_total: "Kilos decomiso",

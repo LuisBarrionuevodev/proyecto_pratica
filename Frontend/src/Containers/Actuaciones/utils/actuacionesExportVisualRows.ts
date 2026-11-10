@@ -1,4 +1,5 @@
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
+import { hydrateMotivosComprobacion } from "../../../utils/motivosComprobacion";
 import { domicilioLineaOperativo } from "../../../utils/formatDomicilioLineaVisible";
 import {
   actuacionActaChipsOnly,
@@ -36,12 +37,14 @@ function tieneNotifMotivosReales(row: IActuacionListItem): boolean {
 /** Motivos de actas labradas en la visita (no previas sin acta ni comprobación PENDIENTE). */
 function motivosPdfDisplay(row: IActuacionListItem): string {
   const out: string[] = [];
-  const compLabrada =
-    Boolean(row.acta_comprobacion_num?.trim()) &&
-    (row.comprobacion_motivo ?? "").trim() &&
-    (row.comprobacion_motivo ?? "").trim() !== "PENDIENTE";
+  const motivosCompPdf = hydrateMotivosComprobacion(row);
+  const compLabrada = Boolean(row.acta_comprobacion_num?.trim()) && motivosCompPdf.length > 0;
   if (compLabrada) {
-    out.push(`Motivo comprobación: ${(row.comprobacion_motivo ?? "").trim()}`);
+    out.push(
+      motivosCompPdf.length === 1
+        ? `Motivo comprobación: ${motivosCompPdf[0]}`
+        : `Motivos comprobación:\n${motivosCompPdf.map((m) => `• ${m}`).join("\n")}`
+    );
   }
   const notifLabrada = Boolean(row.acta_notificacion_num?.trim()) && tieneNotifMotivosReales(row);
   if (notifLabrada) {

@@ -53,6 +53,10 @@ import {
 } from "./actuacionObservacionesVisitaPut";
 import { buildActuacionUpdatePayload } from "./buildActuacionUpdatePayload";
 import {
+  hydrateMotivosComprobacion,
+  primerMotivoComprobacionLegado,
+} from "../../../utils/motivosComprobacion";
+import {
   buildInspeccionAtencionPutFields,
   stripInspeccionAtencionResidualFromPut,
   type InspeccionAtencionTouched,
@@ -528,6 +532,9 @@ export async function submitActuacionRow(params: SubmitActuacionRowParams): Prom
   if (actasQuitarEnPutTransaccional) {
     rowWithInspectores.actas_a_quitar = actasPendingClear.map(({ tipo }) => tipo);
   }
+  const motivosCompPut = hydrateMotivosComprobacion(rowWithInspectores);
+  rowWithInspectores.motivos_comprobacion = motivosCompPut;
+  rowWithInspectores.comprobacion_motivo = primerMotivoComprobacionLegado(motivosCompPut);
   delete rowWithInspectores.limpiar_contribuyente;
 
   if (!skipValidation) {

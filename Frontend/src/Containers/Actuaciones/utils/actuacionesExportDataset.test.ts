@@ -211,6 +211,19 @@ describe("DOCS-EXP.4 — export dataset Actuaciones", () => {
       expect(row.domicilioRubro).toBe("Maipú 500 · Kiosco");
     });
 
+    it("PDF visual lista todos los motivos de comprobación", () => {
+      const [row] = buildActuacionesVisualPdfRows([
+        baseRow({
+          acta_comprobacion_num: "000321",
+          comprobacion_motivo: "Falta de Higiene",
+          motivos_comprobacion: ["Falta de Higiene", "Falta de Habilitación"],
+        }),
+      ]);
+      expect(row.motivos).toContain("Falta de Higiene");
+      expect(row.motivos).toContain("Falta de Habilitación");
+      expect(row.motivos).toContain("•");
+    });
+
     it("incluye columna Detalles en Excel", () => {
       const [row] = buildActuacionesNormalizedExcelRows([
         baseRow({

@@ -34,6 +34,7 @@ COLUMN_MAP_ACTUACIONES: dict[str, str] = {
     "Motivo notif 3": "notificacion_motivo_3",
     "Acta comprobación": "acta_comprobacion_num",
     "Motivo comprobación": "comprobacion_motivo",
+    "Motivos comprobación": "motivos_comprobacion",
     "Acta clausura": "acta_clausura_num",
     "Acta decomiso": "acta_decomiso_num",
     "Kilos decomiso": "decomiso_kilos_total",

@@ -296,6 +296,61 @@ describe("ActuacionDetalleDialog", () => {
     expect(html.indexOf("Fotos y documentación")).toBeGreaterThan(html.indexOf("Actas y resultado"));
   });
 
+  it("modo lectura muestra todos los motivos de comprobación", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={{
+          ...baseRow,
+          acta_comprobacion_num: "000321",
+          comprobacion_motivo: "Falta de Higiene",
+          motivos_comprobacion: ["Falta de Higiene", "Falta de Habilitación"],
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    const lectura = lecturaMarkup(html);
+    expect(lectura).toContain("Motivos de comprobación");
+    expect(lectura).toContain("Falta de Higiene");
+    expect(lectura).toContain("Falta de Habilitación");
+  });
+
+  it("edición lista motivos de comprobación y permite agregar del catálogo", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        initialEditing
+        draft={{
+          ...baseRow,
+          acta_comprobacion_num: "000321",
+          comprobacion_motivo: "Falta de Higiene",
+          motivos_comprobacion: ["Falta de Higiene"],
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={{
+          ...catalogs,
+          motivosComprobacion: ["Falta de Higiene", "Falta de Habilitación"],
+        }}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("Motivos de comprobación");
+    expect(html).toContain("Falta de Higiene");
+    expect(html).toContain("Agregar motivo");
+  });
+
   it("modo lectura muestra — en campos históricos vacíos y no admite edición", () => {
     const html = render(
       <ActuacionDetalleDialog

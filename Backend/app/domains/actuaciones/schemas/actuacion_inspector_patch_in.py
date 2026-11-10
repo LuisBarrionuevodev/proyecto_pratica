@@ -7,6 +7,7 @@ from typing import Any, List, Optional
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from app.domains.actuaciones.schemas.corregir_cierre_oficio_in import ActaCanalQuitarTipo
+from app.domains.actuaciones.schemas.comprobacion_motivos_in import parse_lista_motivos_comprobacion
 from app.domains.actuaciones.schemas.grid.actuacion_row_in import (
     MSG_LIMPIAR_CONTRIBUYENTE_BLOQUEADO_EDICION,
     _clean_str,
@@ -72,6 +73,7 @@ class ActuacionInspectorPatchIn(BaseModel):
 
     acta_comprobacion_num: Optional[str] = None
     comprobacion_motivo: Optional[str] = None
+    motivos_comprobacion: Optional[List[str]] = None
 
     acta_clausura_num: Optional[str] = None
 
@@ -213,6 +215,11 @@ class ActuacionInspectorPatchIn(BaseModel):
     @classmethod
     def parse_motivo_comprobacion(cls, v: Any) -> Any:
         return _coerce_catalog_value(v, CatalogMotivoComprobacion, "motivo de comprobación")
+
+    @field_validator("motivos_comprobacion", mode="before")
+    @classmethod
+    def parse_motivos_comprobacion(cls, v: Any) -> Any:
+        return parse_lista_motivos_comprobacion(v)
 
     @model_validator(mode="after")
     def bloquear_limpiar_contribuyente_edicion(self) -> "ActuacionInspectorPatchIn":

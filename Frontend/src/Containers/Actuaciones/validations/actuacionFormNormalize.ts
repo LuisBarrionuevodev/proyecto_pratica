@@ -1,4 +1,5 @@
 import type { ActaCanalQuitarTipo, IActuacionListItem } from "../../../api/actuacionesListApi";
+import { hydrateMotivosComprobacion } from "../../../utils/motivosComprobacion";
 import { motivosNotificacionFromSlots } from "../../../utils/motivosNotificacionSlots";
 import { isReinspeccionPorNotificacion } from "../utils/actuacionesExportPdfResumen";
 /** Campos de número de acta labrada en el formulario CRUD. */
@@ -106,9 +107,10 @@ export function sanitizeEmptyActasForPut(row: IActuacionListItem): IActuacionLis
     out.acta_notificacion_num = null;
   }
 
-  if (!trim(out.acta_comprobacion_num) && !trim(out.comprobacion_motivo)) {
+  if (!trim(out.acta_comprobacion_num) && hydrateMotivosComprobacion(out).length === 0) {
     out.acta_comprobacion_num = null;
     out.comprobacion_motivo = null;
+    out.motivos_comprobacion = [];
   } else if (!trim(out.acta_comprobacion_num)) {
     out.acta_comprobacion_num = null;
   }
@@ -165,7 +167,7 @@ export function detectActasClearedByUser(
   if (
     trimActaNum(original.acta_comprobacion_num) &&
     !trimActaNum(draft.acta_comprobacion_num) &&
-    !trim(draft.comprobacion_motivo)
+    hydrateMotivosComprobacion(draft).length === 0
   ) {
     cleared.push({ tipo: "COMPROBACION", field: "acta_comprobacion_num" });
   }

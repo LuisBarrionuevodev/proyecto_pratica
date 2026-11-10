@@ -64,6 +64,9 @@ from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
     count_actuaciones_por_establecimiento_operativo_ids,
 )
 from app.domains.actuaciones.attach.inspeccion import items_acta_inspeccion_read_dtos
+from app.domains.actuaciones.presenters.comprobacion_motivos_presenters import (
+    payload_motivos_comprobacion,
+)
 from app.domains.actuaciones.utils.inspeccion_atencion import inspeccion_atencion_grid_fields
 from app.models import (
     Actuaciones,
@@ -961,7 +964,8 @@ def actuacion_to_grid_row(
         int(getattr(noti, "cantidad_personas_sin_carnet_sanidad", 0) or 0) if noti else 0
     )
     acta_comprobacion_num = getattr(comp, "numero_acta", None) if comp else None
-    comprobacion_motivo = getattr(comp, "motivo", None) if comp else None
+    motivos_comp_payload = payload_motivos_comprobacion(comp)
+    comprobacion_motivo = motivos_comp_payload["comprobacion_motivo"]
 
     # Motivos de notificación (M2M)
     # Tu modelo real usa "motivo", pero dejamos compatibilidad con "motivos"
@@ -1122,6 +1126,8 @@ def actuacion_to_grid_row(
 
         "acta_comprobacion_num": acta_comprobacion_num,
         "comprobacion_motivo": comprobacion_motivo,
+        "motivos_comprobacion": motivos_comp_payload["motivos_comprobacion"],
+        "motivos_comprobacion_texto": motivos_comp_payload["motivos_comprobacion_texto"],
 
         "acta_clausura_num": acta_clausura_num,
 
@@ -1251,6 +1257,8 @@ def _seguimiento_notificacion_dto_vacio() -> Dict[str, Any]:
         "acta_inspeccion_num": None,
         "acta_comprobacion_num": None,
         "comprobacion_motivo": None,
+        "motivos_comprobacion": [],
+        "motivos_comprobacion_texto": None,
         "inspectores_texto": None,
         "faltas_subsanadas": None,
     }
@@ -1445,6 +1453,8 @@ def actuacion_to_pendiente_oficio_row(
         "tipo_actuacion": full.get("tipo_actuacion"),
         "acta_comprobacion_num": full.get("acta_comprobacion_num"),
         "comprobacion_motivo": full.get("comprobacion_motivo"),
+        "motivos_comprobacion": full.get("motivos_comprobacion") or [],
+        "motivos_comprobacion_texto": full.get("motivos_comprobacion_texto"),
         "contrib_apellido": full.get("contrib_apellido"),
         "contrib_nombre": full.get("contrib_nombre"),
         "razon_social": full.get("razon_social"),

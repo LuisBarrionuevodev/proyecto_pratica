@@ -26,7 +26,13 @@ import {
   motivosNotificacionFromSlots,
   orderedMotivosNotificacion,
 } from "../../../utils/motivosNotificacionSlots";
-import { getDropdownOptions } from "../../CargarActuaciones/config/dropdownOptions";
+import {
+  hydrateMotivosComprobacion,
+  mergeMotivosCompCatalogStrings,
+  motivosComprobacionLecturaMultilinea,
+  orderedMotivosComprobacion,
+  primerMotivoComprobacionLegado,
+} from "../../../utils/motivosComprobacion";
 import { mergeLegacyRubroNames } from "../../../utils/rubrosCatalogCache";
 import { domicilioCalleValorEdicion, domicilioNumeroValorEdicion, domicilioRowParaEdicionCalle } from "../../../utils/domicilioCalleUi";
 import { useAppFeedback } from "../../../components/feedback";
@@ -408,7 +414,7 @@ function LecturaDato({
           py: 1,
         })}
       >
-        <Typography variant="body2" sx={crudReadonlyFieldValueSx}>
+        <Typography variant="body2" sx={mergeSx(crudReadonlyFieldValueSx, { whiteSpace: "pre-line" })}>
           {dash(value)}
         </Typography>
       </Box>
@@ -491,7 +497,7 @@ function actasVisitaHayContenido(draft: IActuacionListItem): boolean {
   const nDec = draft.acta_decomiso_num;
   const kg = draft.decomiso_kilos_total;
   const motivosNoti = motivosNotificacionNoVacios(draft);
-  const mComp = draft.comprobacion_motivo != null ? String(draft.comprobacion_motivo).trim() : "";
+  const mComp = hydrateMotivosComprobacion(draft);
   const notificacionOrigen =
     draft.origen_reinspeccion_notificacion?.notificacion_acta_numero?.trim() ?? "";
   const comprobacionOrigen =
@@ -506,7 +512,7 @@ function actasVisitaHayContenido(draft: IActuacionListItem): boolean {
     (nComp != null &&
       String(nComp).trim() !== "" &&
       String(nComp).trim() !== comprobacionOrigen) ||
-    mComp !== "";
+    mComp.length > 0;
   const showClausura = !!(nClau != null && String(nClau).trim() !== "");
   const showDecomiso = (nDec != null && String(nDec).trim() !== "") || kg != null;
   return showInspeccion || showNotificacion || showComprobacion || showClausura || showDecomiso;
@@ -541,7 +547,7 @@ function ActasVisitaLectura({
   const nDec = draft.acta_decomiso_num;
   const kg = draft.decomiso_kilos_total;
   const motivosNoti = motivosNotificacionNoVacios(draft);
-  const mComp = draft.comprobacion_motivo != null ? String(draft.comprobacion_motivo).trim() : "";
+  const mComp = hydrateMotivosComprobacion(draft);
   const notificacionOrigen =
     draft.origen_reinspeccion_notificacion?.notificacion_acta_numero?.trim() ?? "";
   const comprobacionOrigen =
@@ -557,7 +563,7 @@ function ActasVisitaLectura({
     (nComp != null &&
       String(nComp).trim() !== "" &&
       String(nComp).trim() !== comprobacionOrigen) ||
-    mComp !== "";
+    mComp.length > 0;
   const showClausura = !!(nClau != null && String(nClau).trim() !== "");
   const showDecomiso =
     (nDec != null && String(nDec).trim() !== "") || kg != null;
@@ -702,8 +708,12 @@ function ActasVisitaLectura({
           value={cantidadPersonasSinCarnetFromRow(draft)}
         />
       ) : null}
-      {mComp ? (
-        <LecturaDato label="Motivo de comprobación" value={mComp} />
+      {mComp.length > 0 ? (
+        <LecturaDato
+          label="Motivos de comprobación"
+          value={motivosComprobacionLecturaMultilinea(mComp)}
+          fullWidth
+        />
       ) : null}
       {kg != null ? (
         <LecturaDato label="Kilos decomisados" value={`${kg} kg`} />
@@ -1509,11 +1519,6 @@ export function ActuacionDetalleDialog({
     [catalogs.rubros, draft.rubro_nombre]
   );
 
-  const motivoComprobacionOptions = useMemo(
-    () => opts(getDropdownOptions("Motivo comprobación", mergedCatalogs)),
-    [mergedCatalogs]
-  );
-
   const contraCrudOptions = useMemo(
     () => buildContraproducenciaCrudSelectOptions(mergedCatalogs.contraproducencias, draft.contraproducencia),
     [mergedCatalogs.contraproducencias, draft.contraproducencia]
@@ -1794,6 +1799,17 @@ export function ActuacionDetalleDialog({
     [onDraftChange]
   );
 
+  const applyMotivosComprobacion = useCallback(
+    (sel: string[]) => {
+      const o = orderedMotivosComprobacion(sel);
+      onDraftChange({
+        motivos_comprobacion: o,
+        comprobacion_motivo: primerMotivoComprobacionLegado(o),
+      });
+    },
+    [onDraftChange]
+  );
+
   const checklistItemsTouchedRef = useRef(false);
   const personasSinCarnetTouchedRef = useRef(false);
   const hydratedChecklistActIdRef = useRef<number | null>(null);
@@ -1853,7 +1869,7 @@ export function ActuacionDetalleDialog({
     (value: string | null) =>
       onDraftChange({
         acta_comprobacion_num: value,
-        ...(value == null ? { comprobacion_motivo: null } : {}),
+        ...(value == null ? { comprobacion_motivo: null, motivos_comprobacion: [] } : {}),
       }),
     [onDraftChange]
   );
@@ -2177,8 +2193,17 @@ export function ActuacionDetalleDialog({
       </Box>
     );
 
+    const motivosCompSeleccionados = hydrateMotivosComprobacion(draft);
+    const motivosCompCatalogMerged = mergeMotivosCompCatalogStrings(
+      catalogs.motivosComprobacion ?? [],
+      motivosCompSeleccionados
+    );
+    const motivosCompDisponiblesAgregar = motivosCompCatalogMerged.filter(
+      (m) => !motivosCompSeleccionados.includes(m)
+    );
+
     const gridComprobacion = (
-      <Box sx={edicionGrid2ColSx}>
+      <Box sx={{ ...col, width: "100%" }}>
         <ActaNumFieldLazy
           label={ACTA_FIELD_LABELS.comprobacion}
           value={draft.acta_comprobacion_num}
@@ -2189,16 +2214,52 @@ export function ActuacionDetalleDialog({
           error={!!e("acta_comprobacion_num")}
           helperText={helperBloqueo("acta_comprobacion_num", lockedComp)}
         />
-        <AppSelect
-          appearance="glass"
-          label="Motivo de comprobación"
-          value={draft.comprobacion_motivo ?? ""}
-          onChange={(ev) => onDraftChange({ comprobacion_motivo: ev.target.value as string })}
-          options={motivoComprobacionOptions}
-          disabled={lockedComp}
-          error={!!e("comprobacion_motivo")}
-          helperText={helperBloqueo("comprobacion_motivo", lockedComp)}
-          fullWidth
+        <Typography variant="caption" sx={{ ...labelMuted, display: "block" }}>
+          Motivos de comprobación
+        </Typography>
+        <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
+          {motivosCompSeleccionados.length === 0 ? (
+            <Typography variant="body2" sx={{ color: "rgba(255,255,255,0.45)" }}>
+              —
+            </Typography>
+          ) : (
+            motivosCompSeleccionados.map((name) => (
+              <Chip
+                key={name}
+                label={name}
+                size="small"
+                disabled={lockedComp}
+                onDelete={
+                  lockedComp
+                    ? undefined
+                    : () =>
+                        applyMotivosComprobacion(motivosCompSeleccionados.filter((x) => x !== name))
+                }
+                sx={actuacionModalChipSx}
+              />
+            ))
+          )}
+        </Box>
+        <Autocomplete
+          size="small"
+          options={motivosCompDisponiblesAgregar}
+          value={null}
+          disabled={lockedComp || motivosCompDisponiblesAgregar.length === 0}
+          onChange={(_, value) => {
+            if (!value || lockedComp) return;
+            if (motivosCompSeleccionados.includes(value)) return;
+            applyMotivosComprobacion([...motivosCompSeleccionados, value]);
+          }}
+          renderInput={(params) => (
+            <TextField
+              {...params}
+              label="Agregar motivo"
+              placeholder="Catálogo"
+              sx={modalAuxInputSx}
+              error={!!(e("comprobacion_motivo") || e("motivos_comprobacion"))}
+              helperText={helperBloqueo("comprobacion_motivo", lockedComp) || helperBloqueo("motivos_comprobacion", lockedComp)}
+            />
+          )}
         />
       </Box>
     );
@@ -2779,7 +2840,7 @@ export function ActuacionDetalleDialog({
     lockedComp,
     mergedCatalogs,
     rubrosOptions,
-    motivoComprobacionOptions,
+    catalogs.motivosComprobacion,
     contraCrudOptions,
     contraUxHint,
     epicollectOtrosExpanded,
@@ -2791,6 +2852,7 @@ export function ActuacionDetalleDialog({
     commitActaClausura,
     commitActaDecomiso,
     applyMotivosNotificacion,
+    applyMotivosComprobacion,
     applyInspectoresNombres,
     saving,
     seguimientoFieldErrors,

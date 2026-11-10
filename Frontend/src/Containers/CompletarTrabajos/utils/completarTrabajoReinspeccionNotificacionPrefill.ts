@@ -1,4 +1,5 @@
 import type { ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
+import { hydrateMotivosComprobacion } from "../../../utils/motivosComprobacion";
 import { domicilioRowParaHidratacionCompletarTrabajo } from "../../../utils/domicilioCalleUi";
 
 export type CompletarTrabajoOperativoPrefill = {
@@ -15,6 +16,7 @@ export type CompletarTrabajoOperativoPrefill = {
   notifMotivosSeleccion: string[];
   actaComprobacion: string;
   comprobacionMotivo: string;
+  compMotivosSeleccion: string[];
   actaClausura: string;
   actaDecomiso: string;
   decomisoKilos: string;
@@ -42,6 +44,7 @@ export function prefillOperativoReinspeccionNotificacion(
     notifMotivosSeleccion: [],
     actaComprobacion: row.acta_comprobacion_num ?? "",
     comprobacionMotivo: row.comprobacion_motivo ?? "",
+    compMotivosSeleccion: hydrateMotivosComprobacion(row),
     actaClausura: row.acta_clausura_num ?? "",
     actaDecomiso: row.acta_decomiso_num ?? "",
     decomisoKilos: row.decomiso_kilos_total == null ? "" : String(row.decomiso_kilos_total),

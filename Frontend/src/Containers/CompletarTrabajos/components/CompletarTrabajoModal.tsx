@@ -132,6 +132,11 @@ import {
   mergeMotivosNotifCatalogStrings,
   slotsToMotivosApi,
 } from "../../../utils/motivosNotificacionSlots";
+import {
+  mergeMotivosCompCatalogStrings,
+  orderedMotivosComprobacion,
+  primerMotivoComprobacionLegado,
+} from "../../../utils/motivosComprobacion";
 import { ReinspeccionOficioResultadoFields } from "../../../shared/reinspeccionOficio/ReinspeccionOficioResultadoFields";
 import { usaInspeccionNormalReinspeccionOficio } from "../../../shared/reinspeccionOficio/usaInspeccionNormalReinspeccionOficio";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
@@ -257,6 +262,7 @@ function buildCompletarTrabajoValidationForm(
     notifMotivosSeleccion: string[];
     actaComprobacion: string;
     comprobacionMotivo: string;
+    compMotivosSeleccion: string[];
     actaClausura: string;
     actaDecomiso: string;
     decomisoKilos: string;
@@ -290,6 +296,7 @@ function buildCompletarTrabajoValidationForm(
     acta_inspeccion_num: params.actaInspeccion,
     acta_comprobacion_num: params.actaComprobacion,
     comprobacion_motivo: params.comprobacionMotivo,
+    motivos_comprobacion: params.compMotivosSeleccion,
     acta_notificacion_num: params.actaNotificacion,
     notificacion_motivo_1: notifSlotsPre.m1,
     notificacion_motivo_2: notifSlotsPre.m2,
@@ -313,6 +320,7 @@ const ACTA_KEYS_EMPTY = {
   notificacion_motivo_3: "",
   acta_comprobacion_num: "",
   comprobacion_motivo: "",
+  motivos_comprobacion: [] as string[],
   acta_clausura_num: "",
   acta_decomiso_num: "",
   decomiso_kilos_total: "",
@@ -413,7 +421,7 @@ type OperativoFieldSetters = {
   setActaNotificacion: (v: string) => void;
   setNotifMotivosSeleccion: (v: string[]) => void;
   setActaComprobacion: (v: string) => void;
-  setComprobacionMotivo: (v: string) => void;
+  setCompMotivosSel: (v: string[]) => void;
   setActaClausura: (v: string) => void;
   setActaDecomiso: (v: string) => void;
   setDecomisoKilos: (v: string) => void;
@@ -443,7 +451,7 @@ function hydrateOperativoFieldsFromRow(
   set.setActaNotificacion(h.actaNotificacion);
   set.setNotifMotivosSeleccion(h.notifMotivosSeleccion);
   set.setActaComprobacion(h.actaComprobacion);
-  set.setComprobacionMotivo(h.comprobacionMotivo);
+  set.setCompMotivosSel(h.compMotivosSeleccion);
   set.setActaClausura(h.actaClausura);
   set.setActaDecomiso(h.actaDecomiso);
   set.setDecomisoKilos(h.decomisoKilos);
@@ -470,7 +478,7 @@ function clearOperativoFields(set: OperativoFieldSetters): void {
   set.setActaNotificacion("");
   set.setNotifMotivosSeleccion([]);
   set.setActaComprobacion("");
-  set.setComprobacionMotivo("");
+  set.setCompMotivosSel([]);
   set.setActaClausura("");
   set.setActaDecomiso("");
   set.setDecomisoKilos("");
@@ -541,7 +549,9 @@ export function CompletarTrabajoModal({
   const [actaNotificacion, setActaNotificacion] = useState("");
   const [notifMotivosSeleccion, setNotifMotivosSeleccion] = useState<string[]>([]);
   const [actaComprobacion, setActaComprobacion] = useState("");
-  const [comprobacionMotivo, setComprobacionMotivo] = useState("");
+  const [compMotivosSel, setCompMotivosSel] = useState<string[]>([]);
+  const [compMotivosAddInput, setCompMotivosAddInput] = useState("");
+  const comprobacionMotivo = primerMotivoComprobacionLegado(compMotivosSel) ?? "";
   const [actaClausura, setActaClausura] = useState("");
   const [actaDecomiso, setActaDecomiso] = useState("");
   const [decomisoKilos, setDecomisoKilos] = useState("");
@@ -637,7 +647,7 @@ export function CompletarTrabajoModal({
       setActaNotificacion,
       setNotifMotivosSeleccion,
       setActaComprobacion,
-      setComprobacionMotivo,
+      setCompMotivosSel,
       setActaClausura,
       setActaDecomiso,
       setDecomisoKilos,
@@ -735,6 +745,7 @@ export function CompletarTrabajoModal({
       hydrateOperativoFieldsFromRow(resolvedRow, operativoSetters, catalogs?.itemsActaInspeccion ?? []);
       setInspectoresAddInput("");
       setNotifMotivosAddInput("");
+      setCompMotivosAddInput("");
       return;
     }
     if (resolvedRow.tipo_iniciador === "REINSPECCION_NOTIFICACION") {
@@ -757,12 +768,13 @@ export function CompletarTrabajoModal({
       setActaNotificacion(pre.actaNotificacion);
       setNotifMotivosSeleccion(pre.notifMotivosSeleccion);
       setActaComprobacion(pre.actaComprobacion);
-      setComprobacionMotivo(pre.comprobacionMotivo);
+      setCompMotivosSel(pre.compMotivosSeleccion);
       setActaClausura(pre.actaClausura);
       setActaDecomiso(pre.actaDecomiso);
       setDecomisoKilos(pre.decomisoKilos);
       setInspectoresAddInput("");
       setNotifMotivosAddInput("");
+      setCompMotivosAddInput("");
       return;
     }
     setResultadoCumplimientoOficio("");
@@ -771,6 +783,7 @@ export function CompletarTrabajoModal({
     hydrateOperativoFieldsFromRow(resolvedRow, operativoSetters, catalogs?.itemsActaInspeccion ?? []);
     setInspectoresAddInput("");
     setNotifMotivosAddInput("");
+    setCompMotivosAddInput("");
   }, [open, resolvedRow, inspectoresGrupo, tipoActuacionEsperadoRef, buildOperativoSetters]);
 
   useEffect(() => {
@@ -1106,19 +1119,19 @@ export function CompletarTrabajoModal({
     () => motivosNotifCatalogSorted.filter((m) => !notifMotivosSeleccion.includes(m)),
     [motivosNotifCatalogSorted, notifMotivosSeleccion]
   );
-  const motivoCompOpts = useMemo(() => {
-    const all = mergeCatalogOpts(cat.motivosComprobacion, comprobacionMotivo || undefined);
-    if (esNoPermiteInspeccion && !visitaRealizada && String(actaComprobacion ?? "").trim()) {
-      return all.filter((o) => esMotivoComprobacionNoPermiteInspeccion(o.value));
+  const motivosCompCatalogSorted = useMemo(
+    () => mergeMotivosCompCatalogStrings(cat.motivosComprobacion ?? [], compMotivosSel),
+    [cat.motivosComprobacion, compMotivosSel]
+  );
+  const motivoCompBloqueado =
+    esNoPermiteInspeccion && !visitaRealizada && Boolean(String(actaComprobacion ?? "").trim());
+  const motivosCompDisponiblesParaAgregar = useMemo(() => {
+    let opts = motivosCompCatalogSorted.filter((m) => !compMotivosSel.includes(m));
+    if (motivoCompBloqueado) {
+      opts = opts.filter((m) => esMotivoComprobacionNoPermiteInspeccion(m));
     }
-    return all;
-  }, [
-    cat.motivosComprobacion,
-    comprobacionMotivo,
-    esNoPermiteInspeccion,
-    visitaRealizada,
-    actaComprobacion,
-  ]);
+    return opts;
+  }, [motivosCompCatalogSorted, compMotivosSel, motivoCompBloqueado]);
 
   const completarTrabajoMediaSaveDeps = useCallback(() => {
     if (!resolvedRow) return null;
@@ -1586,6 +1599,7 @@ export function CompletarTrabajoModal({
         notifMotivosSeleccion,
         actaComprobacion,
         comprobacionMotivo,
+        compMotivosSeleccion: compMotivosSel,
         actaClausura,
         actaDecomiso,
         decomisoKilos,
@@ -1672,6 +1686,7 @@ export function CompletarTrabajoModal({
           acta_inspeccion_num: actaNumForPayload(actaInspeccion),
           acta_comprobacion_num: actaNumForPayload(actaComprobacion),
           comprobacion_motivo: comprobacionMotivo,
+          motivos_comprobacion: orderedMotivosComprobacion(compMotivosSel),
           acta_clausura_num: actaNumForPayload(actaClausura),
           acta_decomiso_num: actaNumForPayload(actaDecomiso),
           decomiso_kilos_total: decomisoKilos,
@@ -1715,6 +1730,7 @@ export function CompletarTrabajoModal({
         Object.assign(values, {
           acta_comprobacion_num: actaNumForPayload(actaComprobacion),
           comprobacion_motivo: comprobacionMotivo,
+          motivos_comprobacion: orderedMotivosComprobacion(compMotivosSel),
           acta_clausura_num: actaNumForPayload(actaClausura),
         });
       }
@@ -2061,7 +2077,7 @@ export function CompletarTrabajoModal({
                 setActaNotificacion("");
                 setNotifMotivosSeleccion([]);
                 setActaComprobacion("");
-                setComprobacionMotivo("");
+                setCompMotivosSel([]);
                 setActaClausura("");
                 setActaDecomiso("");
                 setDecomisoKilos("");
@@ -2573,39 +2589,76 @@ export function CompletarTrabajoModal({
                   esNoPermiteInspeccion &&
                   !visitaRealizada &&
                   next.trim() &&
-                  !comprobacionMotivo.trim()
+                  compMotivosSel.length === 0
                 ) {
-                  setComprobacionMotivo(MOTIVO_COMPROBACION_NO_PERMITE_INSPECCION);
+                  setCompMotivosSel([MOTIVO_COMPROBACION_NO_PERMITE_INSPECCION]);
                 }
               }}
               error={Boolean(fe("acta_comprobacion_num"))}
               helperText={fe("acta_comprobacion_num") || undefined}
             />
-            <AppSelect
-              appearance="glass"
-              label="Motivo de comprobación"
-              value={comprobacionMotivo}
-              onChange={(e) => {
-                setComprobacionMotivo(e.target.value);
-                clearFe("comprobacion_motivo");
-              }}
-              fullWidth
-              disabled={
-                !catalogsReady ||
-                (esNoPermiteInspeccion &&
-                  !visitaRealizada &&
-                  Boolean(String(actaComprobacion ?? "").trim()))
-              }
-              options={motivoCompOpts}
-              required={
-                esNoPermiteInspeccion &&
-                !visitaRealizada &&
-                Boolean(String(actaComprobacion ?? "").trim())
-              }
-              error={Boolean(fe("comprobacion_motivo"))}
-              helperText={fe("comprobacion_motivo") || undefined}
-            />
           </ResponsiveFormGrid>
+          <Typography variant="caption" sx={labelMutedSx}>
+            Motivos de comprobación
+          </Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.75, alignItems: "center" }}>
+            {compMotivosSel.length === 0 ? (
+              <Typography variant="body2" sx={{ color: GLASS_COLORS.textMuted }}>
+                —
+              </Typography>
+            ) : (
+              compMotivosSel.map((name, idx) => (
+                <Chip
+                  key={`${idx}-${name}`}
+                  label={name}
+                  size="small"
+                  onDelete={
+                    motivoCompBloqueado
+                      ? undefined
+                      : () => {
+                          setCompMotivosSel((prev) => prev.filter((_, i) => i !== idx));
+                          clearFe("comprobacion_motivo");
+                          clearFe("motivos_comprobacion");
+                        }
+                  }
+                  sx={modalChipSx}
+                />
+              ))
+            )}
+          </Box>
+          <Autocomplete
+            size="small"
+            options={motivosCompDisponiblesParaAgregar}
+            value={null}
+            inputValue={compMotivosAddInput}
+            onInputChange={(_, newInput, reason) => {
+              if (reason === "input") setCompMotivosAddInput(newInput);
+              else if (reason === "clear" || reason === "reset") setCompMotivosAddInput("");
+            }}
+            onChange={(_, value) => {
+              if (value && !compMotivosSel.includes(value)) {
+                setCompMotivosSel((prev) => [...prev, value]);
+                clearFe("comprobacion_motivo");
+                clearFe("motivos_comprobacion");
+                setCompMotivosAddInput("");
+              }
+            }}
+            disabled={
+              !catalogsReady ||
+              motivoCompBloqueado ||
+              motivosCompDisponiblesParaAgregar.length === 0
+            }
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Agregar motivo"
+                placeholder={catalogsReady ? "Catálogo" : "…"}
+                sx={modalAuxInputSx}
+                error={Boolean(fe("comprobacion_motivo") || fe("motivos_comprobacion"))}
+                helperText={fe("motivos_comprobacion") || fe("comprobacion_motivo") || undefined}
+              />
+            )}
+          />
           <ResponsiveFormGrid sx={completarModalFormGridSx}>
             <ActaNumFieldLazy
               appearance="glass"

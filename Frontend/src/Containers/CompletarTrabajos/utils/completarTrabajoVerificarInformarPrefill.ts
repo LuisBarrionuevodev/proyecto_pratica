@@ -1,5 +1,6 @@
 import type { ICompletarTrabajoPendienteRow } from "../../../api/completarTrabajoApi";
 import { domicilioRowParaHidratacionCompletarTrabajo } from "../../../utils/domicilioCalleUi";
+import { hydrateMotivosComprobacion } from "../../../utils/motivosComprobacion";
 import { motivosNotificacionFromSlots } from "../../../utils/motivosNotificacionSlots";
 import type { IItemActaInspeccionCatalogItem } from "../../../api/itemActaInspeccionCatalogApi";
 import {
@@ -26,6 +27,7 @@ export type CompletarTrabajoOperativoHydration = {
   notifMotivosSeleccion: string[];
   actaComprobacion: string;
   comprobacionMotivo: string;
+  compMotivosSeleccion: string[];
   actaClausura: string;
   actaDecomiso: string;
   decomisoKilos: string;
@@ -61,6 +63,7 @@ export function operativoHydrationFromRow(
     ),
     actaComprobacion: row.acta_comprobacion_num ?? "",
     comprobacionMotivo: row.comprobacion_motivo ?? "",
+    compMotivosSeleccion: hydrateMotivosComprobacion(row),
     actaClausura: row.acta_clausura_num ?? "",
     actaDecomiso: row.acta_decomiso_num ?? "",
     decomisoKilos: kilos == null ? "" : String(kilos),

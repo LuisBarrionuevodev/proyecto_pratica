@@ -219,10 +219,13 @@ def map_completar_trabajo_cierre_to_aplicar_payload(
             }
 
     if row.acta_comprobacion_num:
-        payload["comprobacion"] = {
+        comp_payload: dict[str, Any] = {
             "acta_num": _zfill6_if_digit(_clean_str(row.acta_comprobacion_num)),
             "motivo": _clean_str(row.comprobacion_motivo),
         }
+        if "motivos_comprobacion" in row.model_fields_set and row.motivos_comprobacion is not None:
+            comp_payload["motivos"] = list(row.motivos_comprobacion)
+        payload["comprobacion"] = comp_payload
 
     if row.acta_clausura_num:
         payload["clausura"] = {"acta_num": _zfill6_if_digit(_clean_str(row.acta_clausura_num))}
@@ -246,10 +249,13 @@ def map_no_permite_inspeccion_actas_to_aplicar_payload(
     """
     payload: dict[str, Any] = {}
     if row.acta_comprobacion_num:
-        payload["comprobacion"] = {
+        comp_payload: dict[str, Any] = {
             "acta_num": _zfill6_if_digit(_clean_str(row.acta_comprobacion_num)),
             "motivo": _clean_str(row.comprobacion_motivo),
         }
+        if "motivos_comprobacion" in row.model_fields_set and row.motivos_comprobacion is not None:
+            comp_payload["motivos"] = list(row.motivos_comprobacion)
+        payload["comprobacion"] = comp_payload
     if row.acta_clausura_num:
         payload["clausura"] = {"acta_num": _zfill6_if_digit(_clean_str(row.acta_clausura_num))}
     return payload

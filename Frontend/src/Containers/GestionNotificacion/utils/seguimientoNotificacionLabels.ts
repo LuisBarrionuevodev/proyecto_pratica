@@ -3,6 +3,10 @@ import type {
   ISeguimientoNotificacion,
   SeguimientoNotificacionEstado,
 } from "../../../api/actuacionesPendientesApi";
+import {
+  hydrateMotivosComprobacion,
+  motivosComprobacionTexto,
+} from "../../../utils/motivosComprobacion";
 
 export function seguimientoNotificacionDeFila(
   row: IActuacionesPendientesItem | null | undefined
@@ -17,6 +21,8 @@ export function seguimientoNotificacionDeFila(
       acta_inspeccion_num: seg.acta_inspeccion_num ?? null,
       acta_comprobacion_num: seg.acta_comprobacion_num ?? null,
       comprobacion_motivo: seg.comprobacion_motivo ?? null,
+      motivos_comprobacion: seg.motivos_comprobacion ?? [],
+      motivos_comprobacion_texto: seg.motivos_comprobacion_texto ?? null,
       inspectores_texto: seg.inspectores_texto ?? null,
       faltas_subsanadas: typeof seg.faltas_subsanadas === "boolean" ? seg.faltas_subsanadas : null,
     };
@@ -29,6 +35,8 @@ export function seguimientoNotificacionDeFila(
     acta_inspeccion_num: null,
     acta_comprobacion_num: null,
     comprobacion_motivo: null,
+    motivos_comprobacion: [],
+    motivos_comprobacion_texto: null,
     inspectores_texto: null,
     faltas_subsanadas: null,
   };
@@ -115,7 +123,10 @@ export function cierreNotificacionFilas(row: IActuacionesPendientesItem): { etiq
   }
   filas.push(
     { etiqueta: "Acta de comprobación N.º", valor: actaComp || "—" },
-    { etiqueta: "Motivo de comprobación", valor: textoSeguimiento(seg.comprobacion_motivo) }
+    {
+      etiqueta: "Motivos de comprobación",
+      valor: textoSeguimiento(motivosComprobacionTexto(hydrateMotivosComprobacion(seg))),
+    }
   );
   return filas;
 }

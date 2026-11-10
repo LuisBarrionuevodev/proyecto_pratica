@@ -13,6 +13,10 @@ import {
 } from "../../../styles/documentalModalTokens";
 import { humanizarTipoActuacion } from "../utils/documentalLabelFormat";
 import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
+import {
+  hydrateMotivosComprobacion,
+  motivosComprobacionTexto,
+} from "../../../utils/motivosComprobacion";
 
 type DocumentalCardShell = "glass" | "actuacion";
 
@@ -80,7 +84,10 @@ export function BloqueReferenciaComprobacionExpediente({ row }: { row: IActuacio
       <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribuyenteLineaPendiente(row)} />
       <DocumentalFila etiqueta="Documento" valor={textoValor(row.doc_nro)} />
       <DocumentalFila etiqueta="Rubro" valor={textoValor(row.rubro_nombre)} />
-      <DocumentalFila etiqueta="Motivo de la comprobación" valor={textoValor(row.comprobacion_motivo)} />
+      <DocumentalFila
+        etiqueta="Motivos de la comprobación"
+        valor={textoValor(motivosComprobacionTexto(hydrateMotivosComprobacion(row)))}
+      />
       <DocumentalFila etiqueta="Acta de comprobación Nº" valor={textoValor(row.acta_comprobacion_num)} />
     </DocumentalBloque>
   );
@@ -129,7 +136,10 @@ export const BloqueReferenciaComprobacionOficio = memo(function BloqueReferencia
       <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribOficio(row)} />
       <DocumentalFila etiqueta="Documento" valor={textoValor(row.doc_nro)} />
       <DocumentalFila etiqueta="Rubro" valor={textoValor(row.rubro_nombre)} />
-      <DocumentalFila etiqueta="Motivo de la comprobación" valor={textoValor(row.comprobacion_motivo)} />
+      <DocumentalFila
+        etiqueta="Motivos de la comprobación"
+        valor={textoValor(motivosComprobacionTexto(hydrateMotivosComprobacion(row)))}
+      />
       <DocumentalFila etiqueta="Acta de comprobación Nº" valor={textoValor(row.acta_comprobacion_num)} />
       <DocumentalFila etiqueta="Expediente de envío" valor={expedienteEnvioNumeroLinea(row)} />
       <DocumentalFila
@@ -234,18 +244,21 @@ export function BloqueReferenciaReinspeccionDetalle({ row }: { row: Reinspeccion
       <DocumentalFila etiqueta="Contribuyente / razón social" valor={contribReinspeccion(row)} />
       <DocumentalFila etiqueta="Documento" valor={textoValor(row.doc_nro)} />
       <DocumentalFila etiqueta="Rubro" valor={textoValor(row.rubro_nombre)} />
-      <DocumentalFila etiqueta="Motivo de comprobación" valor={textoValor(row.comprobacion_motivo)} />
+      <DocumentalFila
+        etiqueta="Motivos de comprobación"
+        valor={textoValor(motivosComprobacionTexto(hydrateMotivosComprobacion(row)))}
+      />
     </DocumentalBloque>
   );
 }
 
 /** Motivo en bloque aparte (solo si se necesita texto largo sin fila de referencia). Preferir fila en `BloqueReferenciaReinspeccionDetalle`. */
 export function BloqueMotivoComprobacionDocumental({ row }: { row: ReinspeccionOperativoDetalleRow }) {
-  const m = (row.comprobacion_motivo ?? "").trim();
-  if (!m) return null;
+  const motivos = hydrateMotivosComprobacion(row);
+  if (!motivos.length) return null;
   return (
-    <DocumentalBloque overline="Motivo de comprobación">
-      <DocumentalFila etiqueta="Motivo" valor={m} />
+    <DocumentalBloque overline="Motivos de comprobación">
+      <DocumentalFila etiqueta="Motivos" valor={motivosComprobacionTexto(motivos)} />
     </DocumentalBloque>
   );
 }

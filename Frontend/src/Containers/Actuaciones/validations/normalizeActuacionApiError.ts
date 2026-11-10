@@ -31,7 +31,7 @@ export const ACTUACION_ROW_ONLY_VALIDATOR_KEYS = new Set<string>([
 
 /** Alias API → campo del formulario (snake_case interno). */
 export const ACTUACION_API_FIELD_KEY_ALIASES: Record<string, string> = {
-  comprobacion_exige_motivo_si_hay_acta: "comprobacion_motivo",
+  comprobacion_exige_motivo_si_hay_acta: "motivos_comprobacion",
   notificacion_exige_motivo_si_hay_acta: "notificacion_motivo_1",
 };
 

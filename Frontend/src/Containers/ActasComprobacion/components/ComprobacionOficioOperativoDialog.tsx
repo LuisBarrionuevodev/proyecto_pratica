@@ -83,6 +83,11 @@ function mergeOficioRowConDocumental(
   if (campoUtilMerge(doc.acta_comprobacion?.motivo)) {
     out.comprobacion_motivo = doc.acta_comprobacion!.motivo;
   }
+  const motivosActa = doc.acta_comprobacion?.motivos;
+  if (Array.isArray(motivosActa) && motivosActa.length) {
+    out.motivos_comprobacion = motivosActa;
+    out.motivos_comprobacion_texto = doc.acta_comprobacion?.motivos_texto ?? null;
+  }
   if (campoUtilMerge(doc.acta_comprobacion?.numero)) {
     out.acta_comprobacion_num = doc.acta_comprobacion!.numero;
   }

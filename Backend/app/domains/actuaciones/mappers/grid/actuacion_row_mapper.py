@@ -139,13 +139,15 @@ def map_actuacion_row(row: ActuacionGridRowIn) -> Dict[str, Any]:
         }
 
     # Comprobación: service llama attach_comprobacion(act, payload.get("comprobacion"))
-    # helpers esperan data["acta_num"] y data["motivo"]
+    # helpers esperan data["acta_num"], data["motivo"] y opcional data["motivos"]
     if row.acta_comprobacion_num:
-        payload["comprobacion"] = {
+        comp_payload: dict = {
             "acta_num": _clean_str(row.acta_comprobacion_num),
             "motivo": _clean_str(row.comprobacion_motivo),
-            # previa no va acá porque las previas se resuelven en resolver_previas()
         }
+        if "motivos_comprobacion" in row.model_fields_set and row.motivos_comprobacion is not None:
+            comp_payload["motivos"] = list(row.motivos_comprobacion)
+        payload["comprobacion"] = comp_payload
 
     # Clausura: service llama attach_clausura(act, payload.get("clausura"), crear=True)
     # helpers esperan data["acta_num"]

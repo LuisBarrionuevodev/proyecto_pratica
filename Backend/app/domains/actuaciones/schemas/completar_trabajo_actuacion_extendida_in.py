@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Optional
+from typing import List, Optional
 
 from pydantic import BaseModel, field_validator, model_validator
 
@@ -24,6 +24,7 @@ class CompletarTrabajoActuacionExtendidaIn(BaseModel):
     notificacion_motivo_3: Optional[str] = None
     acta_comprobacion_num: Optional[str] = None
     comprobacion_motivo: Optional[str] = None
+    motivos_comprobacion: Optional[List[str]] = None
     acta_clausura_num: Optional[str] = None
     acta_decomiso_num: Optional[str] = None
     decomiso_kilos_total: Optional[float] = None
@@ -55,6 +56,7 @@ class CompletarTrabajoActuacionExtendidaIn(BaseModel):
                 any([self.notificacion_motivo_1, self.notificacion_motivo_2, self.notificacion_motivo_3]),
             ),
             ("comprobacion_motivo", bool(self.comprobacion_motivo)),
+            ("motivos_comprobacion", bool(self.motivos_comprobacion)),
             ("decomiso_kilos_total", self.decomiso_kilos_total is not None),
         ]
         malos = [k for k, ok in bloque if ok]

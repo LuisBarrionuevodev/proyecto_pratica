@@ -161,7 +161,7 @@ describe("NotificacionDetalleDocumentalDialog", () => {
     );
     expect(html).toContain("Reinspección y cierre");
     expect(html).toContain("Faltas no subsanadas");
-    expect(html).toContain("Motivo de comprobación");
+    expect(html).toContain("Motivos de comprobación");
     expect(html).toContain("Higiene del local");
     expect(html).toContain("Acta de inspección N.º");
     expect(html).toContain("OT99");
@@ -188,7 +188,7 @@ describe("NotificacionDetalleDocumentalDialog", () => {
     );
     expect(html).toContain("Reinspección realizada · resultado no informado");
     expect(html).toContain("No informado");
-    expect(html).toContain("Motivo de comprobación");
+    expect(html).toContain("Motivos de comprobación");
     expect(html).not.toContain("Faltas subsanadas");
   });
 });

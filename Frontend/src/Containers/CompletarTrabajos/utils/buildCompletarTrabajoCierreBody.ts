@@ -13,6 +13,7 @@ import {
   domicilioNumeroParaPayload,
   domicilioRowParaHidratacionCompletarTrabajo,
 } from "../../../utils/domicilioCalleUi";
+import { hydrateMotivosComprobacion } from "../../../utils/motivosComprobacion";
 import { esNoPermiteInspeccionContraproducencia } from "./completarTrabajoContraproducencia";
 import {
   esReinspeccionOficioPendienteSubtipo,
@@ -51,6 +52,7 @@ export type CompletarTrabajoFormFields = {
   notificacion_motivo_3: string;
   acta_comprobacion_num: string;
   comprobacion_motivo: string;
+  motivos_comprobacion?: string[];
   acta_clausura_num: string;
   acta_decomiso_num: string;
   decomiso_kilos_total: string;
@@ -318,6 +320,12 @@ export function buildCompletarTrabajoCierreBody(
     if (s(f.notificacion_motivo_3)) body.notificacion_motivo_3 = s(f.notificacion_motivo_3);
     if (s(f.acta_comprobacion_num)) body.acta_comprobacion_num = s(f.acta_comprobacion_num);
     if (s(f.comprobacion_motivo)) body.comprobacion_motivo = s(f.comprobacion_motivo);
+    if (Array.isArray(f.motivos_comprobacion) && f.motivos_comprobacion.length) {
+      body.motivos_comprobacion = f.motivos_comprobacion.filter((m) => String(m ?? "").trim());
+      if (body.motivos_comprobacion.length && !body.comprobacion_motivo) {
+        body.comprobacion_motivo = body.motivos_comprobacion[0];
+      }
+    }
     if (s(f.acta_clausura_num)) body.acta_clausura_num = s(f.acta_clausura_num);
     if (s(f.acta_decomiso_num)) body.acta_decomiso_num = s(f.acta_decomiso_num);
     const kilos = parseFloat(f.decomiso_kilos_total.replace(",", "."));
@@ -325,6 +333,12 @@ export function buildCompletarTrabajoCierreBody(
   } else if (noPermiteInspeccion) {
     if (s(f.acta_comprobacion_num)) body.acta_comprobacion_num = s(f.acta_comprobacion_num);
     if (s(f.comprobacion_motivo)) body.comprobacion_motivo = s(f.comprobacion_motivo);
+    if (Array.isArray(f.motivos_comprobacion) && f.motivos_comprobacion.length) {
+      body.motivos_comprobacion = f.motivos_comprobacion.filter((m) => String(m ?? "").trim());
+      if (body.motivos_comprobacion.length && !body.comprobacion_motivo) {
+        body.comprobacion_motivo = body.motivos_comprobacion[0];
+      }
+    }
     if (s(f.acta_clausura_num)) body.acta_clausura_num = s(f.acta_clausura_num);
   }
 
@@ -378,6 +392,7 @@ export const EMPTY_COMPLETAR_FORM: CompletarTrabajoFormFields = {
   notificacion_motivo_3: "",
   acta_comprobacion_num: "",
   comprobacion_motivo: "",
+  motivos_comprobacion: [],
   acta_clausura_num: "",
   acta_decomiso_num: "",
   decomiso_kilos_total: "",
@@ -504,6 +519,7 @@ function rowToFormFields(row: ICompletarTrabajoPendienteRow): CompletarTrabajoFo
     notificacion_motivo_3: row.notificacion_motivo_3 ?? "",
     acta_comprobacion_num: row.acta_comprobacion_num ?? "",
     comprobacion_motivo: row.comprobacion_motivo ?? "",
+    motivos_comprobacion: hydrateMotivosComprobacion(row),
     acta_clausura_num: row.acta_clausura_num ?? "",
     acta_decomiso_num: row.acta_decomiso_num ?? "",
     decomiso_kilos_total: kilosStr,

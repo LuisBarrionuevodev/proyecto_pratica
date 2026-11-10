@@ -564,6 +564,8 @@ def referencia_actuacion_from_grid_row(grid: Dict[str, Any]) -> Dict[str, Any]:
         "doc_nro": grid.get("doc_nro"),
         "rubro_nombre": grid.get("rubro_nombre"),
         "comprobacion_motivo": grid.get("comprobacion_motivo"),
+        "motivos_comprobacion": grid.get("motivos_comprobacion") or [],
+        "motivos_comprobacion_texto": grid.get("motivos_comprobacion_texto"),
         "acta_inspeccion_num": grid.get("acta_inspeccion_num"),
         "acta_comprobacion_num": grid.get("acta_comprobacion_num"),
         "inspectores_texto": grid.get("inspectores_texto"),
@@ -652,6 +654,8 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
         "acta_comprobacion": {
             "numero": grid.get("acta_comprobacion_num"),
             "motivo": grid.get("comprobacion_motivo"),
+            "motivos": grid.get("motivos_comprobacion") or [],
+            "motivos_texto": grid.get("motivos_comprobacion_texto"),
         },
         "expediente_comprobacion_envio": (
             {

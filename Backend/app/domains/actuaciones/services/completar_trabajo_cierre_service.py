@@ -34,6 +34,7 @@ from app.domains.actuaciones.services.completar_trabajo_inspectores_grupo import
 from app.domains.actuaciones.services.update_service import aplicar_payload_actuacion
 from app.domains.actuaciones.services.completar_trabajo_contraproducencia import (
     ContrapBucket,
+    motivo_comprobacion_es_no_permite_inspeccion,
     motivo_no_realizado_para_ruta_item,
     no_permite_inspeccion_comprobacion_cierre_completo,
     normalize_contraproducencia,
@@ -211,6 +212,27 @@ def _persist_realizo_nueva_inspeccion(
     act.realizo_nueva_inspeccion = bool(val)
 
 
+def _motivo_cierre_no_permite(
+    payload: CompletarTrabajoCierreIn | CompletarTrabajoCierreCompletoIn,
+) -> str | None:
+    """
+    Motivo efectivo para bifurcación NO PERMITE: cualquier ítem de la lista
+    canónica, o el escalar legado.
+
+    Parámetros:
+        payload: body de cierre (completo o legado).
+
+    Returns:
+        Nombre de catálogo «No Permite la Inspección» si está en la lista;
+        si no, `comprobacion_motivo`.
+    """
+    lista = getattr(payload, "motivos_comprobacion", None) or []
+    for m in lista:
+        if m and motivo_comprobacion_es_no_permite_inspeccion(str(m)):
+            return str(m)
+    return getattr(payload, "comprobacion_motivo", None)
+
+
 def _validar_payload_verificar_informar(
     ini: IniciadorRuta,
     payload: CompletarTrabajoCierreCompletoIn,
@@ -242,6 +264,10 @@ def _validar_payload_verificar_informar(
             payload.notificacion_motivo_2,
             payload.notificacion_motivo_3,
             payload.comprobacion_motivo,
+            next(
+                (m for m in (getattr(payload, "motivos_comprobacion", None) or []) if m),
+                None,
+            ),
             payload.decomiso_kilos_total,
         )
         if any(v not in (None, "") for v in acta_campos):
@@ -651,7 +677,7 @@ def cerrar_completar_trabajo_por_ruta_item(
             assert stored_contra is not None
             if no_permite_inspeccion_comprobacion_cierre_completo(
                 payload.acta_comprobacion_num,
-                payload.comprobacion_motivo,
+                _motivo_cierre_no_permite(payload),
             ):
                 item.estado_ejecucion = "REALIZADO"
                 item.estado_ruta_item = "FINALIZADO"
