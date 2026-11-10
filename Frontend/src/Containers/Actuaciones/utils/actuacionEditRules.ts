@@ -223,8 +223,8 @@ function reasonLooksLikeCircuitoPosterior(reason: string | null | undefined): bo
 }
 
 /**
- * True cuando el GET marca domicilio bloqueado por reinspección, pero la fila no es
- * una visita de reinspección real (Inspección de Relevamiento, carga manual, etc.).
+ * True cuando el GET marca domicilio bloqueado, pero la fila es una Inspección
+ * normal (relevamiento, denuncia o carga manual) y no un circuito posterior.
  */
 export function esBloqueoFalsoReinspeccionEnActuacionBase(
   row: IActuacionListItem,
@@ -234,7 +234,7 @@ export function esBloqueoFalsoReinspeccionEnActuacionBase(
   if (esReinspeccionReal(row)) return false;
   if (row.can_edit_domicilio !== false) return false;
   if (reasonLooksLikeCircuitoPosterior(row.domicilio_edit_blocked_reason)) return false;
-  return reasonLooksLikeReinspeccion(row.domicilio_edit_blocked_reason);
+  return true;
 }
 
 function resolveCanEditDomicilio(row: IActuacionListItem, modo: ActuacionModoEdicion): boolean {

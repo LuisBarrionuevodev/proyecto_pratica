@@ -68,6 +68,55 @@ describe("validateActuacionFormForSubmit — CRUD Editar Actuación", () => {
     expect(result.canSubmit).toBe(true);
   });
 
+  it("ACT-EDIT.1C: contribuyente hidratado permite cambiar calle/número/tipo sin reingresar identidad", () => {
+    const original: IActuacionListItem = {
+      ...baseRow,
+      contrib_apellido: null,
+      contrib_nombre: null,
+      doc_nro: null,
+      contribuyente: { apellido: "Pérez", nombre: "Juan" },
+      numero_tipo: "NUMERO",
+    };
+    const draft: IActuacionListItem = {
+      ...original,
+      calle: "Catamarca",
+      numero: "250",
+      numero_tipo: "ESQUINA",
+    };
+    const result = validateActuacionFormForSubmit(
+      draft,
+      actuacionCrudValidationContext(draft, { originalRow: original })
+    );
+    expect(result.fieldErrors.contrib_apellido).toBeUndefined();
+    expect(result.fieldErrors.doc_nro).toBeUndefined();
+    expect(result.canSubmit).toBe(true);
+  });
+
+  it("ACT-EDIT.1C: domicilio nuevo sin contribuyente real muestra el aviso y no guarda", () => {
+    const original: IActuacionListItem = {
+      ...baseRow,
+      contrib_apellido: null,
+      contrib_nombre: null,
+      doc_nro: null,
+      razon_social: null,
+      contribuyente: null,
+      numero_tipo: "NUMERO",
+    };
+    const draft: IActuacionListItem = {
+      ...original,
+      calle: "Nueva",
+      numero: "9",
+    };
+    const result = validateActuacionFormForSubmit(
+      draft,
+      actuacionCrudValidationContext(draft, { originalRow: original })
+    );
+    expect(result.canSubmit).toBe(false);
+    expect(result.fieldErrors.contrib_apellido).toBe(
+      ACTUACION_VALIDATION_MESSAGES.domicilioRequiereContribuyente
+    );
+  });
+
   it("ratificación no bloquea por nombre/documento faltante", () => {
     const row = {
       ...baseRow,

@@ -124,6 +124,38 @@ describe("ActuacionDetalleDialog domicilio sin catálogo", () => {
     expect(html).toContain('value="500"');
   });
 
+  it("ACT-EDIT.1C: Denuncia con contribuyente hidratado no muestra reinspección ni pide identidad", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        initialEditing
+        draft={{
+          ...baseRow,
+          tipo_actuacion: "INSPECCION",
+          can_edit_domicilio: false,
+          can_edit_rubro: true,
+          contribuyente: { apellido: "Pérez", nombre: "Juan" },
+          contrib_apellido: "Pérez",
+          contrib_nombre: "Juan",
+          calle: "San Martín",
+          numero: "100",
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain('value="San Martín"');
+    expect(html).toContain('value="100"');
+    expect(html).not.toContain("La actuación proviene de una reinspección");
+    expect(html).not.toContain("Si cargás domicilio, debés cargar contribuyente.");
+  });
+
   it("ACT-EDIT.1B: Inspección de Relevamiento no muestra mensaje de reinspección", () => {
     const html = render(
       <ActuacionDetalleDialog

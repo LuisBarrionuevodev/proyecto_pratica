@@ -94,11 +94,11 @@ def test_denuncia_local_cerrado_can_edit_rubro_true(app_ctx, mock_user_denuncia)
 
     puede_dom, _ = puede_editar_domicilio_actuacion(act, ini)
     puede_rubro, _ = puede_editar_rubro_actuacion(act, ini)
-    assert puede_dom is False
+    assert puede_dom is True
     assert puede_rubro is True
 
     row = actuacion_to_grid_row(act, iniciador_desde_ruta=ini)
-    assert row["can_edit_domicilio"] is False
+    assert row["can_edit_domicilio"] is True
     assert row["can_edit_rubro"] is True
 
 

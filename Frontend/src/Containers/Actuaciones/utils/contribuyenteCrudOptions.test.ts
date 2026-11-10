@@ -10,6 +10,7 @@ import {
   mergeActuacionIdentidadFromApiRow,
   shouldPromptContribuyenteClear,
   stripGestionIdentidadResidualFromPut,
+  tieneVinculoContribuyenteHidratado,
 } from "./contribuyenteCrudOptions";
 
 const baseRow = (overrides: Partial<IActuacionListItem> = {}): IActuacionListItem =>
@@ -119,6 +120,8 @@ describe("contribuyenteCrudOptions", () => {
       contrib_nombre: null,
       contribuyente: { apellido: "Pérez", nombre: "Juan" },
     });
+    expect(tieneVinculoContribuyenteHidratado(original)).toBe(true);
+    expect(baselineTeniaContribuyente(original)).toBe(true);
     const hydrated = mergeActuacionIdentidadFromApiRow(original);
     expect(hydrated.contrib_apellido).toBe("Pérez");
     expect(buildGestionIdentidadPutFields(hydrated, original)).toEqual({});

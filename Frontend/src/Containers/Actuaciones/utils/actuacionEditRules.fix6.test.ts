@@ -23,7 +23,7 @@ const verificarRow = (overrides: Partial<IActuacionListItem> = {}): IActuacionLi
   }) as IActuacionListItem;
 
 describe("GESTIÓN-FIX.6 actuacionEditRules", () => {
-  it("denuncia: canEditRubro true con can_edit_rubro backend", () => {
+  it("denuncia: canEditRubro true y domicilio editable en inspección normal", () => {
     const row = {
       id: 1,
       tipo_actuacion: "INSPECCION",
@@ -31,8 +31,9 @@ describe("GESTIÓN-FIX.6 actuacionEditRules", () => {
       can_edit_rubro: true,
     } as IActuacionListItem;
     const fields = getActuacionEditableFields(row);
-    expect(fields.canEditDomicilio).toBe(false);
+    expect(fields.canEditDomicilio).toBe(true);
     expect(fields.canEditRubro).toBe(true);
+    expect(fields.domicilioEditBlockedReason).toBeNull();
   });
 
   it("debeMostrarActaPersistidaParaQuitar detecta notificación persistida", () => {

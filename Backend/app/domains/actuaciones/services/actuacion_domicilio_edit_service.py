@@ -20,16 +20,22 @@ MSG_SOLO_RELEVAMIENTO = (
 )
 MSG_RUBRO_BLOQUEADO = "No se puede editar el rubro de esta actuación."
 
-_TIPOS_INICIADOR_BLOQUEAN_DOMICILIO = frozenset(
+_TIPOS_INICIADOR_REINSPECCION_REAL = frozenset(
     {
         "REINSPECCION_NOTIFICACION",
         "REINSPECCION_OFICIO",
         "VERIFICAR_INFORMAR_OFICIO",
         "RATIFICACION_CLAUSURA_OFICIO",
         "RATIFICACION_DECOMISO_OFICIO",
-        "DENUNCIA",
     }
 )
+
+# ``IniciadorRuta.actuacion_id`` en estos tipos apunta a la actuación base, no a la visita.
+_TIPOS_INICIADOR_FALLBACK_ACTUACION_ES_BASE = _TIPOS_INICIADOR_REINSPECCION_REAL | {
+    "DENUNCIA",
+}
+
+_TIPOS_INICIADOR_BLOQUEAN_DOMICILIO = _TIPOS_INICIADOR_REINSPECCION_REAL
 
 _ESTADOS_INICIADOR_USO_OPERATIVO = frozenset({"EN_EJECUCION", "CUMPLIDO"})
 
@@ -68,7 +74,7 @@ def resolve_iniciador_operativo_actuacion(actuacion_id: int) -> IniciadorRuta | 
     if fallback is None:
         return None
     tipo = (fallback.tipo_iniciador or "").strip().upper()
-    if tipo in _TIPOS_INICIADOR_BLOQUEAN_DOMICILIO:
+    if tipo in _TIPOS_INICIADOR_FALLBACK_ACTUACION_ES_BASE:
         return None
     return fallback
 
@@ -88,7 +94,7 @@ def _iniciador_bloquea_domicilio(ini: IniciadorRuta | None) -> str | None:
     if ini is None:
         return None
     tipo = (ini.tipo_iniciador or "").strip().upper()
-    if tipo in _TIPOS_INICIADOR_BLOQUEAN_DOMICILIO:
+    if tipo in _TIPOS_INICIADOR_REINSPECCION_REAL:
         return MSG_REINSPECCION
     return None
 
@@ -199,6 +205,9 @@ def puede_editar_domicilio_actuacion(
     """
     Indica si el domicilio puede editarse desde CRUD Actuaciones.
 
+    Inspecciones normales (relevamiento, denuncia, carga manual) permiten domicilio.
+    Solo se bloquea una reinspección real (notificación/oficio) o un circuito posterior.
+
     Parámetros:
         act: actuación persistida.
         iniciador: iniciador operativo (opcional; se resuelve si falta).
@@ -218,13 +227,7 @@ def puede_editar_domicilio_actuacion(
     if _acta_usada_en_circuito_posterior_bloquea(act):
         return False, MSG_ACTAS_DOCUMENTALES
 
-    if ini is None:
-        return True, None
-
-    if (ini.tipo_iniciador or "").strip().upper() == "RELEVAMIENTO":
-        return True, None
-
-    return False, MSG_SOLO_RELEVAMIENTO
+    return True, None
 
 
 def puede_editar_rubro_actuacion(

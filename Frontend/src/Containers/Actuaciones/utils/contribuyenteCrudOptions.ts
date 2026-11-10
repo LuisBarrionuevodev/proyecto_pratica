@@ -42,9 +42,18 @@ export function identitySnapshot(row: IActuacionListItem): Record<GestionIdentid
   };
 }
 
-function filaTieneContribuyente(row: IActuacionListItem): boolean {
+/**
+ * True si la fila ya trae un contribuyente hidratado (flat o nested de GET).
+ * No infiere vínculo por CUIL/DNI tecleado en un domicilio nuevo.
+ */
+export function tieneVinculoContribuyenteHidratado(row: IActuacionListItem | null | undefined): boolean {
+  if (row == null) return false;
   const snap = identitySnapshot(row);
   return Boolean(snap.doc_nro || snap.contrib_apellido || snap.contrib_nombre || snap.razon_social);
+}
+
+function filaTieneContribuyente(row: IActuacionListItem): boolean {
+  return tieneVinculoContribuyenteHidratado(row);
 }
 
 function anyIdentidadTouched(touched?: ContribuyenteIdentityTouched | null): boolean {

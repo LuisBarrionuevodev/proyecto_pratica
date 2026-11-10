@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any, Dict
 
 from app.database import db
-from app.models import Actuaciones, Domicilio, Oficio, Expediente
+from app.models import Actuaciones, Contribuyente, Domicilio, Oficio, Expediente
 from app.utils.fechas import parse_fecha_grid
 
 from .previas_service import resolver_previas
@@ -219,6 +219,31 @@ def _contribuyente_payload_identificado(data: Any) -> bool:
     return bool(str(doc).strip())
 
 
+def _contribuyente_vinculado_existente(dom: Domicilio | None) -> Contribuyente | None:
+    """
+    Devuelve el contribuyente ya ligado al domicilio persistido.
+
+    No infiere ni reasigna por documento, CUIL o texto escrito en el payload.
+    Si no hay ``contribuyente_id`` real, retorna ``None`` y la validación de
+    domicilio nuevo sin contribuyente se conserva.
+
+    Parámetros:
+        dom: domicilio actual de la actuación, o ``None``.
+
+    Retorno:
+        Instancia de ``Contribuyente`` o ``None``.
+    """
+    if dom is None:
+        return None
+    cid = getattr(dom, "contribuyente_id", None)
+    if cid is None:
+        return None
+    existing = getattr(dom, "contribuyente", None)
+    if existing is not None:
+        return existing
+    return db.session.get(Contribuyente, int(cid))
+
+
 def aplicar_payload_actuacion(
     act: Actuaciones,
     payload: Dict[str, Any],
@@ -329,7 +354,16 @@ def aplicar_payload_actuacion(
         # Permitir domicilio sin rubro/contribuyente si no hay tipo y sí contraproducencia
         allow_missing_catalogs = payload.get("tipo_actuacion") is None and payload.get("contraproducencia") is not None
         dom_actual = db.session.get(Domicilio, domicilio_id_int) if domicilio_id_int else None
+        if contrib is None and not contrib_clear:
+            contrib = _contribuyente_vinculado_existente(dom_actual)
         texto_cambia = domicilio_payload_cambia_texto_geografico(dom_actual, dom_payload)
+        if (
+            texto_cambia
+            and contrib is None
+            and not contrib_clear
+            and not allow_missing_catalogs
+        ):
+            raise ValueError("Si cargás domicilio, debés cargar contribuyente.")
         if texto_cambia:
             assert_puede_editar_domicilio_actuacion(act, ini_operativo)
         cambios_domicilio = dom_payload if texto_cambia or dom_actual is None else {}

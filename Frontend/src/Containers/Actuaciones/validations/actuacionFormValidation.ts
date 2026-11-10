@@ -28,8 +28,10 @@ import {
 } from "./actuacionFormNormalize";
 import { validateGestionSeguimientoFields } from "../utils/actuacionGestionSeguimientoPut";
 import {
+  baselineTeniaContribuyente,
   detectContribuyenteClearedByUser,
   identitySemanticChanged,
+  tieneVinculoContribuyenteHidratado,
 } from "../utils/contribuyenteCrudOptions";
 
 /** Mensajes alineados a `CompletarTrabajoModal` (pre-submit) y reglas CRUD Editar Actuación. */
@@ -48,6 +50,7 @@ export const ACTUACION_VALIDATION_MESSAGES = {
   notificacionMotivo: "La notificación requiere al menos un motivo.",
   notificacionRequiereInspeccion: "Para cargar una notificación debe existir acta de inspección.",
   titularRequerido: "Debe ingresar nombre y apellido o razón social.",
+  domicilioRequiereContribuyente: "Si cargás domicilio, debés cargar contribuyente.",
   fechaRequerida: "Fecha requerida",
   fechaFormato: "Formato de fecha incorrecto (YYYY-MM-DD).",
   tipoRequerido: "Elegí el tipo de actuación.",
@@ -271,6 +274,21 @@ export function validateActuacionFormForSubmit(
 
       if (!trim(form.rubro_nombre)) {
         fieldErrors.rubro_nombre = ACTUACION_VALIDATION_MESSAGES.rubroRequerido;
+      }
+
+      const formRow = form as IActuacionListItem;
+      const baseline = context.originalRow ?? null;
+      const domicilioCambiado =
+        baseline == null
+          ? Boolean(trim(form.calle) && trim(form.numero))
+          : trim(form.calle) !== trim(baseline.calle) ||
+            trim(form.numero) !== trim(baseline.numero) ||
+            trim(formRow.numero_tipo) !== trim(baseline.numero_tipo);
+      const tieneVinculo =
+        tieneVinculoContribuyenteHidratado(formRow) || baselineTeniaContribuyente(baseline);
+      if (domicilioCambiado && !tieneVinculo) {
+        fieldErrors.contrib_apellido =
+          ACTUACION_VALIDATION_MESSAGES.domicilioRequiereContribuyente;
       }
     }
   }
