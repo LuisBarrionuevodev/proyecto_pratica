@@ -2293,7 +2293,7 @@ const ActasComprobacionPage = () => {
                       setRecActa("");
                       setRecOfi("");
                       setRecExpediente("");
-                      setRecTipoFinal("");
+                      setRecEstadoReinspeccion("");
                       setRecFilterApplied(false);
                       setRecAppliedPayload(null);
                       setRecMeta(null);

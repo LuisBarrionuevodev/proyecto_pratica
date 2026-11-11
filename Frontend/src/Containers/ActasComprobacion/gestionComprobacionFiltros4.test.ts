@@ -33,6 +33,20 @@ describe("FILTROS-4 Comprobaciones Recorrido paginación UI", () => {
     expect(s).toContain("setRecPagination((prev) => resetClientPaginationPageIndex(prev))");
   });
 
+  it("Limpiar Recorrido restaura Estado de reinspección y no usa el setter viejo", () => {
+    const s = src();
+    expect(s).not.toContain("setRecTipoFinal");
+    expect(s).not.toContain("recTipoFinal");
+    expect(s).toContain("setRecEstadoReinspeccion(\"\")");
+    expect(s).toContain("setRecMes(\"\")");
+    expect(s).toContain("setRecActa(\"\")");
+    expect(s).toContain("setRecContrib(\"\")");
+    expect(s).toContain("setRecCalle(\"\")");
+    expect(s).toContain("setRecOfi(\"\")");
+    expect(s).toContain("setRecExpediente(\"\")");
+    expect(s).toContain("setRecDistritoId(\"\")");
+  });
+
   it("con 37 filas y pageSize 10 muestra Página 1 de 4", () => {
     const s = buildClientPaginationSummary({ pageIndex: 0, pageSize: 10, totalRows: 37 });
     expect(s.currentPage).toBe(1);
