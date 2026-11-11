@@ -236,7 +236,8 @@ export interface IComprobacionRecorridoListParams {
 }
 
 export async function fetchComprobacionRecorrido(
-  paramsIn: IComprobacionRecorridoListParams = {}
+  paramsIn: IComprobacionRecorridoListParams = {},
+  signal?: AbortSignal
 ): Promise<IComprobacionRecorridoListResponse> {
   const params: Record<string, string> = {};
   const p = paramsIn;
@@ -257,6 +258,7 @@ export async function fetchComprobacionRecorrido(
   if (p.omitirRangoFecha) params.omitir_rango_fecha = "true";
   const { data } = await apiClient.get<IComprobacionRecorridoListResponse>("/actuaciones/comprobacion/recorrido", {
     params,
+    signal,
   });
   return data;
 }

@@ -21,6 +21,7 @@ from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendie
 from app.domains.actuaciones.services.comprobacion_actas_bandeja_service import (
     list_comprobacion_recorrido,
     list_pendientes_reinspeccion_oficio_filas,
+    prefiltrar_actuaciones_por_estado_reinspeccion,
 )
 from app.domains.actuaciones.services.notificacion_estado_operativo_pool_service import (
     build_estado_operativo_pool_por_iniciador,
@@ -144,8 +145,8 @@ def comprobacion_recorrido_list():
             oficio_numero=args.get("oficio_numero"),
             estado_recorrido=args.get("estado_recorrido"),
             tipo_final=args.get("tipo_final"),
-            estado_reinspeccion=estado_reinspeccion,
         )
+        acts = prefiltrar_actuaciones_por_estado_reinspeccion(acts, estado_reinspeccion)
         query_ms = query_timer.elapsed_ms()
         rows_base = len(acts)
 

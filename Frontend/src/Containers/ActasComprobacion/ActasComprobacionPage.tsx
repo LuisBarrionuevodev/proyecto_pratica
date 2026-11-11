@@ -114,6 +114,7 @@ import {
 import { ComprobacionReinspeccionDetalleDialog } from "./components/ComprobacionReinspeccionDetalleDialog";
 import type { ReinspeccionOperativoDetalleRow } from "./components/comprobacionOperativoBlocks";
 import { RecorridoDetalleDocumentalDialog } from "./components/RecorridoDetalleDocumentalDialog";
+import { RecorridoOficioDocumentalCell } from "./components/RecorridoOficioDocumentalCell";
 import { exportComprobacionesDataset } from "./utils/exportComprobacionesDataset";
 import {
   buildRecorridoComprobacionFiltroPayload,
@@ -125,7 +126,6 @@ import {
   ESTADO_REINSPECCION_OPTIONS,
   recFechaComprobacionChips,
   recFechaComprobacionSortKey,
-  recOficioExpOtOrigenMotivosChips,
   recOficioExpOtOrigenMotivosSortKey,
   recorridoReinspeccionChips,
   recorridoReinspeccionSortKey,
@@ -1616,20 +1616,26 @@ const ActasComprobacionPage = () => {
   const [exportLoading, setExportLoading] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
+  const recSearchAbortRef = useRef<AbortController | null>(null);
+
   const reloadRecorridoDetalle = useCallback(async (actuacionId: number) => {
     const d = await fetchComprobacionRecorridoDetalle(actuacionId);
     setDetalle(d);
   }, []);
 
   const loadRecorridoSearch = useCallback(async (payload: RecorridoComprobacionFiltroPayload) => {
+    recSearchAbortRef.current?.abort();
+    const ac = new AbortController();
+    recSearchAbortRef.current = ac;
     setRecLoading(true);
     setRecError(null);
     try {
       const resp = await perfTimed(
         "comprobacion.loadRecorrido",
-        () => fetchRecorridoComprobacionConPayload(payload),
+        () => fetchRecorridoComprobacionConPayload(payload, ac.signal),
         (r) => ({ rows: r.items.length, total: r.meta.total })
       );
+      if (ac.signal.aborted) return;
       setRecItems(resp.items as IComprobacionRecorridoRow[]);
       setRecMeta({
         total: resp.meta.total,
@@ -1638,12 +1644,18 @@ const ActasComprobacionPage = () => {
       });
       setRecAppliedPayload(payload);
     } catch (err: unknown) {
+      const aborted =
+        ac.signal.aborted ||
+        (typeof err === "object" && err !== null && (err as { code?: string }).code === "ERR_CANCELED");
+      if (aborted) return;
       const detail = err && typeof err === "object" && "response" in err ? (err as any).response?.data?.detail : null;
       setRecError(detail || "Error al cargar recorrido");
       setRecItems([]);
       setRecMeta(null);
     } finally {
-      setRecLoading(false);
+      if (recSearchAbortRef.current === ac) {
+        setRecLoading(false);
+      }
     }
   }, []);
 
@@ -1790,9 +1802,7 @@ const ActasComprobacionPage = () => {
         size: 300,
         accessorFn: (r) => recOficioExpOtOrigenMotivosSortKey(r),
         sortingFn: "alphanumeric",
-        Cell: ({ row }) => (
-          <BandejaSegmentChipsCell segments={recOficioExpOtOrigenMotivosChips(row.original)} />
-        ),
+        Cell: ({ row }) => <RecorridoOficioDocumentalCell row={row.original} />,
       },
       {
         id: "reinspeccion",

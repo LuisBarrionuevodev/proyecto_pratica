@@ -268,7 +268,11 @@ function chipCausaOficio(item: OficioRecorridoResumenItem): string {
   return /^causa\b/i.test(c) ? c : `Causa ${c}`;
 }
 
-/** Oficio · exp. · OT origen · causa · motivos. OT origen y causa opcionales, sin placeholders. */
+function chipsOficioCompacto(item: OficioRecorridoResumenItem): string[] {
+  return [chipOficioSolo(item), chipExpRespuestaSolo(item), chipCausaOficio(item)].filter(Boolean);
+}
+
+/** Oficio · exp. · OT origen · causa · motivos. Compacto (1 oficio). OT origen y causa opcionales. */
 export function recOficioExpOtOrigenMotivosChips(r: IComprobacionRecorridoRow): string[] {
   const chips: string[] = [];
   const resumen = r.oficios_resumen ?? [];
@@ -306,7 +310,43 @@ export function recOficioExpOtOrigenMotivosChips(r: IComprobacionRecorridoRow): 
   return chips.length ? chips : ["—"];
 }
 
+export type RecorridoOficioDocumentalGrupo = {
+  titulo: string;
+  chips: string[];
+};
+
+export type RecorridoOficioDocumentalAgrupado = {
+  otOrigen: string;
+  grupos: RecorridoOficioDocumentalGrupo[];
+  motivos: string;
+};
+
+/** Vista agrupada solo con 2+ oficios. Null = usar formato compacto. */
+export function recOficioDocumentalAgrupado(r: IComprobacionRecorridoRow): RecorridoOficioDocumentalAgrupado | null {
+  const resumen = r.oficios_resumen ?? [];
+  if (resumen.length < 2) return null;
+  const ot = otOrigenComprobacion(r);
+  return {
+    otOrigen: ot ? `OT origen ${ot}` : "",
+    grupos: resumen.map((item, i) => ({
+      titulo: `OFICIO ${i + 1}`,
+      chips: chipsOficioCompacto(item),
+    })),
+    motivos: motivosComprobacionTexto(hydrateMotivosComprobacion(r)),
+  };
+}
+
 export function recOficioExpOtOrigenMotivosSortKey(r: IComprobacionRecorridoRow): string {
+  const grouped = recOficioDocumentalAgrupado(r);
+  if (grouped) {
+    return [
+      grouped.otOrigen,
+      ...grouped.grupos.flatMap((g) => [g.titulo, ...g.chips]),
+      grouped.motivos,
+    ]
+      .filter(Boolean)
+      .join(" | ");
+  }
   return recOficioExpOtOrigenMotivosChips(r).join(" | ");
 }
 

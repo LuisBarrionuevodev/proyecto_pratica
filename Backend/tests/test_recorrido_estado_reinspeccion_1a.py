@@ -60,3 +60,12 @@ def test_todos_no_filtra() -> None:
     items = [{"id": 1, "oficios_resumen": []}, {"id": 2, "oficios_resumen": []}]
     assert filtrar_recorrido_por_estado_reinspeccion(items, "") == items
     assert filtrar_recorrido_por_estado_reinspeccion(items, None) == items
+
+
+def test_prefiltro_lote_sin_filas_no_consulta(app_ctx) -> None:
+    from app.domains.actuaciones.services.comprobacion_actas_bandeja_service import (
+        prefiltrar_actuaciones_por_estado_reinspeccion,
+    )
+
+    assert prefiltrar_actuaciones_por_estado_reinspeccion([], "PENDIENTE") == []
+    assert prefiltrar_actuaciones_por_estado_reinspeccion([], "REALIZADA") == []

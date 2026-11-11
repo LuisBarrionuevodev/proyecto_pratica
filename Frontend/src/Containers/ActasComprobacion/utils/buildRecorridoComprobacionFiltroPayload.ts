@@ -53,8 +53,7 @@ export function recorridoComprobacionHasSpecificSearch(form: RecorridoComprobaci
       trimOpt(form.calleQ) ||
       trimOpt(form.contribuyenteQ) ||
       trimOpt(form.oficioNumero) ||
-      trimOpt(form.expedienteNumero) ||
-      trimOpt(form.estadoReinspeccion)
+      trimOpt(form.expedienteNumero)
   );
 }
 
@@ -167,9 +166,10 @@ export function recorridoPayloadToApiParams(
 }
 
 export async function fetchRecorridoComprobacionConPayload(
-  payload: RecorridoComprobacionFiltroPayload
+  payload: RecorridoComprobacionFiltroPayload,
+  signal?: AbortSignal
 ): Promise<IComprobacionRecorridoListResponse> {
-  const resp = await fetchComprobacionRecorrido(recorridoPayloadToApiParams(payload));
+  const resp = await fetchComprobacionRecorrido(recorridoPayloadToApiParams(payload), signal);
   const items = filtrarRecorridoPorEstadoReinspeccion(resp.items, payload.estado_reinspeccion);
   return {
     ...resp,

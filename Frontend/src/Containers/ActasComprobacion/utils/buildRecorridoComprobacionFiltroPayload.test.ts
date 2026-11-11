@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildRecorridoComprobacionFiltroPayload,
   recorridoComprobacionHasPeriodChosen,
+  recorridoComprobacionHasSpecificSearch,
   recorridoPayloadToApiParams,
 } from "./buildRecorridoComprobacionFiltroPayload";
 
@@ -86,7 +87,16 @@ describe("buildRecorridoComprobacionFiltroPayload", () => {
     }
   });
 
-  it("estado de reinspección cuenta como búsqueda específica y no envía mes por defecto", () => {
+  it("estado de reinspección no cuenta como búsqueda específica", () => {
+    expect(
+      recorridoComprobacionHasSpecificSearch({
+        ...emptyForm,
+        estadoReinspeccion: "REALIZADA",
+      })
+    ).toBe(false);
+  });
+
+  it("estado de reinspección conserva el período (no es búsqueda global)", () => {
     const r = buildRecorridoComprobacionFiltroPayload({
       ...emptyForm,
       mes: 7,
@@ -96,9 +106,10 @@ describe("buildRecorridoComprobacionFiltroPayload", () => {
     expect(r.ok).toBe(true);
     if (r.ok) {
       const api = recorridoPayloadToApiParams(r.payload);
-      expect(api.omitirRangoFecha).toBe(true);
+      expect(api.omitirRangoFecha).toBeUndefined();
+      expect(api.mes).toBe(7);
+      expect(api.anio).toBe(2026);
       expect(api.estado_reinspeccion).toBe("PENDIENTE");
-      expect(api.tipo_final).toBeUndefined();
     }
   });
 

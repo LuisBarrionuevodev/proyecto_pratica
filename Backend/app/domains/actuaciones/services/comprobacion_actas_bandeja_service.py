@@ -10,6 +10,7 @@ from sqlalchemy import String, and_, exists, func, or_
 from sqlalchemy.orm import joinedload, selectinload
 
 from app.domains.actuaciones.services.comprobacion_oficio_recorrido_service import (
+    TIPOS_INI_TRABAJO_OFICIO,
     iniciador_reinspeccion_por_oficio,
 )
 from app.domains.actuaciones.services.oficio_editable_service import iniciador_en_ruta_operativa
@@ -23,7 +24,7 @@ from app.domains.actuaciones.services.pendientes_service import (
     _apply_fecha_comprobacion_acta,
     apply_numero_comprobacion_sql,
 )
-from app.models import Actuaciones, Comprobacion, Contribuyente, Domicilio, Expediente, IniciadorRuta, Oficio
+from app.models import Actuaciones, Comprobacion, Contribuyente, Domicilio, Expediente, IniciadorRuta, Oficio, RutaItem
 from app.domains.rutas_trabajo.services.iniciador_policy_service import inactive_estados
 from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendientesFilters
 
@@ -40,7 +41,6 @@ def _recorrido_busqueda_especifica_activa(
     oficio_numero: Optional[str] = None,
     estado_recorrido: Optional[str] = None,
     tipo_final: Optional[str] = None,
-    estado_reinspeccion: Optional[str] = None,
 ) -> bool:
     """True si hay filtro documental/operativo que no debe verse afectado por el cap defensivo."""
     return bool(
@@ -52,7 +52,6 @@ def _recorrido_busqueda_especifica_activa(
         or (oficio_numero and oficio_numero.strip())
         or (estado_recorrido and estado_recorrido.strip())
         or (tipo_final and tipo_final.strip())
-        or (estado_reinspeccion and estado_reinspeccion.strip())
     )
 
 
@@ -438,7 +437,6 @@ def list_comprobacion_recorrido(
     oficio_numero: Optional[str] = None,
     estado_recorrido: Optional[str] = None,
     tipo_final: Optional[str] = None,
-    estado_reinspeccion: Optional[str] = None,
     limit: int = RECORRIDO_CAP_SIN_BUSQUEDA,
 ) -> List[Actuaciones]:
     """
@@ -450,8 +448,8 @@ def list_comprobacion_recorrido(
     ``estado_recorrido`` y ``tipo_final`` requieren lógica de presentación y se aplican en Python
     sobre el universo ya acotado por SQL / período.
 
-    ``estado_reinspeccion`` (REALIZADA|PENDIENTE) también cuenta como búsqueda específica
-    (sin cap 500); el recorte de filas se aplica después del presenter en la ruta.
+    ``estado_reinspeccion`` no levanta el cap: se prefiltra en lote (oficios/iniciadores)
+    **antes** del presenter, con el mismo período que el filtro de fecha.
 
     Sin búsqueda específica se mantiene ``limit`` (500 por defecto) sobre ``id DESC``.
 
@@ -466,7 +464,6 @@ def list_comprobacion_recorrido(
         oficio_numero=oficio_numero,
         estado_recorrido=estado_recorrido,
         tipo_final=tipo_final,
-        estado_reinspeccion=estado_reinspeccion,
     )
 
     q = Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))
@@ -503,3 +500,94 @@ def list_comprobacion_recorrido(
         return True
 
     return [a for a in rows if _keep_estado_y_tipo(a)]
+
+
+def _oficio_lote_reinspeccion_pendiente(
+    oficio_id: int,
+    latest_ini: dict[int, IniciadorRuta],
+    latest_item: dict[int, RutaItem],
+) -> bool:
+    """Misma regla que el presenter: pendiente / contra, no visita histórica cerrada."""
+    ini = latest_ini.get(oficio_id)
+    if ini is None:
+        return True
+    item = latest_item.get(int(ini.id))
+    estado_ejec = str(getattr(item, "estado_ejecucion", None) or "").strip().upper() if item is not None else ""
+    estado_ini = str(ini.estado_iniciador or "").strip().upper()
+    if estado_ejec == "NO_REALIZADO":
+        return True
+    if estado_ini == "PENDIENTE":
+        return True
+    if estado_ini == "CUMPLIDO" or estado_ejec == "REALIZADO":
+        return False
+    return True
+
+
+def prefiltrar_actuaciones_por_estado_reinspeccion(
+    acts: List[Actuaciones],
+    estado: Optional[str],
+) -> List[Actuaciones]:
+    """
+    Recorta actuaciones por estado de reinspección con 3 consultas en lote.
+
+    Evita el N+1 del presenter sobre filas que el filtro descartaría.
+    REALIZADA = todos los oficios cerrados; PENDIENTE = sin oficios o alguno abierto.
+    """
+    key = (estado or "").strip().upper()
+    if key not in ("REALIZADA", "PENDIENTE") or not acts:
+        return acts
+
+    cids = [int(a.comprobacion_id) for a in acts if getattr(a, "comprobacion_id", None)]
+    oficios: List[Oficio] = []
+    if cids:
+        oficios = (
+            Oficio.query.filter(Oficio.comprobacion_id.in_(cids), Oficio.deleted_at.is_(None)).all()
+        )
+    by_comp: dict[int, List[Oficio]] = {}
+    for ofi in oficios:
+        by_comp.setdefault(int(ofi.comprobacion_id), []).append(ofi)
+
+    ofi_ids = [int(o.id) for o in oficios]
+    latest_ini: dict[int, IniciadorRuta] = {}
+    if ofi_ids:
+        inis = (
+            IniciadorRuta.query.filter(
+                IniciadorRuta.oficio_id.in_(ofi_ids),
+                IniciadorRuta.tipo_iniciador.in_(TIPOS_INI_TRABAJO_OFICIO),
+                IniciadorRuta.deleted_at.is_(None),
+            ).all()
+        )
+        for ini in inis:
+            oid = int(ini.oficio_id) if ini.oficio_id is not None else 0
+            if not oid:
+                continue
+            prev = latest_ini.get(oid)
+            if prev is None or int(ini.id) > int(prev.id):
+                latest_ini[oid] = ini
+
+    latest_item: dict[int, RutaItem] = {}
+    ini_ids = [int(i.id) for i in latest_ini.values()]
+    if ini_ids:
+        items = (
+            RutaItem.query.filter(
+                RutaItem.iniciador_ruta_id.in_(ini_ids),
+                RutaItem.deleted_at.is_(None),
+            ).all()
+        )
+        for it in items:
+            iid = int(it.iniciador_ruta_id)
+            prev = latest_item.get(iid)
+            if prev is None or int(it.id) > int(prev.id):
+                latest_item[iid] = it
+
+    def act_pendiente(act: Actuaciones) -> bool:
+        cid = getattr(act, "comprobacion_id", None)
+        if not cid:
+            return True
+        ofs = by_comp.get(int(cid)) or []
+        if not ofs:
+            return True
+        return any(_oficio_lote_reinspeccion_pendiente(int(o.id), latest_ini, latest_item) for o in ofs)
+
+    want_pendiente = key == "PENDIENTE"
+    return [a for a in acts if act_pendiente(a) is want_pendiente]
