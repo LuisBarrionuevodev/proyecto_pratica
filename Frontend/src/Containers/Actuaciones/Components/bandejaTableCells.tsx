@@ -102,19 +102,27 @@ export function BandejaSegmentChipsCell({ segments }: { segments: string[] }) {
 }
 
 /**
- * Fecha en texto plano + chip opcional (sin hueco si el chip está vacío).
+ * Fecha en texto plano + chips opcionales (sin hueco si no hay chip).
  */
-export function BandejaFechaYSecondChipCell({ fecha, chip }: { fecha: string; chip: string }) {
+export function BandejaFechaYSecondChipCell({
+  fecha,
+  chip,
+  extraChips = [],
+}: {
+  fecha: string;
+  chip: string;
+  extraChips?: string[];
+}) {
   const f = (fecha ?? "").trim() || "—";
-  const c = (chip ?? "").trim();
+  const labels = [chip, ...extraChips].map((s) => s.trim()).filter(Boolean);
   return (
     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.65, maxWidth: "100%" }}>
       <BandejaEllipsisCell value={f} />
-      {c ? (
-        <Tooltip title={c} placement="top-start" enterDelay={400}>
+      {labels.map((c) => (
+        <Tooltip key={c} title={c} placement="top-start" enterDelay={400}>
           <Chip size="medium" variant="outlined" label={c} sx={chipSx} />
         </Tooltip>
-      ) : null}
+      ))}
     </Box>
   );
 }

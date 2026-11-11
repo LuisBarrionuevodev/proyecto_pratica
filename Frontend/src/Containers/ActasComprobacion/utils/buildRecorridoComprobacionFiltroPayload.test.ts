@@ -17,7 +17,7 @@ const emptyForm = {
   contribuyenteQ: "",
   oficioNumero: "",
   expedienteNumero: "",
-  tipoFinal: "",
+  estadoReinspeccion: "",
   combinarConPeriodo: false,
 };
 
@@ -83,6 +83,22 @@ describe("buildRecorridoComprobacionFiltroPayload", () => {
       const api = recorridoPayloadToApiParams(r.payload);
       expect(api.omitirRangoFecha).toBe(true);
       expect(api.distrito_id).toBe(2);
+    }
+  });
+
+  it("estado de reinspección cuenta como búsqueda específica y no envía mes por defecto", () => {
+    const r = buildRecorridoComprobacionFiltroPayload({
+      ...emptyForm,
+      mes: 7,
+      anio: 2026,
+      estadoReinspeccion: "PENDIENTE",
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      const api = recorridoPayloadToApiParams(r.payload);
+      expect(api.omitirRangoFecha).toBe(true);
+      expect(api.estado_reinspeccion).toBe("PENDIENTE");
+      expect(api.tipo_final).toBeUndefined();
     }
   });
 

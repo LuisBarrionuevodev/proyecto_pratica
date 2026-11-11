@@ -67,7 +67,14 @@ function titularDocumentoText(row: ComprobacionExportRow): string {
 function fechaComprobacionText(row: ComprobacionExportRow): string {
   const fecha = cellStr(row.fechaActuacion);
   const n = cellStr(row.actaComprobacionNum);
-  return joinLines([fecha, n ? `Comp. ${n}` : ""]);
+  const envio = cellStr(row.expedienteEnvioCompacto);
+  return joinLines([fecha, n ? `Comp. ${n}` : "", envio ? `Exp. envío ${envio}` : ""]);
+}
+
+function causaLinea(raw: string | null | undefined): string {
+  const c = String(raw ?? "").trim();
+  if (!c || c === "—") return "";
+  return /^causa\b/i.test(c) ? c : `Causa ${c}`;
 }
 
 function oficioExpOtMotivosText(row: ComprobacionExportRow): string {
@@ -75,20 +82,33 @@ function oficioExpOtMotivosText(row: ComprobacionExportRow): string {
   const detalles = row.oficiosDetalle ?? [];
   if (detalles.length > 0) {
     for (const d of detalles) {
-      const of = d.oficioNumero ? (d.oficioNumero.toLowerCase().startsWith("oficio") ? d.oficioNumero : `Oficio ${d.oficioNumero}`) : "";
+      const of = d.oficioNumero
+        ? d.oficioNumero.toLowerCase().startsWith("oficio")
+          ? d.oficioNumero
+          : `Oficio ${d.oficioNumero}`
+        : "";
       const exp = d.expedienteNumero
         ? d.expedienteNumero.toLowerCase().startsWith("exp")
           ? d.expedienteNumero
           : `Exp. ${d.expedienteNumero}`
         : "";
-      const head = [of, exp].filter(Boolean).join(" · ");
-      if (head) lines.push(head);
+      if (of) lines.push(of);
+      if (exp) lines.push(exp);
     }
   } else if (row.oficiosAgregados || row.expedientesAgregados) {
     if (row.oficiosAgregados) lines.push(row.oficiosAgregados);
     if (row.expedientesAgregados) lines.push(row.expedientesAgregados);
   }
   if (row.ordenTrabajo) lines.push(`OT origen ${row.ordenTrabajo}`);
+  if (detalles.length > 0) {
+    for (const d of detalles) {
+      const causa = causaLinea(d.causa);
+      if (causa) lines.push(causa);
+    }
+  } else {
+    const causa = causaLinea(row.causasAgregadas || row.causa);
+    if (causa) lines.push(causa);
+  }
   const mot = motivoExport(row);
   if (mot) lines.push(mot);
   return lines.join("\n");

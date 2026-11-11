@@ -14,6 +14,7 @@ from app.domains.establecimientos.services.actuaciones_en_ficha_counts import (
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import (
     comprobacion_recorrido_detalle,
     comprobacion_recorrido_resumen_row,
+    filtrar_recorrido_por_estado_reinspeccion,
     reinspeccion_oficio_bandeja_row,
 )
 from app.domains.actuaciones.schemas.pendientes_filters import ActuacionesPendientesFilters
@@ -124,12 +125,14 @@ def comprobacion_recorrido_list():
     """
     Tabla consultiva de recorrido documental (comprobación → expediente → oficio → reinspección).
     Filtros opcionales: contrib_q, calle_q, numero_q, acta_comprobacion,
-    expediente_numero, oficio_numero, estado_recorrido, tipo_final (CUMPLE|NO_CUMPLE).
+    expediente_numero, oficio_numero, estado_recorrido, tipo_final (CUMPLE|NO_CUMPLE),
+    estado_reinspeccion (REALIZADA|PENDIENTE).
     """
     total_timer = PerfTimer()
     try:
         filters = _filters_desde_request()
         args = request.args
+        estado_reinspeccion = args.get("estado_reinspeccion")
         query_timer = PerfTimer()
         acts = list_comprobacion_recorrido(
             filters,
@@ -141,6 +144,7 @@ def comprobacion_recorrido_list():
             oficio_numero=args.get("oficio_numero"),
             estado_recorrido=args.get("estado_recorrido"),
             tipo_final=args.get("tipo_final"),
+            estado_reinspeccion=estado_reinspeccion,
         )
         query_ms = query_timer.elapsed_ms()
         rows_base = len(acts)
@@ -148,6 +152,7 @@ def comprobacion_recorrido_list():
         presenter_timer = PerfTimer()
         counts_by_eo = build_counts_by_eo_from_actuaciones(acts)
         items = [comprobacion_recorrido_resumen_row(a, counts_by_eo=counts_by_eo) for a in acts]
+        items = filtrar_recorrido_por_estado_reinspeccion(items, estado_reinspeccion)
         presenter_ms = presenter_timer.elapsed_ms()
 
         body = {

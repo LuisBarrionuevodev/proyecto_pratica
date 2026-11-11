@@ -4,6 +4,7 @@ export type ComprobacionExportSlice = "expediente" | "oficio" | "reinspeccion" |
 export type RecorridoOficioExportDetalle = {
   oficioNumero: string;
   expedienteNumero: string;
+  causa: string;
   tipoReinspeccion: string;
   conclusion: string;
   seguimiento: string;

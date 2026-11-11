@@ -34,12 +34,12 @@ const COL_FLEX = {
 } as const;
 
 const COL_FLEX_RECORRIDO = {
-  fechaComp: 1.05,
-  titular: 1.15,
-  domicilio: 1.2,
-  oficio: 1.45,
-  tipo: 1.15,
-  seguimiento: 1.25,
+  fechaComp: 1.15,
+  titular: 1.1,
+  domicilio: 1.15,
+  oficio: 1.55,
+  tipo: 1.1,
+  seguimiento: 1.2,
 } as const;
 
 const DETAIL_ROWS_PER_PAGE = 12;
@@ -211,10 +211,10 @@ function TableHeaderRow({ layout }: { layout: "operativa" | "recorrido" }) {
   if (layout === "recorrido") {
     return (
       <View style={styles.tableHeader}>
-        <HeaderCell flex={COL_FLEX_RECORRIDO.fechaComp} label="Fecha / Comprobación" />
+        <HeaderCell flex={COL_FLEX_RECORRIDO.fechaComp} label="Fecha / Comprobación / Expediente de envío" />
         <HeaderCell flex={COL_FLEX_RECORRIDO.titular} label="Titular / Documento" />
         <HeaderCell flex={COL_FLEX_RECORRIDO.domicilio} label="Domicilio / Rubro" />
-        <HeaderCell flex={COL_FLEX_RECORRIDO.oficio} label="Oficio / Expediente / OT origen / Motivos" />
+        <HeaderCell flex={COL_FLEX_RECORRIDO.oficio} label="Oficio / Expediente / OT origen / Causa / Motivos" />
         <HeaderCell flex={COL_FLEX_RECORRIDO.tipo} label="Tipo de reinspección / Conclusión" />
         <HeaderCell flex={COL_FLEX_RECORRIDO.seguimiento} label="Seguimiento / OT reinspección / Fecha" />
       </View>

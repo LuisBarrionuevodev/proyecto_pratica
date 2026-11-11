@@ -82,7 +82,7 @@ describe("V1.1-RECORRIDO-COMP.1 — grilla", () => {
   it("1. con OT de origen lo muestra en Oficio, no en Fecha", () => {
     const r = row({ oficios_resumen: [OFICIO_CUMPLE] });
     expect(recFechaComprobacionChips(r)).toEqual(["2026-05-27", "Comp. 009345"]);
-    expect(recOficioExpOtOrigenMotivosChips(r)).toContain("OT 000001");
+    expect(recOficioExpOtOrigenMotivosChips(r)).toContain("OT origen 000001");
     expect(recOficioExpOtOrigenMotivosChips(r).join(" ")).not.toContain("07696");
   });
 
@@ -90,7 +90,8 @@ describe("V1.1-RECORRIDO-COMP.1 — grilla", () => {
     const r = row({ orden_trabajo_numero: null, oficios_resumen: [OFICIO_CUMPLE] });
     const chips = recOficioExpOtOrigenMotivosChips(r);
     expect(chips.some((c) => /^OT\b/.test(c))).toBe(false);
-    expect(chips).toContain("Oficio 3489/2026 · Exp. 012388/2026");
+    expect(chips).toContain("Oficio 3489/2026");
+    expect(chips).toContain("Exp. 012388/2026");
     expect(chips).toContain("Falta de higiene");
   });
 

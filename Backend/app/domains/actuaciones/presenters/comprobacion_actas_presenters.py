@@ -5,7 +5,7 @@ Presentación para bandejas de Actas de comprobación (reinspección oficio / re
 from __future__ import annotations
 
 import unicodedata
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 from sqlalchemy import or_
 
@@ -389,6 +389,44 @@ def comprobacion_recorrido_resumen_row(
                 base["expediente_respuesta_numero"] = getattr(exp_resp, "numero_expediente", None)
                 base["expediente_respuesta_anio"] = getattr(exp_resp, "anio", None)
     return base
+
+
+def _oficio_resumen_reinspeccion_pendiente(item: Dict[str, Any]) -> bool:
+    """True si el oficio sigue abierto (pendiente inicial o reencolado por contraproducencia)."""
+    estado_ini = str(item.get("estado_iniciador") or "").strip().upper()
+    estado_ejec = str(item.get("estado_ejecucion") or "").strip().upper()
+    if estado_ejec == "NO_REALIZADO":
+        return True
+    if estado_ini == "PENDIENTE":
+        return True
+    if estado_ini == "CUMPLIDO" or estado_ejec == "REALIZADO":
+        return False
+    return True
+
+
+def recorrido_row_es_reinspeccion_pendiente(row: Dict[str, Any]) -> bool:
+    """Fila pendiente: sin oficios, o algún oficio abierto aunque haya visita histórica."""
+    resumen = row.get("oficios_resumen") or []
+    if not resumen:
+        return True
+    return any(_oficio_resumen_reinspeccion_pendiente(i) for i in resumen if isinstance(i, dict))
+
+
+def filtrar_recorrido_por_estado_reinspeccion(
+    items: List[Dict[str, Any]],
+    estado: Optional[str],
+) -> List[Dict[str, Any]]:
+    """
+    Filtra filas de recorrido por estado operativo de reinspección.
+
+    REALIZADA: Cumple y No cumple simple (oficios cerrados).
+    PENDIENTE: sin reinspección o reencolados por contraproducencia.
+    """
+    key = (estado or "").strip().upper()
+    if key not in ("REALIZADA", "PENDIENTE"):
+        return items
+    want_pendiente = key == "PENDIENTE"
+    return [r for r in items if recorrido_row_es_reinspeccion_pendiente(r) is want_pendiente]
 
 
 def _iniciador_origen_primera_actuacion(act: Actuaciones) -> Optional[IniciadorRuta]:

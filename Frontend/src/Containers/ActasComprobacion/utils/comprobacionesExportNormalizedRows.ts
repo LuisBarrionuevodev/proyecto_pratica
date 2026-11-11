@@ -13,6 +13,7 @@ function cell(value: unknown): string | number {
 export const RECORRIDO_EXCEL_COLUMNS = [
   "Fecha comprobación",
   "N.º comprobación",
+  "Expediente de envío",
   "Titular o razón social",
   "Documento",
   "Domicilio",
@@ -20,6 +21,7 @@ export const RECORRIDO_EXCEL_COLUMNS = [
   "N.º oficio",
   "N.º expediente",
   "OT origen",
+  "Causa",
   "Motivos de comprobación",
   "Tipo de reinspección",
   "Conclusión de reinspección",
@@ -28,11 +30,12 @@ export const RECORRIDO_EXCEL_COLUMNS = [
   "Fecha de reinspección",
 ] as const;
 
-export const RECORRIDO_EXCEL_COL_WIDTHS = [14, 16, 28, 14, 28, 16, 14, 16, 12, 28, 22, 18, 24, 14, 16];
+export const RECORRIDO_EXCEL_COL_WIDTHS = [14, 16, 16, 28, 14, 28, 16, 14, 16, 12, 14, 28, 22, 18, 24, 14, 16];
 
 const EMPTY_OFICIO_DETALLE: RecorridoOficioExportDetalle = {
   oficioNumero: "",
   expedienteNumero: "",
+  causa: "",
   tipoReinspeccion: "",
   conclusion: "",
   seguimiento: "",
@@ -47,6 +50,7 @@ function buildRecorridoOficioExcelRow(
   return {
     "Fecha comprobación": cell(row.fechaActuacion),
     "N.º comprobación": cell(row.actaComprobacionNum),
+    "Expediente de envío": cell(row.expedienteEnvioCompacto),
     "Titular o razón social": cell(row.contribuyente),
     Documento: cell(row.documento),
     Domicilio: cell(row.domicilio),
@@ -54,6 +58,10 @@ function buildRecorridoOficioExcelRow(
     "N.º oficio": cell(detalle.oficioNumero),
     "N.º expediente": cell(detalle.expedienteNumero),
     "OT origen": cell(row.ordenTrabajo),
+    Causa: cell(
+      detalle.causa ||
+        ((row.oficiosDetalle?.length ?? 0) > 1 ? "" : row.causasAgregadas || row.causa)
+    ),
     "Motivos de comprobación": cell(motivoExport(row)),
     "Tipo de reinspección": cell(detalle.tipoReinspeccion),
     "Conclusión de reinspección": cell(detalle.conclusion),

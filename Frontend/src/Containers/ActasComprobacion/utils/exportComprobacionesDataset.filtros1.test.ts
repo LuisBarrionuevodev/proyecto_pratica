@@ -35,7 +35,7 @@ describe("FILTROS-1 exportComprobacionesDataset recorrido", () => {
       contribuyenteQ: "",
       oficioNumero: "",
       expedienteNumero: "",
-      tipoFinal: "",
+      estadoReinspeccion: "",
       combinarConPeriodo: false,
     });
     expect(built.ok).toBe(true);
@@ -79,7 +79,7 @@ describe("FILTROS-1 exportComprobacionesDataset recorrido", () => {
       contribuyenteQ: "",
       oficioNumero: "45",
       expedienteNumero: "789",
-      tipoFinal: "",
+      estadoReinspeccion: "",
       combinarConPeriodo: true,
     });
     expect(built.ok).toBe(true);
@@ -118,7 +118,7 @@ describe("FILTROS-1 exportComprobacionesDataset recorrido", () => {
       contribuyenteQ: "",
       oficioNumero: "",
       expedienteNumero: "100200",
-      tipoFinal: "",
+      estadoReinspeccion: "",
       combinarConPeriodo: false,
     });
     expect(built.ok).toBe(true);
@@ -142,6 +142,44 @@ describe("FILTROS-1 exportComprobacionesDataset recorrido", () => {
     );
   });
 
+  it("reenvía estado_reinspeccion aplicado en Recorrido", async () => {
+    const built = buildRecorridoComprobacionFiltroPayload({
+      periodMode: "month",
+      mes: 7,
+      anio: 2026,
+      desde: null,
+      hasta: null,
+      distritoId: "",
+      actaComprobacion: "",
+      calleQ: "",
+      contribuyenteQ: "",
+      oficioNumero: "",
+      expedienteNumero: "",
+      estadoReinspeccion: "PENDIENTE",
+      combinarConPeriodo: true,
+    });
+    expect(built.ok).toBe(true);
+    if (!built.ok) return;
+
+    await exportComprobacionesDataset({
+      format: "excel",
+      desde: "2020-01-01",
+      hasta: "2020-01-31",
+      slice: "recorrido",
+      recorridoAppliedPayload: built.payload,
+    });
+
+    expect(fetchAllMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recorridoApiParams: expect.objectContaining({
+          mes: 7,
+          anio: 2026,
+          estado_reinspeccion: "PENDIENTE",
+        }),
+      })
+    );
+  });
+
   it("rango desde/hasta aplicado se reenvía en recorridoApiParams", async () => {
     const built = buildRecorridoComprobacionFiltroPayload({
       periodMode: "range",
@@ -155,7 +193,7 @@ describe("FILTROS-1 exportComprobacionesDataset recorrido", () => {
       contribuyenteQ: "",
       oficioNumero: "",
       expedienteNumero: "",
-      tipoFinal: "",
+      estadoReinspeccion: "",
       combinarConPeriodo: false,
     });
     expect(built.ok).toBe(true);

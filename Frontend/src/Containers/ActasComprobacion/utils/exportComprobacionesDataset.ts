@@ -27,7 +27,7 @@ export type ExportComprobacionesOptions = {
   actaComprobacion?: string | null;
   oficioNumero?: string | null;
   expedienteNumero?: string | null;
-  tipoFinal?: string | null;
+  estadoReinspeccion?: string | null;
 };
 
 function buildFiltrosResumen(filters: ComprobacionesExportFilters): string[] {
@@ -38,7 +38,7 @@ function buildFiltrosResumen(filters: ComprobacionesExportFilters): string[] {
   if (filters.actaComprobacion) out.push(`Nº comprobación: ${filters.actaComprobacion}`);
   if (filters.oficioNumero) out.push(`Nº oficio: ${filters.oficioNumero}`);
   if (filters.expedienteNumero) out.push(`Nº expediente: ${filters.expedienteNumero}`);
-  if (filters.tipoFinal) out.push(`Tipo final: ${filters.tipoFinal}`);
+  if (filters.estadoReinspeccion) out.push(`Estado de reinspección: ${filters.estadoReinspeccion}`);
   return out;
 }
 
@@ -72,7 +72,7 @@ export async function exportComprobacionesDataset(options: ExportComprobacionesO
           actaComprobacion: options.actaComprobacion,
           oficioNumero: options.oficioNumero,
           expedienteNumero: options.expedienteNumero,
-          tipoFinal: options.tipoFinal,
+          estadoReinspeccion: options.estadoReinspeccion,
         }),
   };
 

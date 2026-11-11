@@ -3,6 +3,10 @@ import {
   type IComprobacionRecorridoListParams,
   type IComprobacionRecorridoListResponse,
 } from "../../../api/actuacionesComprobacionActasApi";
+import {
+  estadoReinspeccionResumenLabel,
+  filtrarRecorridoPorEstadoReinspeccion,
+} from "./recorridoOficioExpLabels";
 
 export type RecorridoComprobacionPeriodMode = "month" | "range";
 
@@ -23,7 +27,7 @@ export interface RecorridoComprobacionFiltroForm {
   contribuyenteQ: string;
   oficioNumero: string;
   expedienteNumero: string;
-  tipoFinal: string;
+  estadoReinspeccion: string;
   combinarConPeriodo: boolean;
 }
 
@@ -35,7 +39,7 @@ export interface RecorridoComprobacionFiltroPayload {
   acta_comprobacion?: string;
   oficio_numero?: string;
   expediente_numero?: string;
-  tipo_final?: string;
+  estado_reinspeccion?: string;
 }
 
 function trimOpt(value: string): string | undefined {
@@ -50,7 +54,7 @@ export function recorridoComprobacionHasSpecificSearch(form: RecorridoComprobaci
       trimOpt(form.contribuyenteQ) ||
       trimOpt(form.oficioNumero) ||
       trimOpt(form.expedienteNumero) ||
-      trimOpt(form.tipoFinal)
+      trimOpt(form.estadoReinspeccion)
   );
 }
 
@@ -68,7 +72,7 @@ export function recorridoComprobacionHasDistritoChosen(form: RecorridoComprobaci
 function searchOptsFromForm(form: RecorridoComprobacionFiltroForm) {
   const opts: Pick<
     RecorridoComprobacionFiltroPayload,
-    "contrib_q" | "calle_q" | "acta_comprobacion" | "oficio_numero" | "expediente_numero" | "tipo_final"
+    "contrib_q" | "calle_q" | "acta_comprobacion" | "oficio_numero" | "expediente_numero" | "estado_reinspeccion"
   > = {
     contrib_q: trimOpt(form.contribuyenteQ),
     calle_q: trimOpt(form.calleQ),
@@ -76,7 +80,7 @@ function searchOptsFromForm(form: RecorridoComprobacionFiltroForm) {
     oficio_numero: trimOpt(form.oficioNumero),
     expediente_numero: trimOpt(form.expedienteNumero),
   };
-  if (form.tipoFinal) opts.tipo_final = form.tipoFinal;
+  if (form.estadoReinspeccion) opts.estado_reinspeccion = form.estadoReinspeccion;
   return opts;
 }
 
@@ -146,7 +150,7 @@ export function recorridoPayloadToApiParams(
     acta_comprobacion: payload.acta_comprobacion,
     oficio_numero: payload.oficio_numero,
     expediente_numero: payload.expediente_numero,
-    tipo_final: payload.tipo_final,
+    estado_reinspeccion: payload.estado_reinspeccion,
   };
 
   if (payload.period.kind === "month") {
@@ -165,7 +169,13 @@ export function recorridoPayloadToApiParams(
 export async function fetchRecorridoComprobacionConPayload(
   payload: RecorridoComprobacionFiltroPayload
 ): Promise<IComprobacionRecorridoListResponse> {
-  return fetchComprobacionRecorrido(recorridoPayloadToApiParams(payload));
+  const resp = await fetchComprobacionRecorrido(recorridoPayloadToApiParams(payload));
+  const items = filtrarRecorridoPorEstadoReinspeccion(resp.items, payload.estado_reinspeccion);
+  return {
+    ...resp,
+    items,
+    meta: { ...resp.meta, total: items.length },
+  };
 }
 
 /** Rango de fechas para nombre de archivo / encabezado PDF según período aplicado en Recorrido. */
@@ -205,6 +215,8 @@ export function buildRecorridoExportFiltrosResumen(payload: RecorridoComprobacio
   if (payload.acta_comprobacion) out.push(`Nº comprobación: ${payload.acta_comprobacion}`);
   if (payload.oficio_numero) out.push(`Nº oficio: ${payload.oficio_numero}`);
   if (payload.expediente_numero) out.push(`Nº expediente: ${payload.expediente_numero}`);
-  if (payload.tipo_final) out.push(`Tipo final: ${payload.tipo_final}`);
+  if (payload.estado_reinspeccion) {
+    out.push(`Estado de reinspección: ${estadoReinspeccionResumenLabel(payload.estado_reinspeccion)}`);
+  }
   return out;
 }

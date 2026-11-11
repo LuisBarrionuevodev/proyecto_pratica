@@ -155,6 +155,50 @@ export function oficioSeguimientoPendiente(item: CierreSeguimientoOficioFuente):
   return true;
 }
 
+export const ESTADO_REINSPECCION_REALIZADA = "REALIZADA";
+export const ESTADO_REINSPECCION_PENDIENTE = "PENDIENTE";
+
+export const ESTADO_REINSPECCION_OPTIONS: { value: string; label: string }[] = [
+  { value: "", label: "Todos" },
+  { value: ESTADO_REINSPECCION_REALIZADA, label: "Reinspección realizada" },
+  { value: ESTADO_REINSPECCION_PENDIENTE, label: "Reinspección pendiente" },
+];
+
+export function estadoReinspeccionResumenLabel(value: string | null | undefined): string {
+  const key = String(value ?? "").trim().toUpperCase();
+  const found = ESTADO_REINSPECCION_OPTIONS.find((o) => o.value === key);
+  return found?.label ?? String(value ?? "").trim();
+}
+
+/**
+ * Pendiente inicial (sin oficios / sin cierre) o reencolado por contraproducencia.
+ * Una visita histórica no saca el caso de pendiente si volvió a PENDIENTE.
+ */
+export function filaRecorridoEsReinspeccionPendiente(r: IComprobacionRecorridoRow): boolean {
+  const resumen = r.oficios_resumen ?? [];
+  if (resumen.length === 0) return true;
+  return resumen.some((item) => oficioSeguimientoPendiente(item));
+}
+
+export function filaRecorridoCoincideEstadoReinspeccion(
+  r: IComprobacionRecorridoRow,
+  estado: string | null | undefined
+): boolean {
+  const key = String(estado ?? "").trim().toUpperCase();
+  if (!key) return true;
+  const pendiente = filaRecorridoEsReinspeccionPendiente(r);
+  if (key === ESTADO_REINSPECCION_PENDIENTE) return pendiente;
+  if (key === ESTADO_REINSPECCION_REALIZADA) return !pendiente;
+  return true;
+}
+
+export function filtrarRecorridoPorEstadoReinspeccion<T extends IComprobacionRecorridoRow>(
+  items: T[],
+  estado: string | null | undefined
+): T[] {
+  return items.filter((r) => filaRecorridoCoincideEstadoReinspeccion(r, estado));
+}
+
 export function tipoReinspeccionOficioLabel(item: OficioRecorridoResumenItem): string {
   const ejec = item.ejecucion_reinspeccion as { tipo_inspeccion_labrada?: unknown } | null | undefined;
   const fromEjec = humanizarTipoVisitaRecorrido(ejec?.tipo_inspeccion_labrada);
@@ -193,20 +237,48 @@ export function otOrigenComprobacion(r: IComprobacionRecorridoRow): string {
 
 export function recFechaComprobacionChips(r: IComprobacionRecorridoRow): string[] {
   const fecha = String(r.fecha_actuacion ?? "").trim() || "—";
+  const chips: string[] = [fecha];
   const n = String(r.acta_comprobacion_num ?? "").trim();
-  return n ? [fecha, `Comp. ${n}`] : [fecha];
+  if (n) chips.push(`Comp. ${n}`);
+  const envio = recorridoExpedienteEnvioTexto(r);
+  if (envio) chips.push(`Exp. envío ${envio}`);
+  return chips;
 }
 
 export function recFechaComprobacionSortKey(r: IComprobacionRecorridoRow): string {
   return recFechaComprobacionChips(r).join(" | ");
 }
 
-/** Oficio · exp. · OT origen (si hay) · motivos. Sin OT de visita ni conclusión. */
+function chipOficioSolo(item: OficioRecorridoResumenItem): string {
+  const n =
+    (item.oficio_texto ?? "").trim() ||
+    parNumAnio(item.numero_oficio ?? item.numero, item.anio_oficio ?? item.anio);
+  return n ? (n.toLowerCase().startsWith("oficio") ? n : `Oficio ${n}`) : "";
+}
+
+function chipExpRespuestaSolo(item: OficioRecorridoResumenItem): string {
+  const n =
+    (item.expediente_texto ?? "").trim() || parNumAnio(item.numero_expediente, item.anio_expediente);
+  return n ? (n.toLowerCase().startsWith("exp") ? n : `Exp. ${n}`) : "";
+}
+
+function chipCausaOficio(item: OficioRecorridoResumenItem): string {
+  const c = String(item.causa ?? "").trim();
+  if (!c || c === "—") return "";
+  return /^causa\b/i.test(c) ? c : `Causa ${c}`;
+}
+
+/** Oficio · exp. · OT origen · causa · motivos. OT origen y causa opcionales, sin placeholders. */
 export function recOficioExpOtOrigenMotivosChips(r: IComprobacionRecorridoRow): string[] {
   const chips: string[] = [];
   const resumen = r.oficios_resumen ?? [];
   if (resumen.length > 0) {
-    chips.push(...resumen.flatMap(recOficioExpDetalleChips));
+    for (const item of resumen) {
+      const of = chipOficioSolo(item);
+      const exp = chipExpRespuestaSolo(item);
+      if (of) chips.push(of);
+      if (exp) chips.push(exp);
+    }
   } else {
     const texto = (r.oficios_texto ?? "").toString().trim();
     if (texto) {
@@ -217,7 +289,18 @@ export function recOficioExpOtOrigenMotivosChips(r: IComprobacionRecorridoRow): 
     }
   }
   const otOrigen = otOrigenComprobacion(r);
-  if (otOrigen) chips.push(`OT ${otOrigen}`);
+  if (otOrigen) chips.push(`OT origen ${otOrigen}`);
+  if (resumen.length > 0) {
+    for (const item of resumen) {
+      const causa = chipCausaOficio(item);
+      if (causa) chips.push(causa);
+    }
+  } else {
+    const causaLegacy = String((r as { oficio_causa?: string | null }).oficio_causa ?? "").trim();
+    if (causaLegacy && causaLegacy !== "—") {
+      chips.push(/^causa\b/i.test(causaLegacy) ? causaLegacy : `Causa ${causaLegacy}`);
+    }
+  }
   const inf = motivosComprobacionTexto(hydrateMotivosComprobacion(r));
   if (inf) chips.push(inf);
   return chips.length ? chips : ["—"];
@@ -285,6 +368,7 @@ export function oficiosDetalleParaExport(r: IComprobacionRecorridoRow): Recorrid
       parNumAnio(item.numero_oficio ?? item.numero, item.anio_oficio ?? item.anio),
     expedienteNumero:
       (item.expediente_texto ?? "").trim() || parNumAnio(item.numero_expediente, item.anio_expediente),
+    causa: String(item.causa ?? "").trim(),
     tipoReinspeccion: tipoReinspeccionOficioLabel(item),
     conclusion: conclusionDefinitivaReinspeccion(item),
     seguimiento: oficioSeguimientoPendiente(item) ? "Pendiente de reinspección" : "Reinspección realizada",

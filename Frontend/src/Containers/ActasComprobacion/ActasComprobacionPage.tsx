@@ -122,6 +122,7 @@ import {
   type RecorridoComprobacionFiltroPayload,
 } from "./utils/buildRecorridoComprobacionFiltroPayload";
 import {
+  ESTADO_REINSPECCION_OPTIONS,
   recFechaComprobacionChips,
   recFechaComprobacionSortKey,
   recOficioExpOtOrigenMotivosChips,
@@ -302,11 +303,6 @@ const bandejaComprobacionMrtLayout = {
   },
 };
 
-const TIPO_FINAL_OPTIONS: { value: string; label: string }[] = [
-  { value: "", label: "Todos" },
-  { value: "CUMPLE", label: "Cumple" },
-  { value: "NO_CUMPLE", label: "No cumple" },
-];
 
 const MESES_OPTS = Array.from({ length: 12 }, (_, i) => ({
   value: String(i + 1),
@@ -1598,7 +1594,7 @@ const ActasComprobacionPage = () => {
   const [recActa, setRecActa] = useState("");
   const [recOfi, setRecOfi] = useState("");
   const [recExpediente, setRecExpediente] = useState("");
-  const [recTipoFinal, setRecTipoFinal] = useState("");
+  const [recEstadoReinspeccion, setRecEstadoReinspeccion] = useState("");
   const [recItems, setRecItems] = useState<IComprobacionRecorridoRow[]>([]);
   const [recPagination, setRecPagination] = useState<MRT_PaginationState>({
     pageIndex: 0,
@@ -1664,7 +1660,7 @@ const ActasComprobacionPage = () => {
       contribuyenteQ: recContrib,
       oficioNumero: recOfi,
       expedienteNumero: recExpediente,
-      tipoFinal: recTipoFinal,
+      estadoReinspeccion: recEstadoReinspeccion,
       combinarConPeriodo: recCombinarConPeriodo,
     });
     if (!built.ok) {
@@ -1687,7 +1683,7 @@ const ActasComprobacionPage = () => {
     recActa,
     recOfi,
     recExpediente,
-    recTipoFinal,
+    recEstadoReinspeccion,
     recCombinarConPeriodo,
   ]);
 
@@ -1745,8 +1741,8 @@ const ActasComprobacionPage = () => {
     () => [
       {
         id: "fecha_comprobacion",
-        header: "Fecha · comprobación",
-        size: 128,
+        header: "Fecha · comprobación · exp. envío",
+        size: 168,
         accessorFn: (r) => recFechaComprobacionSortKey(r),
         sortingFn: "alphanumeric",
         Cell: ({ row }) => {
@@ -1755,6 +1751,7 @@ const ActasComprobacionPage = () => {
             <BandejaFechaYSecondChipCell
               fecha={chips[0] ?? "—"}
               chip={chips[1] ?? ""}
+              extraChips={chips.slice(2)}
             />
           );
         },
@@ -1789,8 +1786,8 @@ const ActasComprobacionPage = () => {
       },
       {
         id: "oficio_exp_ot_motivos",
-        header: "Oficio · exp. · OT origen · motivos",
-        size: 280,
+        header: "Oficio · exp. · OT origen · causa · motivos",
+        size: 300,
         accessorFn: (r) => recOficioExpOtOrigenMotivosSortKey(r),
         sortingFn: "alphanumeric",
         Cell: ({ row }) => (
@@ -2147,11 +2144,11 @@ const ActasComprobacionPage = () => {
                     <AppSelect
                       appearance="dense"
                       fullWidth
-                      label="Tipo final"
-                      value={recTipoFinal}
-                      onChange={(e) => setRecTipoFinal(String(e.target.value))}
+                      label="Estado de reinspección"
+                      value={recEstadoReinspeccion}
+                      onChange={(e) => setRecEstadoReinspeccion(String(e.target.value))}
                       variant="outlined"
-                      options={TIPO_FINAL_OPTIONS}
+                      options={ESTADO_REINSPECCION_OPTIONS}
                     />
                   </Box>
                 </Box>
@@ -2168,7 +2165,7 @@ const ActasComprobacionPage = () => {
                   contribuyenteQ: recContrib,
                   oficioNumero: recOfi,
                   expedienteNumero: recExpediente,
-                  tipoFinal: recTipoFinal,
+                  estadoReinspeccion: recEstadoReinspeccion,
                   combinarConPeriodo: recCombinarConPeriodo,
                 }) && (
                   <FormControlLabel

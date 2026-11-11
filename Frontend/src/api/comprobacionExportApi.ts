@@ -5,6 +5,7 @@ import {
   fetchPendientesReinspeccionOficio,
   type IComprobacionRecorridoListParams,
 } from "./actuacionesComprobacionActasApi";
+import { filtrarRecorridoPorEstadoReinspeccion } from "../Containers/ActasComprobacion/utils/recorridoOficioExpLabels";
 import type { ComprobacionExportRow, ComprobacionExportSlice } from "../Containers/ActasComprobacion/utils/comprobacionExportTypes";
 import {
   mapExpedientePendienteRow,
@@ -28,7 +29,7 @@ export type ComprobacionesExportFilters = {
   actaComprobacion?: string | null;
   oficioNumero?: string | null;
   expedienteNumero?: string | null;
-  tipoFinal?: string | null;
+  estadoReinspeccion?: string | null;
 };
 
 /**
@@ -57,7 +58,7 @@ export async function fetchAllComprobacionesForExport(
     return resp.items.map(mapReinspeccionPendienteRow);
   }
 
-  const resp = await fetchComprobacionRecorrido(
+  const apiParams =
     filters.recorridoApiParams ?? {
       desde,
       hasta,
@@ -67,8 +68,9 @@ export async function fetchAllComprobacionesForExport(
       acta_comprobacion: filters.actaComprobacion?.trim() || undefined,
       oficio_numero: filters.oficioNumero?.trim() || undefined,
       expediente_numero: filters.expedienteNumero?.trim() || undefined,
-      tipo_final: filters.tipoFinal?.trim() || undefined,
-    }
-  );
-  return resp.items.map(mapRecorridoRow);
+      estado_reinspeccion: filters.estadoReinspeccion?.trim() || undefined,
+    };
+  const resp = await fetchComprobacionRecorrido(apiParams);
+  const items = filtrarRecorridoPorEstadoReinspeccion(resp.items, apiParams.estado_reinspeccion);
+  return items.map(mapRecorridoRow);
 }

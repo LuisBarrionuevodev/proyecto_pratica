@@ -70,7 +70,7 @@ describe("FILTROS-1 fetchAllComprobacionesForExport recorrido", () => {
       actaComprobacion: "123",
       calleQ: "San Martín",
       contribuyenteQ: "Pérez",
-      tipoFinal: "CUMPLE",
+      estadoReinspeccion: "REALIZADA",
       distritoId: 3,
     });
 
@@ -83,7 +83,7 @@ describe("FILTROS-1 fetchAllComprobacionesForExport recorrido", () => {
       acta_comprobacion: "123",
       oficio_numero: "88",
       expediente_numero: "66234",
-      tipo_final: "CUMPLE",
+      estado_reinspeccion: "REALIZADA",
     });
   });
 });
