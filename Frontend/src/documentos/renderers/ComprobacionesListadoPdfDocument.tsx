@@ -33,6 +33,15 @@ const COL_FLEX = {
   estado: 0.95,
 } as const;
 
+const COL_FLEX_RECORRIDO = {
+  fechaComp: 1.05,
+  titular: 1.15,
+  domicilio: 1.2,
+  oficio: 1.45,
+  tipo: 1.15,
+  seguimiento: 1.25,
+} as const;
+
 const DETAIL_ROWS_PER_PAGE = 12;
 
 export function paginateComprobacionesDetalleRows(rows: ComprobacionVisualPdfRow[]): ComprobacionVisualPdfRow[][] {
@@ -198,7 +207,19 @@ function BodyCell({ flex, value }: { flex: number; value: string }) {
   );
 }
 
-function TableHeaderRow() {
+function TableHeaderRow({ layout }: { layout: "operativa" | "recorrido" }) {
+  if (layout === "recorrido") {
+    return (
+      <View style={styles.tableHeader}>
+        <HeaderCell flex={COL_FLEX_RECORRIDO.fechaComp} label="Fecha / Comprobación" />
+        <HeaderCell flex={COL_FLEX_RECORRIDO.titular} label="Titular / Documento" />
+        <HeaderCell flex={COL_FLEX_RECORRIDO.domicilio} label="Domicilio / Rubro" />
+        <HeaderCell flex={COL_FLEX_RECORRIDO.oficio} label="Oficio / Expediente / OT origen / Motivos" />
+        <HeaderCell flex={COL_FLEX_RECORRIDO.tipo} label="Tipo de reinspección / Conclusión" />
+        <HeaderCell flex={COL_FLEX_RECORRIDO.seguimiento} label="Seguimiento / OT reinspección / Fecha" />
+      </View>
+    );
+  }
   return (
     <View style={styles.tableHeader}>
       <HeaderCell flex={COL_FLEX.fechaOt} label="Fecha · OT" />
@@ -213,6 +234,18 @@ function TableHeaderRow() {
 }
 
 function DataRow({ row }: { row: ComprobacionVisualPdfRow }) {
+  if (row.layout === "recorrido") {
+    return (
+      <View style={styles.tableRow} wrap={false}>
+        <BodyCell flex={COL_FLEX_RECORRIDO.fechaComp} value={row.fechaComprobacion} />
+        <BodyCell flex={COL_FLEX_RECORRIDO.titular} value={row.titularDocumento} />
+        <BodyCell flex={COL_FLEX_RECORRIDO.domicilio} value={row.domicilioRubro} />
+        <BodyCell flex={COL_FLEX_RECORRIDO.oficio} value={row.oficioExpOtMotivos} />
+        <BodyCell flex={COL_FLEX_RECORRIDO.tipo} value={row.tipoConclusion} />
+        <BodyCell flex={COL_FLEX_RECORRIDO.seguimiento} value={row.seguimientoOtFecha} />
+      </View>
+    );
+  }
   return (
     <View style={styles.tableRow} wrap={false}>
       <BodyCell flex={COL_FLEX.fechaOt} value={row.fechaOt} />
@@ -281,6 +314,7 @@ export function ComprobacionesListadoPdfDocument({ model, membreteSrc }: Comprob
     model.filtrosResumen.length > 0 ? model.filtrosResumen.join(" · ") : "Sin filtros adicionales";
   const detailChunks = paginateComprobacionesDetalleRows(model.rows);
   const totalSheets = 1 + detailChunks.length;
+  const layout = model.rows[0]?.layout === "recorrido" ? "recorrido" : "operativa";
 
   return (
     <Document title={`Comprobaciones ${model.desde} — ${model.hasta}`}>
@@ -313,7 +347,7 @@ export function ComprobacionesListadoPdfDocument({ model, membreteSrc }: Comprob
               Detalle · hoja {detailIdx + 1} de {detailChunks.length} · {slice.length} registro
               {slice.length === 1 ? "" : "s"}
             </Text>
-            <TableHeaderRow />
+            <TableHeaderRow layout={layout} />
             {slice.map((row, idx) => (
               <DataRow key={`${detailIdx}-${idx}`} row={row} />
             ))}

@@ -47,15 +47,15 @@ describe("DOCS-EXP.3 — Excel recorrido compacto", () => {
         ],
       })
     );
-    const [excel] = buildComprobacionesNormalizedExcelRows([row], "recorrido");
+    const excel = buildComprobacionesNormalizedExcelRows([row], "recorrido");
 
-    expect(excel.Oficios).toBe("432/2026 · 1989/2026");
-    expect(excel["Expedientes de oficio"]).toBe("014578/2026 · 014543/2026");
-    expect(excel["Expediente de envío"]).toBe("66234/2026");
-    expect(excel.Causa).toBe("Falta de higiene");
-    expect(excel.Juzgados).toBe("Juzgado X");
-    expect(excel["Estado recorrido"]).toContain("Verificar e informar");
-    expect(excel["Estado recorrido"]).toContain("Ratificación de clausura");
+    expect(excel).toHaveLength(2);
+    expect(excel[0]["N.º oficio"]).toBe("432/2026");
+    expect(excel[1]["N.º oficio"]).toBe("1989/2026");
+    expect(excel[0]["N.º expediente"]).toBe("014578/2026");
+    expect(excel[1]["N.º expediente"]).toBe("014543/2026");
+    expect(excel[0]["Motivos de comprobación"]).toBe("Falta de higiene");
+    expect(excel[0].Seguimiento).toBe("Pendiente de reinspección");
   });
 
   it("no incluye columnas técnicas repetidas", () => {
@@ -82,9 +82,8 @@ describe("DOCS-EXP.3 — Excel recorrido compacto", () => {
       })
     );
     const [pdf] = buildComprobacionesVisualPdfRows([row]);
-    expect(pdf.expedienteOficio).toContain("432/2026");
-    expect(pdf.expedienteOficio).toContain("1989/2026");
-    expect(pdf.estadoReinspeccion).toContain("Verificar e informar");
-    expect(pdf.estadoReinspeccion).toContain("Ratificación de clausura");
+    expect(pdf.oficioExpOtMotivos).toContain("432/2026");
+    expect(pdf.oficioExpOtMotivos).toContain("1989/2026");
+    expect(pdf.seguimientoOtFecha).toContain("Pendiente de reinspección");
   });
 });

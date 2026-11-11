@@ -35,9 +35,12 @@ describe("DOCS-EXP.2 — comprobaciones export recorrido", () => {
         ],
       })
     );
-    const [excel] = buildComprobacionesNormalizedExcelRows([row], "recorrido");
-    expect(excel.Oficios).toBe("3489/2026 · 3490/2026");
-    expect(excel["Expedientes de oficio"]).toBe("012388/2026 · 012389/2026");
+    const excel = buildComprobacionesNormalizedExcelRows([row], "recorrido");
+    expect(excel).toHaveLength(2);
+    expect(excel[0]["N.º oficio"]).toBe("3489/2026");
+    expect(excel[1]["N.º oficio"]).toBe("3490/2026");
+    expect(excel[0]["N.º expediente"]).toBe("012388/2026");
+    expect(excel[1]["N.º expediente"]).toBe("012389/2026");
   });
 
   it("PDF visual muestra todos los oficios y expedientes en recorrido", () => {
@@ -50,8 +53,11 @@ describe("DOCS-EXP.2 — comprobaciones export recorrido", () => {
       })
     );
     const [pdf] = buildComprobacionesVisualPdfRows([row]);
-    expect(pdf.expedienteOficio).toContain("Oficio 3489/2026 · Oficio 3490/2026");
-    expect(pdf.expedienteOficio).toContain("Exp. 012388/2026 · Exp. 012389/2026");
+    expect(pdf.layout).toBe("recorrido");
+    expect(pdf.oficioExpOtMotivos).toContain("Oficio 3489/2026");
+    expect(pdf.oficioExpOtMotivos).toContain("Oficio 3490/2026");
+    expect(pdf.oficioExpOtMotivos).toContain("Exp. 012388/2026");
+    expect(pdf.oficioExpOtMotivos).toContain("Exp. 012389/2026");
   });
 
   it("pendiente oficio mantiene formato legacy de columnas", () => {

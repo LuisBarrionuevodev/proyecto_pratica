@@ -1,4 +1,4 @@
-import type { ComprobacionExportRow, ComprobacionExportSlice } from "./comprobacionExportTypes";
+import type { ComprobacionExportRow, ComprobacionExportSlice, RecorridoOficioExportDetalle } from "./comprobacionExportTypes";
 import { sliceExportLabel } from "./comprobacionExportTypes";
 import { motivoExport, parseAnioMes } from "./comprobacionesExportShared";
 export type ComprobacionNormalizedExcelRow = Record<string, string | number>;
@@ -9,51 +9,64 @@ function cell(value: unknown): string | number {
   return String(value).trim();
 }
 
-/** Columnas compactas operativas para export Recorrido (DOCS-EXP.3). */
+/** Columnas atómicas Recorrido: una fila Excel por oficio. */
 export const RECORRIDO_EXCEL_COLUMNS = [
-  "Fecha actuación",
-  "Orden de trabajo",
-  "Número de comprobación",
-  "Estado",
-  "Contribuyente",
+  "Fecha comprobación",
+  "N.º comprobación",
+  "Titular o razón social",
   "Documento",
   "Domicilio",
   "Rubro",
-  "Motivo de comprobación",
-  "Expediente de envío",
-  "Oficios",
-  "Expedientes de oficio",
-  "Expedientes de respuesta",
-  "Oficios de respuesta",
-  "Causa",
-  "Juzgados",
-  "Estado recorrido",
-  "Reinspección / visita",
-  "Inspectores",
+  "N.º oficio",
+  "N.º expediente",
+  "OT origen",
+  "Motivos de comprobación",
+  "Tipo de reinspección",
+  "Conclusión de reinspección",
+  "Seguimiento",
+  "OT reinspección",
+  "Fecha de reinspección",
 ] as const;
 
-function buildRecorridoCompactExcelRow(row: ComprobacionExportRow): ComprobacionNormalizedExcelRow {
+export const RECORRIDO_EXCEL_COL_WIDTHS = [14, 16, 28, 14, 28, 16, 14, 16, 12, 28, 22, 18, 24, 14, 16];
+
+const EMPTY_OFICIO_DETALLE: RecorridoOficioExportDetalle = {
+  oficioNumero: "",
+  expedienteNumero: "",
+  tipoReinspeccion: "",
+  conclusion: "",
+  seguimiento: "",
+  otReinspeccion: "",
+  fechaReinspeccion: "",
+};
+
+function buildRecorridoOficioExcelRow(
+  row: ComprobacionExportRow,
+  detalle: RecorridoOficioExportDetalle
+): ComprobacionNormalizedExcelRow {
   return {
-    "Fecha actuación": cell(row.fechaActuacion),
-    "Orden de trabajo": cell(row.ordenTrabajo),
-    "Número de comprobación": cell(row.actaComprobacionNum),
-    Estado: cell(sliceExportLabel("recorrido")),
-    Contribuyente: cell(row.contribuyente),
+    "Fecha comprobación": cell(row.fechaActuacion),
+    "N.º comprobación": cell(row.actaComprobacionNum),
+    "Titular o razón social": cell(row.contribuyente),
     Documento: cell(row.documento),
     Domicilio: cell(row.domicilio),
     Rubro: cell(row.rubro),
-    "Motivo de comprobación": cell(motivoExport(row)),
-    "Expediente de envío": cell(row.expedienteEnvioCompacto),
-    Oficios: cell(row.oficiosNumeros),
-    "Expedientes de oficio": cell(row.expedientesOficio),
-    "Expedientes de respuesta": cell(row.expedientesRespuesta),
-    "Oficios de respuesta": cell(row.oficiosConRespuesta),
-    Causa: cell(row.causasAgregadas),
-    Juzgados: cell(row.juzgadosAgregados),
-    "Estado recorrido": cell(row.estadoRecorridoVisitas || row.estadoRecorrido),
-    "Reinspección / visita": cell(row.reinspeccionEstado),
-    Inspectores: cell(row.inspectores),
+    "N.º oficio": cell(detalle.oficioNumero),
+    "N.º expediente": cell(detalle.expedienteNumero),
+    "OT origen": cell(row.ordenTrabajo),
+    "Motivos de comprobación": cell(motivoExport(row)),
+    "Tipo de reinspección": cell(detalle.tipoReinspeccion),
+    "Conclusión de reinspección": cell(detalle.conclusion),
+    Seguimiento: cell(detalle.seguimiento),
+    "OT reinspección": cell(detalle.otReinspeccion),
+    "Fecha de reinspección": cell(detalle.fechaReinspeccion),
   };
+}
+
+function buildRecorridoExcelRows(row: ComprobacionExportRow): ComprobacionNormalizedExcelRow[] {
+  const detalles =
+    row.oficiosDetalle && row.oficiosDetalle.length > 0 ? row.oficiosDetalle : [EMPTY_OFICIO_DETALLE];
+  return detalles.map((detalle) => buildRecorridoOficioExcelRow(row, detalle));
 }
 
 /**
@@ -64,7 +77,7 @@ export function buildComprobacionesNormalizedExcelRows(
   slice: ComprobacionExportSlice
 ): ComprobacionNormalizedExcelRow[] {
   if (slice === "recorrido") {
-    return items.map(buildRecorridoCompactExcelRow);
+    return items.flatMap(buildRecorridoExcelRows);
   }
 
   const sliceLabel = sliceExportLabel(slice);

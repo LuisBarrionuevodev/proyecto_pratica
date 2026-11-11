@@ -27,7 +27,7 @@ describe("recorridoOficioExpLabels", () => {
     ).toBe("Oficio 3489/2026 · Exp. 012388/2026");
   });
 
-  it("detalle por oficio incluye OT y conclusión propias", () => {
+  it("detalle por oficio no incluye OT de visita ni conclusión", () => {
     const chips = recOficioExpDetalleChips({
       oficio_texto: "3489/2026",
       expediente_texto: "012388/2026",
@@ -35,20 +35,18 @@ describe("recorridoOficioExpLabels", () => {
       conclusion: "Cumple",
       resultado: "CUMPLE",
     });
-    expect(chips).toEqual([
-      "Oficio 3489/2026 · Exp. 012388/2026",
-      "OT: 7696",
-      "Conclusión: Cumple",
-    ]);
+    expect(chips).toEqual(["Oficio 3489/2026 · Exp. 012388/2026"]);
+    expect(chips.join(" ")).not.toContain("7696");
+    expect(chips.join(" ")).not.toContain("Cumple");
   });
 
-  it("muestra placeholders cuando faltan OT o conclusión", () => {
+  it("sin OT ni conclusión no inventa placeholders", () => {
     const chips = recOficioExpDetalleChips({
       oficio_texto: "3490/2026",
       expediente_texto: "012389/2026",
     });
-    expect(chips).toContain("OT: Sin OT");
-    expect(chips).toContain("Conclusión: Sin conclusión");
+    expect(chips).toEqual(["Oficio 3490/2026 · Exp. 012389/2026"]);
+    expect(chips.some((c) => c.includes("Sin OT") || c.includes("Sin conclusión"))).toBe(false);
   });
 
   it("columna muestra dos oficios con OT y conclusión distintas", () => {
@@ -81,11 +79,8 @@ describe("recorridoOficioExpLabels", () => {
     const chips = recCompOficioExpMotivoChips(row);
     expect(chips).toContain("Comp. 009345");
     expect(chips).toContain("Oficio 3489/2026 · Exp. 012388/2026");
-    expect(chips).toContain("OT: 7696");
-    expect(chips).toContain("Conclusión: Cumple");
     expect(chips).toContain("Oficio 3490/2026 · Exp. 012389/2026");
-    expect(chips).toContain("OT: 7697");
-    expect(chips).toContain("Conclusión: No cumple");
+    expect(chips.some((c) => c.includes("OT: 7696") || c.includes("Conclusión: Cumple"))).toBe(false);
     expect(chips.filter((c) => c.includes("undefined"))).toHaveLength(0);
     expect(chips.filter((c) => c.includes("null"))).toHaveLength(0);
   });

@@ -9,6 +9,7 @@ import {
   type MotivosComprobacionSource,
 } from "../../../utils/motivosComprobacion";
 import { humanizarCumplimientoOficio, humanizarTipoVisitaRecorrido } from "./documentalLabelFormat";
+import type { RecorridoOficioExportDetalle } from "./comprobacionExportTypes";
 
 export type OficioRecorridoResumenItem = NonNullable<IComprobacionRecorridoRow["oficios_resumen"]>[number];
 
@@ -17,11 +18,6 @@ function parNumAnio(num: string | null | undefined, anio: number | string | null
   const a = anio != null ? String(anio) : "";
   if (!n && !a) return "";
   return [n, a].filter(Boolean).join("/");
-}
-
-function textoOt(item: OficioRecorridoResumenItem): string {
-  const ot = (item.orden_trabajo_numero ?? item.orden_trabajo ?? "").toString().trim();
-  return ot || "";
 }
 
 function textoConclusion(item: OficioRecorridoResumenItem): string {
@@ -42,16 +38,10 @@ export function recOficioExpItemLabel(item: OficioRecorridoResumenItem): string 
   return "";
 }
 
-/** Chips por oficio: cabecera + OT + conclusión (mismo formato para todos). */
+/** Chips por oficio: cabecera oficio + expediente (sin OT de visita ni conclusión). */
 export function recOficioExpDetalleChips(item: OficioRecorridoResumenItem): string[] {
-  const chips: string[] = [];
   const head = recOficioExpItemLabel(item);
-  if (head) chips.push(head);
-  const ot = textoOt(item);
-  chips.push(ot ? `OT: ${ot}` : "OT: Sin OT");
-  const conc = textoConclusion(item);
-  chips.push(conc ? `Conclusión: ${conc}` : "Conclusión: Sin conclusión");
-  return chips;
+  return head ? [head] : [];
 }
 
 function recOficioNumCompact(r: IComprobacionRecorridoRow): string {
@@ -140,6 +130,167 @@ export function resultadoSeguimientoOficioLabel(item: CierreSeguimientoOficioFue
   const estadoIni = String(item.estado_iniciador ?? "").trim().toUpperCase();
   if (item.iniciador_id != null || estadoIni === "PENDIENTE") return "Pendiente de reinspección";
   return "—";
+}
+
+const TIPO_INICIADOR_REINSPECCION_LABEL: Record<string, string> = {
+  VERIFICAR_INFORMAR_OFICIO: "Verificar e informar",
+  RATIFICACION_CLAUSURA_OFICIO: "Ratificación de clausura",
+  RATIFICACION_DECOMISO_OFICIO: "Ratificación de decomiso",
+  REINSPECCION_OFICIO: "Reinspección",
+};
+
+function fechaIsoDia(raw: unknown): string {
+  const t = String(raw ?? "").trim();
+  if (!t) return "";
+  return /^\d{4}-\d{2}-\d{2}/.test(t) ? t.slice(0, 10) : t;
+}
+
+/** True si el oficio sigue abierto operativamente (pendiente o contra reencolada). */
+export function oficioSeguimientoPendiente(item: CierreSeguimientoOficioFuente): boolean {
+  const estadoIni = String(item.estado_iniciador ?? "").trim().toUpperCase();
+  const estadoEjec = String(item.estado_ejecucion ?? "").trim().toUpperCase();
+  if (estadoEjec === "NO_REALIZADO") return true;
+  if (estadoIni === "PENDIENTE") return true;
+  if (estadoIni === "CUMPLIDO" || estadoEjec === "REALIZADO") return false;
+  return true;
+}
+
+export function tipoReinspeccionOficioLabel(item: OficioRecorridoResumenItem): string {
+  const ejec = item.ejecucion_reinspeccion as { tipo_inspeccion_labrada?: unknown } | null | undefined;
+  const fromEjec = humanizarTipoVisitaRecorrido(ejec?.tipo_inspeccion_labrada);
+  if (fromEjec !== "—") return fromEjec;
+  const tipoIni = String(item.tipo_iniciador ?? "")
+    .trim()
+    .toUpperCase();
+  if (TIPO_INICIADOR_REINSPECCION_LABEL[tipoIni]) return TIPO_INICIADOR_REINSPECCION_LABEL[tipoIni];
+  const fromIni = humanizarTipoVisitaRecorrido(item.tipo_iniciador);
+  return fromIni !== "—" ? fromIni : "";
+}
+
+/** Conclusión documental definitiva; vacía si hay contraproducencia / pendiente. */
+export function conclusionDefinitivaReinspeccion(item: OficioRecorridoResumenItem): string {
+  if (oficioSeguimientoPendiente(item)) return "";
+  const res = resultadoCumplimientoOficioKey(item);
+  if (res === "CUMPLE") return "Cumple";
+  if (res === "NO_CUMPLE") return "No cumple";
+  return "";
+}
+
+export function otReinspeccionOficio(item: OficioRecorridoResumenItem): string {
+  const ejec = item.ejecucion_reinspeccion as { orden_trabajo_numero?: unknown } | null | undefined;
+  return String(ejec?.orden_trabajo_numero ?? item.orden_trabajo_numero ?? item.orden_trabajo ?? "").trim();
+}
+
+export function fechaReinspeccionOficio(item: OficioRecorridoResumenItem): string {
+  const ejec = item.ejecucion_reinspeccion as { fecha_actuacion?: unknown } | null | undefined;
+  return fechaIsoDia(ejec?.fecha_actuacion ?? item.fecha_conclusion);
+}
+
+export function otOrigenComprobacion(r: IComprobacionRecorridoRow): string {
+  const ot = String(r.orden_trabajo_numero ?? "").trim();
+  return !ot || ot === "—" ? "" : ot;
+}
+
+export function recFechaComprobacionChips(r: IComprobacionRecorridoRow): string[] {
+  const fecha = String(r.fecha_actuacion ?? "").trim() || "—";
+  const n = String(r.acta_comprobacion_num ?? "").trim();
+  return n ? [fecha, `Comp. ${n}`] : [fecha];
+}
+
+export function recFechaComprobacionSortKey(r: IComprobacionRecorridoRow): string {
+  return recFechaComprobacionChips(r).join(" | ");
+}
+
+/** Oficio · exp. · OT origen (si hay) · motivos. Sin OT de visita ni conclusión. */
+export function recOficioExpOtOrigenMotivosChips(r: IComprobacionRecorridoRow): string[] {
+  const chips: string[] = [];
+  const resumen = r.oficios_resumen ?? [];
+  if (resumen.length > 0) {
+    chips.push(...resumen.flatMap(recOficioExpDetalleChips));
+  } else {
+    const texto = (r.oficios_texto ?? "").toString().trim();
+    if (texto) {
+      chips.push(texto.toLowerCase().startsWith("oficio") ? texto : `Oficio ${texto}`);
+    } else {
+      const on = recOficioNumCompact(r);
+      if (on !== "—") chips.push(`Oficio ${on}`);
+    }
+  }
+  const otOrigen = otOrigenComprobacion(r);
+  if (otOrigen) chips.push(`OT ${otOrigen}`);
+  const inf = motivosComprobacionTexto(hydrateMotivosComprobacion(r));
+  if (inf) chips.push(inf);
+  return chips.length ? chips : ["—"];
+}
+
+export function recOficioExpOtOrigenMotivosSortKey(r: IComprobacionRecorridoRow): string {
+  return recOficioExpOtOrigenMotivosChips(r).join(" | ");
+}
+
+/** Tipo de reinspección + Cumple/No cumple solo si la conclusión es definitiva. */
+export function recorridoReinspeccionChips(r: IComprobacionRecorridoRow): string[] {
+  const resumen = r.oficios_resumen ?? [];
+  if (resumen.length === 0) return ["—"];
+  const many = resumen.length > 1;
+  const chips: string[] = [];
+  for (const item of resumen) {
+    const tipo = tipoReinspeccionOficioLabel(item);
+    const conc = conclusionDefinitivaReinspeccion(item);
+    const of = (item.oficio_texto ?? "").trim();
+    if (tipo) chips.push(many && of ? `${of} · ${tipo}` : tipo);
+    if (conc) chips.push(conc);
+  }
+  return chips.length ? chips : ["—"];
+}
+
+export function recorridoReinspeccionSortKey(r: IComprobacionRecorridoRow): string {
+  return recorridoReinspeccionChips(r).join(" | ");
+}
+
+/**
+ * Estado operativo: pendiente (solo esa etiqueta) o realizada + OT/fecha de visita.
+ * No repite Cumple/No cumple.
+ */
+export function recorridoSeguimientoOperativoChips(r: IComprobacionRecorridoRow): string[] {
+  const resumen = r.oficios_resumen ?? [];
+  if (resumen.length === 0) return ["—"];
+  const many = resumen.length > 1;
+  const chips: string[] = [];
+  for (const item of resumen) {
+    const of = (item.oficio_texto ?? "").trim();
+    if (oficioSeguimientoPendiente(item)) {
+      const lab = "Pendiente de reinspección";
+      chips.push(many && of ? `${of} · ${lab}` : lab);
+      continue;
+    }
+    const lab = "Reinspección realizada";
+    chips.push(many && of ? `${of} · ${lab}` : lab);
+    const ot = otReinspeccionOficio(item);
+    if (ot) chips.push(`OT ${ot}`);
+    const fecha = fechaReinspeccionOficio(item);
+    if (fecha) chips.push(`Fecha ${fecha}`);
+  }
+  return chips.length ? chips : ["—"];
+}
+
+export function recorridoSeguimientoOperativoSortKey(r: IComprobacionRecorridoRow): string {
+  return recorridoSeguimientoOperativoChips(r).join(" | ");
+}
+
+export function oficiosDetalleParaExport(r: IComprobacionRecorridoRow): RecorridoOficioExportDetalle[] {
+  const resumen = r.oficios_resumen ?? [];
+  return resumen.map((item) => ({
+    oficioNumero:
+      (item.oficio_texto ?? "").trim() ||
+      parNumAnio(item.numero_oficio ?? item.numero, item.anio_oficio ?? item.anio),
+    expedienteNumero:
+      (item.expediente_texto ?? "").trim() || parNumAnio(item.numero_expediente, item.anio_expediente),
+    tipoReinspeccion: tipoReinspeccionOficioLabel(item),
+    conclusion: conclusionDefinitivaReinspeccion(item),
+    seguimiento: oficioSeguimientoPendiente(item) ? "Pendiente de reinspección" : "Reinspección realizada",
+    otReinspeccion: otReinspeccionOficio(item),
+    fechaReinspeccion: fechaReinspeccionOficio(item),
+  }));
 }
 
 /** Columna Recorrido «Resultado / seguimiento»: una línea por oficio, sin mezclar resultados. */

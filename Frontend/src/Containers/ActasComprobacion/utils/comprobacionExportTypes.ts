@@ -1,6 +1,16 @@
 /** Slice operativo de la bandeja Actas de Comprobación. */
 export type ComprobacionExportSlice = "expediente" | "oficio" | "reinspeccion" | "recorrido";
 
+export type RecorridoOficioExportDetalle = {
+  oficioNumero: string;
+  expedienteNumero: string;
+  tipoReinspeccion: string;
+  conclusion: string;
+  seguimiento: string;
+  otReinspeccion: string;
+  fechaReinspeccion: string;
+};
+
 /** Fila canónica para Excel/PDF/indicadores (independiente del endpoint origen). */
 export type ComprobacionExportRow = {
   actuacionId: number;
@@ -45,6 +55,8 @@ export type ComprobacionExportRow = {
   causasAgregadas: string;
   juzgadosAgregados: string;
   estadoRecorridoVisitas: string;
+  /** Recorrido: una entrada por oficio para Excel (celdas opcionales vacías). */
+  oficiosDetalle?: RecorridoOficioExportDetalle[];
 };
 
 export function sliceExportLabel(slice: ComprobacionExportSlice): string {

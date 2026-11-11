@@ -21,6 +21,7 @@ import {
   recorridoOficiosExportTexto,
   recorridoOficiosConRespuestaTexto,
   recorridoOficiosNumerosTexto,
+  oficiosDetalleParaExport,
 } from "./recorridoOficioExpLabels";
 
 const EMPTY_OFICIOS_EXP = {
@@ -198,5 +199,6 @@ export function mapRecorridoRow(row: IComprobacionRecorridoRow): ComprobacionExp
     causasAgregadas: recorridoCausasExportTexto(row),
     juzgadosAgregados: recorridoJuzgadosExportTexto(row),
     estadoRecorridoVisitas: recorridoEstadoVisitasExportTexto(row),
+    oficiosDetalle: oficiosDetalleParaExport(row),
   });
 }

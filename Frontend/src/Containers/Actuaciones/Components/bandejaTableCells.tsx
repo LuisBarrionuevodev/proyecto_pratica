@@ -102,21 +102,31 @@ export function BandejaSegmentChipsCell({ segments }: { segments: string[] }) {
 }
 
 /**
- * Fecha en texto plano + orden de trabajo en chip (regla unificada bandejas / actuaciones).
+ * Fecha en texto plano + chip opcional (sin hueco si el chip está vacío).
  */
-export function BandejaFechaYChipOtCell({ fecha, ot }: { fecha: string; ot: string }) {
+export function BandejaFechaYSecondChipCell({ fecha, chip }: { fecha: string; chip: string }) {
   const f = (fecha ?? "").trim() || "—";
-  const oRaw = (ot ?? "").trim();
-  const otLabel =
-    !oRaw || oRaw === "—" ? "OT —" : /^ot\b/i.test(oRaw) ? oRaw : `OT ${oRaw}`;
+  const c = (chip ?? "").trim();
   return (
     <Box sx={{ display: "flex", flexDirection: "column", alignItems: "flex-start", gap: 0.65, maxWidth: "100%" }}>
       <BandejaEllipsisCell value={f} />
-      <Tooltip title={oRaw || "—"} placement="top-start" enterDelay={400}>
-        <Chip size="medium" variant="outlined" label={otLabel} sx={chipSx} />
-      </Tooltip>
+      {c ? (
+        <Tooltip title={c} placement="top-start" enterDelay={400}>
+          <Chip size="medium" variant="outlined" label={c} sx={chipSx} />
+        </Tooltip>
+      ) : null}
     </Box>
   );
+}
+
+/**
+ * Fecha en texto plano + orden de trabajo en chip (regla unificada bandejas / actuaciones).
+ */
+export function BandejaFechaYChipOtCell({ fecha, ot }: { fecha: string; ot: string }) {
+  const oRaw = (ot ?? "").trim();
+  const otLabel =
+    !oRaw || oRaw === "—" ? "OT —" : /^ot\b/i.test(oRaw) ? oRaw : `OT ${oRaw}`;
+  return <BandejaFechaYSecondChipCell fecha={fecha} chip={otLabel} />;
 }
 
 /**

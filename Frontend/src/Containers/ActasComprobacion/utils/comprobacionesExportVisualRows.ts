@@ -2,6 +2,7 @@ import type { ComprobacionExportRow } from "./comprobacionExportTypes";
 import { cellStr, motivoExport } from "./comprobacionesExportShared";
 
 export type ComprobacionVisualPdfRow = {
+  layout: "operativa" | "recorrido";
   fechaOt: string;
   comprobacion: string;
   domicilioRubro: string;
@@ -9,7 +10,16 @@ export type ComprobacionVisualPdfRow = {
   motivo: string;
   expedienteOficio: string;
   estadoReinspeccion: string;
+  fechaComprobacion: string;
+  titularDocumento: string;
+  oficioExpOtMotivos: string;
+  tipoConclusion: string;
+  seguimientoOtFecha: string;
 };
+
+function joinLines(parts: Array<string | null | undefined>): string {
+  return parts.map((p) => String(p ?? "").trim()).filter(Boolean).join("\n");
+}
 
 function fechaOtText(row: ComprobacionExportRow): string {
   const fecha = row.fechaActuacion || "—";
@@ -50,6 +60,65 @@ function estadoReinspeccionText(row: ComprobacionExportRow): string {
   return segs.join("\n") || "—";
 }
 
+function titularDocumentoText(row: ComprobacionExportRow): string {
+  return joinLines([row.contribuyente, row.documento]) || "—";
+}
+
+function fechaComprobacionText(row: ComprobacionExportRow): string {
+  const fecha = cellStr(row.fechaActuacion);
+  const n = cellStr(row.actaComprobacionNum);
+  return joinLines([fecha, n ? `Comp. ${n}` : ""]);
+}
+
+function oficioExpOtMotivosText(row: ComprobacionExportRow): string {
+  const lines: string[] = [];
+  const detalles = row.oficiosDetalle ?? [];
+  if (detalles.length > 0) {
+    for (const d of detalles) {
+      const of = d.oficioNumero ? (d.oficioNumero.toLowerCase().startsWith("oficio") ? d.oficioNumero : `Oficio ${d.oficioNumero}`) : "";
+      const exp = d.expedienteNumero
+        ? d.expedienteNumero.toLowerCase().startsWith("exp")
+          ? d.expedienteNumero
+          : `Exp. ${d.expedienteNumero}`
+        : "";
+      const head = [of, exp].filter(Boolean).join(" · ");
+      if (head) lines.push(head);
+    }
+  } else if (row.oficiosAgregados || row.expedientesAgregados) {
+    if (row.oficiosAgregados) lines.push(row.oficiosAgregados);
+    if (row.expedientesAgregados) lines.push(row.expedientesAgregados);
+  }
+  if (row.ordenTrabajo) lines.push(`OT origen ${row.ordenTrabajo}`);
+  const mot = motivoExport(row);
+  if (mot) lines.push(mot);
+  return lines.join("\n");
+}
+
+function tipoConclusionText(row: ComprobacionExportRow): string {
+  const detalles = row.oficiosDetalle ?? [];
+  if (detalles.length === 0) return "";
+  return detalles
+    .map((d) => joinLines([d.tipoReinspeccion, d.conclusion]))
+    .filter(Boolean)
+    .join("\n");
+}
+
+function seguimientoOtFechaText(row: ComprobacionExportRow): string {
+  const detalles = row.oficiosDetalle ?? [];
+  if (detalles.length === 0) return "";
+  return detalles
+    .map((d) => {
+      if (d.seguimiento === "Pendiente de reinspección") return d.seguimiento;
+      return joinLines([
+        d.seguimiento,
+        d.otReinspeccion ? `OT ${d.otReinspeccion}` : "",
+        d.fechaReinspeccion ? `Fecha ${d.fechaReinspeccion}` : "",
+      ]);
+    })
+    .filter(Boolean)
+    .join("\n");
+}
+
 /**
  * Filas compactas para el detalle PDF de comprobaciones.
  */
@@ -58,8 +127,10 @@ export function buildComprobacionesVisualPdfRows(items: ComprobacionExportRow[])
     const dom = row.domicilio || "—";
     const rubro = cellStr(row.rubro);
     const comp = cellStr(row.actaComprobacionNum);
+    const layout = row.exportSlice === "recorrido" ? "recorrido" : "operativa";
 
     return {
+      layout,
       fechaOt: fechaOtText(row),
       comprobacion: comp ? `Comp. ${comp}` : "—",
       domicilioRubro: rubro ? `${dom} · ${rubro}` : dom,
@@ -67,6 +138,11 @@ export function buildComprobacionesVisualPdfRows(items: ComprobacionExportRow[])
       motivo: motivoExport(row) || "—",
       expedienteOficio: expedienteOficioText(row),
       estadoReinspeccion: estadoReinspeccionText(row),
+      fechaComprobacion: fechaComprobacionText(row) || "—",
+      titularDocumento: titularDocumentoText(row),
+      oficioExpOtMotivos: oficioExpOtMotivosText(row),
+      tipoConclusion: tipoConclusionText(row),
+      seguimientoOtFecha: seguimientoOtFechaText(row),
     };
   });
 }

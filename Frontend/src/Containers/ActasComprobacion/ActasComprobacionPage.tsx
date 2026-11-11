@@ -30,6 +30,7 @@ import {
   BandejaEllipsisCell,
   BandejaEstablecimientoCell,
   BandejaFechaYChipOtCell,
+  BandejaFechaYSecondChipCell,
   BandejaSegmentChipsCell,
   BANDEJA_MRT_BODY_CELL_PROPS,
   splitMiddleDot,
@@ -121,12 +122,14 @@ import {
   type RecorridoComprobacionFiltroPayload,
 } from "./utils/buildRecorridoComprobacionFiltroPayload";
 import {
-  recCompOficioExpMotivoChips,
-  recCompOficioExpMotivoSortKey,
-  recorridoColumnChips,
-  recorridoColumnSortKey,
-  recorridoResultadoSeguimientoChips,
-  recorridoResultadoSeguimientoSortKey,
+  recFechaComprobacionChips,
+  recFechaComprobacionSortKey,
+  recOficioExpOtOrigenMotivosChips,
+  recOficioExpOtOrigenMotivosSortKey,
+  recorridoReinspeccionChips,
+  recorridoReinspeccionSortKey,
+  recorridoSeguimientoOperativoChips,
+  recorridoSeguimientoOperativoSortKey,
 } from "./utils/recorridoOficioExpLabels";
 import {
   buildOperativaComprobacionFiltroPayloadForTab,
@@ -1741,17 +1744,20 @@ const ActasComprobacionPage = () => {
   const columnsRec = useMemo<MRT_ColumnDef<IComprobacionRecorridoRow>[]>(
     () => [
       {
-        id: "fecha_ot",
-        header: "Fecha · OT",
-        size: 118,
-        accessorFn: (r) => fechaOtLabel(r.fecha_actuacion, r.orden_trabajo_numero),
+        id: "fecha_comprobacion",
+        header: "Fecha · comprobación",
+        size: 128,
+        accessorFn: (r) => recFechaComprobacionSortKey(r),
         sortingFn: "alphanumeric",
-        Cell: ({ row }) => (
-          <BandejaFechaYChipOtCell
-            fecha={(row.original.fecha_actuacion ?? "").toString().trim() || "—"}
-            ot={(row.original.orden_trabajo_numero ?? "").toString().trim()}
-          />
-        ),
+        Cell: ({ row }) => {
+          const chips = recFechaComprobacionChips(row.original);
+          return (
+            <BandejaFechaYSecondChipCell
+              fecha={chips[0] ?? "—"}
+              chip={chips[1] ?? ""}
+            />
+          );
+        },
       },
       {
         id: "contrib_doc",
@@ -1782,29 +1788,31 @@ const ActasComprobacionPage = () => {
         ),
       },
       {
-        id: "comp_oficio_exp",
-        header: "Nº comp. · oficio · exp. · motivo",
-        size: 320,
-        accessorFn: (r) => recCompOficioExpMotivoSortKey(r),
+        id: "oficio_exp_ot_motivos",
+        header: "Oficio · exp. · OT origen · motivos",
+        size: 280,
+        accessorFn: (r) => recOficioExpOtOrigenMotivosSortKey(r),
         sortingFn: "alphanumeric",
-        Cell: ({ row }) => <BandejaSegmentChipsCell segments={recCompOficioExpMotivoChips(row.original)} />,
+        Cell: ({ row }) => (
+          <BandejaSegmentChipsCell segments={recOficioExpOtOrigenMotivosChips(row.original)} />
+        ),
       },
       {
-        id: "recorrido_visitas",
-        header: "Recorrido",
-        size: 280,
-        accessorFn: (r) => recorridoColumnSortKey(r),
+        id: "reinspeccion",
+        header: "Reinspección",
+        size: 200,
+        accessorFn: (r) => recorridoReinspeccionSortKey(r),
         sortingFn: "alphanumeric",
-        Cell: ({ row }) => <BandejaSegmentChipsCell segments={recorridoColumnChips(row.original)} />,
+        Cell: ({ row }) => <BandejaSegmentChipsCell segments={recorridoReinspeccionChips(row.original)} />,
       },
       {
         id: "resultado_seguimiento",
         header: "Resultado / seguimiento",
-        size: 168,
-        accessorFn: (r) => recorridoResultadoSeguimientoSortKey(r),
+        size: 200,
+        accessorFn: (r) => recorridoSeguimientoOperativoSortKey(r),
         sortingFn: "alphanumeric",
         Cell: ({ row }) => (
-          <BandejaSegmentChipsCell segments={recorridoResultadoSeguimientoChips(row.original)} />
+          <BandejaSegmentChipsCell segments={recorridoSeguimientoOperativoChips(row.original)} />
         ),
       },
       {
