@@ -53,7 +53,8 @@ export function recorridoComprobacionHasSpecificSearch(form: RecorridoComprobaci
       trimOpt(form.calleQ) ||
       trimOpt(form.contribuyenteQ) ||
       trimOpt(form.oficioNumero) ||
-      trimOpt(form.expedienteNumero)
+      trimOpt(form.expedienteNumero) ||
+      trimOpt(form.estadoReinspeccion)
   );
 }
 

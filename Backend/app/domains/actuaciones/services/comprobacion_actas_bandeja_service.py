@@ -41,6 +41,7 @@ def _recorrido_busqueda_especifica_activa(
     oficio_numero: Optional[str] = None,
     estado_recorrido: Optional[str] = None,
     tipo_final: Optional[str] = None,
+    estado_reinspeccion: Optional[str] = None,
 ) -> bool:
     """True si hay filtro documental/operativo que no debe verse afectado por el cap defensivo."""
     return bool(
@@ -52,6 +53,7 @@ def _recorrido_busqueda_especifica_activa(
         or (oficio_numero and oficio_numero.strip())
         or (estado_recorrido and estado_recorrido.strip())
         or (tipo_final and tipo_final.strip())
+        or (estado_reinspeccion and estado_reinspeccion.strip())
     )
 
 
@@ -437,6 +439,7 @@ def list_comprobacion_recorrido(
     oficio_numero: Optional[str] = None,
     estado_recorrido: Optional[str] = None,
     tipo_final: Optional[str] = None,
+    estado_reinspeccion: Optional[str] = None,
     limit: int = RECORRIDO_CAP_SIN_BUSQUEDA,
 ) -> List[Actuaciones]:
     """
@@ -448,8 +451,8 @@ def list_comprobacion_recorrido(
     ``estado_recorrido`` y ``tipo_final`` requieren lógica de presentación y se aplican en Python
     sobre el universo ya acotado por SQL / período.
 
-    ``estado_reinspeccion`` no levanta el cap: se prefiltra en lote (oficios/iniciadores)
-    **antes** del presenter, con el mismo período que el filtro de fecha.
+    ``estado_reinspeccion`` es opcional e independiente del período: si viene, cuenta como
+    búsqueda específica (sin cap 500). El recorte de filas se hace en lote **antes** del presenter.
 
     Sin búsqueda específica se mantiene ``limit`` (500 por defecto) sobre ``id DESC``.
 
@@ -464,6 +467,7 @@ def list_comprobacion_recorrido(
         oficio_numero=oficio_numero,
         estado_recorrido=estado_recorrido,
         tipo_final=tipo_final,
+        estado_reinspeccion=estado_reinspeccion,
     )
 
     q = Actuaciones.query.filter(Actuaciones.comprobacion_id.isnot(None))

@@ -145,6 +145,7 @@ def comprobacion_recorrido_list():
             oficio_numero=args.get("oficio_numero"),
             estado_recorrido=args.get("estado_recorrido"),
             tipo_final=args.get("tipo_final"),
+            estado_reinspeccion=estado_reinspeccion,
         )
         acts = prefiltrar_actuaciones_por_estado_reinspeccion(acts, estado_reinspeccion)
         query_ms = query_timer.elapsed_ms()

@@ -47,6 +47,20 @@ describe("FILTROS-4 Comprobaciones Recorrido paginación UI", () => {
     expect(s).toContain("setRecDistritoId(\"\")");
   });
 
+  it("toggle Combinar con período sigue atado a búsqueda específica, incluido estado", () => {
+    const s = src();
+    expect(s).toContain("recorridoComprobacionHasSpecificSearch");
+    expect(s).toContain("Combinar también con período y filtros");
+    expect(s).toContain("setRecCombinarConPeriodo");
+  });
+
+  it("estado y período se limpian con setters independientes", () => {
+    const s = src();
+    expect(s).toMatch(/onChange=\{\(e\) => setRecEstadoReinspeccion\(String\(e\.target\.value\)\)\}/);
+    expect(s).toMatch(/setRecMes\(e\.target\.value === "" \? "" : Number\(e\.target\.value\)\)/);
+    expect(s).not.toMatch(/setRecEstadoReinspeccion\([^)]*\)[\s\S]{0,80}setRecMes\(/);
+  });
+
   it("con 37 filas y pageSize 10 muestra Página 1 de 4", () => {
     const s = buildClientPaginationSummary({ pageIndex: 0, pageSize: 10, totalRows: 37 });
     expect(s.currentPage).toBe(1);

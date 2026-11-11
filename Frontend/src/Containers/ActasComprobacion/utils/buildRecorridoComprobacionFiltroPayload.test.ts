@@ -87,29 +87,71 @@ describe("buildRecorridoComprobacionFiltroPayload", () => {
     }
   });
 
-  it("estado de reinspección no cuenta como búsqueda específica", () => {
-    expect(
-      recorridoComprobacionHasSpecificSearch({
-        ...emptyForm,
-        estadoReinspeccion: "REALIZADA",
-      })
-    ).toBe(false);
-  });
-
-  it("estado de reinspección conserva el período (no es búsqueda global)", () => {
+  it("estado de reinspección sin período es válido y no exige mes", () => {
+    expect(recorridoComprobacionHasSpecificSearch({ ...emptyForm, estadoReinspeccion: "REALIZADA" })).toBe(
+      true
+    );
     const r = buildRecorridoComprobacionFiltroPayload({
       ...emptyForm,
-      mes: 7,
-      anio: 2026,
       estadoReinspeccion: "PENDIENTE",
     });
     expect(r.ok).toBe(true);
     if (r.ok) {
       const api = recorridoPayloadToApiParams(r.payload);
-      expect(api.omitirRangoFecha).toBeUndefined();
+      expect(api.omitirRangoFecha).toBe(true);
+      expect(api.mes).toBeUndefined();
+      expect(api.anio).toBeUndefined();
+      expect(api.estado_reinspeccion).toBe("PENDIENTE");
+    }
+  });
+
+  it("período sin estado no envía estado_reinspeccion", () => {
+    const r = buildRecorridoComprobacionFiltroPayload({
+      ...emptyForm,
+      mes: 4,
+      anio: 2024,
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      const api = recorridoPayloadToApiParams(r.payload);
+      expect(api.mes).toBe(4);
+      expect(api.anio).toBe(2024);
+      expect(api.estado_reinspeccion).toBeUndefined();
+    }
+  });
+
+  it("toggle off: estado con mes cargado no aplica el período", () => {
+    const r = buildRecorridoComprobacionFiltroPayload({
+      ...emptyForm,
+      mes: 7,
+      anio: 2026,
+      estadoReinspeccion: "REALIZADA",
+      combinarConPeriodo: false,
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      const api = recorridoPayloadToApiParams(r.payload);
+      expect(api.omitirRangoFecha).toBe(true);
+      expect(api.mes).toBeUndefined();
+      expect(api.estado_reinspeccion).toBe("REALIZADA");
+    }
+  });
+
+  it("ambos combinados: período + estado_reinspeccion", () => {
+    const r = buildRecorridoComprobacionFiltroPayload({
+      ...emptyForm,
+      mes: 7,
+      anio: 2026,
+      estadoReinspeccion: "PENDIENTE",
+      combinarConPeriodo: true,
+    });
+    expect(r.ok).toBe(true);
+    if (r.ok) {
+      const api = recorridoPayloadToApiParams(r.payload);
       expect(api.mes).toBe(7);
       expect(api.anio).toBe(2026);
       expect(api.estado_reinspeccion).toBe("PENDIENTE");
+      expect(api.omitirRangoFecha).toBeUndefined();
     }
   });
 
