@@ -118,7 +118,15 @@ function tipoConclusionText(row: ComprobacionExportRow): string {
   const detalles = row.oficiosDetalle ?? [];
   if (detalles.length === 0) return "";
   return detalles
-    .map((d) => joinLines([d.tipoReinspeccion, d.conclusion]))
+    .map((d) =>
+      joinLines([
+        d.tipoReinspeccion,
+        d.conclusion,
+        d.actaDecomisoOrigen ? `Acta de decomiso origen: N.º ${d.actaDecomisoOrigen}` : "",
+        d.kilosDecomisoOrigen ? `Kilos decomiso origen: ${d.kilosDecomisoOrigen}` : "",
+        d.actaClausuraOrigen ? `Acta de clausura origen: N.º ${d.actaClausuraOrigen}` : "",
+      ])
+    )
     .filter(Boolean)
     .join("\n");
 }

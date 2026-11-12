@@ -26,6 +26,7 @@ import {
   DocumentalFila,
 } from "./comprobacionOperativoBlocks";
 import { filasActaComprobacionRecorrido, recorridoHeaderReference } from "../utils/recorridoOficioExpLabels";
+import { filasActasComprobacionOrigen } from "../utils/origenActasLabels";
 import { docModalEmptyStateSx, documentalGlassAlertSx } from "../../../styles/documentalModalTokens";
 import { parseApiError } from "../../../utils/parseApiError";
 import {
@@ -246,6 +247,10 @@ export function RecorridoDetalleDocumentalDialog({
     actuacionId != null &&
     (documental?.expediente_envio != null || documental?.sin_expediente_envio === true);
 
+  const filasOrigenActas = filasActasComprobacionOrigen(
+    detalle?.origen_actas ?? documental?.origen_actas ?? ctx.origen_actas
+  );
+
   return (
     <CrudGlassDialog
       open={open}
@@ -280,6 +285,13 @@ export function RecorridoDetalleDocumentalDialog({
                 <DocumentalFila key={f.etiqueta} etiqueta={f.etiqueta} valor={f.valor} />
               ))}
             </DocumentalBloque>
+            {filasOrigenActas.length > 0 ? (
+              <DocumentalBloque overline="Actas de la comprobación de origen">
+                {filasOrigenActas.map((f) => (
+                  <DocumentalFila key={f.etiqueta} etiqueta={f.etiqueta} valor={f.valor} />
+                ))}
+              </DocumentalBloque>
+            ) : null}
             {notaReferencia}
             <BloqueExpedienteEnvioReinspeccionDetalle row={circuitRow} />
           </Stack>

@@ -111,6 +111,8 @@ describe("ComprobacionOficiosTribunalSection cierre documental", () => {
     expect(html).not.toContain("Cumplido");
     expect(html).not.toContain("Cumplimiento");
     expect(countLabel(html, "Cumple")).toBe(1);
+    expect(html).not.toContain("Kilos ratificados");
+    expect(html).not.toContain("Actas de la comprobación de origen");
   });
 
   it("oficio pendiente no muestra datos de reinspección", () => {

@@ -1,4 +1,5 @@
 import { apiClient } from "./apiClient";
+import type { IOrigenActas } from "./origenActas";
 
 // ============= TYPES =============
 
@@ -193,6 +194,8 @@ export interface IActuacionListItem {
             notificacion_fecha_vencimiento?: string | null;
         };
     };
+    /** Actas de la ancla; solo en visitas de oficio. No editar. */
+    origen_actas?: IOrigenActas | null;
     origen_reinspeccion_oficio?: {
         comprobacion_acta_numero?: string | null;
         comprobacion_acta_anio?: number | null;

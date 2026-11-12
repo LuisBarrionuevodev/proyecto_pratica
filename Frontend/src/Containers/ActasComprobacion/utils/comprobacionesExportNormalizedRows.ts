@@ -28,9 +28,14 @@ export const RECORRIDO_EXCEL_COLUMNS = [
   "Seguimiento",
   "OT reinspección",
   "Fecha de reinspección",
+  "Acta decomiso origen",
+  "Kilos decomiso origen",
+  "Acta clausura origen",
 ] as const;
 
-export const RECORRIDO_EXCEL_COL_WIDTHS = [14, 16, 16, 28, 14, 28, 16, 14, 16, 12, 14, 28, 22, 18, 24, 14, 16];
+export const RECORRIDO_EXCEL_COL_WIDTHS = [
+  14, 16, 16, 28, 14, 28, 16, 14, 16, 12, 14, 28, 22, 18, 24, 14, 16, 18, 16, 18,
+];
 
 const EMPTY_OFICIO_DETALLE: RecorridoOficioExportDetalle = {
   oficioNumero: "",
@@ -41,6 +46,9 @@ const EMPTY_OFICIO_DETALLE: RecorridoOficioExportDetalle = {
   seguimiento: "",
   otReinspeccion: "",
   fechaReinspeccion: "",
+  actaDecomisoOrigen: "",
+  kilosDecomisoOrigen: "",
+  actaClausuraOrigen: "",
 };
 
 function buildRecorridoOficioExcelRow(
@@ -68,6 +76,9 @@ function buildRecorridoOficioExcelRow(
     Seguimiento: cell(detalle.seguimiento),
     "OT reinspección": cell(detalle.otReinspeccion),
     "Fecha de reinspección": cell(detalle.fechaReinspeccion),
+    "Acta decomiso origen": cell(detalle.actaDecomisoOrigen),
+    "Kilos decomiso origen": cell(detalle.kilosDecomisoOrigen),
+    "Acta clausura origen": cell(detalle.actaClausuraOrigen),
   };
 }
 

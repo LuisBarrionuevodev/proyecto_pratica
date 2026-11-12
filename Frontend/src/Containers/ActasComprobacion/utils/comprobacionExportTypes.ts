@@ -10,6 +10,9 @@ export type RecorridoOficioExportDetalle = {
   seguimiento: string;
   otReinspeccion: string;
   fechaReinspeccion: string;
+  actaDecomisoOrigen?: string;
+  kilosDecomisoOrigen?: string;
+  actaClausuraOrigen?: string;
 };
 
 /** Fila canónica para Excel/PDF/indicadores (independiente del endpoint origen). */

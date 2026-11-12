@@ -1612,5 +1612,69 @@ describe("ActuacionDetalleDialog", () => {
     expect(html).not.toContain("Guardar cambios");
     expect(html).not.toContain("Imprimir");
   });
+
+  it("visita de ratificación de decomiso muestra actas de origen consultivas", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={{
+          ...baseRow,
+          id: 20,
+          tipo_actuacion: "RATIFICACION DE DECOMISO",
+          origen_actas: {
+            actuacion_origen_id: 10,
+            acta_decomiso_num: "004567",
+            decomiso_kilos_total: 18.5,
+            acta_clausura_num: "000832",
+          },
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("Actas de la comprobación de origen");
+    expect(html).toContain("N.º acta de decomiso");
+    expect(html).toContain("004567");
+    expect(html).toContain("Kilos ratificados");
+    expect(html).toContain("18,5 kg");
+    expect(html).not.toContain("000832");
+  });
+
+  it("inspección / ancla no duplica el bloque de actas de origen", () => {
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={{
+          ...baseRow,
+          id: 10,
+          tipo_actuacion: "INSPECCION",
+          acta_decomiso_num: "004567",
+          decomiso_kilos_total: 18.5,
+          origen_actas: {
+            actuacion_origen_id: 10,
+            acta_decomiso_num: "004567",
+            decomiso_kilos_total: 18.5,
+            acta_clausura_num: null,
+          },
+        }}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).not.toContain("Actas de la comprobación de origen");
+    expect(html).not.toContain("Kilos ratificados");
+  });
 });
 

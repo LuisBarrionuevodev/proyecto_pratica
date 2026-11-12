@@ -48,6 +48,11 @@ from app.domains.actuaciones.services.expediente_actas_edit_guard import (
     comprobacion_editable_desde_canal_actas,
     notificacion_editable_desde_canal_actas,
 )
+from app.domains.actuaciones.presenters.origen_actas_presenter import (
+    actuacion_ancla_origen,
+    origen_actas_desde_ancla,
+    resolver_tipo_final_origen,
+)
 from app.domains.actuaciones.services.actuacion_domicilio_edit_service import (
     puede_editar_domicilio_actuacion,
     puede_editar_rubro_actuacion,
@@ -1059,6 +1064,13 @@ def actuacion_to_grid_row(
         else:
             en_ficha = int(count_actuaciones_por_establecimiento_operativo_ids([eid]).get(eid, 0))
 
+    tipo_actuacion = _enum_to_str(getattr(act, "tipo", None))
+    origen_actas_payload = None
+    tipo_final_origen = resolver_tipo_final_origen(tipo_actuacion_visita=tipo_actuacion)
+    if tipo_final_origen:
+        ancla = actuacion_ancla_origen(act)
+        origen_actas_payload = origen_actas_desde_ancla(ancla, tipo_final=tipo_final_origen)
+
     return {
         "id": act.id,
         "carga_solo_comprobacion": bool(getattr(act, "carga_solo_comprobacion", False)),
@@ -1095,7 +1107,7 @@ def actuacion_to_grid_row(
         "calle_sugerida": calle_sugerida,
         "calle_mostrar": calle_mostrar,
 
-        "tipo_actuacion": _enum_to_str(getattr(act, "tipo", None)),
+        "tipo_actuacion": tipo_actuacion,
         "contraproducencia": _enum_to_str(getattr(act, "contraproducencia", None)),
         "resultado_cumplimiento_oficio": _enum_to_str(getattr(act, "resultado_cumplimiento_oficio", None)),
         "realizo_nueva_inspeccion": getattr(act, "realizo_nueva_inspeccion", None),
@@ -1147,6 +1159,7 @@ def actuacion_to_grid_row(
         "documentacion_contexto": documentacion_contexto,
         "origen_reinspeccion_oficio": origen_ofi,
         "origen_reinspeccion_notificacion": origen_notif,
+        "origen_actas": origen_actas_payload,
 
         "notificacion_editable": (
             False

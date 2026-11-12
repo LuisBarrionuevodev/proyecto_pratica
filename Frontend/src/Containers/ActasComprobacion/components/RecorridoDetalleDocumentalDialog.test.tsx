@@ -99,5 +99,40 @@ describe("RecorridoDetalleDocumentalDialog", () => {
     expect(html).not.toContain("Estado del trámite");
     expect(html).not.toContain("Número de oficio");
     expect(html).not.toContain("Pendiente de reinspección");
+    expect(html).not.toContain("Actas de la comprobación de origen");
+  });
+
+  it("muestra actas de origen existentes después del acta de comprobación", () => {
+    const html = render(
+      <RecorridoDetalleDocumentalDialog
+        open
+        disablePortal
+        actuacionId={11}
+        listRow={listRow}
+        detalle={{
+          ...detalle,
+          origen_actas: {
+            actuacion_origen_id: 11,
+            acta_decomiso_num: "004567",
+            decomiso_kilos_total: 18.5,
+            acta_clausura_num: "000832",
+          },
+        }}
+        loading={false}
+        juzgados={[]}
+        defaultFechaAlta="2026-07-10"
+      />
+    );
+    expect(html).toContain("Actas de la comprobación de origen");
+    expect(html).toContain("N.º acta de decomiso");
+    expect(html).toContain("004567");
+    expect(html).toContain("Kilos decomisados");
+    expect(html).toContain("18,5 kg");
+    expect(html).toContain("N.º acta de clausura");
+    expect(html).toContain("000832");
+    const origenIdx = html.indexOf("Actas de la comprobación de origen");
+    const oficioIdx = html.indexOf("Oficios");
+    expect(origenIdx).toBeGreaterThan(html.indexOf("Acta de comprobación"));
+    if (oficioIdx >= 0) expect(origenIdx).toBeLessThan(oficioIdx);
   });
 });

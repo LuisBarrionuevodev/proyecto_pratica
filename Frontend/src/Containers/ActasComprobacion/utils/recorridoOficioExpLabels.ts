@@ -10,6 +10,7 @@ import {
 } from "../../../utils/motivosComprobacion";
 import { humanizarCumplimientoOficio, humanizarTipoVisitaRecorrido } from "./documentalLabelFormat";
 import type { RecorridoOficioExportDetalle } from "./comprobacionExportTypes";
+import { chipsOrigenActasOficio, exportCamposOrigenActasOficio } from "./origenActasLabels";
 
 export type OficioRecorridoResumenItem = NonNullable<IComprobacionRecorridoRow["oficios_resumen"]>[number];
 
@@ -362,6 +363,9 @@ export function recorridoReinspeccionChips(r: IComprobacionRecorridoRow): string
     const of = (item.oficio_texto ?? "").trim();
     if (tipo) chips.push(many && of ? `${of} · ${tipo}` : tipo);
     if (conc) chips.push(conc);
+    for (const orig of chipsOrigenActasOficio(item)) {
+      chips.push(many && of ? `${of} · ${orig}` : orig);
+    }
   }
   return chips.length ? chips : ["—"];
 }
@@ -402,19 +406,25 @@ export function recorridoSeguimientoOperativoSortKey(r: IComprobacionRecorridoRo
 
 export function oficiosDetalleParaExport(r: IComprobacionRecorridoRow): RecorridoOficioExportDetalle[] {
   const resumen = r.oficios_resumen ?? [];
-  return resumen.map((item) => ({
-    oficioNumero:
-      (item.oficio_texto ?? "").trim() ||
-      parNumAnio(item.numero_oficio ?? item.numero, item.anio_oficio ?? item.anio),
-    expedienteNumero:
-      (item.expediente_texto ?? "").trim() || parNumAnio(item.numero_expediente, item.anio_expediente),
-    causa: String(item.causa ?? "").trim(),
-    tipoReinspeccion: tipoReinspeccionOficioLabel(item),
-    conclusion: conclusionDefinitivaReinspeccion(item),
-    seguimiento: oficioSeguimientoPendiente(item) ? "Pendiente de reinspección" : "Reinspección realizada",
-    otReinspeccion: otReinspeccionOficio(item),
-    fechaReinspeccion: fechaReinspeccionOficio(item),
-  }));
+  return resumen.map((item) => {
+    const origen = exportCamposOrigenActasOficio(item);
+    return {
+      oficioNumero:
+        (item.oficio_texto ?? "").trim() ||
+        parNumAnio(item.numero_oficio ?? item.numero, item.anio_oficio ?? item.anio),
+      expedienteNumero:
+        (item.expediente_texto ?? "").trim() || parNumAnio(item.numero_expediente, item.anio_expediente),
+      causa: String(item.causa ?? "").trim(),
+      tipoReinspeccion: tipoReinspeccionOficioLabel(item) || origen.tipoFinal,
+      conclusion: conclusionDefinitivaReinspeccion(item),
+      seguimiento: oficioSeguimientoPendiente(item) ? "Pendiente de reinspección" : "Reinspección realizada",
+      otReinspeccion: otReinspeccionOficio(item),
+      fechaReinspeccion: fechaReinspeccionOficio(item),
+      actaDecomisoOrigen: origen.actaDecomisoOrigen,
+      kilosDecomisoOrigen: origen.kilosDecomisoOrigen,
+      actaClausuraOrigen: origen.actaClausuraOrigen,
+    };
+  });
 }
 
 /** Columna Recorrido «Resultado / seguimiento»: una línea por oficio, sin mezclar resultados. */

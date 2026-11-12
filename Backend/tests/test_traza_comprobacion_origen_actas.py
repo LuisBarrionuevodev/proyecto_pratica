@@ -6,6 +6,7 @@ import random
 from datetime import date
 
 from app.database import db
+from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import (
     comprobacion_recorrido_detalle,
     comprobacion_recorrido_resumen_row,
@@ -420,5 +421,30 @@ def test_reinspeccion_generica_pendiente_datos_disponibles_sin_afirmar(app_ctx) 
         item = next(i for i in row["oficios_resumen"] if i["id"] == ofi.id)
         assert item["origen_actas"]["acta_decomiso_num"] == dec.numero_acta
         assert item["tipo_iniciador"] == "REINSPECCION_OFICIO"
+    finally:
+        db.session.rollback()
+
+
+def test_grid_visita_origen_actas_no_usa_decomiso_de_visita(app_ctx) -> None:
+    try:
+        act, comp, dom, u, dec, _cla = _mk_ancla(con_decomiso=True, kilos=11)
+        _ofi, act_vis, _ini = _mk_oficio_visita(
+            comp=comp,
+            act_ancla=act,
+            dom=dom,
+            u=u,
+            tipo_iniciador="VERIFICAR_INFORMAR_OFICIO",
+            tipo_visita="VERIFICAR E INFORMAR",
+            realizo_nueva_inspeccion=True,
+            decomiso_visita_kilos=99.9,
+        )
+        grid = actuacion_to_grid_row(act_vis)
+        orig = grid.get("origen_actas")
+        assert orig is not None
+        assert orig["actuacion_origen_id"] == act.id
+        assert orig["acta_decomiso_num"] == dec.numero_acta
+        assert orig["decomiso_kilos_total"] == 11.0
+        grid_ancla = actuacion_to_grid_row(act)
+        assert grid_ancla.get("origen_actas") is None
     finally:
         db.session.rollback()

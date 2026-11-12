@@ -33,6 +33,10 @@ import {
   orderedMotivosComprobacion,
   primerMotivoComprobacionLegado,
 } from "../../../utils/motivosComprobacion";
+import {
+  debeMostrarBloqueOrigenVerActuacion,
+  filasOrigenActasVerActuacion,
+} from "../../ActasComprobacion/utils/origenActasLabels";
 import { mergeLegacyRubroNames } from "../../../utils/rubrosCatalogCache";
 import { domicilioCalleValorEdicion, domicilioNumeroValorEdicion, domicilioRowParaEdicionCalle } from "../../../utils/domicilioCalleUi";
 import { useAppFeedback } from "../../../components/feedback";
@@ -1898,6 +1902,14 @@ export function ActuacionDetalleDialog({
     const tieneActas = actasVisitaHayContenido(draft);
     const tieneResultado = resultadoLecturaHayContenido(draft);
     const tieneAntecedentes = antecedentesSeguimientoHayContenido(draft);
+    const mostrarOrigenActas = debeMostrarBloqueOrigenVerActuacion({
+      actuacionId: draft.id,
+      tipoActuacion: draft.tipo_actuacion,
+      origenActas: draft.origen_actas,
+    });
+    const filasOrigenActas = mostrarOrigenActas
+      ? filasOrigenActasVerActuacion(draft.origen_actas, draft.tipo_actuacion)
+      : [];
     const observaciones = observacionesVisitaDisplayText(draft);
     const contribuyenteNombre =
       formatGestionContribuyenteNombre(draft) || draft.razon_social || "—";
@@ -2012,6 +2024,18 @@ export function ActuacionDetalleDialog({
                   <ResultadoOperativoLectura draft={draft} />
                 </Box>
               </Box>
+          ) : null}
+          {filasOrigenActas.length > 0 ? (
+            <Box>
+              <Typography component="h3" sx={docModalSubheadingInCardSx}>
+                Actas de la comprobación de origen
+              </Typography>
+              <Box sx={{ mt: 1, ...lecturaGridSx }}>
+                {filasOrigenActas.map((f) => (
+                  <LecturaDato key={f.etiqueta} label={f.etiqueta} value={f.valor} />
+                ))}
+              </Box>
+            </Box>
           ) : null}
         </Stack>
       </LecturaBloque>
