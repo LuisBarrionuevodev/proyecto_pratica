@@ -120,6 +120,7 @@ export interface IndicadoresEjecutivoKpis {
   ratificaciones_decomiso_realizadas: number;
   verificar_informar_realizadas: number;
   mercaderia_decomisada_kg: number;
+  kilos_ratificados: number;
 }
 
 export interface IndicadoresEjecutivoResponse {

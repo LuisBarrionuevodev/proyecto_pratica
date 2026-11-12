@@ -21,6 +21,7 @@ const baseEjecutivo: IndicadoresEjecutivoResponse = {
     ratificaciones_decomiso_realizadas: 0,
     verificar_informar_realizadas: 1,
     mercaderia_decomisada_kg: 12.5,
+    kilos_ratificados: 30.4,
   },
   actas_por_tipo: {
     inspeccion: 2,
@@ -66,5 +67,20 @@ describe("DashboardEjecutivoSection", () => {
       kpis: { ...baseEjecutivo.kpis, reinspecciones_oficio_realizadas: 4 },
     });
     expect(html).toContain("Reins. oficio realizadas");
+  });
+
+  it("muestra Kilos ratificados junto a mercadería decomisada y ratif. decomiso", () => {
+    const html = renderSection(baseEjecutivo);
+    const mercIdx = html.indexOf("Mercadería decomisada");
+    const kilosIdx = html.indexOf("Kilos ratificados");
+    const ratifIdx = html.indexOf("Ratif. decomiso realizadas");
+    expect(kilosIdx).toBeGreaterThan(-1);
+    expect(mercIdx).toBeGreaterThan(-1);
+    expect(mercIdx).toBeLessThan(kilosIdx);
+    expect(kilosIdx).toBeLessThan(ratifIdx);
+    expect(html).toContain(baseEjecutivo.kpis.kilos_ratificados.toLocaleString("es-AR", {
+      maximumFractionDigits: 2,
+    }));
+    expect(html).toContain("kg");
   });
 });

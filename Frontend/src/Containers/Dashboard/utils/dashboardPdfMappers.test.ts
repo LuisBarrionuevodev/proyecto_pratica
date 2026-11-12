@@ -25,6 +25,7 @@ const fullPayload: DashboardExportPayload = {
       ratificaciones_decomiso_realizadas: 0,
       verificar_informar_realizadas: 1,
       mercaderia_decomisada_kg: 12.5,
+      kilos_ratificados: 30.4,
     },
     actas_por_tipo: {
       inspeccion: 2,
@@ -114,8 +115,14 @@ describe("buildDashboardPdfModel", () => {
       "01/01/2026 al 31/01/2026"
     );
     expect(model.title).toBe("Indicadores Digitaliza");
-    expect(model.ejecutivoKpis).toHaveLength(8);
+    expect(model.ejecutivoKpis).toHaveLength(9);
     expect(model.ejecutivoKpis.find((k) => k.label.includes("oficio realizadas"))?.value).toBe("3");
+    const kilosPdf = model.ejecutivoKpis.find((k) => k.label === "Kilos ratificados");
+    expect(kilosPdf?.value).toBe(
+      fullPayload.ejecutivo!.kpis.kilos_ratificados.toLocaleString("es-AR", {
+        maximumFractionDigits: 2,
+      })
+    );
     expect(model.distritoLabel).toBe("Centro");
     expect(model.inspectorLabel).toBe("García");
   });

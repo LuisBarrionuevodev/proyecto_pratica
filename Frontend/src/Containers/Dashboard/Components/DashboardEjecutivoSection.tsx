@@ -28,6 +28,7 @@ const OVERVIEW_ACCENTS: DashboardKpiAccent[] = [
   "teal",
   "primary",
   "amber",
+  "teal",
 ];
 
 /**
@@ -73,6 +74,16 @@ export const DashboardEjecutivoSection = memo(function DashboardEjecutivoSection
         error || data == null || kpis == null
           ? "—"
           : kpis.mercaderia_decomisada_kg.toLocaleString("es-AR", {
+              maximumFractionDigits: 2,
+            }),
+      unit: error || data == null ? undefined : "kg",
+    },
+    {
+      label: "Kilos ratificados",
+      value:
+        error || data == null || kpis == null
+          ? "—"
+          : kpis.kilos_ratificados.toLocaleString("es-AR", {
               maximumFractionDigits: 2,
             }),
       unit: error || data == null ? undefined : "kg",

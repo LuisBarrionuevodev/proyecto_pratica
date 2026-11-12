@@ -54,11 +54,13 @@ def vincular_cierre_realizado(
     tipo_iniciador: str = "RELEVAMIENTO",
     ini_domicilio_id: int | None = None,
     inspector_id: int | None = None,
+    iniciador_actuacion_id: int | None = None,
 ) -> RutaItem:
     """
     Crea ruta PUBLICADA + RutaItem FINALIZADO/REALIZADO vinculado a ``act``.
 
     Si ``act`` no tiene OT, crea una. Opcionalmente vincula inspector.
+    ``iniciador_actuacion_id`` es la ancla del iniciador (p. ej. comprobación de origen).
     """
     u = _mk_user()
     if act.orden_trabajo_id is None:
@@ -81,6 +83,7 @@ def vincular_cierre_realizado(
         mes=fr.month,
         domicilio_id=dom_ini,
         created_by_user_id=u.id,
+        actuacion_id=iniciador_actuacion_id,
     )
     db.session.add(ini)
     db.session.flush()

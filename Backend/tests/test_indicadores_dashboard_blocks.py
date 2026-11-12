@@ -60,6 +60,7 @@ def test_get_indicadores_ejecutivo_ok_shape(client, auth_headers):
         "ratificaciones_decomiso_realizadas",
         "verificar_informar_realizadas",
         "mercaderia_decomisada_kg",
+        "kilos_ratificados",
     ):
         assert key in kpis
         assert kpis[key] >= 0

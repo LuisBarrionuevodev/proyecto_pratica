@@ -19,6 +19,8 @@ class EjecutivoKpis(BaseModel):
     ``actuaciones_realizadas``: cierres REALIZADO en ruta PUBLICADA (mapa operativo).
     ``actas_labradas`` y desglose: actas propias en actuaciones del periodo por ``fecha``.
     ``inspecciones_realizadas``: visitas bucket ``inspecciones`` (misma regla que Productividad).
+    ``kilos_ratificados``: kilos del decomiso de origen imputados al primer cierre
+    válido de Ratificación de decomiso (fecha de ``RutaTrabajo``).
     """
 
     actuaciones_realizadas: int = Field(ge=0)
@@ -30,6 +32,7 @@ class EjecutivoKpis(BaseModel):
     ratificaciones_decomiso_realizadas: int = Field(ge=0)
     verificar_informar_realizadas: int = Field(ge=0)
     mercaderia_decomisada_kg: float = Field(ge=0)
+    kilos_ratificados: float = Field(ge=0)
 
 
 class IndicadoresEjecutivoOut(BaseModel):

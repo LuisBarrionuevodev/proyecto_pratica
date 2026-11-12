@@ -29,7 +29,7 @@ from app.domains.actuaciones.services.completar_trabajo_contraproducencia import
 from app.domains.geolocalizacion.geocode.services.map_operativo_service import (
     _realizados_inspector_coincide,
 )
-from app.models import Actuaciones, Domicilio, IniciadorRuta, Rubro, RutaItem, RutaTrabajo
+from app.models import Actuaciones, Decomiso, Domicilio, IniciadorRuta, Rubro, RutaItem, RutaTrabajo
 
 # Buckets operativos canónicos (D1d.11fix-a3).
 BUCKET_REINSPECCION_OFICIO = "REINSPECCION_OFICIO"
@@ -424,3 +424,102 @@ def query_top_rubros_cierres_realizados(
         .all()
     )
     return [(int(rid), str(nombre), int(cnt)) for rid, nombre, cnt in rows]
+
+
+def _query_cierres_ratificacion_decomiso_con_ancla():
+    """
+    Cierres REALIZADO con decomiso en la actuación ancla (``IniciadorRuta.actuacion_id``).
+
+    No aplica período ni inspector/distrito: el primer cierre válido se resuelve
+    sobre toda la historia y luego se filtra al tablero.
+    """
+    return (
+        db.session.query(
+            Decomiso.id,
+            Decomiso.cantidad,
+            RutaTrabajo.fecha,
+            RutaItem.id,
+            IniciadorRuta.tipo_iniciador,
+            Actuaciones.tipo,
+        )
+        .select_from(RutaItem)
+        .join(IniciadorRuta, RutaItem.iniciador_ruta_id == IniciadorRuta.id)
+        .join(RutaTrabajo, RutaItem.ruta_trabajo_id == RutaTrabajo.id)
+        .join(Actuaciones, RutaItem.actuacion_id == Actuaciones.id)
+        .join(Decomiso, Decomiso.actuacion_id == IniciadorRuta.actuacion_id)
+        .filter(
+            RutaItem.deleted_at.is_(None),
+            IniciadorRuta.deleted_at.is_(None),
+            RutaItem.actuacion_id.isnot(None),
+            IniciadorRuta.actuacion_id.isnot(None),
+            IniciadorRuta.actuacion_id != RutaItem.actuacion_id,
+            RutaItem.estado_ruta_item == "FINALIZADO",
+            RutaItem.estado_ejecucion == "REALIZADO",
+            RutaTrabajo.estado_ruta == "PUBLICADA",
+            IniciadorRuta.tipo_iniciador.in_(
+                ("RATIFICACION_DECOMISO_OFICIO", "REINSPECCION_OFICIO")
+            ),
+        )
+    )
+
+
+def sum_kilos_ratificados(
+    desde: date,
+    hasta: date,
+    distrito_id: Optional[int] = None,
+    inspector_id: Optional[int] = None,
+) -> float:
+    """
+    Suma ``Decomiso.cantidad`` de la ancla imputada al primer cierre válido de
+    Ratificación de decomiso cuya ``RutaTrabajo.fecha`` cae en el período.
+
+    Un mismo ``decomiso.id`` cuenta una sola vez en toda su historia. Verificar e
+    informar, ratificación de clausura, kilos de la visita y cierres no realizados
+    no entran. Inspector y distrito se aplican sobre esa primera visita (mismo
+    alcance que el resto del tablero).
+
+    Parámetros:
+        desde, hasta: rango inclusive de ``RutaTrabajo.fecha``.
+        distrito_id, inspector_id: filtros opcionales sobre la visita de ratificación.
+
+    Retorno:
+        Kg (float ≥ 0).
+
+    Errores esperados:
+        Ninguno; sin candidatos retorna ``0.0``.
+    """
+    rows = _query_cierres_ratificacion_decomiso_con_ancla().all()
+    first_by_decomiso: dict[int, tuple[date, int, float]] = {}
+    for decomiso_id, cantidad, fecha_ruta, ruta_item_id, tipo_ini, act_tipo in rows:
+        bucket = bucket_operativo(
+            str(tipo_ini) if tipo_ini is not None else None,
+            str(act_tipo) if act_tipo is not None else None,
+        )
+        if bucket != BUCKET_RATIFICACION_DECOMISO:
+            continue
+        if fecha_ruta is None or decomiso_id is None or ruta_item_id is None:
+            continue
+        qty = float(cantidad) if cantidad is not None else 0.0
+        current = first_by_decomiso.get(int(decomiso_id))
+        candidate = (fecha_ruta, int(ruta_item_id), qty)
+        if current is None or (candidate[0], candidate[1]) < (current[0], current[1]):
+            first_by_decomiso[int(decomiso_id)] = candidate
+
+    in_period: dict[int, float] = {}
+    for fecha_ruta, ruta_item_id, qty in first_by_decomiso.values():
+        if desde <= fecha_ruta <= hasta:
+            in_period[ruta_item_id] = in_period.get(ruta_item_id, 0.0) + qty
+
+    if not in_period:
+        return 0.0
+
+    if distrito_id is None and inspector_id is None:
+        return float(sum(in_period.values()))
+
+    item_ids = list(in_period.keys())
+    q = _base_cierres_realizados_query(desde, hasta, distrito_id, inspector_id)
+    matching = {
+        int(rid)
+        for (rid,) in q.filter(RutaItem.id.in_(item_ids)).with_entities(RutaItem.id).all()
+    }
+    return float(sum(qty for rid, qty in in_period.items() if rid in matching))

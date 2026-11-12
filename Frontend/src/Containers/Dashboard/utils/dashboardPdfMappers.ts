@@ -107,6 +107,7 @@ export function buildDashboardPdfModel(
           value: fmtNum(k.verificar_informar_realizadas),
         },
         { label: "Mercadería decomisada (kg)", value: fmtKg(k.mercaderia_decomisada_kg) },
+        { label: "Kilos ratificados", value: fmtKg(k.kilos_ratificados) },
       ]
     : [];
 

@@ -14,6 +14,7 @@ from app.domains.indicadores.schemas.ejecutivo_out import (
 from app.domains.indicadores.services.indicadores_operativos_queries import (
     actuacion_ids_realizadas_subquery,
     count_cierres_realizados,
+    sum_kilos_ratificados,
     sum_visitas_oficio_realizadas,
     visitas_realizadas_por_tipo_iniciador,
 )
@@ -96,6 +97,9 @@ def build_indicadores_ejecutivo(
                 por_tipo_ini.get("VERIFICAR_INFORMAR_OFICIO", 0)
             ),
             mercaderia_decomisada_kg=_float_kg(sum_kg),
+            kilos_ratificados=_float_kg(
+                sum_kilos_ratificados(desde, hasta, distrito_id, inspector_id)
+            ),
         ),
         actas_por_tipo=actas_por_tipo,
     )

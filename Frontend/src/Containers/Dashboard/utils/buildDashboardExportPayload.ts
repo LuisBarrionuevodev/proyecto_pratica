@@ -57,6 +57,7 @@ function pushEjecutivoKpis(
       value: k.reinspecciones_oficio_realizadas,
     },
     { title: "Mercadería decomisada (kg)", value: k.mercaderia_decomisada_kg },
+    { title: "Kilos ratificados", value: k.kilos_ratificados },
     {
       title: "Ratificaciones de clausura (realizadas)",
       value: k.ratificaciones_clausura_realizadas,
