@@ -130,6 +130,8 @@ describe("RecorridoDetalleDocumentalDialog", () => {
     expect(html).toContain("18,5 kg");
     expect(html).toContain("N.º acta de clausura");
     expect(html).toContain("000832");
+    expect(html).not.toContain("Acta de decomiso ratificada");
+    expect(html).not.toContain("Acta de clausura ratificada");
     const origenIdx = html.indexOf("Actas de la comprobación de origen");
     const oficioIdx = html.indexOf("Oficios");
     expect(origenIdx).toBeGreaterThan(html.indexOf("Acta de comprobación"));

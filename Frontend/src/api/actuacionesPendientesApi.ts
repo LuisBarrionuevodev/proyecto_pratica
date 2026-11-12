@@ -507,6 +507,7 @@ export interface OficioComprobacionItem {
   fecha_expediente_respuesta?: string | null;
   iniciador_id?: number | null;
   iniciador_estado?: string | null;
+  tipo_iniciador?: string | null;
   ruta_item_id?: number | null;
   ruta_estado?: string | null;
   estado_ejecucion?: string | null;

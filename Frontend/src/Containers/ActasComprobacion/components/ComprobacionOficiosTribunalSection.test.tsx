@@ -113,6 +113,89 @@ describe("ComprobacionOficiosTribunalSection cierre documental", () => {
     expect(countLabel(html, "Cumple")).toBe(1);
     expect(html).not.toContain("Kilos ratificados");
     expect(html).not.toContain("Actas de la comprobación de origen");
+    expect(html).not.toContain("Acta de decomiso ratificada");
+    expect(html).not.toContain("Acta de clausura ratificada");
+  });
+
+  it("ratificación de decomiso muestra acta y kilos en el resultado; no duplica el bloque de origen", () => {
+    const oficios: OficioComprobacionItem[] = [
+      {
+        id: 350,
+        numero_oficio: "350",
+        anio: 2026,
+        tipo_iniciador: "RATIFICACION_DECOMISO_OFICIO",
+        resultado_cumplimiento_oficio: "CUMPLE",
+        estado_operativo: "cumplido",
+        origen_actas: {
+          actuacion_origen_id: 10,
+          acta_decomiso_num: "004567",
+          decomiso_kilos_total: 18.5,
+          acta_clausura_num: "000832",
+        },
+        ejecucion_reinspeccion: {
+          fecha_actuacion: "2026-08-01",
+          orden_trabajo_numero: "111",
+          inspectores_texto: "Pérez",
+          tipo_inspeccion_labrada: "RATIFICACION DE DECOMISO",
+          resultado_cumplimiento_oficio: "CUMPLE",
+        },
+      },
+    ];
+    const html = render(
+      <ComprobacionOficiosTribunalSection
+        {...sectionProps}
+        oficios={oficios}
+        cierreUnicoEnEncabezado
+      />
+    );
+    expect(html).toContain("Resultado de la reinspección");
+    expect(html).toContain("Acta de decomiso ratificada");
+    expect(html).toContain("N.º 004567");
+    expect(html).toContain("Kilos ratificados");
+    expect(html).toContain("18,5 kg");
+    expect(html).not.toContain("Acta de clausura ratificada");
+    expect(html).not.toContain("000832");
+    expect(html).not.toContain("Actas de la comprobación de origen");
+    expect(html).toContain("Agregar otro oficio");
+  });
+
+  it("Verificar e informar no muestra acta ni kilos ratificados en el oficio", () => {
+    const oficios: OficioComprobacionItem[] = [
+      {
+        id: 351,
+        numero_oficio: "351",
+        anio: 2026,
+        tipo_iniciador: "VERIFICAR_INFORMAR_OFICIO",
+        resultado_cumplimiento_oficio: "CUMPLE",
+        estado_operativo: "cumplido",
+        origen_actas: {
+          actuacion_origen_id: 10,
+          acta_decomiso_num: "004567",
+          decomiso_kilos_total: 18.5,
+          acta_clausura_num: "000832",
+        },
+        ejecucion_reinspeccion: {
+          fecha_actuacion: "2026-08-01",
+          orden_trabajo_numero: "111",
+          inspectores_texto: "Pérez",
+          tipo_inspeccion_labrada: "VERIFICAR E INFORMAR",
+          resultado_cumplimiento_oficio: "CUMPLE",
+        },
+      },
+    ];
+    const html = render(
+      <ComprobacionOficiosTribunalSection
+        {...sectionProps}
+        oficios={oficios}
+        cierreUnicoEnEncabezado
+      />
+    );
+    expect(html).toContain("Resultado de la reinspección");
+    expect(html).not.toContain("Acta de decomiso ratificada");
+    expect(html).not.toContain("Acta de clausura ratificada");
+    expect(html).not.toContain("Kilos ratificados");
+    expect(html).not.toContain("Actas de la comprobación de origen");
+    expect(html).toContain("Agregar otro oficio");
   });
 
   it("oficio pendiente no muestra datos de reinspección", () => {

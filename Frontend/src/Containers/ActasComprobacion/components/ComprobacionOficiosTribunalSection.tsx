@@ -209,6 +209,8 @@ const OficioComprobacionCard = memo(function OficioComprobacionCard({
             ejecucion={ejecucionCard}
             resultadoCircuito={ejecucionItem ? null : resultadoCircuito}
             ocultarCierre={cierreUnicoEnEncabezado}
+            origenActas={item.origen_actas}
+            tipoIniciador={item.tipo_iniciador}
           />
         ) : !cierreUnicoEnEncabezado && (otResumen || concResumen) ? (
           <Box sx={{ mt: 1.25, pt: 1.25, borderTop: "1px solid rgba(255,255,255,0.1)" }}>

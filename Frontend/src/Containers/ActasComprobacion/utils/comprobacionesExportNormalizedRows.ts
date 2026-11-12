@@ -1,6 +1,7 @@
 import type { ComprobacionExportRow, ComprobacionExportSlice, RecorridoOficioExportDetalle } from "./comprobacionExportTypes";
 import { sliceExportLabel } from "./comprobacionExportTypes";
 import { motivoExport, parseAnioMes } from "./comprobacionesExportShared";
+import { origenActasKindFromTipo } from "./origenActasLabels";
 export type ComprobacionNormalizedExcelRow = Record<string, string | number>;
 
 function cell(value: unknown): string | number {
@@ -26,15 +27,15 @@ export const RECORRIDO_EXCEL_COLUMNS = [
   "Tipo de reinspección",
   "Conclusión de reinspección",
   "Seguimiento",
+  "Fecha reinspección",
   "OT reinspección",
-  "Fecha de reinspección",
-  "Acta decomiso origen",
-  "Kilos decomiso origen",
-  "Acta clausura origen",
+  "Acta clausura ratificada",
+  "Acta decomiso ratificada",
+  "Kilos ratificados",
 ] as const;
 
 export const RECORRIDO_EXCEL_COL_WIDTHS = [
-  14, 16, 16, 28, 14, 28, 16, 14, 16, 12, 14, 28, 22, 18, 24, 14, 16, 18, 16, 18,
+  14, 16, 16, 28, 14, 28, 16, 14, 16, 12, 14, 28, 22, 18, 24, 16, 14, 22, 22, 16,
 ];
 
 const EMPTY_OFICIO_DETALLE: RecorridoOficioExportDetalle = {
@@ -74,12 +75,35 @@ function buildRecorridoOficioExcelRow(
     "Tipo de reinspección": cell(detalle.tipoReinspeccion),
     "Conclusión de reinspección": cell(detalle.conclusion),
     Seguimiento: cell(detalle.seguimiento),
+    "Fecha reinspección": cell(detalle.fechaReinspeccion),
     "OT reinspección": cell(detalle.otReinspeccion),
-    "Fecha de reinspección": cell(detalle.fechaReinspeccion),
-    "Acta decomiso origen": cell(detalle.actaDecomisoOrigen),
-    "Kilos decomiso origen": cell(detalle.kilosDecomisoOrigen),
-    "Acta clausura origen": cell(detalle.actaClausuraOrigen),
+    ...excelCeldasActasRatificadas(detalle),
   };
+}
+
+/** Excel Recorrido: actas/kilos ratificados solo si el tipo final del oficio corresponde. */
+function excelCeldasActasRatificadas(detalle: RecorridoOficioExportDetalle): {
+  "Acta clausura ratificada": string | number;
+  "Acta decomiso ratificada": string | number;
+  "Kilos ratificados": string | number;
+} {
+  const empty = {
+    "Acta clausura ratificada": "" as const,
+    "Acta decomiso ratificada": "" as const,
+    "Kilos ratificados": "" as const,
+  };
+  const kind = origenActasKindFromTipo(detalle.tipoReinspeccion);
+  if (kind === "rat_clausura") {
+    return { ...empty, "Acta clausura ratificada": cell(detalle.actaClausuraOrigen) };
+  }
+  if (kind === "rat_decomiso") {
+    return {
+      ...empty,
+      "Acta decomiso ratificada": cell(detalle.actaDecomisoOrigen),
+      "Kilos ratificados": cell(detalle.kilosDecomisoOrigen),
+    };
+  }
+  return empty;
 }
 
 function buildRecorridoExcelRows(row: ComprobacionExportRow): ComprobacionNormalizedExcelRow[] {

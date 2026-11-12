@@ -6,6 +6,7 @@ import {
   debeMostrarBloqueOrigenVerActuacion,
   exportCamposOrigenActasOficio,
   filasActasComprobacionOrigen,
+  filasActasRatificadasOficio,
   filasOrigenActasVerActuacion,
   origenActasTieneContenido,
 } from "./origenActasLabels";
@@ -26,36 +27,41 @@ const ORIGEN_AMBOS = {
 
 describe("origenActasLabels", () => {
   it("Ratificación de decomiso muestra acta y kilos ratificados", () => {
-    const chips = chipsOrigenActasOficio({
+    const fuente = {
       tipo_iniciador: "RATIFICACION_DECOMISO_OFICIO",
       origen_actas: ORIGEN_AMBOS,
-    });
-    expect(chips).toEqual([
-      "Acta de decomiso origen: N.º 004567",
+    };
+    expect(chipsOrigenActasOficio(fuente)).toEqual([
+      "Acta de decomiso ratificada: N.º 004567",
       "Kilos ratificados: 18,5 kg",
     ]);
-    expect(chips.join(" ")).not.toContain("000832");
+    expect(filasActasRatificadasOficio(fuente)).toEqual([
+      { etiqueta: "Acta de decomiso ratificada", valor: "N.º 004567" },
+      { etiqueta: "Kilos ratificados", valor: "18,5 kg" },
+    ]);
+    expect(chipsOrigenActasOficio(fuente).join(" ")).not.toContain("000832");
   });
 
   it("Ratificación de clausura muestra solo acta de clausura", () => {
-    const chips = chipsOrigenActasOficio({
+    const fuente = {
       tipo_iniciador: "RATIFICACION_CLAUSURA_OFICIO",
       origen_actas: ORIGEN_AMBOS,
-    });
-    expect(chips).toEqual(["Acta de clausura origen: N.º 000832"]);
-    expect(chips.join(" ")).not.toMatch(/decomiso/i);
+    };
+    expect(chipsOrigenActasOficio(fuente)).toEqual(["Acta de clausura ratificada: N.º 000832"]);
+    expect(filasActasRatificadasOficio(fuente)).toEqual([
+      { etiqueta: "Acta de clausura ratificada", valor: "N.º 000832" },
+    ]);
+    expect(chipsOrigenActasOficio(fuente).join(" ")).not.toMatch(/decomiso/i);
   });
 
-  it("Verificar e informar muestra ambos antecedentes", () => {
-    const chips = chipsOrigenActasOficio({
+  it("Verificar e informar no muestra acta ni kilos ratificados", () => {
+    const fuente = {
       tipo_iniciador: "VERIFICAR_INFORMAR_OFICIO",
       origen_actas: ORIGEN_AMBOS,
-    });
-    expect(chips).toEqual([
-      "Acta de decomiso origen: N.º 004567",
-      "Kilos decomisados de origen: 18,5 kg",
-      "Acta de clausura origen: N.º 000832",
-    ]);
+    };
+    expect(chipsOrigenActasOficio(fuente)).toEqual([]);
+    expect(filasActasRatificadasOficio(fuente)).toEqual([]);
+    expect(filasActasComprobacionOrigen(ORIGEN_AMBOS).length).toBeGreaterThan(0);
   });
 
   it("sin antecedentes no genera chips ni filas", () => {
@@ -85,15 +91,13 @@ describe("origenActasLabels", () => {
         decomiso_kilos_total: 99.9,
       },
     });
-    expect(chips).toEqual([
-      "Acta de decomiso origen: N.º 004567",
-      "Kilos decomisados de origen: 18,5 kg",
-    ]);
+    expect(chips).toEqual([]);
     expect(chips.join(" ")).not.toContain("009999");
     expect(chips.join(" ")).not.toContain("99,9");
+    expect(chips.join(" ")).not.toContain("004567");
   });
 
-  it("recorrido Reinspección agrega chips de origen bajo el tipo", () => {
+  it("recorrido Reinspección agrega chips de actas ratificadas bajo el tipo", () => {
     const row: IComprobacionRecorridoRow = {
       id: 1,
       estado_recorrido: "ok",
@@ -121,13 +125,13 @@ describe("origenActasLabels", () => {
     };
     const chips = recorridoReinspeccionChips(row);
     expect(chips).toContain("Ratificación de decomiso");
-    expect(chips).toContain("Acta de decomiso origen: N.º 004567");
+    expect(chips).toContain("Acta de decomiso ratificada: N.º 004567");
     expect(chips).toContain("Kilos ratificados: 18,5 kg");
   });
 });
 
 describe("origenActas export PDF/XLSX", () => {
-  it("Excel incorpora acta, kilos y clausura de origen según tipo", () => {
+  it("Excel incorpora actas y kilos ratificados según tipo; Verificar e informar queda vacío", () => {
     const mapped = mapRecorridoRow({
       id: 1,
       estado_recorrido: "ok",
@@ -149,17 +153,31 @@ describe("origenActas export PDF/XLSX", () => {
           tipo_iniciador: "RATIFICACION_CLAUSURA_OFICIO",
           origen_actas: ORIGEN_AMBOS,
         },
+        {
+          oficio_texto: "9/2026",
+          tipo_iniciador: "VERIFICAR_INFORMAR_OFICIO",
+          origen_actas: ORIGEN_AMBOS,
+        },
       ],
     });
     const excel = buildComprobacionesNormalizedExcelRows([mapped], "recorrido");
-    expect(RECORRIDO_EXCEL_COLUMNS).toContain("Acta decomiso origen");
+    expect(RECORRIDO_EXCEL_COLUMNS.slice(-5)).toEqual([
+      "Fecha reinspección",
+      "OT reinspección",
+      "Acta clausura ratificada",
+      "Acta decomiso ratificada",
+      "Kilos ratificados",
+    ]);
     expect(Object.keys(excel[0])).toEqual([...RECORRIDO_EXCEL_COLUMNS]);
-    expect(excel[0]["Acta decomiso origen"]).toBe("004567");
-    expect(excel[0]["Kilos decomiso origen"]).toBe("18,5");
-    expect(excel[0]["Acta clausura origen"]).toBe("");
-    expect(excel[1]["Acta clausura origen"]).toBe("000832");
-    expect(excel[1]["Acta decomiso origen"]).toBe("");
-    expect(excel[1]["Kilos decomiso origen"]).toBe("");
+    expect(excel[0]["Acta decomiso ratificada"]).toBe("004567");
+    expect(excel[0]["Kilos ratificados"]).toBe("18,5");
+    expect(excel[0]["Acta clausura ratificada"]).toBe("");
+    expect(excel[1]["Acta clausura ratificada"]).toBe("000832");
+    expect(excel[1]["Acta decomiso ratificada"]).toBe("");
+    expect(excel[1]["Kilos ratificados"]).toBe("");
+    expect(excel[2]["Acta clausura ratificada"]).toBe("");
+    expect(excel[2]["Acta decomiso ratificada"]).toBe("");
+    expect(excel[2]["Kilos ratificados"]).toBe("");
   });
 
   it("PDF incluye tipo final y campos de origen; vacío no inventa 0", () => {

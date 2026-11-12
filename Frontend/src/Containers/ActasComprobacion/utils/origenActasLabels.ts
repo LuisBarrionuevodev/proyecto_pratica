@@ -120,33 +120,32 @@ export function filasOrigenActasVerActuacion(
   return filasSegunKind(origen, origenActasKindFromTipo(tipoActuacion));
 }
 
-export function chipsOrigenActasOficio(item: OrigenActasOficioFuente): string[] {
+/**
+ * Filas del bloque «Resultado de la reinspección»: solo lo que ese oficio ratifica.
+ * Verificar e informar y pendiente no muestran acta ni kilos ratificados.
+ */
+export function filasActasRatificadasOficio(item: OrigenActasOficioFuente): OrigenActasFila[] {
   const origen = item.origen_actas;
   if (!origenActasTieneContenido(origen) || !origen) return [];
   const kind = origenActasKindFromOficio(item);
   const actaDec = formatActaOrigenNum(origen.acta_decomiso_num);
   const kilos = formatKilosOrigen(origen.decomiso_kilos_total);
   const actaCla = formatActaOrigenNum(origen.acta_clausura_num);
-  const chips: string[] = [];
-  if (kind === "rat_decomiso") {
-    if (actaDec) chips.push(`Acta de decomiso origen: N.º ${actaDec}`);
-    if (kilos) chips.push(`Kilos ratificados: ${kilos} kg`);
-    return chips;
-  }
   if (kind === "rat_clausura") {
-    if (actaCla) chips.push(`Acta de clausura origen: N.º ${actaCla}`);
-    return chips;
+    return actaCla ? [{ etiqueta: "Acta de clausura ratificada", valor: `N.º ${actaCla}` }] : [];
   }
-  if (kind === "pendiente") {
-    if (actaDec) chips.push(`Actas de origen · Decomiso N.º ${actaDec}`);
-    if (kilos) chips.push(`Actas de origen · ${kilos} kg`);
-    if (actaCla) chips.push(`Actas de origen · Clausura N.º ${actaCla}`);
-    return chips;
+  if (kind === "rat_decomiso") {
+    const filas: OrigenActasFila[] = [];
+    if (actaDec) filas.push({ etiqueta: "Acta de decomiso ratificada", valor: `N.º ${actaDec}` });
+    if (kilos) filas.push({ etiqueta: "Kilos ratificados", valor: `${kilos} kg` });
+    return filas;
   }
-  if (actaDec) chips.push(`Acta de decomiso origen: N.º ${actaDec}`);
-  if (kilos) chips.push(`Kilos decomisados de origen: ${kilos} kg`);
-  if (actaCla) chips.push(`Acta de clausura origen: N.º ${actaCla}`);
-  return chips;
+  return [];
+}
+
+/** Chips Recorrido: actas/kilos ratificados del oficio. Verificar e informar queda vacío. */
+export function chipsOrigenActasOficio(item: OrigenActasOficioFuente): string[] {
+  return filasActasRatificadasOficio(item).map((f) => `${f.etiqueta}: ${f.valor}`);
 }
 
 export function exportCamposOrigenActasOficio(item: OrigenActasOficioFuente): OrigenActasExportCampos {

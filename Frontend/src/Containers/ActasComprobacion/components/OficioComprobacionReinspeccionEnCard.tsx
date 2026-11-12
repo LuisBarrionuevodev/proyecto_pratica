@@ -1,7 +1,9 @@
 import { Stack, Typography } from "@mui/material";
 
 import type { IComprobacionRecorridoResultadoFinal } from "../../../api/actuacionesComprobacionActasApi";
+import type { IOrigenActas } from "../../../api/origenActas";
 import { humanizarCumplimientoOficio, humanizarTipoVisitaRecorrido } from "../utils/documentalLabelFormat";
+import { filasActasRatificadasOficio } from "../utils/origenActasLabels";
 import { DocumentalFila, textoValor } from "./comprobacionOperativoBlocks";
 
 function campoUtil(val: unknown): boolean {
@@ -28,6 +30,8 @@ export type OficioComprobacionReinspeccionEnCardProps = {
   resultadoCircuito?: IComprobacionRecorridoResultadoFinal | null;
   /** El cierre ya está en el encabezado de la tarjeta: no repetir Cumple/Cumplido. */
   ocultarCierre?: boolean;
+  origenActas?: IOrigenActas | null;
+  tipoIniciador?: string | null;
 };
 
 /**
@@ -38,6 +42,8 @@ export function OficioComprobacionReinspeccionEnCard({
   ejecucion,
   resultadoCircuito,
   ocultarCierre = false,
+  origenActas = null,
+  tipoIniciador = null,
 }: OficioComprobacionReinspeccionEnCardProps) {
   const cumplEj = humanizarCumplimientoOficio(ejecucion.resultado_cumplimiento_oficio);
   const cumplFinal = humanizarCumplimientoOficio(resultadoCircuito?.resultado_cumplimiento_oficio);
@@ -48,6 +54,11 @@ export function OficioComprobacionReinspeccionEnCard({
   const fecha = textoValor(ejecucion.fecha_actuacion);
   const insp = inspectoresLinea(ejecucion);
   const tipo = tipoInspeccionLabel(ejecucion.tipo_inspeccion_labrada);
+  const filasRatificadas = filasActasRatificadasOficio({
+    tipo_iniciador: tipoIniciador,
+    ejecucion_reinspeccion: ejecucion,
+    origen_actas: origenActas,
+  });
 
   const hayContenido =
     ot !== "—" ||
@@ -55,7 +66,8 @@ export function OficioComprobacionReinspeccionEnCard({
     insp !== "—" ||
     tipo !== "—" ||
     cumpl !== "—" ||
-    situacion !== "—";
+    situacion !== "—" ||
+    filasRatificadas.length > 0;
 
   if (!hayContenido) return null;
 
@@ -77,6 +89,9 @@ export function OficioComprobacionReinspeccionEnCard({
       {fecha !== "—" ? <DocumentalFila etiqueta="Fecha" valor={fecha} /> : null}
       {insp !== "—" ? <DocumentalFila etiqueta="Inspectores" valor={insp} /> : null}
       {tipo !== "—" ? <DocumentalFila etiqueta="Tipo" valor={tipo} /> : null}
+      {filasRatificadas.map((f) => (
+        <DocumentalFila key={f.etiqueta} etiqueta={f.etiqueta} valor={f.valor} />
+      ))}
       {cumpl !== "—" ? <DocumentalFila etiqueta="Cumplimiento" valor={cumpl} /> : null}
       {situacion !== "—" ? <DocumentalFila etiqueta="Situación" valor={situacion} /> : null}
     </Stack>
