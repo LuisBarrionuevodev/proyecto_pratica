@@ -10,6 +10,10 @@ from typing import Any, Dict, Optional
 
 from app.database import db
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
+from app.domains.actuaciones.presenters.origen_actas_presenter import (
+    origen_actas_desde_iniciador,
+    origen_actas_vacio,
+)
 from app.domains.rutas_trabajo.services.ruta_publicar_service import tipo_actuacion_para_iniciador
 from app.models import Actuaciones, IniciadorRuta, Oficio, OrdenTrabajo, RutaItem, RutaTrabajo
 
@@ -286,7 +290,8 @@ def oficio_recorrido_campos_operativos(
 
     Retorno:
         Dict con ``iniciador_id``, ``estado_iniciador``, ``orden_trabajo``,
-        ``resultado``, ``conclusion``, ``fecha_conclusion`` y ``ejecucion_reinspeccion`` (si aplica).
+        ``resultado``, ``conclusion``, ``fecha_conclusion``, ``ejecucion_reinspeccion``
+        (si aplica) y ``origen_actas`` (siempre desde la ancla del iniciador).
     """
     out: Dict[str, Any] = {
         "iniciador_id": None,
@@ -302,6 +307,7 @@ def oficio_recorrido_campos_operativos(
         "fecha_conclusion": None,
         "ejecucion_reinspeccion": None,
         "visita_resumen_texto": None,
+        "origen_actas": origen_actas_vacio(),
     }
     ini = iniciador_reinspeccion_por_oficio(oficio.id)
     if ini is None:
@@ -340,6 +346,16 @@ def oficio_recorrido_campos_operativos(
             out["fecha_conclusion"] = act_visita.fecha.isoformat()
         ejecucion = _payload_ejecucion_reinspeccion(act_visita, ini_oficio=ini)
         out["ejecucion_reinspeccion"] = ejecucion
+
+    tipo_visita = None
+    if act_visita is not None:
+        tipo_visita = getattr(act_visita, "tipo", None)
+        if hasattr(tipo_visita, "value"):
+            tipo_visita = tipo_visita.value
+    out["origen_actas"] = origen_actas_desde_iniciador(
+        ini,
+        tipo_actuacion_visita=str(tipo_visita).strip() if tipo_visita else None,
+    )
 
     oficio_texto = _oficio_compact_label(
         getattr(oficio, "numero_oficio", None),

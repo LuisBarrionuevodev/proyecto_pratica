@@ -1,5 +1,6 @@
 import { apiClient } from "./apiClient";
 import type { IActuacionListItem } from "./actuacionesListApi";
+import type { IOrigenActas } from "./origenActas";
 
 export type ActuacionesPendientesTipo = "domicilios" | "sin_expediente" | "notificaciones";
 
@@ -486,6 +487,8 @@ export interface IComprobacionDocumentalResponse {
   oficio: IComprobacionDocumentalOficioItem | null;
   expediente_respuesta: IComprobacionDocumentalExpedienteItem | null;
   edicion: IComprobacionDocumentalEdicion;
+  /** Actas de origen de la ancla (nunca de la visita de reinspección). */
+  origen_actas?: IOrigenActas | null;
 }
 
 /** Oficio activo de una comprobación (GET ``/comprobaciones/{id}/oficios``). */
@@ -520,6 +523,8 @@ export interface OficioComprobacionItem {
   conclusion?: string | null;
   fecha_conclusion?: string | null;
   ejecucion_reinspeccion?: Record<string, unknown> | null;
+  /** Decomiso/kilos/clausura de la ancla, según tipo final de este oficio. */
+  origen_actas?: IOrigenActas | null;
 }
 
 export interface OficiosByComprobacionResponse {

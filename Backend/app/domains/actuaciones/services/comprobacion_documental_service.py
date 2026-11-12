@@ -14,8 +14,12 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from app.database import db
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
-from app.domains.actuaciones.services.oficio_editable_service import evaluar_editable_oficio
 from app.domains.actuaciones.presenters.comprobacion_actas_presenters import referencia_actuacion_from_grid_row
+from app.domains.actuaciones.presenters.origen_actas_presenter import (
+    actuacion_ancla_origen,
+    origen_actas_desde_ancla,
+)
+from app.domains.actuaciones.services.oficio_editable_service import evaluar_editable_oficio
 from app.models import (
     Actuaciones,
     Comprobacion,
@@ -272,8 +276,8 @@ def get_comprobacion_documental_for_actuacion(actuacion_id: int) -> Dict[str, An
 
     Retorno:
         dict serializable con ``actuacion_id``, ``comprobacion_id``, ``referencia_actuacion``,
-        ``acta_comprobacion`` (número/motivo), ``expediente_envio``, ``oficio``, ``expediente_respuesta``,
-        ``edicion``.
+        ``acta_comprobacion`` (número/motivo), ``origen_actas`` (ancla, nunca visita),
+        ``expediente_envio``, ``oficio``, ``expediente_respuesta``, ``edicion``.
 
     Errores:
         LookupError: actuación inexistente.
@@ -300,11 +304,13 @@ def get_comprobacion_documental_for_actuacion(actuacion_id: int) -> Dict[str, An
     }
 
     comp = db.session.get(Comprobacion, cid)
+    ancla_origen = actuacion_ancla_origen(act)
     return {
         "actuacion_id": act.id,
         "comprobacion_id": cid,
         "referencia_actuacion": ref,
         "acta_comprobacion": acta_comp,
+        "origen_actas": origen_actas_desde_ancla(ancla_origen, tipo_final=None),
         "expediente_envio": _expediente_to_item(ex_env) if ex_env else None,
         "sin_expediente_envio": bool(comp and comp.sin_expediente_envio),
         "expediente_envio_label": (

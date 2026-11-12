@@ -1,5 +1,8 @@
 import { apiClient } from "./apiClient";
 import type { IPendientesOficioResponse } from "./actuacionesPendientesApi";
+import type { IOrigenActas } from "./origenActas";
+
+export type { IOrigenActas } from "./origenActas";
 
 export type FetchComprobacionPendientesOficioOpts = {
   /** Igual que pendientes/expediente: sin acotar por mes cuando es true (evita filas “perdidas” fuera del mes). */
@@ -197,6 +200,8 @@ export interface IComprobacionRecorridoRow {
     conclusion?: string | null;
     fecha_conclusion?: string | null;
     ejecucion_reinspeccion?: Record<string, unknown> | null;
+    /** Decomiso/kilos/clausura de la ancla, enmascarados según el tipo final de este oficio. */
+    origen_actas?: IOrigenActas | null;
     /** Compat. legacy */
     numero?: string | null;
     anio?: number | null;
@@ -205,6 +210,11 @@ export interface IComprobacionRecorridoRow {
   /** Expediente de respuesta vinculado al oficio (misma semántica que pendientes de reinspección). */
   expediente_respuesta_numero?: string | null;
   expediente_respuesta_anio?: number | string | null;
+  /**
+   * Actas de origen de la ancla (datos disponibles, sin afirmar ratificación a nivel fila).
+   * Cada oficio en `oficios_resumen` puede enmascarar el mismo bloque según su tipo final.
+   */
+  origen_actas?: IOrigenActas | null;
   [key: string]: unknown;
 }
 
@@ -331,6 +341,8 @@ export interface IComprobacionRecorridoDetalle {
   resultado_final: IComprobacionRecorridoResultadoFinal;
   /** Presente desde API actual: datos de visita alineados al grid (priorizar sobre `listRow`). */
   referencia_actuacion?: IComprobacionRecorridoReferenciaActuacion | null;
+  /** Decomiso/kilos/clausura de la ancla; nunca de la visita de reinspección. */
+  origen_actas?: IOrigenActas | null;
 }
 
 export async function fetchComprobacionRecorridoDetalle(

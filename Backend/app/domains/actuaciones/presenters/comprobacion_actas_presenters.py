@@ -15,6 +15,10 @@ from app.domains.actuaciones.presenters.actuacion_presenters import (
     expediente_envio_por_comprobacion,
     oficio_por_comprobacion,
 )
+from app.domains.actuaciones.presenters.origen_actas_presenter import (
+    origen_actas_desde_ancla,
+    origen_actas_desde_iniciador,
+)
 from app.domains.actuaciones.services.comprobacion_oficio_recorrido_service import (
     iniciador_trabajo_por_actuacion,
     oficio_recorrido_campos_operativos,
@@ -365,6 +369,7 @@ def comprobacion_recorrido_resumen_row(
     base = actuacion_to_grid_row(act, counts_by_eo=counts_by_eo)
     base["estado_recorrido"] = estado_recorrido_label(act)
     base["resultado_cumplimiento_oficio"] = resultado_cumplimiento_recorrido(act)
+    base["origen_actas"] = origen_actas_desde_ancla(act, tipo_final=None)
     cid = getattr(act, "comprobacion_id", None)
     if cid:
         oficios = list_oficios_by_comprobacion(int(cid))
@@ -643,6 +648,8 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
       vinculada por ``RutaItem`` FINALIZADO/REALIZADO, ``ejecucion_reinspeccion`` resume esa segunda visita
       (inspectores, fecha, OT, tipo y cumplimiento). Si no hay actuación resultante resoluble, ``None``
       (sin usar el ancla como sustituto).
+    - ``origen_actas``: decomiso/kilos/clausura de la **ancla** (nunca de la visita). Cada ítem de
+      ``oficios_resumen`` trae el mismo bloque enmascarado según el tipo final de ese oficio.
     """
     if not act.comprobacion_id:
         raise ValueError("La actuación no tiene comprobación")
@@ -740,10 +747,19 @@ def comprobacion_recorrido_detalle(act: Actuaciones) -> Dict[str, Any]:
                     if ini.estado_iniciador == "CUMPLIDO" and act_visita_rein is not None
                     else None
                 ),
+                "origen_actas": origen_actas_desde_iniciador(
+                    ini,
+                    tipo_actuacion_visita=(
+                        str(act_visita_rein.tipo).strip()
+                        if act_visita_rein is not None and getattr(act_visita_rein, "tipo", None)
+                        else None
+                    ),
+                ),
             }
             if ini
             else None
         ),
+        "origen_actas": origen_actas_desde_ancla(act, tipo_final=None),
         "referencia_actuacion": referencia_actuacion_from_grid_row(grid),
         "resultado_final": {
             "resultado_cumplimiento_oficio": res_val,
