@@ -10,6 +10,10 @@ const listPagePath = resolve(
   fileURLToPath(new URL(".", import.meta.url)),
   "EstablecimientosListPage.tsx"
 );
+const detallePagePath = resolve(
+  fileURLToPath(new URL(".", import.meta.url)),
+  "EstablecimientoDetallePage.tsx"
+);
 const historialPagePath = resolve(
   fileURLToPath(new URL(".", import.meta.url)),
   "HistorialContribuyentePage.tsx"
@@ -82,6 +86,13 @@ describe("UI consistencia PR — Establecimientos", () => {
     expect(src).not.toContain("DNI/CUIT consultado:");
     expect(src).not.toContain("TablaExportButtons");
     expect(src).not.toContain("Exportar");
+  });
+
+  it("ficha permite corrección controlada de contribuyente y domicilio", () => {
+    const src = readFileSync(detallePagePath, "utf8");
+    expect(src).toContain("Corregir contribuyente");
+    expect(src).toContain("Corregir domicilio");
+    expect(src).toContain("CorreccionEstablecimientoDialog");
   });
 });
 

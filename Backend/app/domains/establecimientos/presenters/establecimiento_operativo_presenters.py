@@ -125,6 +125,13 @@ def establecimiento_operativo_detail(
         eo.domicilio if eo else None,
         domicilio_ultima_actuacion,
     )
+    dom = eo.domicilio if eo else None
+    geo = getattr(dom, "geocode", None) if dom is not None else None
+    base["numero_tipo"] = getattr(dom, "numero_tipo", None) if dom is not None else None
+    base["esquina_raw"] = getattr(dom, "esquina_raw", None) if dom is not None else None
+    base["contribuyente_id"] = getattr(dom, "contribuyente_id", None) if dom is not None else None
+    base["lat"] = getattr(geo, "lat", None) if geo is not None else None
+    base["lng"] = getattr(geo, "lng", None) if geo is not None else None
     return base
 
 

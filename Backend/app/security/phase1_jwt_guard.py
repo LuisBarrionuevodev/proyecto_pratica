@@ -164,10 +164,12 @@ def _indicadores_requires_jwt(method: str, path: str) -> bool:
 
 
 def _establecimientos_operativos_requires_jwt(method: str, path: str) -> bool:
-    """Lecturas de fichas operativas (listado, detalle, historial de actuaciones)."""
-    if method not in _READ_METHODS_PROTECTED:
+    """Lecturas de fichas y correcciones controladas (preview/apply)."""
+    if path != "/establecimientos-operativos" and not path.startswith("/establecimientos-operativos/"):
         return False
-    return path == "/establecimientos-operativos" or path.startswith("/establecimientos-operativos/")
+    if method in _READ_METHODS_PROTECTED or method in _MUTATION_METHODS:
+        return True
+    return False
 
 
 def _establecimientos_requires_jwt(method: str, path: str) -> bool:

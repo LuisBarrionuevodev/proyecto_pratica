@@ -143,3 +143,22 @@ def list_actuaciones_establecimiento_route(establecimiento_id: int):
         ),
         200,
     )
+
+
+from app.domains.establecimientos.routes.correccion_establecimiento import (  # noqa: E402
+    aplicar_correccion_establecimiento_route,
+    preview_correccion_establecimiento_route,
+)
+
+establecimientos_operativos_bp.add_url_rule(
+    "/<int:establecimiento_id>/correcciones/preview",
+    endpoint="preview_correccion_establecimiento",
+    view_func=preview_correccion_establecimiento_route,
+    methods=["POST"],
+)
+establecimientos_operativos_bp.add_url_rule(
+    "/<int:establecimiento_id>/correcciones",
+    endpoint="aplicar_correccion_establecimiento",
+    view_func=aplicar_correccion_establecimiento_route,
+    methods=["POST"],
+)

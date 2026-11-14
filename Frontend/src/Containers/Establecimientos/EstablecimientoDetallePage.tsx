@@ -4,6 +4,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import StorefrontIcon from "@mui/icons-material/Storefront";
 import { Alert, Box, Paper, Stack, Typography } from "@mui/material";
+import { useAppSession } from "../../auth/AppSessionProvider";
 import {
   MaterialReactTable,
   useMaterialReactTable,
@@ -36,6 +37,10 @@ import {
 } from "../../api/establecimientosOperativosApi";
 import { formatFechaDateOnlyEsAR } from "../../utils/formatFechaDateOnlyEsAR";
 import { FONT_FAMILY_UI } from "../../theme/typography";
+import {
+  CorreccionEstablecimientoDialog,
+  type CorreccionEstablecimientoKind,
+} from "./components/CorreccionEstablecimientoDialog";
 
 const HIST_PAGE_SIZE = 20;
 
@@ -50,6 +55,8 @@ function dash(v: string | null | undefined): string {
 export default function EstablecimientoDetallePage() {
   const { id: idParam } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { role } = useAppSession();
+  const canCorrect = role === "admin" || role === "usuario";
 
   const establecimientoId = useMemo(() => {
     if (!idParam || !/^\d+$/.test(idParam)) return null;
@@ -71,6 +78,8 @@ export default function EstablecimientoDetallePage() {
   });
 
   const prevHistorialEstIdRef = useRef<number | null>(null);
+  const [reloadNonce, setReloadNonce] = useState(0);
+  const [correccionKind, setCorreccionKind] = useState<CorreccionEstablecimientoKind | null>(null);
 
   useEffect(() => {
     if (establecimientoId == null) {
@@ -107,7 +116,7 @@ export default function EstablecimientoDetallePage() {
     return () => {
       cancelled = true;
     };
-  }, [establecimientoId]);
+  }, [establecimientoId, reloadNonce]);
 
   useEffect(() => {
     if (establecimientoId == null) return;
@@ -154,7 +163,7 @@ export default function EstablecimientoDetallePage() {
     return () => {
       cancelled = true;
     };
-  }, [establecimientoId, pagination.pageIndex, pagination.pageSize]);
+  }, [establecimientoId, pagination.pageIndex, pagination.pageSize, reloadNonce]);
 
   const tituloPrincipal = useMemo(() => {
     if (!detalle) return "";
@@ -326,18 +335,24 @@ export default function EstablecimientoDetallePage() {
             >
               {tituloPrincipal}
             </Typography>
-            <Typography
-              sx={{
-                mt: 0.75,
-                fontFamily: FONT_FAMILY_UI,
-                fontSize: "12px",
-                fontWeight: 600,
-                color: GLASS_COLORS.textSecondary,
-                letterSpacing: "0.04em",
-              }}
-            >
-              DNI/CUIT: {dash(detalle.documento)}
-            </Typography>
+            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ mt: 0.75 }}>
+              <Typography
+                sx={{
+                  fontFamily: FONT_FAMILY_UI,
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: GLASS_COLORS.textSecondary,
+                  letterSpacing: "0.04em",
+                }}
+              >
+                DNI/CUIT: {dash(detalle.documento)}
+              </Typography>
+              {canCorrect ? (
+                <AppButton dsVariant="ghost" onClick={() => setCorreccionKind("contribuyente")}>
+                  Corregir contribuyente
+                </AppButton>
+              ) : null}
+            </Stack>
             <Typography
               sx={{
                 mt: 0.75,
@@ -373,6 +388,15 @@ export default function EstablecimientoDetallePage() {
                     Distrito: {detalle.distrito_nombre.trim()}
                   </Typography>
                 ) : null}
+                {canCorrect ? (
+                  <AppButton
+                    dsVariant="ghost"
+                    onClick={() => setCorreccionKind("domicilio")}
+                    sx={{ mt: 1, px: 0, minWidth: 0 }}
+                  >
+                    Corregir domicilio
+                  </AppButton>
+                ) : null}
               </Box>
             </Stack>
           </Box>
@@ -404,6 +428,21 @@ export default function EstablecimientoDetallePage() {
           ) : null}
         </Stack>
       </Paper>
+
+      {correccionKind && detalle && establecimientoId != null ? (
+        <CorreccionEstablecimientoDialog
+          key={`${correccionKind}-${detalle.id}-${reloadNonce}`}
+          open
+          kind={correccionKind}
+          establecimientoId={establecimientoId}
+          detalle={detalle}
+          onClose={() => setCorreccionKind(null)}
+          onApplied={() => {
+            setCorreccionKind(null);
+            setReloadNonce((n) => n + 1);
+          }}
+        />
+      ) : null}
     </Stack>
   );
 }

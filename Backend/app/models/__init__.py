@@ -37,6 +37,7 @@ from .lugar_trabajo import LugarTrabajo
 from .participante import Participante
 from .establecimiento import Establecimiento
 from .establecimiento_operativo import EstablecimientoOperativo
+from .correccion_establecimiento_audit import CorreccionEstablecimientoAudit
 from .evento import Evento
 from .evento_participante import EventoParticipante
 from .user import User
@@ -98,6 +99,7 @@ __all__ = [
     "Participante",
     "Establecimiento",
     "EstablecimientoOperativo",
+    "CorreccionEstablecimientoAudit",
     "Evento",
     "EventoParticipante",
     "User",

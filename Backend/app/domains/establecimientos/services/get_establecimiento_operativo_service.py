@@ -39,6 +39,7 @@ def get_establecimiento_operativo_con_metricas(
             joinedload(EstablecimientoOperativo.domicilio).joinedload(Domicilio.rubro),
             joinedload(EstablecimientoOperativo.domicilio).joinedload(Domicilio.distrito),
             joinedload(EstablecimientoOperativo.domicilio).joinedload(Domicilio.calle_catalogo),
+            joinedload(EstablecimientoOperativo.domicilio).joinedload(Domicilio.geocode),
         )
         .first()
     )

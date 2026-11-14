@@ -65,6 +65,83 @@ export async function getEstablecimientosOperativos(
 export interface IEstablecimientoOperativoDetail extends IEstablecimientoOperativoListItem {
   actuaciones_count: number;
   ultima_actuacion_fecha: string | null;
+  numero_tipo?: string | null;
+  esquina_raw?: string | null;
+  contribuyente_id?: number | null;
+  lat?: number | string | null;
+  lng?: number | string | null;
+}
+
+export interface ICorreccionContribuyenteIn {
+  documento?: string | null;
+  apellido?: string | null;
+  nombre?: string | null;
+  razon_social?: string | null;
+}
+
+export interface ICorreccionDomicilioIn {
+  calle?: string | null;
+  numero?: string | null;
+  numero_tipo?: "NUMERO" | "ESQUINA" | "OTRO" | null;
+  esquina?: string | null;
+}
+
+export interface ICorreccionEstablecimientoPayload {
+  contribuyente?: ICorreccionContribuyenteIn;
+  domicilio?: ICorreccionDomicilioIn;
+  confirmado?: boolean;
+}
+
+export interface ICorreccionIdsResumen {
+  cantidad: number;
+  ids: number[];
+}
+
+export interface ICorreccionConflicto {
+  codigo?: string | null;
+  detail?: string | null;
+  domicilio_ids_ambiguos?: number[];
+}
+
+export interface ICorreccionEstablecimientoPreview {
+  establecimiento_operativo_id: number;
+  puede_aplicar: boolean;
+  sin_cambios?: boolean;
+  conflicto?: ICorreccionConflicto | null;
+  advertencias: string[];
+  snapshots_y_pdf?: { se_actualizan: boolean; detalle: string };
+  coordenadas_y_distrito?: {
+    se_recalculan: boolean;
+    distrito_id?: number | null;
+    lat?: number | string | null;
+    lng?: number | string | null;
+  };
+  contribuyente?: {
+    actual: Record<string, string | number | null> | null;
+    propuesto: Record<string, string | number | null> | null;
+    cambia: boolean;
+    establecimientos_afectados: ICorreccionIdsResumen;
+    actuaciones_afectadas: ICorreccionIdsResumen;
+    advertencia: string;
+  };
+  domicilio?: {
+    actual: Record<string, string | number | null>;
+    actual_texto?: string | null;
+    propuesto: Record<string, string | number | null>;
+    cambia: boolean;
+    establecimiento_seleccionado_id: number;
+    domicilio_ids_ficha: number[];
+    identidad_logica_completa: boolean;
+    actuaciones: ICorreccionIdsResumen;
+    notificaciones: ICorreccionIdsResumen;
+    comprobaciones: ICorreccionIdsResumen;
+    oficios: ICorreccionIdsResumen;
+    iniciadores: ICorreccionIdsResumen;
+    ruta_items: ICorreccionIdsResumen;
+    advertencia: string;
+  };
+  applied?: boolean;
+  audit_id?: number | null;
 }
 
 /**
@@ -143,6 +220,34 @@ export async function getEstablecimientoOperativoActuaciones(
   const { data } = await apiClient.get<IEstablecimientoOperativoHistorialResponse>(
     `/establecimientos-operativos/${establecimientoId}/actuaciones`,
     { params }
+  );
+  return data;
+}
+
+/**
+ * Vista previa del alcance de una corrección controlada (no persiste).
+ */
+export async function previewCorreccionEstablecimiento(
+  establecimientoId: number,
+  payload: ICorreccionEstablecimientoPayload
+): Promise<ICorreccionEstablecimientoPreview> {
+  const { data } = await apiClient.post<ICorreccionEstablecimientoPreview>(
+    `/establecimientos-operativos/${establecimientoId}/correcciones/preview`,
+    payload
+  );
+  return data;
+}
+
+/**
+ * Aplica la corrección confirmada (atómica + auditoría).
+ */
+export async function aplicarCorreccionEstablecimiento(
+  establecimientoId: number,
+  payload: ICorreccionEstablecimientoPayload
+): Promise<ICorreccionEstablecimientoPreview> {
+  const { data } = await apiClient.post<ICorreccionEstablecimientoPreview>(
+    `/establecimientos-operativos/${establecimientoId}/correcciones`,
+    { ...payload, confirmado: true }
   );
   return data;
 }
