@@ -163,7 +163,6 @@ export function buildDashboardWorkbook(data: DashboardExportPayload): XLSX.WorkB
         "Inspecciones",
         "Reins. oficio",
         "Reins. notificación",
-        "Otras",
       ],
       data.productividad.inspectores_realizadas.map((r) => [
         r.inspector,
@@ -171,7 +170,6 @@ export function buildDashboardWorkbook(data: DashboardExportPayload): XLSX.WorkB
         r.inspecciones,
         r.reinspecciones_oficio,
         r.reinspecciones_notificacion,
-        r.otras ?? 0,
       ])
     );
     pushProdTable(

@@ -117,14 +117,15 @@ def _mk_domicilio_con_rubro(nombre_rubro: str | None = None) -> Domicilio:
     return dom
 
 
-def test_actuacion_cruda_sin_cierre_no_cuenta_realizada(app_ctx) -> None:
+def test_actuacion_cruda_sin_cierre_cuenta_realizada(app_ctx) -> None:
     try:
         antes = build_indicadores_ejecutivo(_DESDE, _HASTA)
         dom = _mk_domicilio_con_rubro()
         _mk_actuacion_cruda(_FECHA, domicilio_id=dom.id)
         db.session.flush()
         out = build_indicadores_ejecutivo(_DESDE, _HASTA)
-        assert out.kpis.actuaciones_realizadas == antes.kpis.actuaciones_realizadas
+        assert out.kpis.actuaciones_realizadas == antes.kpis.actuaciones_realizadas + 1
+        assert out.kpis.inspecciones_realizadas == antes.kpis.inspecciones_realizadas + 1
     finally:
         db.session.rollback()
 

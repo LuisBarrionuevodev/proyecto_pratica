@@ -12,7 +12,7 @@ from collections import defaultdict
 from datetime import date
 from typing import Optional
 
-from sqlalchemy import and_, exists, func
+from sqlalchemy import exists, func
 
 from app.database import db
 from app.domains.indicadores.schemas.productividad_out import (
@@ -25,6 +25,11 @@ from app.domains.indicadores.services.indicadores_no_realizadas_queries import (
     fetch_no_realizadas_visita_rows,
     format_contraproducencia_label,
     is_contraproducencia_excluida_valor,
+)
+from app.domains.indicadores.services.indicadores_manual_actuaciones import (
+    actuacion_ids_manuales_realizadas_subquery,
+    fetch_manuales_realizadas_rows,
+    union_ids_realizadas_con_manuales,
 )
 from app.domains.indicadores.services.indicadores_operativos_queries import (
     TIPOS_INICIADOR_OFICIO_REALIZADA,
@@ -45,6 +50,7 @@ from app.domains.indicadores.utils.contraproducencia_indicador_buckets import (
     empty_contraproducencia_buckets,
     merge_no_realizado_motivo_counts,
     sum_productividad_buckets,
+    _PRODUCTIVIDAD_BUCKET_KEYS,
 )
 from app.models import (
     Actuaciones,
@@ -71,21 +77,19 @@ TIPO_INICIADOR_TO_PRODUCTIVIDAD_BUCKET: dict[str, str] = {
     "RATIFICACION_DECOMISO_OFICIO": "reinspecciones_oficio",
     "VERIFICAR_INFORMAR_OFICIO": "reinspecciones_oficio",
     "REINSPECCION_NOTIFICACION": "reinspecciones_notificacion",
-    "DENUNCIA": "denuncias",
+    "DENUNCIA": "inspecciones",
 }
 
 _BUCKET_LABELS: dict[str, str] = {
     "inspecciones": "Inspección",
     "reinspecciones_oficio": "Reinspección oficio",
     "reinspecciones_notificacion": "Reinspección notificación",
-    "denuncias": "Denuncia",
 }
 
 _BUCKET_TIE_PRIORITY = (
     "inspecciones",
     "reinspecciones_oficio",
     "reinspecciones_notificacion",
-    "denuncias",
 )
 
 _SIN_DATOS = "Sin datos"
@@ -200,8 +204,8 @@ def count_visitas_realizadas_productividad_bucket(
     """
     Cuenta visitas realizadas distintas para un bucket de productividad.
 
-    Misma base y mapeo ``tipo_iniciador → bucket`` que la tabla de inspectores
-    realizadas (columna Inspección = bucket ``inspecciones``).
+    ``inspecciones`` suma RELEVAMIENTO de ruta más cargas manuales. Las denuncias
+    de ruta no entran acá (van a la columna Inspección de la tabla por inspector).
 
     Parámetros:
         desde, hasta, distrito_id, inspector_id: mismos filtros que productividad.
@@ -213,7 +217,7 @@ def count_visitas_realizadas_productividad_bucket(
     tipos = tuple(
         tipo
         for tipo, mapped in TIPO_INICIADOR_TO_PRODUCTIVIDAD_BUCKET.items()
-        if mapped == bucket
+        if mapped == bucket and tipo != "DENUNCIA"
     )
     if not tipos:
         return 0
@@ -223,7 +227,16 @@ def count_visitas_realizadas_productividad_bucket(
         .select_from(sq)
         .filter(sq.c.tipo_iniciador.in_(tipos))
     )
-    return int(q.scalar() or 0)
+    n = int(q.scalar() or 0)
+    if bucket == "inspecciones":
+        from app.domains.indicadores.services.indicadores_manual_actuaciones import (
+            count_actuaciones_manuales_realizadas,
+        )
+
+        n += count_actuaciones_manuales_realizadas(
+            desde, hasta, distrito_id, inspector_id
+        )
+    return n
 
 
 def _no_realizadas_visita_subquery(
@@ -288,7 +301,7 @@ def _aggregate_por_inspector_y_tipo(
         if iid not in acc:
             acc[iid] = {
                 "nombre": str(nombre),
-                "buckets": {b: 0 for b in TIPO_INICIADOR_TO_PRODUCTIVIDAD_BUCKET.values()},
+                "buckets": {b: 0 for b in _PRODUCTIVIDAD_BUCKET_KEYS},
             }
         bucket = TIPO_INICIADOR_TO_PRODUCTIVIDAD_BUCKET.get(str(tipo))
         if bucket:
@@ -298,6 +311,49 @@ def _aggregate_por_inspector_y_tipo(
     return acc
 
 
+def _merge_manuales_realizadas_en_acc(
+    acc: dict[int, dict[str, object]],
+    desde: date,
+    hasta: date,
+    distrito_id: Optional[int],
+    inspector_id: Optional[int],
+) -> None:
+    """Suma cargas manuales realizadas al bucket inspección por inspector participante."""
+    rows = fetch_manuales_realizadas_rows(desde, hasta, distrito_id, inspector_id)
+    if not rows:
+        return
+    act_ids = [aid for aid, _fecha in rows]
+    insp_q = (
+        db.session.query(
+            actuaciones_inspector.c.actuaciones_id,
+            Inspector.id,
+            Inspector.nombre,
+        )
+        .join(Inspector, Inspector.id == actuaciones_inspector.c.inspector_id)
+        .filter(
+            actuaciones_inspector.c.actuaciones_id.in_(act_ids),
+            actuaciones_inspector.c.deleted_at.is_(None),
+        )
+    )
+    if inspector_id is not None:
+        insp_q = insp_q.filter(Inspector.id == inspector_id)
+    seen: set[tuple[int, int]] = set()
+    for act_id, iid, nombre in insp_q.all():
+        key = (int(act_id), int(iid))
+        if key in seen:
+            continue
+        seen.add(key)
+        iid_i = int(iid)
+        if iid_i not in acc:
+            acc[iid_i] = {
+                "nombre": str(nombre),
+                "buckets": {b: 0 for b in _PRODUCTIVIDAD_BUCKET_KEYS},
+            }
+        buckets = acc[iid_i]["buckets"]
+        assert isinstance(buckets, dict)
+        buckets["inspecciones"] = int(buckets.get("inspecciones", 0)) + 1
+
+
 def query_inspectores_realizadas(
     desde: date,
     hasta: date,
@@ -305,12 +361,14 @@ def query_inspectores_realizadas(
     inspector_id: Optional[int] = None,
 ) -> list[InspectorRealizadasItem]:
     """
-    Inspectores con visitas realizadas en rango (solo 4 tipos de productividad).
+    Inspectores con visitas realizadas en rango.
 
-    ``total_realizadas`` = suma de los cuatro buckets (no incluye otros tipos de iniciador).
+    Denuncias de ruta se agrupan en ``inspecciones``. Las cargas de Cargar
+    actuación (sin RutaItem / OT ya cerrada) suman al mismo bucket.
     """
     sq = _realizadas_visita_subquery(desde, hasta, distrito_id, inspector_id)
     acc = _aggregate_por_inspector_y_tipo(sq, inspector_id_filter=inspector_id)
+    _merge_manuales_realizadas_en_acc(acc, desde, hasta, distrito_id, inspector_id)
     items: list[InspectorRealizadasItem] = []
     for iid, row in acc.items():
         buckets = row["buckets"]
@@ -318,10 +376,8 @@ def query_inspectores_realizadas(
         inspecciones = int(buckets.get("inspecciones", 0))
         reins_oficio = int(buckets.get("reinspecciones_oficio", 0))
         reins_notif = int(buckets.get("reinspecciones_notificacion", 0))
-        denuncias = int(buckets.get("denuncias", 0))
+        denuncias = 0
         total = sum_productividad_buckets(buckets)
-        visible_sin_denuncia = inspecciones + reins_oficio + reins_notif
-        otras = max(0, total - visible_sin_denuncia)
         items.append(
             InspectorRealizadasItem(
                 inspector_id=iid,
@@ -331,7 +387,7 @@ def query_inspectores_realizadas(
                 reinspecciones_oficio=reins_oficio,
                 reinspecciones_notificacion=reins_notif,
                 denuncias=denuncias,
-                otras=otras,
+                otras=0,
                 tipo_principal=principal_bucket_label(buckets),
             )
         )
@@ -502,7 +558,13 @@ def query_actas_por_inspector(
 
     Solo actuaciones de rutas del período con cierre REALIZADO (misma base que ejecutivo/riesgo).
     """
-    sq = actuacion_ids_realizadas_subquery(desde, hasta, distrito_id, inspector_id)
+    sq_ruta = actuacion_ids_realizadas_subquery(desde, hasta, distrito_id, inspector_id)
+    sq_manual = actuacion_ids_manuales_realizadas_subquery(
+        desde, hasta, distrito_id, inspector_id
+    )
+    sq = union_ids_realizadas_con_manuales(
+        sq_ruta, sq_manual, name="act_realizadas_union_actas"
+    )
 
     notif = _actas_count_por_inspector(
         sq,

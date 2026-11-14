@@ -145,6 +145,27 @@ def fetch_no_realizadas_visita_rows(
                 fecha=fecha,
             )
         )
+    from app.domains.indicadores.services.indicadores_manual_actuaciones import (
+        fetch_manuales_no_realizadas_rows,
+    )
+
+    for act_id, contra, fecha, dist_id in fetch_manuales_no_realizadas_rows(
+        desde, hasta, distrito_id, inspector_id
+    ):
+        syn_id = -int(act_id)
+        if syn_id in seen:
+            continue
+        seen.add(syn_id)
+        out.append(
+            NoRealizadaVisitaRow(
+                ruta_item_id=syn_id,
+                actuacion_id=int(act_id),
+                contraproducencia=contra,
+                motivo_no_realizado=None,
+                distrito_id=dist_id,
+                fecha=fecha,
+            )
+        )
     return out
 
 
@@ -423,6 +444,13 @@ def query_no_realizadas_por_tipo(
         bucket = _TIPO_INICIADOR_A_BUCKET.get(str(tipo))
         if bucket:
             buckets[bucket] += int(cnt)
+    from app.domains.indicadores.services.indicadores_manual_actuaciones import (
+        fetch_manuales_no_realizadas_rows,
+    )
+
+    buckets["inspeccion"] += len(
+        fetch_manuales_no_realizadas_rows(desde, hasta, distrito_id, inspector_id)
+    )
     return NoRealizadasPorTipo(
         inspeccion=buckets["inspeccion"],
         reinspeccion_oficio=buckets["reinspeccion_oficio"],
@@ -539,14 +567,39 @@ def query_distritos_con_mas_no_realizadas(
         .limit(limit)
         .all()
     )
+    from app.domains.indicadores.services.indicadores_manual_actuaciones import (
+        fetch_manuales_no_realizadas_rows,
+    )
+
+    extra: dict[int, int] = {}
+    for _aid, _contra, _fecha, dist_id in fetch_manuales_no_realizadas_rows(
+        desde, hasta, distrito_id, inspector_id
+    ):
+        key = int(dist_id) if dist_id is not None else _SIN_DISTRITO_ID
+        extra[key] = extra.get(key, 0) + 1
     out: list[tuple[int, str, str, int]] = []
+    seen_d: set[int] = set()
     for did, codigo, nombre, cnt in rows:
+        did_i = int(did) if did is not None else _SIN_DISTRITO_ID
+        seen_d.add(did_i)
         out.append(
             (
-                int(did) if did is not None else _SIN_DISTRITO_ID,
+                did_i,
                 str(codigo) if codigo is not None else _SIN_DISTRITO_CODIGO,
                 str(nombre) if nombre is not None else _SIN_DISTRITO_NOMBRE,
-                int(cnt),
+                int(cnt) + extra.get(did_i, 0),
             )
         )
-    return out
+    for did_i, extra_cnt in extra.items():
+        if did_i in seen_d:
+            continue
+        out.append(
+            (
+                did_i,
+                _SIN_DISTRITO_CODIGO if did_i == _SIN_DISTRITO_ID else str(did_i),
+                _SIN_DISTRITO_NOMBRE if did_i == _SIN_DISTRITO_ID else str(did_i),
+                extra_cnt,
+            )
+        )
+    out.sort(key=lambda r: r[3], reverse=True)
+    return out[:limit]

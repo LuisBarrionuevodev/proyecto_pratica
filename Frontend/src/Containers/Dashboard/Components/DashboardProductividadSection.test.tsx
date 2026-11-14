@@ -72,8 +72,9 @@ describe("DashboardProductividadSection", () => {
 
   it("realizadas: total coincide con suma de columnas visibles", () => {
     const html = renderSection(productividadMock);
-    expect(html).toContain("Otras");
+    expect(html).toContain("Inspección");
     expect(html).toContain("5");
+    expect(html).not.toContain("Otros tipos operativos");
   });
 
   it("no realizadas por inspector muestra columnas de contraproducencia", () => {
@@ -84,6 +85,7 @@ describe("DashboardProductividadSection", () => {
     expect(html).toContain("No existe");
     expect(html).toContain("No se ratificó");
     expect(html).toContain("Clima");
+    expect(html).toContain("Otras");
     expect(html).not.toContain("Contraproducencia principal");
   });
 

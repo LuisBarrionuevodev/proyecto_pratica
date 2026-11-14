@@ -231,7 +231,7 @@ def _find_realizada(inspector_id: int, rows):
         ("RATIFICACION_DECOMISO_OFICIO", "reinspecciones_oficio"),
         ("VERIFICAR_INFORMAR_OFICIO", "reinspecciones_oficio"),
         ("REINSPECCION_NOTIFICACION", "reinspecciones_notificacion"),
-        ("DENUNCIA", "denuncias"),
+        ("DENUNCIA", "inspecciones"),
     ],
 )
 def test_realizada_suma_por_tipo(app_ctx, tipo_iniciador, field) -> None:
@@ -248,12 +248,12 @@ def test_realizada_suma_por_tipo(app_ctx, tipo_iniciador, field) -> None:
             row.inspecciones
             + row.reinspecciones_oficio
             + row.reinspecciones_notificacion
-            + row.otras
         )
         assert row.total_realizadas == visible
-        if field == "denuncias":
-            assert row.denuncias >= 1
-            assert row.otras >= row.denuncias
+        assert row.otras == 0
+        if tipo_iniciador == "DENUNCIA":
+            assert row.inspecciones >= 1
+            assert row.denuncias == 0
     finally:
         db.session.rollback()
 

@@ -145,6 +145,13 @@ describe("buildDashboardPdfModel", () => {
     ]);
     expect(model.noRealizadasContraproducencias.rows.length).toBeGreaterThan(0);
     expect(model.productividadRealizadas.rows).toHaveLength(1);
+    expect(model.productividadRealizadas.headers).toEqual([
+      "Inspector",
+      "Total",
+      "Inspecc.",
+      "R.of.",
+      "R.not.",
+    ]);
   });
 
   it("bloques vacíos no crashean y dejan secciones sin filas", () => {

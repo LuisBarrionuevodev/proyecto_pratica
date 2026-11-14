@@ -194,15 +194,6 @@ function RealizadasTable({ rows }: { rows: IndicadorInspectorRealizadas[] }) {
         muiTableHeadCellProps: { align: "right", title: "Reinspecciones por notificación" },
         Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
       },
-      {
-        accessorKey: "otras",
-        header: "Otras",
-        size: 64,
-        minSize: 56,
-        muiTableBodyCellProps: { align: "right" },
-        muiTableHeadCellProps: { align: "right", title: "Otros tipos operativos" },
-        Cell: ({ cell }) => <NumericCell value={Number(cell.getValue() ?? 0)} />,
-      },
     ],
     []
   );

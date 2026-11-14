@@ -11,6 +11,11 @@ from app.domains.indicadores.schemas.ejecutivo_out import (
     IndicadoresEjecutivoOut,
     IndicadoresPeriodo,
 )
+from app.domains.indicadores.services.indicadores_manual_actuaciones import (
+    actuacion_ids_manuales_realizadas_subquery,
+    count_actuaciones_manuales_realizadas,
+    union_ids_realizadas_con_manuales,
+)
 from app.domains.indicadores.services.indicadores_operativos_queries import (
     actuacion_ids_realizadas_subquery,
     count_cierres_realizados,
@@ -37,9 +42,10 @@ def build_indicadores_ejecutivo(
     """
     Bloque ejecutivo del dashboard: cierres realizados + actas labradas alineadas.
 
-    Criterio «realizada»: ruta PUBLICADA con ``RutaTrabajo.fecha`` en rango,
-    ``RutaItem`` FINALIZADO + REALIZADO con ``actuacion_id``.
-    Actas y kg se restringen a esas actuaciones (no ``Actuaciones.fecha`` ni ``ejecutado_at``).
+    Criterio «realizada»: cierres de ruta PUBLICADA con ``RutaTrabajo.fecha``
+    en rango (FINALIZADO + REALIZADO) más cargas de Cargar actuación sin
+    ``RutaItem`` propio, por ``Actuaciones.fecha``, sin duplicar la misma OT.
+    Kilos ratificados no incluyen el canal manual.
 
     Parámetros:
         desde, hasta: rango inclusive.
@@ -50,12 +56,18 @@ def build_indicadores_ejecutivo(
     """
     realizadas = count_cierres_realizados(
         desde, hasta, distrito_id, inspector_id
+    ) + count_actuaciones_manuales_realizadas(
+        desde, hasta, distrito_id, inspector_id
     )
     por_tipo_ini = visitas_realizadas_por_tipo_iniciador(
         desde, hasta, distrito_id, inspector_id
     )
 
-    sq = actuacion_ids_realizadas_subquery(desde, hasta, distrito_id, inspector_id)
+    sq_ruta = actuacion_ids_realizadas_subquery(desde, hasta, distrito_id, inspector_id)
+    sq_manual = actuacion_ids_manuales_realizadas_subquery(
+        desde, hasta, distrito_id, inspector_id
+    )
+    sq = union_ids_realizadas_con_manuales(sq_ruta, sq_manual)
     actas_por_tipo = _count_actas_labradas(sq)
     actas_labradas = (
         actas_por_tipo.inspeccion

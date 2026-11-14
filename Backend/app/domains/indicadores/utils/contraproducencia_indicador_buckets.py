@@ -44,7 +44,6 @@ _PRODUCTIVIDAD_BUCKET_KEYS: tuple[str, ...] = (
     "inspecciones",
     "reinspecciones_oficio",
     "reinspecciones_notificacion",
-    "denuncias",
 )
 
 
@@ -139,7 +138,7 @@ def merge_no_realizado_motivo_counts(
 
 def sum_productividad_buckets(buckets: dict[str, int]) -> int:
     """
-    Suma única de los cuatro buckets de productividad por tipo operativo.
+    Suma única de los buckets de productividad por tipo operativo.
 
     No usar ``TIPO_INICIADOR_TO_PRODUCTIVIDAD_BUCKET.values()`` (tiene duplicados de oficio).
     """

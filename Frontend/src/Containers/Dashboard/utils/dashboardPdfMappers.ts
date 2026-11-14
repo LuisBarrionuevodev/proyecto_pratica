@@ -191,7 +191,7 @@ export function buildDashboardPdfModel(
 
   const productividadRealizadas = buildTableSection(
     "Actuaciones realizadas por inspector",
-    ["Inspector", "Total", "Inspecc.", "R.of.", "R.not.", "Otras"],
+    ["Inspector", "Total", "Inspecc.", "R.of.", "R.not."],
     realizadasLimited.rows.map((r) => ({
       label: r.inspector,
       value: fmtNum(r.total_realizadas),
@@ -199,7 +199,6 @@ export function buildDashboardPdfModel(
       extraValues: [
         fmtNum(r.reinspecciones_oficio),
         fmtNum(r.reinspecciones_notificacion),
-        fmtNum(r.otras ?? 0),
       ],
     }))
   );
