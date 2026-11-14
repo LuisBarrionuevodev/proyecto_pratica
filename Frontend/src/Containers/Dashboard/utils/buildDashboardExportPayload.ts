@@ -46,6 +46,7 @@ function pushEjecutivoKpis(
   cards.push(
     { title: "Actuaciones realizadas", value: k.actuaciones_realizadas },
     { title: "Actas labradas (total)", value: k.actas_labradas },
+    { title: "Inspecciones realizadas", value: k.inspecciones_realizadas },
     {
       title: "Reinspecciones por notificación (realizadas)",
       value: k.reinspecciones_notificacion_realizadas,

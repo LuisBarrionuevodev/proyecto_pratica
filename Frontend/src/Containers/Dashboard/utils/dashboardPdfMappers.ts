@@ -86,6 +86,7 @@ export function buildDashboardPdfModel(
     ? [
         { label: "Actuaciones realizadas", value: fmtNum(k.actuaciones_realizadas) },
         { label: "Actas labradas", value: fmtNum(k.actas_labradas) },
+        { label: "Inspecciones realizadas", value: fmtNum(k.inspecciones_realizadas) },
         {
           label: "Reins. notificación realizadas",
           value: fmtNum(k.reinspecciones_notificacion_realizadas),

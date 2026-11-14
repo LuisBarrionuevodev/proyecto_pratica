@@ -35,7 +35,10 @@ from app.models import (
 )
 from app.models.turno import TipoTurno
 from tests.helpers.fixture_isolation import unique_ot_numero
-from tests.indicadores_cierre_fixtures import vincular_cierre_realizado
+from tests.indicadores_cierre_fixtures import (
+    vincular_cierre_no_realizado,
+    vincular_cierre_realizado,
+)
 
 _DESDE = date(2098, 3, 1)
 _HASTA = date(2098, 3, 31)
@@ -210,6 +213,7 @@ def test_manual_misma_ot_con_cierre_ruta_cuenta_una_vez(app_ctx) -> None:
         ej = build_indicadores_ejecutivo(_DESDE, _HASTA, inspector_id=ins.id)
         assert count_cierres_realizados(_DESDE, _HASTA, inspector_id=ins.id) == 1
         assert ej.kpis.actuaciones_realizadas == 1
+        assert ej.kpis.inspecciones_realizadas == 1
 
         prod = build_indicadores_productividad(_DESDE, _HASTA, inspector_id=ins.id)
         row = _find_insp(ins.id, prod.inspectores_realizadas)
@@ -264,6 +268,72 @@ def test_denuncia_realizada_suma_en_inspeccion_sin_doblar_total(app_ctx) -> None
         )
         assert row.total_realizadas == visible
         assert row.total_realizadas == row.inspecciones
+        ej = build_indicadores_ejecutivo(_DESDE, _HASTA)
+        # La card usa el mismo bucket: +1, no +2.
+        assert ej.kpis.inspecciones_realizadas >= 1
+    finally:
+        db.session.rollback()
+
+
+def test_card_denuncia_realizada_incrementa_inspecciones_en_uno(app_ctx) -> None:
+    """Una denuncia realizada suma 1 a la card, no 2."""
+    try:
+        ins = _mk_inspector()
+        dom = _mk_domicilio()
+        antes = build_indicadores_ejecutivo(_DESDE, _HASTA)
+        actas_antes = antes.kpis.actas_labradas
+        act = _mk_manual(_FECHA, inspector_id=ins.id, domicilio_id=dom.id)
+        vincular_cierre_realizado(
+            act, _FECHA, inspector_id=ins.id, tipo_iniciador="DENUNCIA"
+        )
+        db.session.flush()
+        ej = build_indicadores_ejecutivo(_DESDE, _HASTA)
+        ej_ins = build_indicadores_ejecutivo(_DESDE, _HASTA, inspector_id=ins.id)
+        assert ej.kpis.inspecciones_realizadas == antes.kpis.inspecciones_realizadas + 1
+        assert ej.kpis.actuaciones_realizadas == antes.kpis.actuaciones_realizadas + 1
+        assert ej.kpis.actas_labradas == actas_antes
+        assert ej_ins.kpis.inspecciones_realizadas == 1
+        prod = build_indicadores_productividad(_DESDE, _HASTA, inspector_id=ins.id)
+        row = _find_insp(ins.id, prod.inspectores_realizadas)
+        assert row is not None
+        assert row.inspecciones == 1
+        assert row.inspecciones == ej_ins.kpis.inspecciones_realizadas
+    finally:
+        db.session.rollback()
+
+
+def test_card_manual_inspeccion_respeta_filtro_inspector(app_ctx) -> None:
+    try:
+        ins_a = _mk_inspector()
+        ins_b = _mk_inspector()
+        dom = _mk_domicilio()
+        _mk_manual(_FECHA, inspector_id=ins_a.id, domicilio_id=dom.id)
+        db.session.flush()
+        ej_a = build_indicadores_ejecutivo(_DESDE, _HASTA, inspector_id=ins_a.id)
+        ej_b = build_indicadores_ejecutivo(_DESDE, _HASTA, inspector_id=ins_b.id)
+        assert ej_a.kpis.inspecciones_realizadas == 1
+        assert ej_b.kpis.inspecciones_realizadas == 0
+    finally:
+        db.session.rollback()
+
+
+def test_card_denuncia_no_realizada_no_incrementa_inspecciones(app_ctx) -> None:
+    try:
+        ins = _mk_inspector()
+        dom = _mk_domicilio()
+        antes = build_indicadores_ejecutivo(_DESDE, _HASTA)
+        act = _mk_manual(_FECHA, inspector_id=ins.id, domicilio_id=dom.id)
+        vincular_cierre_no_realizado(
+            act,
+            _FECHA,
+            tipo_iniciador="DENUNCIA",
+            inspector_id=ins.id,
+            contraproducencia="LOCAL_CERRADO",
+        )
+        db.session.flush()
+        ej = build_indicadores_ejecutivo(_DESDE, _HASTA)
+        assert ej.kpis.inspecciones_realizadas == antes.kpis.inspecciones_realizadas
+        assert ej.kpis.actuaciones_realizadas == antes.kpis.actuaciones_realizadas
     finally:
         db.session.rollback()
 

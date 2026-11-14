@@ -115,7 +115,8 @@ describe("buildDashboardPdfModel", () => {
       "01/01/2026 al 31/01/2026"
     );
     expect(model.title).toBe("Indicadores Digitaliza");
-    expect(model.ejecutivoKpis).toHaveLength(9);
+    expect(model.ejecutivoKpis).toHaveLength(10);
+    expect(model.ejecutivoKpis.find((k) => k.label === "Inspecciones realizadas")?.value).toBe("3");
     expect(model.ejecutivoKpis.find((k) => k.label.includes("oficio realizadas"))?.value).toBe("3");
     const kilosPdf = model.ejecutivoKpis.find((k) => k.label === "Kilos ratificados");
     expect(kilosPdf?.value).toBe(

@@ -45,6 +45,7 @@ def build_indicadores_ejecutivo(
     Criterio «realizada»: cierres de ruta PUBLICADA con ``RutaTrabajo.fecha``
     en rango (FINALIZADO + REALIZADO) más cargas de Cargar actuación sin
     ``RutaItem`` propio, por ``Actuaciones.fecha``, sin duplicar la misma OT.
+    ``inspecciones_realizadas`` agrupa RELEVAMIENTO + DENUNCIA + manuales.
     Kilos ratificados no incluyen el canal manual.
 
     Parámetros:

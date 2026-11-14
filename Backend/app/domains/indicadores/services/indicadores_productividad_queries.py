@@ -204,20 +204,20 @@ def count_visitas_realizadas_productividad_bucket(
     """
     Cuenta visitas realizadas distintas para un bucket de productividad.
 
-    ``inspecciones`` suma RELEVAMIENTO de ruta más cargas manuales. Las denuncias
-    de ruta no entran acá (van a la columna Inspección de la tabla por inspector).
+    ``inspecciones`` = RELEVAMIENTO + DENUNCIA de ruta más cargas manuales
+    (sin duplicar la misma OT si ya tiene cierre de ruta).
 
     Parámetros:
         desde, hasta, distrito_id, inspector_id: mismos filtros que productividad.
         bucket: clave de ``TIPO_INICIADOR_TO_PRODUCTIVIDAD_BUCKET`` (p. ej. ``inspecciones``).
 
     Retorno:
-        Cantidad de ``ruta_item_id`` distintos en el bucket.
+        Cantidad de ``ruta_item_id`` distintos en el bucket (+ manuales si aplica).
     """
     tipos = tuple(
         tipo
         for tipo, mapped in TIPO_INICIADOR_TO_PRODUCTIVIDAD_BUCKET.items()
-        if mapped == bucket and tipo != "DENUNCIA"
+        if mapped == bucket
     )
     if not tipos:
         return 0

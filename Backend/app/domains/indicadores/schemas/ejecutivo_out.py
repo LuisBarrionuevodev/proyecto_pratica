@@ -18,7 +18,8 @@ class EjecutivoKpis(BaseModel):
 
     ``actuaciones_realizadas``: cierres REALIZADO en ruta PUBLICADA (mapa operativo).
     ``actas_labradas`` y desglose: actas propias en actuaciones del periodo por ``fecha``.
-    ``inspecciones_realizadas``: visitas bucket ``inspecciones`` (misma regla que Productividad).
+    ``inspecciones_realizadas``: RELEVAMIENTO + DENUNCIA + cargas manuales
+    (misma clasificación que la columna Inspección de productividad).
     ``kilos_ratificados``: kilos del decomiso de origen imputados al primer cierre
     válido de Ratificación de decomiso (fecha de ``RutaTrabajo``).
     """
