@@ -2,7 +2,18 @@
  * Textos de alcance/advertencia alineados al canal de corrección controlada.
  */
 export const CORRECCION_CONTRIBUYENTE_HINT =
-  "Corrige datos del mismo contribuyente. No cambia el titular ni fusiona registros.";
+  "Corrige nombre, apellido o razón social del mismo contribuyente. " +
+  "No cambia el CUIT/DNI ni fusiona registros.";
+
+export const CORRECCION_CAMBIO_DOCUMENTO_TITULO =
+  "Para cambiar el CUIT/DNI necesitamos verificar la titularidad.";
+
+export const CORRECCION_CAMBIO_DOCUMENTO_DETALLE =
+  "Esto evita modificar por error otros establecimientos asociados. " +
+  "Por ahora no se puede cambiar el documento desde esta corrección.";
+
+export const CORRECCION_CAMBIO_DOCUMENTO_MSG =
+  `${CORRECCION_CAMBIO_DOCUMENTO_TITULO} ${CORRECCION_CAMBIO_DOCUMENTO_DETALLE}`;
 
 export const CORRECCION_DOMICILIO_HINT =
   "Corrige la dirección de origen de este establecimiento. No se recalculan coordenadas ni distrito.";

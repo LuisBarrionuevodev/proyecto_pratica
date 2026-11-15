@@ -66,7 +66,7 @@ def aplicar_correccion_establecimiento(
 
     Errores:
         400 si falta confirmación o validación de negocio.
-        409 documento ajeno, ambigüedad de domicilio o fusión de ficha.
+        409 documento ajeno, cambio de documento normalizado, ambigüedad o fusión de ficha.
         403/404 según permiso o ficha inexistente.
         Rollback si cualquier paso falla (sin corrección parcial).
     """

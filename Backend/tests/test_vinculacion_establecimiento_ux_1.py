@@ -101,8 +101,9 @@ def test_preview_documento_nuevo_libre_no_ofrece(app_ctx, service_actor) -> None
     nuevo = str(int(uuid4().hex[:8], 16) % 90_000_000 + 10_000_000)
     db.session.commit()
     prev = preview_correccion_establecimiento(eo.id, _body_doc(nuevo), actor=actor)
-    assert prev["puede_aplicar"] is True
-    assert prev.get("conflicto") in (None, {})
+    assert prev["puede_aplicar"] is False
+    assert prev["conflicto"]["codigo"] == "CAMBIO_DOCUMENTO"
+    assert prev["conflicto"]["ofrece_vinculacion"] is False
 
 
 def test_apply_correccion_documento_ajeno_sigue_sin_reasignar(app_ctx, service_actor) -> None:

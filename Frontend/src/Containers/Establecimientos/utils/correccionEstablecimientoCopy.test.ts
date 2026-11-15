@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CORRECCION_CAMBIO_DOCUMENTO_MSG,
   CORRECCION_CONTRIBUYENTE_HINT,
   CORRECCION_DOMICILIO_HINT,
   CORRECCION_LOCAL_HINT,
@@ -28,8 +29,13 @@ import {
 describe("correccionEstablecimientoCopy", () => {
   it("no promete recálculo de coordenadas ni cambio de titular", () => {
     expect(CORRECCION_CONTRIBUYENTE_HINT.toLowerCase()).toContain("mismo contribuyente");
-    expect(CORRECCION_CONTRIBUYENTE_HINT.toLowerCase()).toContain("no cambia el titular");
+    expect(CORRECCION_CONTRIBUYENTE_HINT.toLowerCase()).toContain("no cambia el cuit/dni");
     expect(CORRECCION_CONTRIBUYENTE_HINT.toLowerCase()).toContain("ni fusiona");
+    expect(CORRECCION_CAMBIO_DOCUMENTO_MSG.toLowerCase()).toContain("verificar la titularidad");
+    expect(CORRECCION_CAMBIO_DOCUMENTO_MSG.toLowerCase()).toContain("otros establecimientos");
+    expect(CORRECCION_CAMBIO_DOCUMENTO_MSG.toLowerCase()).toContain(
+      "no se puede cambiar el documento"
+    );
     expect(CORRECCION_DOMICILIO_HINT.toLowerCase()).toContain("no se recalculan coordenadas");
     expect(CORRECCION_SIN_CAMBIOS_HINT.toLowerCase()).toContain("no se desvincula");
     expect(CORRECCION_LOCAL_HINT.toLowerCase()).toContain("este establecimiento");

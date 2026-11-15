@@ -111,6 +111,7 @@ export interface ICorreccionConflicto {
   /**
    * Contrato UX.1: `true` solo si `codigo === "DOCUMENTO_AJENO"` y hay un único
    * contribuyente activo con ese documento. No inferir por el texto de `detail`.
+   * HOTFIX TITULAR.1: `CAMBIO_DOCUMENTO` bloquea identidad nueva; nunca ofrece vinculación.
    */
   ofrece_vinculacion?: boolean;
 }

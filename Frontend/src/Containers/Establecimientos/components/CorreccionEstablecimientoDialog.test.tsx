@@ -65,4 +65,13 @@ describe("CorreccionEstablecimientoDialog 1B", () => {
     expect(src).toContain("cancelLabel={VINCULACION_VOLVER}");
     expect(src).toContain("confirmLabel={VINCULACION_ASOCIAR}");
   });
+
+  it("CAMBIO_DOCUMENTO bloquea en el formulario y no autoasocia", () => {
+    const src = readFileSync(dialogPath, "utf8");
+    const previewFn = src.slice(src.indexOf("const handlePreview"), src.indexOf("const handleApplyCorreccion"));
+    expect(previewFn).toContain('codigo === "CAMBIO_DOCUMENTO"');
+    expect(previewFn).toContain("CORRECCION_CAMBIO_DOCUMENTO_MSG");
+    expect(previewFn).toContain("setPreview(null)");
+    expect(previewFn).not.toContain("aplicarCorreccionEstablecimiento");
+  });
 });

@@ -45,6 +45,11 @@ MSG_DOC_AJENO = (
     "El documento propuesto ya pertenece a otro contribuyente. "
     "No se fusionan registros ni se reasigna el titular."
 )
+MSG_CAMBIO_DOCUMENTO = (
+    "Para cambiar el CUIT/DNI necesitamos verificar la titularidad. "
+    "Esto evita modificar por error otros establecimientos asociados. "
+    "Por ahora no se puede cambiar el documento desde esta corrección."
+)
 MSG_AMBIGUEDAD = (
     "Hay otras filas físicas de domicilio con la misma dirección de este contribuyente "
     "que no están vinculadas de forma segura a esta ficha. "
@@ -159,7 +164,12 @@ def cargar_ficha_para_correccion(establecimiento_id: int, *, for_update: bool = 
 
 def validar_documento_propuesto(contrib: Contribuyente, documento: str) -> None:
     """
-    Rechaza documento que ya pertenece a otro contribuyente (sin fusionar).
+    Protege la identidad compartida del contribuyente en el canal de corrección.
+
+    Permite el mismo documento normalizado (cambio de formato). Si el normalizado
+    cambia y pertenece a otro contribuyente único, expone DOCUMENTO_AJENO para
+    el flujo de asociación. Si no existe (o no es único), bloquea CAMBIO_DOCUMENTO
+    sin crear ni sobrescribir identidad.
 
     Extra de conflicto:
         ofrece_vinculacion: True solo si hay exactamente un contribuyente activo ajeno.
@@ -173,6 +183,10 @@ def validar_documento_propuesto(contrib: Contribuyente, documento: str) -> None:
         raise CorreccionEstablecimientoError("El documento del contribuyente no puede quedar vacío.")
     if len(doc) > 11:
         raise CorreccionEstablecimientoError("El documento no puede superar 11 caracteres.")
+    propuesto_norm = normalizar_documento(doc)
+    actual_norm = normalizar_documento(getattr(contrib, "documento", None))
+    if actual_norm == propuesto_norm:
+        return
     ids = contribuyente_ids_por_documento(doc)
     ajenos = sorted({int(i) for i in ids if int(i) != int(contrib.id)})
     if ajenos:
@@ -183,9 +197,11 @@ def validar_documento_propuesto(contrib: Contribuyente, documento: str) -> None:
             codigo="DOCUMENTO_AJENO",
             extra={"ofrece_vinculacion": len(ajenos) == 1},
         )
-    # Mismo documento con distinta normalización en OTRO id ya cubierto.
-    # Si el normalizado coincide con el propio, ok.
-    _ = normalizar_documento(doc)
+    raise CorreccionEstablecimientoConflictError(
+        MSG_CAMBIO_DOCUMENTO,
+        codigo="CAMBIO_DOCUMENTO",
+        extra={"ofrece_vinculacion": False},
+    )
 
 
 def validar_no_fusion_identidad(

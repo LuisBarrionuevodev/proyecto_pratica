@@ -29,6 +29,7 @@ import {
   rubroItemsToNombres,
 } from "../../../utils/rubrosCatalogCache";
 import {
+  CORRECCION_CAMBIO_DOCUMENTO_MSG,
   CORRECCION_CONTRIBUYENTE_HINT,
   CORRECCION_DOMICILIO_HINT,
   CORRECCION_LOCAL_HINT,
@@ -113,6 +114,9 @@ function hintForKind(kind: CorreccionEstablecimientoKind): string {
 function mensajeConflictoCorreccion(preview: ICorreccionEstablecimientoPreview): string | null {
   const conflicto = preview.conflicto;
   if (!conflicto) return null;
+  if (conflicto.codigo === "CAMBIO_DOCUMENTO") {
+    return conflicto.detail?.trim() || CORRECCION_CAMBIO_DOCUMENTO_MSG;
+  }
   if (
     conflicto.codigo === "DOCUMENTO_AJENO" ||
     conflicto.codigo === "DOCUMENTO_AMBIGUO" ||
@@ -274,6 +278,11 @@ export function CorreccionEstablecimientoDialog({
     setLoadingPreview(true);
     try {
       const res = await previewCorreccionEstablecimiento(establecimientoId, payload);
+      if (res.conflicto?.codigo === "CAMBIO_DOCUMENTO") {
+        setError(res.conflicto.detail?.trim() || CORRECCION_CAMBIO_DOCUMENTO_MSG);
+        setPreview(null);
+        return;
+      }
       if (ofreceVinculacionDesdeConflicto(res.conflicto)) {
         const vinc = await previewVinculacionEstablecimiento(establecimientoId, {
           documento: documento.trim(),
