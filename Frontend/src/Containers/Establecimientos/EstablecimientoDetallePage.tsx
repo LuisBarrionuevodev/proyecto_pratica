@@ -1,9 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
-import LocationOnIcon from "@mui/icons-material/LocationOn";
-import StorefrontIcon from "@mui/icons-material/Storefront";
-import { Alert, Box, Paper, Stack, Typography } from "@mui/material";
+import { Alert, Paper, Stack, Typography } from "@mui/material";
 import { useAppSession } from "../../auth/AppSessionProvider";
 import {
   MaterialReactTable,
@@ -16,8 +14,7 @@ import { isAxiosError } from "axios";
 import { AppButton } from "../../ui";
 import { DataTableMrtShell } from "../../components/dataTable/DataTableMrtShell";
 import { BANDEJA_MRT_SPINNER_LOADING_STATE, BandejaTableSpinner } from "../../components/dataTable/bandejaTableLoading";
-import { COLORS } from "../CargarActuaciones/styles/cargarActuacionesStyles";
-import { GLASS_COLORS } from "../../styles/GlassStyles";
+import { glassCard, GLASS_COLORS } from "../../styles/GlassStyles";
 import { DARK_TABLE_CONFIG } from "../Actuaciones/styles/actuacionesTableStyles";
 import {
   BandejaEllipsisCell,
@@ -27,8 +24,6 @@ import {
 import { HistorialActasTramitesCell } from "./components/HistorialActasTramitesCell";
 import { HistorialInspectoresCell } from "./components/HistorialInspectoresCell";
 import { historialActasTramitesChipLabels } from "./utils/historialActasTramitesVisual";
-import { establecimientoDomicilioLineaVisible } from "./utils/establecimientoDomicilioVisible";
-import { glassCard } from "../../styles/GlassStyles";
 import {
   getEstablecimientoOperativoActuaciones,
   getEstablecimientoOperativoById,
@@ -41,13 +36,9 @@ import {
   CorreccionEstablecimientoDialog,
   type CorreccionEstablecimientoKind,
 } from "./components/CorreccionEstablecimientoDialog";
+import { EstablecimientoFichaHeader } from "./components/EstablecimientoFichaHeader";
 
 const HIST_PAGE_SIZE = 20;
-
-function dash(v: string | null | undefined): string {
-  const t = v?.trim();
-  return t ? t : "—";
-}
 
 /**
  * Ficha de establecimiento operativo: cabecera e historial desde API (JWT vía apiClient).
@@ -164,20 +155,6 @@ export default function EstablecimientoDetallePage() {
       cancelled = true;
     };
   }, [establecimientoId, pagination.pageIndex, pagination.pageSize, reloadNonce]);
-
-  const tituloPrincipal = useMemo(() => {
-    if (!detalle) return "";
-    const rs = detalle.razon_social?.trim();
-    if (rs) return rs;
-    const nom = [detalle.contrib_nombre, detalle.contrib_apellido].filter(Boolean).join(" ").trim();
-    if (nom) return nom;
-    return `Establecimiento #${detalle.id}`;
-  }, [detalle]);
-
-  const domicilioLinea = useMemo(() => {
-    if (!detalle) return "";
-    return establecimientoDomicilioLineaVisible(detalle);
-  }, [detalle]);
 
   const colsHistorial = useMemo<MRT_ColumnDef<IEstablecimientoOperativoHistorialRow>[]>(
     () => [
@@ -305,126 +282,11 @@ export default function EstablecimientoDetallePage() {
         Volver
       </AppButton>
 
-      <Paper elevation={0} sx={{ ...glassCard, p: 2.5 }}>
-        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ sm: "flex-start" }}>
-          <Box
-            sx={{
-              width: 72,
-              height: 72,
-              borderRadius: "8px",
-              border: `1px solid ${COLORS.border}`,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              backgroundColor: "rgba(1, 102, 255, 0.12)",
-              flexShrink: 0,
-            }}
-          >
-            <StorefrontIcon sx={{ fontSize: 40, color: COLORS.primary }} />
-          </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography
-              sx={{
-                fontFamily: FONT_FAMILY_UI,
-                fontWeight: 700,
-                fontSize: { xs: "16px", sm: "20px" },
-                color: GLASS_COLORS.textPrimary,
-                letterSpacing: "0.04em",
-                lineHeight: 1.25,
-              }}
-            >
-              {tituloPrincipal}
-            </Typography>
-            <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" sx={{ mt: 0.75 }}>
-              <Typography
-                sx={{
-                  fontFamily: FONT_FAMILY_UI,
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  color: GLASS_COLORS.textSecondary,
-                  letterSpacing: "0.04em",
-                }}
-              >
-                DNI/CUIT: {dash(detalle.documento)}
-              </Typography>
-              {canCorrect ? (
-                <AppButton dsVariant="primary" dsSize="sm" onClick={() => setCorreccionKind("contribuyente")}>
-                  Corregir contribuyente
-                </AppButton>
-              ) : null}
-            </Stack>
-            <Stack spacing={0.5} sx={{ mt: 0.75 }}>
-              <Typography
-                sx={{
-                  fontFamily: FONT_FAMILY_UI,
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  color: COLORS.primary,
-                  letterSpacing: "0.06em",
-                }}
-              >
-                RUBRO: {dash(detalle.rubro_nombre)}
-              </Typography>
-              <Typography
-                sx={{
-                  fontFamily: FONT_FAMILY_UI,
-                  fontSize: "12px",
-                  fontWeight: 600,
-                  color: GLASS_COLORS.textSecondary,
-                  letterSpacing: "0.04em",
-                }}
-              >
-                Nombre del local: {dash(detalle.nombre_local)}
-              </Typography>
-              {canCorrect ? (
-                <AppButton
-                  dsVariant="primary"
-                  dsSize="sm"
-                  onClick={() => setCorreccionKind("local")}
-                  sx={{ alignSelf: "flex-start" }}
-                >
-                  Corregir rubro y nombre del local
-                </AppButton>
-              ) : null}
-            </Stack>
-
-            <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ mt: 2 }}>
-              <LocationOnIcon sx={{ color: COLORS.primary, fontSize: 22, mt: 0.25, flexShrink: 0 }} />
-              <Box sx={{ minWidth: 0 }}>
-                <Typography
-                  sx={{
-                    fontSize: "10px",
-                    fontWeight: 700,
-                    letterSpacing: "0.1em",
-                    color: GLASS_COLORS.textMuted,
-                    mb: 0.5,
-                  }}
-                >
-                  DOMICILIO
-                </Typography>
-                <Typography sx={{ fontSize: "15px", fontWeight: 600, color: GLASS_COLORS.textPrimary, lineHeight: 1.35 }}>
-                  {domicilioLinea}
-                </Typography>
-                {detalle.distrito_nombre?.trim() ? (
-                  <Typography sx={{ fontSize: "12px", color: GLASS_COLORS.textSecondary, mt: 0.5 }}>
-                    Distrito: {detalle.distrito_nombre.trim()}
-                  </Typography>
-                ) : null}
-                {canCorrect ? (
-                  <AppButton
-                    dsVariant="primary"
-                    dsSize="sm"
-                    onClick={() => setCorreccionKind("domicilio")}
-                    sx={{ mt: 1 }}
-                  >
-                    Corregir domicilio
-                  </AppButton>
-                ) : null}
-              </Box>
-            </Stack>
-          </Box>
-        </Stack>
-      </Paper>
+      <EstablecimientoFichaHeader
+        detalle={detalle}
+        canCorrect={canCorrect}
+        onCorregir={(kind) => setCorreccionKind(kind)}
+      />
 
       <Paper elevation={0} sx={{ ...glassCard, overflow: "hidden", p: 2 }}>
         <Stack spacing={1.5}>

@@ -8,6 +8,10 @@ const detallePath = resolve(
   fileURLToPath(new URL(".", import.meta.url)),
   "../EstablecimientoDetallePage.tsx"
 );
+const fichaHeaderPath = resolve(
+  fileURLToPath(new URL(".", import.meta.url)),
+  "EstablecimientoFichaHeader.tsx"
+);
 
 describe("CorreccionEstablecimientoDialog 1B", () => {
   it("domicilio usa selector Número / Esquina y no borra al cambiar de modo", () => {
@@ -28,10 +32,19 @@ describe("CorreccionEstablecimientoDialog 1B", () => {
     expect(src).toContain("CUIT / DNI");
   });
 
-  it("ficha muestra acciones primary y corrección de local", () => {
-    const src = readFileSync(detallePath, "utf8");
-    expect(src).toContain("Corregir rubro y nombre del local");
+  it("ficha muestra acciones discretas y corrección de local", () => {
+    const pageSrc = readFileSync(detallePath, "utf8");
+    const headerSrc = readFileSync(fichaHeaderPath, "utf8");
+    expect(pageSrc).toContain('role === "admin" || role === "usuario"');
+    expect(headerSrc).toContain("Corregir datos del local");
+    expect(headerSrc).toContain('dsVariant="ghost"');
+    expect(headerSrc).toContain('onCorregir("local")');
+  });
+
+  it("modales conservan Ver alcance y confirmación primary", () => {
+    const src = readFileSync(dialogPath, "utf8");
+    expect(src).toContain("Ver alcance");
+    expect(src).toContain("Confirmar corrección");
     expect(src).toContain('dsVariant="primary"');
-    expect(src).toContain('role === "admin" || role === "usuario"');
   });
 });

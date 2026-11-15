@@ -9,6 +9,10 @@ const detallePagePath = resolve(
   fileURLToPath(new URL(".", import.meta.url)),
   "EstablecimientoDetallePage.tsx"
 );
+const fichaHeaderPath = resolve(
+  fileURLToPath(new URL(".", import.meta.url)),
+  "components/EstablecimientoFichaHeader.tsx"
+);
 
 describe("establecimiento historial columnas PR10.4b.4", () => {
   it("incluye columna Inspectores después de Tipo de actuación", () => {
@@ -59,17 +63,18 @@ describe("establecimiento historial columnas PR10.4b.2/PR10.4b.3", () => {
 
 describe("establecimiento detalle card PR10.4b.3", () => {
   it("muestra datos esenciales de la ficha", () => {
-    const src = readFileSync(detallePagePath, "utf8");
-    expect(src).toContain("{tituloPrincipal}");
-    expect(src).toContain("DNI/CUIT:");
-    expect(src).toContain("RUBRO:");
-    expect(src).toContain("DOMICILIO");
-    expect(src).toContain("establecimientoDomicilioLineaVisible");
-    expect(src).toContain("Distrito:");
+    const headerSrc = readFileSync(fichaHeaderPath, "utf8");
+    expect(headerSrc).toContain("establecimientoFichaContribuyenteNombre");
+    expect(headerSrc).toContain("DNI/CUIT:");
+    expect(headerSrc).toContain("Rubro:");
+    expect(headerSrc).toContain('label="Domicilio"');
+    expect(headerSrc).toContain("establecimientoDomicilioLineaVisible");
+    expect(headerSrc).toContain("Distrito:");
+    expect(headerSrc).toContain("establecimientoFichaNombreLocalVisible");
   });
 
   it("no muestra metadatos administrativos removidos", () => {
-    const src = readFileSync(detallePagePath, "utf8");
+    const src = readFileSync(detallePagePath, "utf8") + readFileSync(fichaHeaderPath, "utf8");
     expect(src).not.toContain("ref. domicilio");
     expect(src).not.toContain("Calle normalizada");
     expect(src).not.toMatch(/detalle\.calle[^\n]*detalle\.numero/);

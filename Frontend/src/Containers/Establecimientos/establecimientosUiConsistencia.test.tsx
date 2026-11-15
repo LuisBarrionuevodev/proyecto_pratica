@@ -14,6 +14,10 @@ const detallePagePath = resolve(
   fileURLToPath(new URL(".", import.meta.url)),
   "EstablecimientoDetallePage.tsx"
 );
+const fichaHeaderPath = resolve(
+  fileURLToPath(new URL(".", import.meta.url)),
+  "components/EstablecimientoFichaHeader.tsx"
+);
 const historialPagePath = resolve(
   fileURLToPath(new URL(".", import.meta.url)),
   "HistorialContribuyentePage.tsx"
@@ -89,12 +93,18 @@ describe("UI consistencia PR — Establecimientos", () => {
   });
 
   it("ficha permite corrección controlada de contribuyente y domicilio", () => {
-    const src = readFileSync(detallePagePath, "utf8");
-    expect(src).toContain("Corregir contribuyente");
-    expect(src).toContain("Corregir domicilio");
-    expect(src).toContain("Corregir rubro y nombre del local");
-    expect(src).toContain("CorreccionEstablecimientoDialog");
-    expect(src).toContain('dsVariant="primary"');
+    const pageSrc = readFileSync(detallePagePath, "utf8");
+    const headerSrc = readFileSync(fichaHeaderPath, "utf8");
+    expect(pageSrc).toContain("CorreccionEstablecimientoDialog");
+    expect(pageSrc).toContain("EstablecimientoFichaHeader");
+    expect(headerSrc).toContain("Corregir contribuyente");
+    expect(headerSrc).toContain("Corregir domicilio");
+    expect(headerSrc).toContain("Corregir datos del local");
+    expect(headerSrc).toContain('dsVariant="ghost"');
+    expect(headerSrc).toContain("EditOutlinedIcon");
+    expect(headerSrc).toContain("gridTemplateColumns");
+    expect(headerSrc).not.toContain('dsVariant="primary"');
+    expect(pageSrc).toContain("Historial de actuaciones");
   });
 });
 
