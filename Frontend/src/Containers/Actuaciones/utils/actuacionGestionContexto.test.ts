@@ -55,6 +55,35 @@ describe("actuacionGestionContexto", () => {
     expect(formatGestionContribuyenteNombre(row)).toBe("Gómez Ana");
   });
 
+  it("prefiera calle vigente sobre domicilio anidado con raw histórico", () => {
+    const row: IActuacionListItem = {
+      ...base,
+      calle: "Corrientes",
+      calle_raw: "Corrientes",
+      calle_normalizada: "Ejército del Norte",
+      calle_estado: "OK",
+      calle_mostrar: "Ejército del Norte",
+      numero: "602",
+      domicilio: { calle: "Corrientes", numero: "602" },
+    };
+    expect(formatGestionDomicilioLinea(row)).toBe("Ejército del Norte 602");
+  });
+
+  it("intersección usa esquina vigente y no duplica el slug de número", () => {
+    const row: IActuacionListItem = {
+      ...base,
+      calle: "vieja",
+      calle_mostrar: "San Martín",
+      calle_estado: "OK",
+      calle_normalizada: "San Martín",
+      numero_tipo: "ESQUINA",
+      numero: "slug-mitre",
+      esquina_normalizada: "Mitre",
+      domicilio: { calle: "vieja", numero: "slug-mitre", esquina: "otra raw" },
+    };
+    expect(formatGestionDomicilioLinea(row)).toBe("San Martín Mitre");
+  });
+
   it("sin datos históricos muestra etiqueta Sin datos registrados", () => {
     expect(gestionContextoDisplayValue(formatGestionDomicilioLinea(base))).toBe(
       GESTION_SIN_DATOS_LABEL

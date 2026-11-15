@@ -27,6 +27,8 @@ def build_actuacion_gestion_contexto_detalle(act: Actuaciones) -> dict[str, Any]
     """
     Contexto readonly de domicilio, rubro y contribuyente para detalle autorizado de Gestión.
 
+    ``domicilio.calle`` es la calle vigente (normalizada/corregida), no ``calle_raw``.
+
     Parámetros:
         act: actuación con relaciones de domicilio cargadas si existen.
 
@@ -37,7 +39,7 @@ def build_actuacion_gestion_contexto_detalle(act: Actuaciones) -> dict[str, Any]
         resolve_titular_grid_fields,
     )
     from app.domains.domicilios.utils.domicilio_calle_ui import (
-        calle_cargada_desde_domicilio,
+        calle_vigente_desde_domicilio,
         esquina_cargada_desde_domicilio,
     )
 
@@ -47,7 +49,7 @@ def build_actuacion_gestion_contexto_detalle(act: Actuaciones) -> dict[str, Any]
 
     dom = getattr(act, "domicilio", None)
     if dom is not None:
-        calle = calle_cargada_desde_domicilio(dom) or getattr(dom, "calle", None)
+        calle = calle_vigente_desde_domicilio(dom)
         domicilio["calle"] = _clean_optional_str(calle)
         domicilio["numero"] = _clean_optional_str(getattr(dom, "numero", None))
         esquina = esquina_cargada_desde_domicilio(dom)

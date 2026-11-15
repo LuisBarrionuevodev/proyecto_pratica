@@ -33,6 +33,32 @@ def calle_cargada_desde_domicilio(dom) -> str | None:
     return calle
 
 
+def calle_vigente_desde_domicilio(dom) -> str | None:
+    """
+    Calle operativa vigente para lectura (ficha / Ver actuación).
+
+    Prioridad: ``calle_normalizada`` si el estado es OK → ``calle`` corregida →
+    texto cargado. No usa ``calle_raw`` si ya hay calle vigente (el raw es el
+    valor ingresado original y puede quedar desfasado tras una corrección).
+
+    Parámetros:
+        dom: instancia de domicilio o None.
+
+    Retorno:
+        Texto de calle para UI, o None si no hay dato.
+    """
+    if dom is None:
+        return None
+    estado = (_strip(getattr(dom, "calle_norm_status", None)) or "").upper()
+    norm = _strip(getattr(dom, "calle_normalizada", None))
+    if estado == "OK" and norm:
+        return norm
+    calle = _strip(getattr(dom, "calle", None))
+    if calle:
+        return calle
+    return calle_cargada_desde_domicilio(dom)
+
+
 def esquina_key_desde_domicilio(dom) -> str | None:
     """Clave técnica slug de esquina (campo ``numero`` cuando ``numero_tipo=ESQUINA``)."""
     if dom is None or getattr(dom, "numero_tipo", None) != "ESQUINA":

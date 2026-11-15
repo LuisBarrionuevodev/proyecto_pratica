@@ -39,6 +39,7 @@ import {
 } from "../../ActasComprobacion/utils/origenActasLabels";
 import { mergeLegacyRubroNames } from "../../../utils/rubrosCatalogCache";
 import { domicilioCalleValorEdicion, domicilioNumeroValorEdicion, domicilioRowParaEdicionCalle } from "../../../utils/domicilioCalleUi";
+import { formatActuacionListDomicilioLinea } from "../../../utils/formatDomicilioLineaVisible";
 import { useAppFeedback } from "../../../components/feedback";
 import {
   CrudDialogActions,
@@ -450,16 +451,18 @@ function titleCaseNumeroTipo(value: string): string {
 
 /** Línea principal del domicilio en la ficha de lectura. */
 export function actuacionDetalleDomicilioLinea(row: IActuacionListItem): string {
-  const calle = String(row.domicilio?.calle ?? row.calle ?? "").trim();
+  const vigente = formatActuacionListDomicilioLinea(row).trim();
+  if (vigente) return vigente;
+  const calle = String(row.domicilio?.calle ?? "").trim();
   const numeroTipo = String(row.numero_tipo ?? "").trim().toUpperCase();
   const complemento = String(
     numeroTipo === "ESQUINA"
-      ? row.domicilio?.esquina ?? row.domicilio?.numero ?? row.numero ?? ""
-      : row.domicilio?.numero ?? row.domicilio?.esquina ?? row.numero ?? ""
+      ? row.domicilio?.esquina ?? row.domicilio?.numero ?? ""
+      : row.domicilio?.numero ?? row.domicilio?.esquina ?? ""
   ).trim();
   if (!calle) return complemento || "—";
   if (!complemento) return calle;
-  return numeroTipo === "ESQUINA" ? `${calle} y ${complemento}` : `${calle} ${complemento}`;
+  return numeroTipo === "ESQUINA" ? `${calle} Y ${complemento}` : `${calle} ${complemento}`;
 }
 
 /** Oculta NUMERO/NÚMERO por ser el caso convencional; presenta los casos especiales. */

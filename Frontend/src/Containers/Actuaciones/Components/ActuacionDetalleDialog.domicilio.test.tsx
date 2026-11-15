@@ -6,7 +6,10 @@ import { renderToStaticMarkup } from "react-dom/server";
 
 import type { IActuacionListItem } from "../../../api/actuacionesListApi";
 import { fetchCallesCatalogo } from "../../../api/geolocalizacionApi";
-import { ActuacionDetalleDialog } from "./ActuacionDetalleDialog";
+import {
+  ActuacionDetalleDialog,
+  actuacionDetalleDomicilioLinea,
+} from "./ActuacionDetalleDialog";
 
 vi.mock("../../../components/feedback", () => ({
   useAppFeedback: () => ({
@@ -242,5 +245,92 @@ describe("ActuacionDetalleDialog domicilio sin catálogo", () => {
     );
     expect(html).toContain("reinspección");
     expect(html).toContain("disabled");
+  });
+});
+
+describe("ActuacionDetalleDialog Ver actuación domicilio vigente", () => {
+  it("no usa calle_raw anidada cuando hay calle normalizada vigente", () => {
+    const draft: IActuacionListItem = {
+      ...baseRow,
+      calle: "Corrientes",
+      calle_raw: "Corrientes",
+      calle_normalizada: "Ejército del Norte",
+      calle_estado: "OK",
+      numero: "602",
+      numero_tipo: "NUMERO",
+      domicilio: { calle: "Corrientes", numero: "602" },
+    };
+    expect(actuacionDetalleDomicilioLinea(draft)).toBe("Ejército del Norte 602");
+    const html = render(
+      <ActuacionDetalleDialog
+        open
+        disablePortal
+        draft={draft}
+        fieldErrors={{}}
+        saving={false}
+        catalogs={catalogs}
+        readOnlyColumns={[]}
+        onClose={() => undefined}
+        onDraftChange={() => undefined}
+        onSave={() => undefined}
+      />
+    );
+    expect(html).toContain("Ejército del Norte 602");
+    expect(html).not.toContain("Corrientes 602");
+  });
+
+  it("reinspección por notificación muestra la dirección vigente, no el raw anidado", () => {
+    const draft: IActuacionListItem = {
+      ...baseRow,
+      tipo_actuacion: "REINSPECCION",
+      documentacion_contexto: { circuito: "REINSPECCION_NOTIFICACION", propia: {} },
+      calle: "Corrientes",
+      calle_normalizada: "Ejército del Norte",
+      calle_estado: "OK",
+      numero: "602",
+      domicilio: { calle: "Corrientes", numero: "602" },
+    };
+    expect(actuacionDetalleDomicilioLinea(draft)).toBe("Ejército del Norte 602");
+  });
+
+  it("reinspección por oficio muestra la dirección vigente, no el raw anidado", () => {
+    const draft: IActuacionListItem = {
+      ...baseRow,
+      tipo_actuacion: "REINSPECCION",
+      documentacion_contexto: { circuito: "REINSPECCION_OFICIO", propia: {} },
+      calle: "raw oficio",
+      calle_normalizada: "Maipú",
+      calle_estado: "OK",
+      numero: "120",
+      domicilio: { calle: "raw oficio", numero: "120" },
+    };
+    expect(actuacionDetalleDomicilioLinea(draft)).toBe("Maipú 120");
+  });
+
+  it("intersección usa calle y esquina vigentes", () => {
+    const draft: IActuacionListItem = {
+      ...baseRow,
+      calle: "vieja",
+      calle_normalizada: "San Martín",
+      calle_estado: "OK",
+      numero_tipo: "ESQUINA",
+      numero: "slug-mitre",
+      numero_esquina: "Mitre",
+      esquina_normalizada: "Mitre",
+      domicilio: { calle: "vieja", numero: "slug-mitre", esquina: "otra raw" },
+    };
+    expect(actuacionDetalleDomicilioLinea(draft)).toBe("San Martín Y Mitre");
+  });
+
+  it("histórico incompleto no inventa dirección", () => {
+    const draft: IActuacionListItem = {
+      ...baseRow,
+      calle: null,
+      numero: null,
+      numero_tipo: null,
+      calle_normalizada: null,
+      domicilio: { calle: null, numero: null, esquina: null },
+    };
+    expect(actuacionDetalleDomicilioLinea(draft)).toBe("—");
   });
 });

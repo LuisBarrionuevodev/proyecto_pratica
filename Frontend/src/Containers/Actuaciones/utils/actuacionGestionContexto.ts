@@ -9,22 +9,34 @@ function cleanPart(value: string | null | undefined): string {
 /** Línea de domicilio para bloque de contexto (detalle autorizado o fallback de grilla). */
 export function formatGestionDomicilioLinea(row: IActuacionListItem): string {
   const nested = row.domicilio;
+  const calleNormalizadaOk =
+    String(row.calle_estado ?? "").trim().toUpperCase() === "OK"
+      ? cleanPart(row.calle_normalizada)
+      : "";
   const calle =
-    cleanPart(nested?.calle) ||
-    cleanPart(row.calle_cargada) ||
     cleanPart(row.calle_mostrar) ||
-    cleanPart(row.calle);
-  const numero = cleanPart(nested?.numero) || cleanPart(row.numero);
+    calleNormalizadaOk ||
+    cleanPart(row.calle) ||
+    cleanPart(row.calle_cargada) ||
+    cleanPart(nested?.calle);
+  const numero = cleanPart(row.numero) || cleanPart(nested?.numero);
   const esquina =
-    cleanPart(nested?.esquina) ||
     cleanPart(row.esquina_cargada) ||
     cleanPart(row.esquina_normalizada) ||
+    cleanPart(row.numero_esquina) ||
+    cleanPart(nested?.esquina) ||
     cleanPart(row.esquina_raw);
 
+  const isEsquina = String(row.numero_tipo ?? "").trim().toUpperCase() === "ESQUINA";
   const parts: string[] = [];
   if (calle) parts.push(calle);
-  if (numero) parts.push(numero);
-  if (esquina) parts.push(esquina);
+  if (isEsquina) {
+    if (esquina) parts.push(esquina);
+    else if (numero) parts.push(numero);
+  } else {
+    if (numero) parts.push(numero);
+    if (esquina) parts.push(esquina);
+  }
 
   return parts.join(" ").trim();
 }
