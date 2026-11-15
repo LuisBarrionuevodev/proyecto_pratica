@@ -269,3 +269,90 @@ export async function aplicarCorreccionEstablecimiento(
   );
   return data;
 }
+
+export interface IVinculacionEstablecimientoPayload {
+  documento: string;
+  fingerprint?: string | null;
+  confirmado?: boolean;
+}
+
+export interface IVinculacionContribuyentePublico {
+  id: number;
+  documento: string | null;
+  apellido: string | null;
+  nombre: string | null;
+  razon_social: string | null;
+}
+
+export interface IVinculacionEstablecimientoPreview {
+  establecimiento_operativo_id: number;
+  puede_aplicar: boolean;
+  situacion: "A" | "B" | "BLOQUEO" | string;
+  fingerprint: string | null;
+  conflicto?: ICorreccionConflicto | null;
+  advertencias: string[];
+  advertencia?: string;
+  snapshots_y_pdf?: { se_actualizan: boolean; detalle: string };
+  coordenadas_y_distrito?: {
+    se_recalculan: boolean;
+    distrito_id?: number | null;
+    lat?: number | string | null;
+    lng?: number | string | null;
+  };
+  establecimiento?: {
+    id: number;
+    domicilio_id: number;
+    domicilio_texto?: string | null;
+    domicilio_ids_ficha: number[];
+    identidad_logica_completa: boolean;
+  };
+  contribuyente_actual: IVinculacionContribuyentePublico | null;
+  contribuyente_destino: IVinculacionContribuyentePublico | null;
+  alcance: {
+    actuaciones: ICorreccionIdsResumen;
+    notificaciones: ICorreccionIdsResumen;
+    comprobaciones: ICorreccionIdsResumen;
+    oficios: ICorreccionIdsResumen;
+    iniciadores: ICorreccionIdsResumen;
+    ruta_items: ICorreccionIdsResumen;
+    ruta_estados?: Array<Record<string, string | number | null>>;
+  };
+  otros_locales_contribuyente_anterior: ICorreccionIdsResumen;
+  otros_locales_contribuyente_destino: ICorreccionIdsResumen;
+  ficha_logica_destino: {
+    existe: boolean;
+    establecimiento_operativo_id: number | null;
+  };
+  edita_datos_destino: boolean;
+  applied?: boolean;
+  audit_id?: number | null;
+  establecimiento_operativo_canonico_id?: number | null;
+}
+
+/**
+ * Vista previa de vincular la ficha a un contribuyente existente (no persiste).
+ */
+export async function previewVinculacionEstablecimiento(
+  establecimientoId: number,
+  payload: IVinculacionEstablecimientoPayload
+): Promise<IVinculacionEstablecimientoPreview> {
+  const { data } = await apiClient.post<IVinculacionEstablecimientoPreview>(
+    `/establecimientos-operativos/${establecimientoId}/vinculaciones/preview`,
+    payload
+  );
+  return data;
+}
+
+/**
+ * Aplica la vinculación confirmada (atómica + auditoría). Requiere fingerprint del preview.
+ */
+export async function aplicarVinculacionEstablecimiento(
+  establecimientoId: number,
+  payload: IVinculacionEstablecimientoPayload
+): Promise<IVinculacionEstablecimientoPreview> {
+  const { data } = await apiClient.post<IVinculacionEstablecimientoPreview>(
+    `/establecimientos-operativos/${establecimientoId}/vinculaciones`,
+    { ...payload, confirmado: true }
+  );
+  return data;
+}

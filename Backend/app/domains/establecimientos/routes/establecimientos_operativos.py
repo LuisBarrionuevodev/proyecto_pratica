@@ -149,6 +149,10 @@ from app.domains.establecimientos.routes.correccion_establecimiento import (  # 
     aplicar_correccion_establecimiento_route,
     preview_correccion_establecimiento_route,
 )
+from app.domains.establecimientos.routes.vinculacion_establecimiento import (  # noqa: E402
+    aplicar_vinculacion_establecimiento_route,
+    preview_vinculacion_establecimiento_route,
+)
 
 establecimientos_operativos_bp.add_url_rule(
     "/<int:establecimiento_id>/correcciones/preview",
@@ -160,5 +164,17 @@ establecimientos_operativos_bp.add_url_rule(
     "/<int:establecimiento_id>/correcciones",
     endpoint="aplicar_correccion_establecimiento",
     view_func=aplicar_correccion_establecimiento_route,
+    methods=["POST"],
+)
+establecimientos_operativos_bp.add_url_rule(
+    "/<int:establecimiento_id>/vinculaciones/preview",
+    endpoint="preview_vinculacion_establecimiento",
+    view_func=preview_vinculacion_establecimiento_route,
+    methods=["POST"],
+)
+establecimientos_operativos_bp.add_url_rule(
+    "/<int:establecimiento_id>/vinculaciones",
+    endpoint="aplicar_vinculacion_establecimiento",
+    view_func=aplicar_vinculacion_establecimiento_route,
     methods=["POST"],
 )

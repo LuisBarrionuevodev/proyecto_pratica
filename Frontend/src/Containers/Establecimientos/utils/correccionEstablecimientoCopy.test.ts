@@ -5,6 +5,9 @@ import {
   CORRECCION_DOMICILIO_HINT,
   CORRECCION_LOCAL_HINT,
   CORRECCION_SIN_CAMBIOS_HINT,
+  VINCULACION_ACCION,
+  VINCULACION_DOCUMENTO_AJENO_CTA,
+  VINCULACION_HINT,
   inferTitularCorreccionModo,
 } from "./correccionEstablecimientoCopy";
 
@@ -36,5 +39,12 @@ describe("correccionEstablecimientoCopy", () => {
     expect(inferTitularCorreccionModo({ apellido: "", nombre: "", razonSocial: "" })).toBe(
       "persona"
     );
+  });
+
+  it("vinculación no promete editar datos personales ni fusionar", () => {
+    expect(VINCULACION_HINT.toLowerCase()).toContain("vínculo");
+    expect(VINCULACION_HINT.toLowerCase()).toContain("no edita");
+    expect(VINCULACION_ACCION).toBe("Vincular este establecimiento");
+    expect(VINCULACION_DOCUMENTO_AJENO_CTA.toLowerCase()).toContain("no cambia el titular");
   });
 });

@@ -40,7 +40,12 @@ function detalle(partial: Partial<IEstablecimientoOperativoDetail>): IEstablecim
 describe("EstablecimientoFichaHeader UX.1", () => {
   it("muestra persona física, local y domicilio con acciones discretas", () => {
     const html = render(
-      <EstablecimientoFichaHeader detalle={detalle({})} canCorrect onCorregir={() => undefined} />
+      <EstablecimientoFichaHeader
+        detalle={detalle({})}
+        canCorrect
+        onCorregir={() => undefined}
+        onVincular={() => undefined}
+      />
     );
     expect(html).toContain("Ana Pérez");
     expect(html).toContain("DNI/CUIT: 20123456789");
@@ -49,6 +54,7 @@ describe("EstablecimientoFichaHeader UX.1", () => {
     expect(html).toContain("San Martín 100");
     expect(html).toContain("Distrito: Distrito 1");
     expect(html).toContain("Corregir contribuyente");
+    expect(html).toContain("Vincular a contribuyente existente");
     expect(html).toContain("Corregir datos del local");
     expect(html).toContain("Corregir domicilio");
     expect(html).toContain("Contribuyente");
@@ -82,6 +88,7 @@ describe("EstablecimientoFichaHeader UX.1", () => {
     );
     expect(html).toContain("Ana Pérez");
     expect(html).not.toContain("Corregir contribuyente");
+    expect(html).not.toContain("Vincular a contribuyente existente");
     expect(html).not.toContain("Corregir datos del local");
     expect(html).not.toContain("Corregir domicilio");
   });

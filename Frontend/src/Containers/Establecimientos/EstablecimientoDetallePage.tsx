@@ -37,6 +37,7 @@ import {
   type CorreccionEstablecimientoKind,
 } from "./components/CorreccionEstablecimientoDialog";
 import { EstablecimientoFichaHeader } from "./components/EstablecimientoFichaHeader";
+import { VinculacionEstablecimientoDialog } from "./components/VinculacionEstablecimientoDialog";
 
 const HIST_PAGE_SIZE = 20;
 
@@ -71,6 +72,8 @@ export default function EstablecimientoDetallePage() {
   const prevHistorialEstIdRef = useRef<number | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
   const [correccionKind, setCorreccionKind] = useState<CorreccionEstablecimientoKind | null>(null);
+  const [vinculacionOpen, setVinculacionOpen] = useState(false);
+  const [vinculacionDocumento, setVinculacionDocumento] = useState("");
 
   useEffect(() => {
     if (establecimientoId == null) {
@@ -286,6 +289,14 @@ export default function EstablecimientoDetallePage() {
         detalle={detalle}
         canCorrect={canCorrect}
         onCorregir={(kind) => setCorreccionKind(kind)}
+        onVincular={
+          canCorrect
+            ? () => {
+                setVinculacionDocumento("");
+                setVinculacionOpen(true);
+              }
+            : undefined
+        }
       />
 
       <Paper elevation={0} sx={{ ...glassCard, overflow: "hidden", p: 2 }}>
@@ -324,6 +335,35 @@ export default function EstablecimientoDetallePage() {
           onClose={() => setCorreccionKind(null)}
           onApplied={() => {
             setCorreccionKind(null);
+            setReloadNonce((n) => n + 1);
+          }}
+          onVincularDocumento={(doc) => {
+            setCorreccionKind(null);
+            setVinculacionDocumento(doc);
+            setVinculacionOpen(true);
+          }}
+        />
+      ) : null}
+
+      {vinculacionOpen && detalle && establecimientoId != null ? (
+        <VinculacionEstablecimientoDialog
+          key={`vinc-${detalle.id}-${reloadNonce}-${vinculacionDocumento}`}
+          open
+          establecimientoId={establecimientoId}
+          detalle={detalle}
+          documentoInicial={vinculacionDocumento}
+          onClose={() => {
+            setVinculacionOpen(false);
+            setVinculacionDocumento("");
+          }}
+          onApplied={(res) => {
+            setVinculacionOpen(false);
+            setVinculacionDocumento("");
+            const canon = res.establecimiento_operativo_canonico_id;
+            if (canon && canon !== establecimientoId) {
+              navigate(`/establecimientos/${canon}`);
+              return;
+            }
             setReloadNonce((n) => n + 1);
           }}
         />

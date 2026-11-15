@@ -30,6 +30,8 @@ import {
   CORRECCION_DOMICILIO_HINT,
   CORRECCION_LOCAL_HINT,
   CORRECCION_TITULAR_MODO_AMBOS_HINT,
+  VINCULACION_ACCION,
+  VINCULACION_DOCUMENTO_AJENO_CTA,
   inferTitularCorreccionModo,
   type TitularCorreccionModo,
 } from "../utils/correccionEstablecimientoCopy";
@@ -45,6 +47,7 @@ type Props = {
   detalle: IEstablecimientoOperativoDetail;
   onClose: () => void;
   onApplied: () => void;
+  onVincularDocumento?: (documento: string) => void;
 };
 
 const modalToggleGroupSx = {
@@ -106,6 +109,7 @@ export function CorreccionEstablecimientoDialog({
   detalle,
   onClose,
   onApplied,
+  onVincularDocumento,
 }: Props) {
   const [documento, setDocumento] = useState(detalle.documento ?? "");
   const [apellido, setApellido] = useState(detalle.contrib_apellido ?? "");
@@ -432,6 +436,19 @@ export function CorreccionEstablecimientoDialog({
             <Alert severity="info">No hay cambios. No se desvincula el contribuyente ni se modifica ningún dato.</Alert>
           ) : null}
           {preview?.conflicto?.detail ? <Alert severity="warning">{preview.conflicto.detail}</Alert> : null}
+          {preview?.conflicto?.codigo === "DOCUMENTO_AJENO" && onVincularDocumento ? (
+            <Box>
+              <Typography sx={{ fontSize: "13px", color: GLASS_COLORS.textSecondary, fontFamily: FONT_FAMILY_UI, mb: 1 }}>
+                {VINCULACION_DOCUMENTO_AJENO_CTA}
+              </Typography>
+              <AppButton
+                dsVariant="primary"
+                onClick={() => onVincularDocumento(documento.trim())}
+              >
+                {VINCULACION_ACCION}
+              </AppButton>
+            </Box>
+          ) : null}
 
           {preview?.contribuyente ? (
             <Box>

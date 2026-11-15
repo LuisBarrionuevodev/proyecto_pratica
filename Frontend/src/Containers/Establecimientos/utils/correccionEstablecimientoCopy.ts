@@ -16,6 +16,19 @@ export const CORRECCION_SIN_CAMBIOS_HINT =
 export const CORRECCION_TITULAR_MODO_AMBOS_HINT =
   "Este registro tiene persona y razón social. Se muestran ambos para no perder datos históricos.";
 
+export const VINCULACION_HINT =
+  "Esta operación cambia el vínculo de esta ficha al contribuyente encontrado. No edita sus datos personales.";
+
+export const VINCULACION_BUSCAR_HINT =
+  "Ingresá el CUIT o DNI correcto. Si ya pertenece a un contribuyente registrado, Digitaliza lo muestra para vincular este establecimiento.";
+
+export const VINCULACION_ACCION = "Vincular este establecimiento";
+
+export const VINCULACION_FICHA_ACCION = "Vincular a contribuyente existente";
+
+export const VINCULACION_DOCUMENTO_AJENO_CTA =
+  "Si el documento ya pertenece a otra persona registrada, usá Vincular este establecimiento. Corregir contribuyente no cambia el titular.";
+
 export type TitularCorreccionModo = "persona" | "razon_social" | "ambos";
 
 function hasText(value: string | null | undefined): boolean {

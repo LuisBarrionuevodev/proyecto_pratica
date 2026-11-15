@@ -47,4 +47,12 @@ describe("CorreccionEstablecimientoDialog 1B", () => {
     expect(src).toContain("Confirmar corrección");
     expect(src).toContain('dsVariant="primary"');
   });
+
+  it("DOCUMENTO_AJENO ofrece vincular sin autoaplicar", () => {
+    const src = readFileSync(dialogPath, "utf8");
+    expect(src).toContain('codigo === "DOCUMENTO_AJENO"');
+    expect(src).toContain("VINCULACION_ACCION");
+    expect(src).toContain("onVincularDocumento");
+    expect(src).not.toContain("aplicarVinculacionEstablecimiento");
+  });
 });

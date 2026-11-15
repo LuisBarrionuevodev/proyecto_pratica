@@ -38,6 +38,7 @@ class CorreccionEstablecimientoAudit(db.Model):
             "DOMICILIO",
             "AMBOS",
             "LOCAL",
+            "VINCULACION",
             name="correccion_establecimiento_tipo_enum",
         ),
         nullable=False,
