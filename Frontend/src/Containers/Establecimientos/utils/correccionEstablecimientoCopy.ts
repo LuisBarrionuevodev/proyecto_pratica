@@ -41,10 +41,17 @@ export const VINCULACION_ANTECEDENTES_JUNTOS =
 
 export const VINCULACION_DOCUMENTOS_EMITIDOS = "Los documentos ya emitidos no se modifican.";
 
+export const VINCULACION_DOCUMENTOS_CONSERVAN =
+  "Los documentos ya emitidos conservarán sus datos.";
+
+export const VINCULACION_HISTORIAL_TITULO = "Historial que se asociará";
+
 export const VINCULACION_CONFLICTO_INSEGURO =
   "No pudimos identificar el vínculo con seguridad. Revisá los datos antes de continuar.";
 
 export const VINCULACION_DETALLE_ALCANCE = "Ver detalle del alcance";
+
+export const VINCULACION_OCULTAR_DETALLE = "Ocultar detalle del alcance";
 
 export const VINCULACION_ASOCIAR = "Sí, asociar";
 
@@ -92,6 +99,45 @@ export function titularVinculacionTexto(c: TitularVinculacionInput | null | unde
   if (razon) return razon;
   const persona = [(c.nombre ?? "").trim(), (c.apellido ?? "").trim()].filter(Boolean).join(" ");
   return persona;
+}
+
+/**
+ * Pregunta de asociación. Si no hay nombre, usa la fórmula genérica (no inventa titular).
+ */
+export function preguntaAsociarEstablecimiento(nombre?: string | null): string {
+  const n = (nombre ?? "").trim();
+  if (!n) return VINCULACION_PREGUNTA_ASOCIAR;
+  return `¿Querés asociar este establecimiento a ${n}?`;
+}
+
+/**
+ * Etiqueta de cantidad con singular/plural. `0` y `>1` usan plural.
+ */
+export function etiquetaCantidad(cantidad: number, singular: string, plural: string): string {
+  return `${cantidad} ${cantidad === 1 ? singular : plural}`;
+}
+
+export type ResumenHistorialAsociar = {
+  actuaciones?: number;
+  notificaciones?: number;
+  comprobaciones?: number;
+};
+
+/**
+ * Resumen compacto del historial a asociar. Omite un rubro si la preview no envió cantidad.
+ */
+export function resumenHistorialAsociar(resumen: ResumenHistorialAsociar): string[] {
+  const partes: string[] = [];
+  if (typeof resumen.actuaciones === "number") {
+    partes.push(etiquetaCantidad(resumen.actuaciones, "actuación", "actuaciones"));
+  }
+  if (typeof resumen.notificaciones === "number") {
+    partes.push(etiquetaCantidad(resumen.notificaciones, "notificación", "notificaciones"));
+  }
+  if (typeof resumen.comprobaciones === "number") {
+    partes.push(etiquetaCantidad(resumen.comprobaciones, "comprobación", "comprobaciones"));
+  }
+  return partes;
 }
 
 export type TitularCorreccionModo = "persona" | "razon_social" | "ambos";

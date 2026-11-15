@@ -10,13 +10,18 @@ import {
   VINCULACION_ASOCIAR,
   VINCULACION_CONFLICTO_INSEGURO,
   VINCULACION_DOCUMENTO_AJENO_CTA,
+  VINCULACION_DOCUMENTOS_CONSERVAN,
   VINCULACION_DOCUMENTOS_EMITIDOS,
   VINCULACION_HINT,
+  VINCULACION_OCULTAR_DETALLE,
   VINCULACION_PREGUNTA_ASOCIAR,
   VINCULACION_REGISTRADO_TITULO,
+  etiquetaCantidad,
   inferTitularCorreccionModo,
   mensajeConflictoVinculacionInseguro,
   ofreceVinculacionDesdeConflicto,
+  preguntaAsociarEstablecimiento,
+  resumenHistorialAsociar,
   titularVinculacionTexto,
 } from "./correccionEstablecimientoCopy";
 
@@ -61,6 +66,9 @@ describe("correccionEstablecimientoCopy", () => {
     expect(VINCULACION_ANTECEDENTES_JUNTOS.toLowerCase()).toContain("juntas");
     expect(VINCULACION_DOCUMENTOS_EMITIDOS.toLowerCase()).toContain("no se modifican");
     expect(VINCULACION_DOCUMENTOS_EMITIDOS.toLowerCase()).not.toContain("snapshot");
+    expect(VINCULACION_DOCUMENTOS_CONSERVAN.toLowerCase()).toContain("conservarán sus datos");
+    expect(VINCULACION_DOCUMENTOS_CONSERVAN.toLowerCase()).not.toContain("snapshot");
+    expect(VINCULACION_OCULTAR_DETALLE).toBe("Ocultar detalle del alcance");
     expect(VINCULACION_CONFLICTO_INSEGURO.toLowerCase()).toContain("seguridad");
   });
 
@@ -101,5 +109,21 @@ describe("correccionEstablecimientoCopy", () => {
     expect(titularVinculacionTexto({ nombre: "Ana", apellido: "Pérez" })).toBe("Ana Pérez");
     expect(titularVinculacionTexto({ razon_social: "Panadería SRL" })).toBe("Panadería SRL");
     expect(titularVinculacionTexto({ nombre: "", apellido: "", razon_social: "" })).toBe("");
+  });
+
+  it("pregunta genérica si falta el nombre y cantidades usan singular/plural", () => {
+    expect(preguntaAsociarEstablecimiento("Carlos Ocampo")).toBe(
+      "¿Querés asociar este establecimiento a Carlos Ocampo?"
+    );
+    expect(preguntaAsociarEstablecimiento("")).toBe(VINCULACION_PREGUNTA_ASOCIAR);
+    expect(preguntaAsociarEstablecimiento("   ")).toBe(VINCULACION_PREGUNTA_ASOCIAR);
+    expect(etiquetaCantidad(1, "actuación", "actuaciones")).toBe("1 actuación");
+    expect(etiquetaCantidad(2, "actuación", "actuaciones")).toBe("2 actuaciones");
+    expect(etiquetaCantidad(0, "notificación", "notificaciones")).toBe("0 notificaciones");
+    expect(etiquetaCantidad(1, "comprobación", "comprobaciones")).toBe("1 comprobación");
+    expect(
+      resumenHistorialAsociar({ actuaciones: 4, notificaciones: 1, comprobaciones: 0 })
+    ).toEqual(["4 actuaciones", "1 notificación", "0 comprobaciones"]);
+    expect(resumenHistorialAsociar({ actuaciones: 1 })).toEqual(["1 actuación"]);
   });
 });

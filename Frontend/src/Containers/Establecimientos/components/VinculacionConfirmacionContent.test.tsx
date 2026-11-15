@@ -1,5 +1,8 @@
 /** @jsxImportSource react */
 
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
@@ -8,6 +11,7 @@ import type { IVinculacionEstablecimientoPreview } from "../../../api/establecim
 import { VinculacionConfirmacionContent } from "./VinculacionConfirmacionContent";
 
 const theme = createTheme();
+const srcPath = resolve(fileURLToPath(new URL(".", import.meta.url)), "VinculacionConfirmacionContent.tsx");
 
 function render(ui: React.ReactElement) {
   return renderToStaticMarkup(<ThemeProvider theme={theme}>{ui}</ThemeProvider>);
@@ -61,22 +65,57 @@ function preview(
 }
 
 describe("VinculacionConfirmacionContent", () => {
-  it("muestra nombre, documento, alcance y no afirma el mismo local si es otro domicilio", () => {
+  it("destaca contribuyente, domicilio y historial compacto sin afirmar el mismo local", () => {
     const html = render(<VinculacionConfirmacionContent preview={preview({})} />);
+    expect(html).toContain("Contribuyente encontrado");
     expect(html).toContain("Carlos Ocampo");
     expect(html).toContain("CUIT/DNI: 20222222222");
-    expect(html).toContain("¿Querés asociar este establecimiento a este contribuyente?");
-    expect(html).toContain("Establecimiento:");
+    expect(html).toContain("¿Querés asociar este establecimiento a Carlos Ocampo?");
+    expect(html).toContain("Establecimiento");
     expect(html).toContain("San Martín 100");
-    expect(html).toContain("Historial:");
+    expect(html).toContain("Historial que se asociará");
     expect(html).toContain("4 actuaciones");
+    expect(html).toContain("1 notificación");
+    expect(html).toContain("0 comprobaciones");
     expect(html).toContain("Los demás establecimientos no se modificarán.");
-    expect(html).toContain("Los documentos ya emitidos no se modifican.");
+    expect(html).toContain("Los documentos ya emitidos conservarán sus datos.");
     expect(html).not.toContain("Las actuaciones de este domicilio se mostrarán juntas.");
     expect(html).not.toContain("iniciador");
     expect(html).not.toContain("ítems de ruta");
     expect(html).not.toContain("ficha #");
     expect(html).not.toContain("snapshot");
+  });
+
+  it("usa pregunta genérica si falta el nombre y no lo inventa", () => {
+    const html = render(
+      <VinculacionConfirmacionContent
+        preview={preview({
+          contribuyente_destino: {
+            id: 3,
+            documento: "20222222222",
+            apellido: null,
+            nombre: null,
+            razon_social: null,
+          },
+        })}
+      />
+    );
+    expect(html).toContain("¿Querés asociar este establecimiento a este contribuyente?");
+    expect(html).not.toContain("¿Querés asociar este establecimiento a —");
+    expect(html).toContain("CUIT/DNI: 20222222222");
+  });
+
+  it("detalle arranca cerrado, con ceros disponibles y control accesible", () => {
+    const html = render(<VinculacionConfirmacionContent preview={preview({})} />);
+    expect(html).toContain("Ver detalle del alcance");
+    expect(html).toContain('aria-expanded="false"');
+    expect(html).toContain("aria-controls");
+    expect(html).toContain('tabindex="0"');
+    expect(html).toContain("MuiCollapse-hidden");
+    expect(html).not.toContain("Ocultar detalle del alcance");
+    expect(html).toContain("Oficios");
+    expect(html).toContain(">0<");
+    expect(html).toContain("grid-template-columns");
   });
 
   it("aclara antecedentes conjuntos solo si ya existe ficha lógica del mismo domicilio", () => {
@@ -109,7 +148,53 @@ describe("VinculacionConfirmacionContent", () => {
     );
     expect(html).toContain("No pudimos identificar el vínculo con seguridad.");
     expect(html).toContain("Hay más de un contribuyente activo con ese documento.");
+    expect(html).toContain("MuiAlert-standardWarning");
+    expect(html).not.toContain("MuiAlert-standardInfo");
     expect(html).not.toContain("¿Querés asociar este establecimiento a este contribuyente?");
     expect(html).not.toContain("Carlos Ocampo");
+  });
+
+  it("envuelve nombres y domicilios largos", () => {
+    const largo =
+      "Cooperativa de Provisión de Servicios Comunitarios y Desarrollo Productivo del Norte Argentino Limitada";
+    const domicilioLargo =
+      "Avenida de los Inmigrantes de la República Argentina 1234 esquina Boulevard del Libertador General San Martín";
+    const html = render(
+      <VinculacionConfirmacionContent
+        preview={preview({
+          contribuyente_destino: {
+            id: 3,
+            documento: "20333333333",
+            apellido: null,
+            nombre: null,
+            razon_social: largo,
+          },
+          establecimiento: {
+            id: 1,
+            domicilio_id: 9,
+            domicilio_texto: domicilioLargo,
+            domicilio_ids_ficha: [9],
+            identidad_logica_completa: true,
+          },
+        })}
+      />
+    );
+    expect(html).toContain(largo);
+    expect(html).toContain(domicilioLargo);
+    expect(html).toContain("break-word");
+    expect(html).toContain(`¿Querés asociar este establecimiento a ${largo}?`);
+  });
+
+  it("el control de detalle se abre y cierra por botón nativo con estado aria", () => {
+    const src = readFileSync(srcPath, "utf8");
+    expect(src).toContain("aria-expanded={detalleOpen}");
+    expect(src).toContain("aria-controls={detalleId}");
+    expect(src).toContain('type="button"');
+    expect(src).toContain("setDetalleOpen((open) => !open)");
+    expect(src).toContain("VINCULACION_OCULTAR_DETALLE");
+    expect(src).toContain("ExpandMoreIcon");
+    expect(src).toContain('useState(false)');
+    expect(src).not.toContain("aplicarVinculacionEstablecimiento");
+    expect(src).not.toContain("fingerprint");
   });
 });

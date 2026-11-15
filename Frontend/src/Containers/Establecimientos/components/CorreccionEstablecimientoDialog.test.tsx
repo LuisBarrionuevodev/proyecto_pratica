@@ -62,5 +62,7 @@ describe("CorreccionEstablecimientoDialog 1B", () => {
     expect(src).toContain("VINCULACION_REGISTRADO_TITULO");
     expect(src).not.toContain("onVincularDocumento");
     expect(src).not.toContain("includes(\"otro contribuyente\")");
+    expect(src).toContain("cancelLabel={VINCULACION_VOLVER}");
+    expect(src).toContain("confirmLabel={VINCULACION_ASOCIAR}");
   });
 });
