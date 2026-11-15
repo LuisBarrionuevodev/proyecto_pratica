@@ -97,6 +97,7 @@ export interface ICorreccionEstablecimientoPayload {
   domicilio?: ICorreccionDomicilioIn;
   local?: ICorreccionLocalIn;
   confirmado?: boolean;
+  fingerprint?: string | null;
 }
 
 export interface ICorreccionIdsResumen {
@@ -111,15 +112,22 @@ export interface ICorreccionConflicto {
   /**
    * Contrato UX.1: `true` solo si `codigo === "DOCUMENTO_AJENO"` y hay un único
    * contribuyente activo con ese documento. No inferir por el texto de `detail`.
-   * HOTFIX TITULAR.1: `CAMBIO_DOCUMENTO` bloquea identidad nueva; nunca ofrece vinculación.
+   * CUIT.1: documento inexistente no usa este flag; se corrige la misma persona.
    */
   ofrece_vinculacion?: boolean;
+}
+
+export interface ICorreccionEstablecimientoAsociado {
+  nombre_local?: string | null;
+  domicilio_texto?: string | null;
+  actuaciones_cantidad?: number;
 }
 
 export interface ICorreccionEstablecimientoPreview {
   establecimiento_operativo_id: number;
   puede_aplicar: boolean;
   sin_cambios?: boolean;
+  fingerprint?: string | null;
   conflicto?: ICorreccionConflicto | null;
   advertencias: string[];
   snapshots_y_pdf?: { se_actualizan: boolean; detalle: string };
@@ -133,7 +141,9 @@ export interface ICorreccionEstablecimientoPreview {
     actual: Record<string, string | number | null> | null;
     propuesto: Record<string, string | number | null> | null;
     cambia: boolean;
+    cambia_documento_identidad?: boolean;
     establecimientos_afectados: ICorreccionIdsResumen;
+    establecimientos_asociados?: ICorreccionEstablecimientoAsociado[];
     actuaciones_afectadas: ICorreccionIdsResumen;
     advertencia: string;
   };

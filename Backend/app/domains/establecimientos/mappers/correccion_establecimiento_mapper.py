@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Any
 
 from app.domains.establecimientos.schemas.correccion_establecimiento_in import (
@@ -10,6 +12,7 @@ from app.domains.establecimientos.schemas.correccion_establecimiento_in import (
     DomicilioCorreccionIn,
     LocalCorreccionIn,
 )
+from app.domains.establecimientos.utils.documento_normalizer import normalizar_documento
 from app.models import Contribuyente, Domicilio, EstablecimientoOperativo
 
 
@@ -127,6 +130,40 @@ def hay_cambio_contribuyente(actual: dict[str, Any], propuesto: dict[str, Any]) 
         if a != b:
             return True
     return False
+
+
+def cambia_documento_identidad(actual_documento: str | None, propuesto_documento: str | None) -> bool:
+    """True si el CUIT/DNI normalizado cambia (no es solo formato)."""
+    return normalizar_documento(actual_documento) != normalizar_documento(propuesto_documento)
+
+
+def fingerprint_correccion_contribuyente(
+    *,
+    establecimiento_id: int,
+    contribuyente_id: int,
+    documento_actual: str | None,
+    propuesto: dict[str, Any],
+    establecimiento_ids: list[int],
+) -> str:
+    """
+    Token de alcance para detectar cambios entre preview y confirmación de contribuyente.
+
+    Incluye id, documentos normalizados, datos personales propuestos y locales alcanzados.
+    """
+    payload = {
+        "kind": "correccion_contribuyente",
+        "eo": int(establecimiento_id),
+        "contrib": int(contribuyente_id),
+        "doc_actual": normalizar_documento(documento_actual),
+        "doc_propuesto": normalizar_documento(str(propuesto.get("documento") or "")),
+        "documento": str(propuesto.get("documento") or "").strip(),
+        "apellido": str(propuesto.get("apellido") or "").strip(),
+        "nombre": str(propuesto.get("nombre") or "").strip(),
+        "razon_social": str(propuesto.get("razon_social") or "").strip(),
+        "establecimientos": sorted(int(i) for i in establecimiento_ids),
+    }
+    raw = json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    return hashlib.sha256(raw).hexdigest()
 
 
 def local_actual_dict(

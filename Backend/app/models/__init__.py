@@ -55,6 +55,7 @@ from .notificacion_resultado_reinspeccion import NotificacionResultadoReinspecci
 from .archivo import Archivo
 from .ruta_item_archivo import RutaItemArchivo
 from .completar_trabajo_cierre_idempotency import CompletarTrabajoCierreIdempotency
+from .contribuyente_documento_unico import ContribuyenteDocumentoUnico
 __all__ = [
     "actuaciones_inspector",
     "notificacion_motivo",
@@ -117,4 +118,5 @@ __all__ = [
     "Archivo",
     "RutaItemArchivo",
     "CompletarTrabajoCierreIdempotency",
+    "ContribuyenteDocumentoUnico",
 ]

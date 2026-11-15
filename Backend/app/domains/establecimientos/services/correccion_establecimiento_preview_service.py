@@ -63,9 +63,9 @@ def preview_correccion_establecimiento(
         la UI puede entonces consultar el canal de vinculación. No inferir por el texto de
         ``detail``. Apply de corrección sigue sin reasignar el titular.
 
-        HOTFIX TITULAR.1: un documento cuyo normalizado difiere del actual y no pertenece
-        a otro contribuyente se informa como ``CAMBIO_DOCUMENTO`` (puede_aplicar=false).
-        No se crea un contribuyente nuevo ni se sobrescribe la fila compartida.
+        CUIT.1: un documento cuyo normalizado no pertenece a otro contribuyente activo
+        permite corregir la misma fila (``puede_aplicar=true`` + fingerprint). Varios ids
+        activos con el mismo normalizado se informan como ``DOCUMENTO_AMBIGUO``.
     """
     assert_rol_puede_corregir(actor)
     scope = cargar_ficha_para_correccion(establecimiento_id, for_update=False)

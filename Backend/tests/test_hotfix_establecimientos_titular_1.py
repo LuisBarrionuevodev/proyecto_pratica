@@ -19,7 +19,7 @@ from app.domains.establecimientos.services.correccion_establecimiento_preview_se
     preview_correccion_establecimiento,
 )
 from app.domains.establecimientos.services.correccion_establecimiento_scope_service import (
-    MSG_CAMBIO_DOCUMENTO,
+    MSG_SIN_FINGERPRINT,
 )
 from app.domains.establecimientos.services.vinculacion_establecimiento_apply_service import (
     aplicar_vinculacion_establecimiento,
@@ -32,6 +32,7 @@ from app.domains.establecimientos.schemas.vinculacion_establecimiento_in import 
 )
 from app.domains.establecimientos.utils.correccion_establecimiento_errors import (
     CorreccionEstablecimientoConflictError,
+    CorreccionEstablecimientoError,
 )
 from app.models import CorreccionEstablecimientoAudit, User
 from tests.test_correccion_establecimiento_edicion_1 import _contrib, _dom, _eo, _user
@@ -84,7 +85,7 @@ def test_1_dos_locales_nombre_y_cuit_ajeno_no_cambia_ninguno(app_ctx, service_ac
     assert CorreccionEstablecimientoAudit.query.filter_by(establecimiento_operativo_id=eo1.id).count() == 0
 
 
-def test_2_documento_nuevo_inexistente_bloqueado(app_ctx, service_actor) -> None:
+def test_2_documento_nuevo_inexistente_requiere_fingerprint(app_ctx, service_actor) -> None:
     actor = db.session.get(User, service_actor)
     assert actor is not None
     origen = _contrib(apellido="Solo", nombre="Uno")
@@ -103,15 +104,15 @@ def test_2_documento_nuevo_inexistente_bloqueado(app_ctx, service_actor) -> None
         }
     )
     prev = preview_correccion_establecimiento(eo1.id, body, actor=actor)
-    assert prev["puede_aplicar"] is False
-    assert prev["conflicto"]["codigo"] == "CAMBIO_DOCUMENTO"
-    assert prev["conflicto"]["ofrece_vinculacion"] is False
-    assert "titularidad" in (prev["conflicto"]["detail"] or "").lower()
-    assert MSG_CAMBIO_DOCUMENTO in (prev["conflicto"]["detail"] or "")
+    assert prev["puede_aplicar"] is True
+    assert prev.get("conflicto") in (None, {})
+    assert prev["fingerprint"]
+    assert prev["contribuyente"]["cambia_documento_identidad"] is True
 
-    with pytest.raises(CorreccionEstablecimientoConflictError) as ei:
+    with pytest.raises(CorreccionEstablecimientoError) as ei:
         aplicar_correccion_establecimiento(eo1.id, body, actor=actor)
-    assert ei.value.codigo == "CAMBIO_DOCUMENTO"
+    assert ei.value.codigo == "FALTA_FINGERPRINT"
+    assert MSG_SIN_FINGERPRINT in ei.value.detail
     db.session.refresh(origen)
     db.session.refresh(d1)
     db.session.refresh(d2)
@@ -236,10 +237,10 @@ def test_6_http_directo_apply_rechaza_sin_auditoria_exito(client, auth_headers, 
                 json={"contribuyente": {"documento": nuevo, "apellido": "X"}, "confirmado": True},
                 headers=auth_headers,
             )
-            assert applied.status_code == 409, applied.get_json()
+            assert applied.status_code == 400, applied.get_json()
             body = applied.get_json()
-            assert body["codigo"] == "CAMBIO_DOCUMENTO"
-            assert body.get("ofrece_vinculacion") is False
+            assert body["codigo"] == "FALTA_FINGERPRINT"
+            assert body.get("ofrece_vinculacion") is not True
             db.session.refresh(c)
             assert c.documento == doc0
             assert c.apellido == "Http"
@@ -338,9 +339,9 @@ def test_10_preview_mensaje_titularidad_y_relevador_sin_acceso(app_ctx, service_
         CorreccionEstablecimientoIn.model_validate({"contribuyente": {"documento": _doc()}}),
         actor=actor,
     )
-    detail = (prev["conflicto"] or {}).get("detail") or ""
-    assert "Para cambiar el CUIT/DNI necesitamos verificar la titularidad." in detail
-    assert "otros establecimientos asociados" in detail
+    assert prev["puede_aplicar"] is True
+    assert prev["fingerprint"]
+    assert prev["contribuyente"]["cambia_documento_identidad"] is True
     from app.domains.establecimientos.utils.correccion_establecimiento_errors import (
         CorreccionEstablecimientoPermisoError,
     )

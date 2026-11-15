@@ -2,18 +2,17 @@
  * Textos de alcance/advertencia alineados al canal de corrección controlada.
  */
 export const CORRECCION_CONTRIBUYENTE_HINT =
-  "Corrige nombre, apellido o razón social del mismo contribuyente. " +
-  "No cambia el CUIT/DNI ni fusiona registros.";
+  "Corrige nombre, apellido, razón social o un CUIT/DNI mal cargado de la misma persona. " +
+  "Si el documento ya pertenece a otro contribuyente, se propone asociar solo este establecimiento.";
 
-export const CORRECCION_CAMBIO_DOCUMENTO_TITULO =
-  "Para cambiar el CUIT/DNI necesitamos verificar la titularidad.";
+export const CORRECCION_DOCUMENTO_CONFIRMACION_TITULO =
+  "Esta corrección se aplicará a todos los establecimientos asociados.";
 
-export const CORRECCION_CAMBIO_DOCUMENTO_DETALLE =
-  "Esto evita modificar por error otros establecimientos asociados. " +
-  "Por ahora no se puede cambiar el documento desde esta corrección.";
+export const CORRECCION_DOCUMENTO_CONFIRMACION_DETALLE =
+  "Confirmá que se trata del mismo contribuyente y que el CUIT/DNI anterior estaba mal cargado.";
 
-export const CORRECCION_CAMBIO_DOCUMENTO_MSG =
-  `${CORRECCION_CAMBIO_DOCUMENTO_TITULO} ${CORRECCION_CAMBIO_DOCUMENTO_DETALLE}`;
+export const CORRECCION_DOCUMENTO_MISMA_PERSONA =
+  "Todos los establecimientos seguirán vinculados a la misma persona, ahora con los datos corregidos.";
 
 export const CORRECCION_DOMICILIO_HINT =
   "Corrige la dirección de origen de este establecimiento. No se recalculan coordenadas ni distrito.";
@@ -54,6 +53,10 @@ export const VINCULACION_DOCUMENTOS_EMITIDOS = "Los documentos ya emitidos no se
 
 export const VINCULACION_DOCUMENTOS_CONSERVAN =
   "Los documentos ya emitidos conservarán sus datos.";
+
+export const VINCULACION_DATOS_DESTINO_CONSERVAN =
+  "Los datos personales del contribuyente encontrado se conservan. " +
+  "No se aplican el nombre o la razón social que escribiste en Corregir contribuyente.";
 
 export const VINCULACION_HISTORIAL_TITULO = "Historial que se asociará";
 

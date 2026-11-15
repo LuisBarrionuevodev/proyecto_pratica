@@ -67,7 +67,7 @@ def test_preview_documento_duplicado_normalizado_no_ofrece(app_ctx, service_acto
 
     prev = preview_correccion_establecimiento(eo.id, _body_doc(doc_plain), actor=actor)
     assert prev["puede_aplicar"] is False
-    assert prev["conflicto"]["codigo"] == "DOCUMENTO_AJENO"
+    assert prev["conflicto"]["codigo"] == "DOCUMENTO_AMBIGUO"
     assert prev["conflicto"]["ofrece_vinculacion"] is False
     db.session.refresh(d)
     assert d.contribuyente_id == origen.id
@@ -101,9 +101,11 @@ def test_preview_documento_nuevo_libre_no_ofrece(app_ctx, service_actor) -> None
     nuevo = str(int(uuid4().hex[:8], 16) % 90_000_000 + 10_000_000)
     db.session.commit()
     prev = preview_correccion_establecimiento(eo.id, _body_doc(nuevo), actor=actor)
-    assert prev["puede_aplicar"] is False
-    assert prev["conflicto"]["codigo"] == "CAMBIO_DOCUMENTO"
-    assert prev["conflicto"]["ofrece_vinculacion"] is False
+    assert prev["puede_aplicar"] is True
+    assert prev.get("conflicto") in (None, {})
+    assert prev["fingerprint"]
+    assert prev["contribuyente"]["cambia_documento_identidad"] is True
+    assert (prev.get("conflicto") or {}).get("ofrece_vinculacion") is not True
 
 
 def test_apply_correccion_documento_ajeno_sigue_sin_reasignar(app_ctx, service_actor) -> None:

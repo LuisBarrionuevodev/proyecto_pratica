@@ -66,12 +66,16 @@ describe("CorreccionEstablecimientoDialog 1B", () => {
     expect(src).toContain("confirmLabel={VINCULACION_ASOCIAR}");
   });
 
-  it("CAMBIO_DOCUMENTO bloquea en el formulario y no autoasocia", () => {
+  it("CUIT inexistente confirma con fingerprint y lista de establecimientos, sin autoasociar", () => {
     const src = readFileSync(dialogPath, "utf8");
     const previewFn = src.slice(src.indexOf("const handlePreview"), src.indexOf("const handleApplyCorreccion"));
-    expect(previewFn).toContain('codigo === "CAMBIO_DOCUMENTO"');
-    expect(previewFn).toContain("CORRECCION_CAMBIO_DOCUMENTO_MSG");
-    expect(previewFn).toContain("setPreview(null)");
+    const applyFn = src.slice(src.indexOf("const handleApplyCorreccion"), src.indexOf("const handleApplyVinculacion"));
+    expect(previewFn).not.toContain("CAMBIO_DOCUMENTO");
     expect(previewFn).not.toContain("aplicarCorreccionEstablecimiento");
+    expect(applyFn).toContain("fingerprint: preview.fingerprint");
+    expect(src).toContain("CORRECCION_DOCUMENTO_CONFIRMACION_TITULO");
+    expect(src).toContain("establecimientos_asociados");
+    expect(src).toContain("cambia_documento_identidad");
+    expect(src).not.toContain("cambiar titularidad");
   });
 });

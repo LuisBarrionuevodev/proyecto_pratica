@@ -9,6 +9,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any
 
+from sqlalchemy import func
 from sqlalchemy.orm import joinedload
 
 from app.database import db
@@ -22,6 +23,7 @@ from app.domains.establecimientos.utils.correccion_establecimiento_errors import
     CorreccionEstablecimientoPermisoError,
 )
 from app.domains.establecimientos.utils.documento_normalizer import normalizar_documento
+from app.domains.establecimientos.utils.domicilio_display import domicilio_texto_visible
 from app.domains.establecimientos.utils.establecimiento_identidad_logica import (
     business_key_tuple,
     domicilio_ids_misma_identidad_logica,
@@ -45,10 +47,19 @@ MSG_DOC_AJENO = (
     "El documento propuesto ya pertenece a otro contribuyente. "
     "No se fusionan registros ni se reasigna el titular."
 )
-MSG_CAMBIO_DOCUMENTO = (
-    "Para cambiar el CUIT/DNI necesitamos verificar la titularidad. "
-    "Esto evita modificar por error otros establecimientos asociados. "
-    "Por ahora no se puede cambiar el documento desde esta corrección."
+MSG_DOC_AMBIGUO = (
+    "Hay más de un contribuyente activo con ese documento. "
+    "No se corrige ni se asocia automáticamente; hace falta revisión."
+)
+MSG_PREVIEW_STALE = (
+    "El alcance cambió desde la vista previa. Volvé a consultar antes de confirmar."
+)
+MSG_SIN_FINGERPRINT = (
+    "Debe consultar el alcance antes de confirmar la corrección del documento."
+)
+MSG_CONFIRMACION_DOCUMENTO = (
+    "Esta corrección se aplicará a todos los establecimientos asociados. "
+    "Confirmá que se trata del mismo contribuyente y que el CUIT/DNI anterior estaba mal cargado."
 )
 MSG_AMBIGUEDAD = (
     "Hay otras filas físicas de domicilio con la misma dirección de este contribuyente "
@@ -85,6 +96,7 @@ class CorreccionScope:
     iniciador_ids: list[int] = field(default_factory=list)
     ruta_item_ids: list[int] = field(default_factory=list)
     ruta_estados: list[dict[str, Any]] = field(default_factory=list)
+    establecimientos_contribuyente: list[dict[str, Any]] = field(default_factory=list)
 
 
 def assert_rol_puede_corregir(user: User) -> None:
@@ -167,9 +179,9 @@ def validar_documento_propuesto(contrib: Contribuyente, documento: str) -> None:
     Protege la identidad compartida del contribuyente en el canal de corrección.
 
     Permite el mismo documento normalizado (cambio de formato). Si el normalizado
-    cambia y pertenece a otro contribuyente único, expone DOCUMENTO_AJENO para
-    el flujo de asociación. Si no existe (o no es único), bloquea CAMBIO_DOCUMENTO
-    sin crear ni sobrescribir identidad.
+    cambia y no pertenece a otro contribuyente activo, permite la corrección A2
+    de la misma fila. Si pertenece a otro id único, expone DOCUMENTO_AJENO para
+    asociar solo esta ficha. Si hay varios ids activos, DOCUMENTO_AMBIGUO.
 
     Extra de conflicto:
         ofrece_vinculacion: True solo si hay exactamente un contribuyente activo ajeno.
@@ -189,19 +201,19 @@ def validar_documento_propuesto(contrib: Contribuyente, documento: str) -> None:
         return
     ids = contribuyente_ids_por_documento(doc)
     ajenos = sorted({int(i) for i in ids if int(i) != int(contrib.id)})
+    if len(ajenos) > 1:
+        raise CorreccionEstablecimientoConflictError(
+            MSG_DOC_AMBIGUO,
+            codigo="DOCUMENTO_AMBIGUO",
+            extra={"ofrece_vinculacion": False},
+        )
     if ajenos:
         # ``ofrece_vinculacion`` es contrato estructurado: True solo si hay un único id ajeno.
-        # La UI no debe inferir coincidencia por el texto de ``detail``.
         raise CorreccionEstablecimientoConflictError(
             MSG_DOC_AJENO,
             codigo="DOCUMENTO_AJENO",
-            extra={"ofrece_vinculacion": len(ajenos) == 1},
+            extra={"ofrece_vinculacion": True},
         )
-    raise CorreccionEstablecimientoConflictError(
-        MSG_CAMBIO_DOCUMENTO,
-        codigo="CAMBIO_DOCUMENTO",
-        extra={"ofrece_vinculacion": False},
-    )
 
 
 def validar_no_fusion_identidad(
@@ -300,6 +312,7 @@ def _llenar_conteos(scope: CorreccionScope) -> None:
             .all()
         )
         scope.actuacion_ids_contribuyente = sorted({int(r[0]) for r in act_c})
+        scope.establecimientos_contribuyente = _establecimientos_contribuyente_preview(int(contrib.id))
 
     dom_ids = scope.domicilio_ids_ficha or [int(scope.domicilio.id)]
     acts = (
@@ -352,3 +365,43 @@ def _llenar_conteos(scope: CorreccionScope) -> None:
                 }
             )
         scope.ruta_estados = estados
+
+
+def _establecimientos_contribuyente_preview(contribuyente_id: int) -> list[dict[str, Any]]:
+    """
+    Locales del contribuyente para la preview (domicilio visible + actuaciones por FK).
+
+    No expone IDs como dato de negocio; el presenter puede incluirlos para alcance.
+    """
+    rows = (
+        db.session.query(EstablecimientoOperativo, Domicilio)
+        .join(Domicilio, EstablecimientoOperativo.domicilio_id == Domicilio.id)
+        .filter(
+            Domicilio.contribuyente_id == int(contribuyente_id),
+            Domicilio.deleted_at.is_(None),
+        )
+        .order_by(EstablecimientoOperativo.id.asc())
+        .all()
+    )
+    if not rows:
+        return []
+    dom_ids = [int(dom.id) for _eo, dom in rows]
+    count_rows = (
+        db.session.query(Actuaciones.domicilio_id, func.count(Actuaciones.id))
+        .filter(Actuaciones.domicilio_id.in_(dom_ids))
+        .group_by(Actuaciones.domicilio_id)
+        .all()
+    )
+    por_dom = {int(did): int(n) for did, n in count_rows}
+    out: list[dict[str, Any]] = []
+    for eo, dom in rows:
+        nombre = (str(eo.nombre_local).strip() or None) if getattr(eo, "nombre_local", None) else None
+        out.append(
+            {
+                "establecimiento_operativo_id": int(eo.id),
+                "nombre_local": nombre,
+                "domicilio_texto": domicilio_texto_visible(dom),
+                "actuaciones_cantidad": por_dom.get(int(dom.id), 0),
+            }
+        )
+    return out

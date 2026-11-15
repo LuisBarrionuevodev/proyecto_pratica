@@ -93,6 +93,8 @@ class CorreccionEstablecimientoIn(BaseModel):
         domicilio: bloque opcional de corrección de dirección de la ficha.
         local: bloque opcional de rubro y nombre del local de esta ficha.
         confirmado: obligatorio en True para persistir.
+        fingerprint: token de alcance del preview; obligatorio al cambiar el
+            CUIT/DNI normalizado (misma persona, documento inexistente).
 
     Errores:
         extra=forbid rechaza cambio de titular (contribuyente_id / limpiar_contribuyente).
@@ -104,6 +106,15 @@ class CorreccionEstablecimientoIn(BaseModel):
     domicilio: Optional[DomicilioCorreccionIn] = None
     local: Optional[LocalCorreccionIn] = None
     confirmado: bool = False
+    fingerprint: Optional[str] = Field(None, max_length=128)
+
+    @field_validator("fingerprint", mode="before")
+    @classmethod
+    def strip_fingerprint(cls, v: object) -> Optional[str]:
+        if v is None:
+            return None
+        s = str(v).strip()
+        return s if s else None
 
     @model_validator(mode="after")
     def requiere_bloque(self) -> "CorreccionEstablecimientoIn":

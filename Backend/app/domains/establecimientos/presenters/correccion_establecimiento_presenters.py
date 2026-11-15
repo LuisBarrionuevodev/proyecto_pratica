@@ -5,11 +5,14 @@ from __future__ import annotations
 from typing import Any
 
 from app.domains.establecimientos.mappers.correccion_establecimiento_mapper import (
+    cambia_documento_identidad,
     contribuyente_actual_dict,
     domicilio_actual_dict,
+    fingerprint_correccion_contribuyente,
     local_actual_dict,
 )
 from app.domains.establecimientos.services.correccion_establecimiento_scope_service import (
+    MSG_CONFIRMACION_DOCUMENTO,
     CorreccionScope,
 )
 from app.domains.establecimientos.utils.domicilio_display import domicilio_texto_visible
@@ -17,8 +20,13 @@ from app.domains.establecimientos.utils.domicilio_display import domicilio_texto
 
 ADVERTENCIA_CONTRIBUYENTE = (
     "La corrección se reflejará en todos los establecimientos asociados a este contribuyente. "
-    "No cambia el titular ni fusiona registros. "
-    "Los PDF ya emitidos y los snapshots históricos (titular_*_historico) no se actualizan."
+    "Siguen vinculados a la misma persona. No se fusionan registros. "
+    "Los documentos ya emitidos conservarán sus datos."
+)
+ADVERTENCIA_CONTRIBUYENTE_DOCUMENTO = (
+    f"{MSG_CONFIRMACION_DOCUMENTO} "
+    "Todos los establecimientos seguirán vinculados a la misma persona, ahora con los datos corregidos. "
+    "Los documentos ya emitidos conservarán sus datos."
 )
 ADVERTENCIA_DOMICILIO = (
     "Se corrige el domicilio de origen de esta ficha y las vistas en vivo que lo leen "
@@ -81,6 +89,7 @@ def preview_correccion_payload(
             "lat": domicilio_actual_dict(scope.domicilio).get("lat"),
             "lng": domicilio_actual_dict(scope.domicilio).get("lng"),
         },
+        "fingerprint": None,
     }
     if scope.conflicto:
         out["conflicto"] = {
@@ -93,15 +102,42 @@ def preview_correccion_payload(
             out["advertencias"].append(scope.conflicto)
 
     if incluir_contrib:
+        actual_c = contribuyente_actual_dict(scope.contribuyente)
+        doc_actual = None if actual_c is None else actual_c.get("documento")
+        doc_prop = None if propuesto_contrib is None else propuesto_contrib.get("documento")
+        identidad_doc = bool(cambia_contrib) and cambia_documento_identidad(
+            None if doc_actual is None else str(doc_actual),
+            None if doc_prop is None else str(doc_prop),
+        )
+        advertencia_c = (
+            ADVERTENCIA_CONTRIBUYENTE_DOCUMENTO if identidad_doc else ADVERTENCIA_CONTRIBUYENTE
+        )
         out["contribuyente"] = {
-            "actual": contribuyente_actual_dict(scope.contribuyente),
+            "actual": actual_c,
             "propuesto": propuesto_contrib,
             "cambia": cambia_contrib,
+            "cambia_documento_identidad": identidad_doc,
             "establecimientos_afectados": _ids_payload(scope.establecimiento_ids_contribuyente),
+            "establecimientos_asociados": [
+                {
+                    "nombre_local": row.get("nombre_local"),
+                    "domicilio_texto": row.get("domicilio_texto"),
+                    "actuaciones_cantidad": row.get("actuaciones_cantidad"),
+                }
+                for row in scope.establecimientos_contribuyente
+            ],
             "actuaciones_afectadas": _ids_payload(scope.actuacion_ids_contribuyente),
-            "advertencia": ADVERTENCIA_CONTRIBUYENTE,
+            "advertencia": advertencia_c,
         }
-        out["advertencias"].append(ADVERTENCIA_CONTRIBUYENTE)
+        out["advertencias"].append(advertencia_c)
+        if scope.contribuyente is not None and propuesto_contrib is not None:
+            out["fingerprint"] = fingerprint_correccion_contribuyente(
+                establecimiento_id=int(scope.eo.id),
+                contribuyente_id=int(scope.contribuyente.id),
+                documento_actual=getattr(scope.contribuyente, "documento", None),
+                propuesto=propuesto_contrib,
+                establecimiento_ids=scope.establecimiento_ids_contribuyente,
+            )
 
     if incluir_dom:
         actual_dom = domicilio_actual_dict(scope.domicilio)

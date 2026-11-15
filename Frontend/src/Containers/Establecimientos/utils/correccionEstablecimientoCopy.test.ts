@@ -1,8 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
-  CORRECCION_CAMBIO_DOCUMENTO_MSG,
   CORRECCION_CONTRIBUYENTE_HINT,
+  CORRECCION_DOCUMENTO_CONFIRMACION_DETALLE,
+  CORRECCION_DOCUMENTO_CONFIRMACION_TITULO,
+  CORRECCION_DOCUMENTO_MISMA_PERSONA,
   CORRECCION_DOMICILIO_HINT,
   CORRECCION_LOCAL_HINT,
   CORRECCION_SIN_CAMBIOS_HINT,
@@ -11,6 +13,7 @@ import {
   VINCULACION_ASOCIAR,
   VINCULACION_CONFLICTO_INSEGURO,
   VINCULACION_DOCUMENTO_AJENO_CTA,
+  VINCULACION_DATOS_DESTINO_CONSERVAN,
   VINCULACION_DOCUMENTOS_CONSERVAN,
   VINCULACION_DOCUMENTOS_EMITIDOS,
   VINCULACION_HINT,
@@ -28,14 +31,16 @@ import {
 
 describe("correccionEstablecimientoCopy", () => {
   it("no promete recálculo de coordenadas ni cambio de titular", () => {
-    expect(CORRECCION_CONTRIBUYENTE_HINT.toLowerCase()).toContain("mismo contribuyente");
-    expect(CORRECCION_CONTRIBUYENTE_HINT.toLowerCase()).toContain("no cambia el cuit/dni");
-    expect(CORRECCION_CONTRIBUYENTE_HINT.toLowerCase()).toContain("ni fusiona");
-    expect(CORRECCION_CAMBIO_DOCUMENTO_MSG.toLowerCase()).toContain("verificar la titularidad");
-    expect(CORRECCION_CAMBIO_DOCUMENTO_MSG.toLowerCase()).toContain("otros establecimientos");
-    expect(CORRECCION_CAMBIO_DOCUMENTO_MSG.toLowerCase()).toContain(
-      "no se puede cambiar el documento"
+    expect(CORRECCION_CONTRIBUYENTE_HINT.toLowerCase()).toContain("misma persona");
+    expect(CORRECCION_CONTRIBUYENTE_HINT.toLowerCase()).toContain("cuit/dni");
+    expect(CORRECCION_CONTRIBUYENTE_HINT.toLowerCase()).toContain("solo este establecimiento");
+    expect(CORRECCION_DOCUMENTO_CONFIRMACION_TITULO.toLowerCase()).toContain(
+      "todos los establecimientos asociados"
     );
+    expect(CORRECCION_DOCUMENTO_CONFIRMACION_DETALLE.toLowerCase()).toContain(
+      "el cuit/dni anterior estaba mal cargado"
+    );
+    expect(CORRECCION_DOCUMENTO_MISMA_PERSONA.toLowerCase()).toContain("misma persona");
     expect(CORRECCION_DOMICILIO_HINT.toLowerCase()).toContain("no se recalculan coordenadas");
     expect(CORRECCION_SIN_CAMBIOS_HINT.toLowerCase()).toContain("no se desvincula");
     expect(CORRECCION_LOCAL_HINT.toLowerCase()).toContain("este establecimiento");
@@ -73,6 +78,10 @@ describe("correccionEstablecimientoCopy", () => {
     expect(VINCULACION_DOCUMENTOS_EMITIDOS.toLowerCase()).toContain("no se modifican");
     expect(VINCULACION_DOCUMENTOS_EMITIDOS.toLowerCase()).not.toContain("snapshot");
     expect(VINCULACION_DOCUMENTOS_CONSERVAN.toLowerCase()).toContain("conservarán sus datos");
+    expect(VINCULACION_DATOS_DESTINO_CONSERVAN.toLowerCase()).toContain(
+      "datos personales del contribuyente encontrado se conservan"
+    );
+    expect(VINCULACION_DATOS_DESTINO_CONSERVAN.toLowerCase()).not.toContain("fusion");
     expect(VINCULACION_DOCUMENTOS_CONSERVAN.toLowerCase()).not.toContain("snapshot");
     expect(VINCULACION_OCULTAR_DETALLE).toBe("Ocultar detalle del alcance");
     expect(VINCULACION_CONFLICTO_INSEGURO.toLowerCase()).toContain("seguridad");

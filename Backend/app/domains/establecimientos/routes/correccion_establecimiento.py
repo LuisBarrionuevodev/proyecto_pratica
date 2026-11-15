@@ -82,7 +82,8 @@ def aplicar_correccion_establecimiento_route(establecimiento_id: int):
     """
     Aplica la corrección confirmada de forma atómica y deja auditoría.
 
-    Requiere ``confirmado: true``. No modifica vínculos, estados ni coordenadas.
+    Requiere ``confirmado: true``. Si cambia el CUIT/DNI normalizado, también el
+    fingerprint del preview. No modifica vínculos, estados ni coordenadas.
     """
     data = request.get_json(silent=True) or {}
     try:

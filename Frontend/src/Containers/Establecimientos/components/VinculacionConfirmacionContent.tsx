@@ -9,6 +9,7 @@ import { FONT_FAMILY_UI } from "../../../theme/typography";
 import { AppButton } from "../../../ui";
 import {
   VINCULACION_ANTECEDENTES_JUNTOS,
+  VINCULACION_DATOS_DESTINO_CONSERVAN,
   VINCULACION_DETALLE_ALCANCE,
   VINCULACION_DOCUMENTOS_CONSERVAN,
   VINCULACION_HISTORIAL_TITULO,
@@ -210,6 +211,7 @@ export function VinculacionConfirmacionContent({ preview, error }: Props) {
       {puedeAsociar ? (
         <Stack spacing={0.75}>
           <Typography sx={mutedSx}>{VINCULACION_OTROS_NO_CAMBIAN}</Typography>
+          <Typography sx={mutedSx}>{VINCULACION_DATOS_DESTINO_CONSERVAN}</Typography>
           {preview.ficha_logica_destino?.existe ? (
             <Alert severity="info">{VINCULACION_ANTECEDENTES_JUNTOS}</Alert>
           ) : null}

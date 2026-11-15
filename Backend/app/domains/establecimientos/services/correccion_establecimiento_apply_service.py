@@ -11,8 +11,10 @@ from app.domains.domicilios.utils.preservar_geocode_domicilio import (
 )
 from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
 from app.domains.establecimientos.mappers.correccion_establecimiento_mapper import (
+    cambia_documento_identidad,
     contribuyente_actual_dict,
     domicilio_actual_dict,
+    fingerprint_correccion_contribuyente,
     hay_cambio_contribuyente,
     hay_cambio_domicilio,
     hay_cambio_local,
@@ -28,9 +30,16 @@ from app.domains.establecimientos.presenters.correccion_establecimiento_presente
 from app.domains.establecimientos.schemas.correccion_establecimiento_in import (
     CorreccionEstablecimientoIn,
 )
+from app.domains.establecimientos.services.contribuyente_documento_unico_service import (
+    adquirir_lock_documento,
+    liberar_lock_documento,
+    reclamar_documento_normalizado,
+)
 from app.domains.establecimientos.services.correccion_establecimiento_scope_service import (
     MSG_AMBIGUEDAD,
+    MSG_PREVIEW_STALE,
     MSG_SIN_CONTRIB,
+    MSG_SIN_FINGERPRINT,
     CorreccionScope,
     assert_rol_puede_corregir,
     cargar_ficha_para_correccion,
@@ -41,6 +50,7 @@ from app.domains.establecimientos.utils.correccion_establecimiento_errors import
     CorreccionEstablecimientoConflictError,
     CorreccionEstablecimientoError,
 )
+from app.domains.establecimientos.utils.documento_normalizer import normalizar_documento
 from app.domains.geolocalizacion.normalizacion_calles.services.normalize_domicilio_service import (
     normalizar_domicilio_en_sesion,
 )
@@ -65,8 +75,8 @@ def aplicar_correccion_establecimiento(
         dict con applied, audit_id y el mismo alcance que el preview.
 
     Errores:
-        400 si falta confirmación o validación de negocio.
-        409 documento ajeno, cambio de documento normalizado, ambigüedad o fusión de ficha.
+        400 si falta confirmación, fingerprint de documento o validación de negocio.
+        409 documento ajeno/ambiguo, preview obsoleta, ambigüedad o fusión de ficha.
         403/404 según permiso o ficha inexistente.
         Rollback si cualquier paso falla (sin corrección parcial).
     """
@@ -76,17 +86,21 @@ def aplicar_correccion_establecimiento(
             "Debe confirmar explícitamente la corrección antes de guardar."
         )
 
+    lock_holder: list[str] = []
     try:
-        return _aplicar_en_transaccion(establecimiento_id, body, actor)
+        return _aplicar_en_transaccion(establecimiento_id, body, actor, lock_holder)
     except Exception:
         db.session.rollback()
         raise
+    finally:
+        liberar_lock_documento(lock_holder[0] if lock_holder else None)
 
 
 def _aplicar_en_transaccion(
     establecimiento_id: int,
     body: CorreccionEstablecimientoIn,
     actor: User,
+    lock_holder: list[str],
 ) -> dict[str, Any]:
     scope = cargar_ficha_para_correccion(establecimiento_id, for_update=True)
 
@@ -98,6 +112,7 @@ def _aplicar_en_transaccion(
 
     propuesto_c = None
     cambia_c = False
+    identidad_doc = False
     if incluir_contrib:
         if scope.contribuyente is None:
             raise CorreccionEstablecimientoError(MSG_SIN_CONTRIB)
@@ -106,6 +121,36 @@ def _aplicar_en_transaccion(
         cambia_c = hay_cambio_contribuyente(actual_c, propuesto_c)
         if cambia_c:
             validar_documento_propuesto(scope.contribuyente, str(propuesto_c.get("documento") or ""))
+            identidad_doc = cambia_documento_identidad(
+                actual_c.get("documento"),
+                propuesto_c.get("documento"),
+            )
+            fp = fingerprint_correccion_contribuyente(
+                establecimiento_id=int(scope.eo.id),
+                contribuyente_id=int(scope.contribuyente.id),
+                documento_actual=getattr(scope.contribuyente, "documento", None),
+                propuesto=propuesto_c,
+                establecimiento_ids=scope.establecimiento_ids_contribuyente,
+            )
+            if identidad_doc and not body.fingerprint:
+                raise CorreccionEstablecimientoError(MSG_SIN_FINGERPRINT, codigo="FALTA_FINGERPRINT")
+            if body.fingerprint and fp != body.fingerprint:
+                raise CorreccionEstablecimientoConflictError(
+                    MSG_PREVIEW_STALE, codigo="PREVIEW_STALE"
+                )
+            if identidad_doc:
+                lock_key = adquirir_lock_documento(
+                    normalizar_documento(str(propuesto_c.get("documento") or ""))
+                )
+                lock_holder.append(lock_key)
+                validar_documento_propuesto(
+                    scope.contribuyente, str(propuesto_c.get("documento") or "")
+                )
+                reclamar_documento_normalizado(
+                    int(scope.contribuyente.id),
+                    str(propuesto_c.get("documento") or ""),
+                    str(getattr(scope.contribuyente, "documento", None) or ""),
+                )
 
     propuesto_d = None
     cambia_d = False
@@ -225,6 +270,8 @@ def _aplicar_en_transaccion(
         "ruta_item_ids": scope.ruta_item_ids if cambia_d else [],
         "ruta_estados_previos": scope.ruta_estados if cambia_d else [],
         "reescribe_actuaciones_nombre_local": False,
+        "cambia_documento_identidad": identidad_doc,
+        "fingerprint": body.fingerprint,
     }
 
     audit = CorreccionEstablecimientoAudit(

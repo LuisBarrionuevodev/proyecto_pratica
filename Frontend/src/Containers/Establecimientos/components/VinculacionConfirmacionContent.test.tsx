@@ -78,6 +78,7 @@ describe("VinculacionConfirmacionContent", () => {
     expect(html).toContain("1 notificación");
     expect(html).toContain("0 comprobaciones");
     expect(html).toContain("Los demás establecimientos no se modificarán.");
+    expect(html).toContain("Los datos personales del contribuyente encontrado se conservan.");
     expect(html).toContain("Los documentos ya emitidos conservarán sus datos.");
     expect(html).not.toContain("Las actuaciones de este domicilio se mostrarán juntas.");
     expect(html).not.toContain("iniciador");

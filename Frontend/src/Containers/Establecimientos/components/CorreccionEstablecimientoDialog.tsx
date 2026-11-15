@@ -29,8 +29,10 @@ import {
   rubroItemsToNombres,
 } from "../../../utils/rubrosCatalogCache";
 import {
-  CORRECCION_CAMBIO_DOCUMENTO_MSG,
   CORRECCION_CONTRIBUYENTE_HINT,
+  CORRECCION_DOCUMENTO_CONFIRMACION_DETALLE,
+  CORRECCION_DOCUMENTO_CONFIRMACION_TITULO,
+  CORRECCION_DOCUMENTO_MISMA_PERSONA,
   CORRECCION_DOMICILIO_HINT,
   CORRECCION_LOCAL_HINT,
   CORRECCION_TITULAR_MODO_AMBOS_HINT,
@@ -114,17 +116,34 @@ function hintForKind(kind: CorreccionEstablecimientoKind): string {
 function mensajeConflictoCorreccion(preview: ICorreccionEstablecimientoPreview): string | null {
   const conflicto = preview.conflicto;
   if (!conflicto) return null;
-  if (conflicto.codigo === "CAMBIO_DOCUMENTO") {
-    return conflicto.detail?.trim() || CORRECCION_CAMBIO_DOCUMENTO_MSG;
-  }
   if (
     conflicto.codigo === "DOCUMENTO_AJENO" ||
     conflicto.codigo === "DOCUMENTO_AMBIGUO" ||
-    conflicto.codigo === "AMBIGUEDAD_DOMICILIO"
+    conflicto.codigo === "AMBIGUEDAD_DOMICILIO" ||
+    conflicto.codigo === "PREVIEW_STALE"
   ) {
     return mensajeConflictoVinculacionInseguro(conflicto.detail);
   }
   return conflicto.detail ?? null;
+}
+
+function CampoCambio({
+  label,
+  actual,
+  propuesto,
+}: {
+  label: string;
+  actual: string | number | null | undefined;
+  propuesto: string | number | null | undefined;
+}) {
+  const a = dash(actual);
+  const b = dash(propuesto);
+  if (a === b) return null;
+  return (
+    <Typography sx={{ fontSize: "13px", fontFamily: FONT_FAMILY_UI }}>
+      {label}: {a} → {b}
+    </Typography>
+  );
 }
 
 /**
@@ -278,11 +297,6 @@ export function CorreccionEstablecimientoDialog({
     setLoadingPreview(true);
     try {
       const res = await previewCorreccionEstablecimiento(establecimientoId, payload);
-      if (res.conflicto?.codigo === "CAMBIO_DOCUMENTO") {
-        setError(res.conflicto.detail?.trim() || CORRECCION_CAMBIO_DOCUMENTO_MSG);
-        setPreview(null);
-        return;
-      }
       if (ofreceVinculacionDesdeConflicto(res.conflicto)) {
         const vinc = await previewVinculacionEstablecimiento(establecimientoId, {
           documento: documento.trim(),
@@ -312,7 +326,10 @@ export function CorreccionEstablecimientoDialog({
     setError(null);
     setLoadingApply(true);
     try {
-      await aplicarCorreccionEstablecimiento(establecimientoId, payload);
+      await aplicarCorreccionEstablecimiento(establecimientoId, {
+        ...payload,
+        fingerprint: preview.fingerprint ?? null,
+      });
       setPreview(null);
       onApplied();
     } catch (e) {
@@ -513,7 +530,11 @@ export function CorreccionEstablecimientoDialog({
         title="Confirmar corrección"
         cancelLabel={VINCULACION_VOLVER}
         confirmLabel="Guardar corrección"
-        confirmDisabled={!preview?.puede_aplicar || Boolean(preview?.conflicto)}
+        confirmDisabled={
+          !preview?.puede_aplicar ||
+          Boolean(preview?.conflicto) ||
+          (preview?.contribuyente?.cambia_documento_identidad === true && !preview.fingerprint)
+        }
         loading={loadingApply}
         maxWidth="sm"
       >
@@ -528,27 +549,63 @@ export function CorreccionEstablecimientoDialog({
               <Typography sx={{ fontWeight: 700, fontSize: "12px", letterSpacing: "0.08em", mb: 0.75 }}>
                 CONTRIBUYENTE
               </Typography>
-              <Typography sx={{ fontSize: "13px", fontFamily: FONT_FAMILY_UI }}>
-                Actual: {dash(preview.contribuyente.actual?.documento as string)} —{" "}
-                {dash(preview.contribuyente.actual?.razon_social as string) !== "—"
-                  ? dash(preview.contribuyente.actual?.razon_social as string)
-                  : `${dash(preview.contribuyente.actual?.apellido as string)} ${dash(preview.contribuyente.actual?.nombre as string)}`}
-              </Typography>
-              <Typography sx={{ fontSize: "13px", fontFamily: FONT_FAMILY_UI }}>
-                Propuesto: {dash(preview.contribuyente.propuesto?.documento as string)} —{" "}
-                {dash(preview.contribuyente.propuesto?.razon_social as string) !== "—"
-                  ? dash(preview.contribuyente.propuesto?.razon_social as string)
-                  : `${dash(preview.contribuyente.propuesto?.apellido as string)} ${dash(preview.contribuyente.propuesto?.nombre as string)}`}
-              </Typography>
-              <ConteoLine
-                label="Establecimientos vinculados"
-                cantidad={preview.contribuyente.establecimientos_afectados.cantidad}
+              <CampoCambio
+                label="CUIT/DNI"
+                actual={preview.contribuyente.actual?.documento as string}
+                propuesto={preview.contribuyente.propuesto?.documento as string}
               />
+              <CampoCambio
+                label="Apellido"
+                actual={preview.contribuyente.actual?.apellido as string}
+                propuesto={preview.contribuyente.propuesto?.apellido as string}
+              />
+              <CampoCambio
+                label="Nombre"
+                actual={preview.contribuyente.actual?.nombre as string}
+                propuesto={preview.contribuyente.propuesto?.nombre as string}
+              />
+              <CampoCambio
+                label="Razón social"
+                actual={preview.contribuyente.actual?.razon_social as string}
+                propuesto={preview.contribuyente.propuesto?.razon_social as string}
+              />
+              {preview.contribuyente.establecimientos_asociados &&
+              preview.contribuyente.establecimientos_asociados.length > 0 ? (
+                <Box sx={{ mt: 1 }}>
+                  <Typography sx={{ fontSize: "13px", fontFamily: FONT_FAMILY_UI, fontWeight: 700 }}>
+                    Establecimientos que se actualizan
+                  </Typography>
+                  {preview.contribuyente.establecimientos_asociados.map((est, idx) => (
+                    <Typography
+                      key={`${est.domicilio_texto ?? "local"}-${idx}`}
+                      sx={{ fontSize: "13px", fontFamily: FONT_FAMILY_UI }}
+                    >
+                      {dash(est.domicilio_texto)}
+                      {est.nombre_local ? ` · ${est.nombre_local}` : ""}
+                      {typeof est.actuaciones_cantidad === "number"
+                        ? ` · ${est.actuaciones_cantidad} actuación${est.actuaciones_cantidad === 1 ? "" : "es"}`
+                        : ""}
+                    </Typography>
+                  ))}
+                </Box>
+              ) : (
+                <ConteoLine
+                  label="Establecimientos vinculados"
+                  cantidad={preview.contribuyente.establecimientos_afectados.cantidad}
+                />
+              )}
               <ConteoLine
                 label="Actuaciones vinculadas"
                 cantidad={preview.contribuyente.actuaciones_afectadas.cantidad}
               />
-              {preview.conflicto ? null : (
+              {preview.conflicto ? null : preview.contribuyente.cambia_documento_identidad ? (
+                <Alert severity="warning" sx={{ mt: 1 }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: "13px", mb: 0.5 }}>
+                    {CORRECCION_DOCUMENTO_CONFIRMACION_TITULO}
+                  </Typography>
+                  {CORRECCION_DOCUMENTO_CONFIRMACION_DETALLE} {CORRECCION_DOCUMENTO_MISMA_PERSONA}
+                </Alert>
+              ) : (
                 <Alert severity="info" sx={{ mt: 1 }}>
                   {preview.contribuyente.advertencia}
                 </Alert>
