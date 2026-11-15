@@ -108,6 +108,11 @@ export interface ICorreccionConflicto {
   codigo?: string | null;
   detail?: string | null;
   domicilio_ids_ambiguos?: number[];
+  /**
+   * Contrato UX.1: `true` solo si `codigo === "DOCUMENTO_AJENO"` y hay un único
+   * contribuyente activo con ese documento. No inferir por el texto de `detail`.
+   */
+  ofrece_vinculacion?: boolean;
 }
 
 export interface ICorreccionEstablecimientoPreview {

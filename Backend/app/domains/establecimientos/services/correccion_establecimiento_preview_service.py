@@ -57,6 +57,11 @@ def preview_correccion_establecimiento(
         CorreccionEstablecimientoPermisoError / NotFoundError / Error de validación.
         Conflictos de documento o fusión se informan en el payload (puede_aplicar=false)
         salvo documento ajeno, que se expone también como 409 en apply.
+
+        Contrato UX.1: si el documento pertenece a otro contribuyente, ``conflicto`` incluye
+        ``ofrece_vinculacion`` (bool). Es ``true`` solo cuando hay un único id activo ajeno;
+        la UI puede entonces consultar el canal de vinculación. No inferir por el texto de
+        ``detail``. Apply de corrección sigue sin reasignar el titular.
     """
     assert_rol_puede_corregir(actor)
     scope = cargar_ficha_para_correccion(establecimiento_id, for_update=False)
@@ -87,7 +92,7 @@ def preview_correccion_establecimiento(
                     incluir_dom=incluir_dom,
                 )
                 payload["puede_aplicar"] = False
-                payload["conflicto"] = {"codigo": exc.codigo, "detail": exc.detail}
+                payload["conflicto"] = exc.to_conflicto_dict()
                 payload["advertencias"] = [exc.detail, *payload.get("advertencias", [])]
                 return payload
 
@@ -121,7 +126,7 @@ def preview_correccion_establecimiento(
                     incluir_dom=True,
                 )
                 payload["puede_aplicar"] = False
-                payload["conflicto"] = {"codigo": exc.codigo, "detail": exc.detail}
+                payload["conflicto"] = exc.to_conflicto_dict()
                 payload["advertencias"] = [exc.detail, *payload.get("advertencias", [])]
                 return payload
 

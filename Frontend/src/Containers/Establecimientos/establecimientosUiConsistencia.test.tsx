@@ -96,10 +96,11 @@ describe("UI consistencia PR — Establecimientos", () => {
     const pageSrc = readFileSync(detallePagePath, "utf8");
     const headerSrc = readFileSync(fichaHeaderPath, "utf8");
     expect(pageSrc).toContain("CorreccionEstablecimientoDialog");
-    expect(pageSrc).toContain("VinculacionEstablecimientoDialog");
+    expect(pageSrc).not.toContain("VinculacionEstablecimientoDialog");
     expect(pageSrc).toContain("EstablecimientoFichaHeader");
     expect(headerSrc).toContain("Corregir contribuyente");
-    expect(headerSrc).toContain("VINCULACION_FICHA_ACCION");
+    expect(headerSrc).not.toContain("VINCULACION_FICHA_ACCION");
+    expect(headerSrc).not.toContain("Vincular a contribuyente existente");
     expect(headerSrc).toContain("Corregir domicilio");
     expect(headerSrc).toContain("Corregir datos del local");
     expect(headerSrc).toContain('dsVariant="ghost"');

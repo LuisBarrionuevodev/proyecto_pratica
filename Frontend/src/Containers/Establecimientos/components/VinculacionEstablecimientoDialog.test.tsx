@@ -24,29 +24,28 @@ describe("VinculacionEstablecimientoDialog V1.1", () => {
     expect(src).toContain("aplicarVinculacionEstablecimiento");
     expect(src).toContain("fingerprint: preview.fingerprint");
     expect(src).toContain("VINCULACION_ACCION");
-    expect(src).toContain("Confirmar vinculación");
+    expect(src).toContain("VINCULACION_ASOCIAR");
+    expect(src).toContain("VINCULACION_VOLVER");
     expect(src).toContain("Cancelar");
     expect(src).toContain("CUIT / DNI correcto");
     expect(src).not.toContain("resolve_contribuyente");
   });
 
-  it("muestra alcance y no promete reescribir PDF ni datos del destino", () => {
+  it("muestra alcance amigable y no promete reescribir PDF ni datos del destino", () => {
     const src = readFileSync(dialogPath, "utf8");
-    expect(src).toContain("Otros locales del contribuyente anterior");
-    expect(src).toContain("Otros locales del destino");
-    expect(src).toContain("no se modifican");
-    expect(src).toContain("ficha_logica_destino");
-    expect(src).toContain("snapshots_y_pdf");
+    expect(src).toContain("VinculacionConfirmacionContent");
     expect(src).toContain("datos personales");
+    expect(src).not.toContain("resolve_contribuyente");
   });
 
-  it("ficha muestra la acción aparte y el canal de corrección se mantiene", () => {
+  it("ficha no muestra botón exclusivo; la vinculación entra por Corregir contribuyente", () => {
     const pageSrc = readFileSync(detallePath, "utf8");
     const headerSrc = readFileSync(fichaHeaderPath, "utf8");
-    expect(headerSrc).toContain("VINCULACION_FICHA_ACCION");
-    expect(pageSrc).toContain("VinculacionEstablecimientoDialog");
+    expect(headerSrc).not.toContain("VINCULACION_FICHA_ACCION");
+    expect(headerSrc).not.toContain("Vincular a contribuyente existente");
+    expect(pageSrc).not.toContain("VinculacionEstablecimientoDialog");
     expect(pageSrc).toContain("CorreccionEstablecimientoDialog");
-    expect(pageSrc).toContain("onVincularDocumento");
+    expect(pageSrc).not.toContain("onVincularDocumento");
     expect(pageSrc).toContain('role === "admin" || role === "usuario"');
   });
 

@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
-import LinkOutlinedIcon from "@mui/icons-material/LinkOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
@@ -19,14 +18,12 @@ import {
   establecimientoFichaNombreLocalVisible,
   establecimientoFichaRubroVisible,
 } from "../utils/establecimientoFichaDisplay";
-import { VINCULACION_FICHA_ACCION } from "../utils/correccionEstablecimientoCopy";
 import type { CorreccionEstablecimientoKind } from "./CorreccionEstablecimientoDialog";
 
 type Props = {
   detalle: IEstablecimientoOperativoDetail;
   canCorrect: boolean;
   onCorregir: (kind: CorreccionEstablecimientoKind) => void;
-  onVincular?: () => void;
 };
 
 const labelSx = {
@@ -98,9 +95,6 @@ function FichaBloque({
   actionLabel,
   canCorrect,
   onCorrect,
-  extraActionLabel,
-  onExtraAction,
-  extraActionIcon,
   showEndDivider,
 }: {
   icon: ReactNode;
@@ -112,9 +106,6 @@ function FichaBloque({
   actionLabel: string;
   canCorrect: boolean;
   onCorrect: () => void;
-  extraActionLabel?: string;
-  onExtraAction?: () => void;
-  extraActionIcon?: ReactNode;
   showEndDivider: boolean;
 }) {
   return (
@@ -164,18 +155,6 @@ function FichaBloque({
           {actionLabel}
         </AppButton>
       ) : null}
-      {canCorrect && extraActionLabel && onExtraAction ? (
-        <AppButton
-          dsVariant="ghost"
-          dsSize="sm"
-          startIcon={extraActionIcon ?? <LinkOutlinedIcon sx={{ fontSize: 18 }} />}
-          onClick={onExtraAction}
-          aria-label={extraActionLabel}
-          sx={correctActionSx}
-        >
-          {extraActionLabel}
-        </AppButton>
-      ) : null}
     </Box>
   );
 }
@@ -187,7 +166,7 @@ function FichaBloque({
  * Parámetros: detalle de la ficha, permiso de corrección y callback de kind.
  * Retorno: Paper con tres bloques (columnas en desktop, apilados en celular).
  */
-export function EstablecimientoFichaHeader({ detalle, canCorrect, onCorregir, onVincular }: Props) {
+export function EstablecimientoFichaHeader({ detalle, canCorrect, onCorregir }: Props) {
   const contribuyenteNombre = establecimientoFichaContribuyenteNombre(detalle);
   const documento = establecimientoFichaDocumentoVisible(detalle.documento);
   const nombreLocal = establecimientoFichaNombreLocalVisible(detalle.nombre_local);
@@ -214,9 +193,6 @@ export function EstablecimientoFichaHeader({ detalle, canCorrect, onCorregir, on
           actionLabel="Corregir contribuyente"
           canCorrect={canCorrect}
           onCorrect={() => onCorregir("contribuyente")}
-          extraActionLabel={onVincular ? VINCULACION_FICHA_ACCION : undefined}
-          onExtraAction={onVincular}
-          extraActionIcon={<LinkOutlinedIcon sx={{ fontSize: 18 }} />}
           showEndDivider
         />
         <FichaBloque

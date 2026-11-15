@@ -15,9 +15,13 @@ import { FONT_FAMILY_UI } from "../../../theme/typography";
 import { AppButton, AppDialog, AppTextField, ConfirmDialog } from "../../../ui";
 import {
   VINCULACION_ACCION,
+  VINCULACION_ASOCIAR,
   VINCULACION_BUSCAR_HINT,
   VINCULACION_HINT,
+  VINCULACION_REGISTRADO_TITULO,
+  VINCULACION_VOLVER,
 } from "../utils/correccionEstablecimientoCopy";
+import { VinculacionConfirmacionContent } from "./VinculacionConfirmacionContent";
 
 type Props = {
   open: boolean;
@@ -48,14 +52,6 @@ function titularTexto(c: IVinculacionContribuyentePublico | null | undefined): s
   if (razon !== "—") return razon;
   const persona = `${dash(c.apellido)} ${dash(c.nombre)}`.trim();
   return persona || "—";
-}
-
-function ConteoLine({ label, cantidad }: { label: string; cantidad?: number }) {
-  return (
-    <Typography sx={{ fontSize: "13px", color: GLASS_COLORS.textPrimary, fontFamily: FONT_FAMILY_UI }}>
-      {label}: <strong>{cantidad ?? 0}</strong>
-    </Typography>
-  );
 }
 
 /**
@@ -204,62 +200,14 @@ export function VinculacionEstablecimientoDialog({
           setConfirmOpen(false);
         }}
         onConfirm={() => void handleApply()}
-        title="Confirmar vinculación"
-        confirmLabel="Confirmar vinculación"
+        title={VINCULACION_REGISTRADO_TITULO}
+        cancelLabel={VINCULACION_VOLVER}
+        confirmLabel={VINCULACION_ASOCIAR}
         confirmDisabled={!preview?.puede_aplicar || Boolean(preview?.conflicto) || !preview?.fingerprint}
         loading={loadingApply}
         maxWidth="sm"
       >
-        <Stack spacing={1.5}>
-          {error ? <Alert severity="error">{error}</Alert> : null}
-          {preview?.conflicto?.detail ? <Alert severity="warning">{preview.conflicto.detail}</Alert> : null}
-          <Typography sx={{ fontWeight: 700, fontSize: "12px", letterSpacing: "0.08em" }}>
-            ESTABLECIMIENTO
-          </Typography>
-          <Typography sx={{ fontSize: "13px", fontFamily: FONT_FAMILY_UI }}>
-            {dash(preview?.establecimiento?.domicilio_texto)}
-          </Typography>
-          <Typography sx={{ fontWeight: 700, fontSize: "12px", letterSpacing: "0.08em" }}>
-            CONTRIBUYENTE
-          </Typography>
-          <Typography sx={{ fontSize: "13px", fontFamily: FONT_FAMILY_UI }}>
-            Actual: {dash(preview?.contribuyente_actual?.documento)} —{" "}
-            {titularTexto(preview?.contribuyente_actual)}
-          </Typography>
-          <Typography sx={{ fontSize: "13px", fontFamily: FONT_FAMILY_UI }}>
-            Destino: {dash(preview?.contribuyente_destino?.documento)} —{" "}
-            {titularTexto(preview?.contribuyente_destino)}
-          </Typography>
-          <ConteoLine label="Actuaciones" cantidad={preview?.alcance.actuaciones.cantidad} />
-          <ConteoLine label="Notificaciones" cantidad={preview?.alcance.notificaciones.cantidad} />
-          <ConteoLine label="Comprobaciones" cantidad={preview?.alcance.comprobaciones.cantidad} />
-          <ConteoLine label="Oficios" cantidad={preview?.alcance.oficios.cantidad} />
-          <ConteoLine label="Iniciadores" cantidad={preview?.alcance.iniciadores.cantidad} />
-          <ConteoLine label="Ítems de ruta" cantidad={preview?.alcance.ruta_items.cantidad} />
-          <ConteoLine
-            label="Otros locales del contribuyente anterior (no se modifican)"
-            cantidad={preview?.otros_locales_contribuyente_anterior.cantidad}
-          />
-          <ConteoLine
-            label="Otros locales del destino (no se modifican)"
-            cantidad={preview?.otros_locales_contribuyente_destino.cantidad}
-          />
-          {preview?.ficha_logica_destino.existe ? (
-            <Alert severity="info">
-              El contribuyente destino ya tiene un establecimiento en la misma dirección lógica
-              {preview.ficha_logica_destino.establecimiento_operativo_id
-                ? ` (ficha #${preview.ficha_logica_destino.establecimiento_operativo_id})`
-                : ""}
-              . El listado las agrupará. No se eliminan filas físicas.
-            </Alert>
-          ) : null}
-          <Alert severity="info">{preview?.advertencia ?? VINCULACION_HINT}</Alert>
-          {preview?.snapshots_y_pdf ? (
-            <Typography sx={{ fontSize: "12px", color: GLASS_COLORS.textSecondary, fontFamily: FONT_FAMILY_UI }}>
-              {preview.snapshots_y_pdf.detalle}
-            </Typography>
-          ) : null}
-        </Stack>
+        {preview ? <VinculacionConfirmacionContent preview={preview} error={error} /> : null}
       </ConfirmDialog>
     </>
   );

@@ -6,9 +6,18 @@ import {
   CORRECCION_LOCAL_HINT,
   CORRECCION_SIN_CAMBIOS_HINT,
   VINCULACION_ACCION,
+  VINCULACION_ANTECEDENTES_JUNTOS,
+  VINCULACION_ASOCIAR,
+  VINCULACION_CONFLICTO_INSEGURO,
   VINCULACION_DOCUMENTO_AJENO_CTA,
+  VINCULACION_DOCUMENTOS_EMITIDOS,
   VINCULACION_HINT,
+  VINCULACION_PREGUNTA_ASOCIAR,
+  VINCULACION_REGISTRADO_TITULO,
   inferTitularCorreccionModo,
+  mensajeConflictoVinculacionInseguro,
+  ofreceVinculacionDesdeConflicto,
+  titularVinculacionTexto,
 } from "./correccionEstablecimientoCopy";
 
 describe("correccionEstablecimientoCopy", () => {
@@ -46,5 +55,51 @@ describe("correccionEstablecimientoCopy", () => {
     expect(VINCULACION_HINT.toLowerCase()).toContain("no edita");
     expect(VINCULACION_ACCION).toBe("Vincular este establecimiento");
     expect(VINCULACION_DOCUMENTO_AJENO_CTA.toLowerCase()).toContain("no cambia el titular");
+    expect(VINCULACION_REGISTRADO_TITULO.toLowerCase()).toContain("ya está registrado");
+    expect(VINCULACION_PREGUNTA_ASOCIAR.toLowerCase()).toContain("asociar");
+    expect(VINCULACION_ASOCIAR).toBe("Sí, asociar");
+    expect(VINCULACION_ANTECEDENTES_JUNTOS.toLowerCase()).toContain("juntas");
+    expect(VINCULACION_DOCUMENTOS_EMITIDOS.toLowerCase()).toContain("no se modifican");
+    expect(VINCULACION_DOCUMENTOS_EMITIDOS.toLowerCase()).not.toContain("snapshot");
+    expect(VINCULACION_CONFLICTO_INSEGURO.toLowerCase()).toContain("seguridad");
+  });
+
+  it("ofrece vinculación solo con codigo estructurado, no por texto de error", () => {
+    expect(
+      ofreceVinculacionDesdeConflicto({
+        codigo: "DOCUMENTO_AJENO",
+        ofrece_vinculacion: true,
+        detail: "El documento propuesto ya pertenece a otro contribuyente.",
+      })
+    ).toBe(true);
+    expect(
+      ofreceVinculacionDesdeConflicto({
+        codigo: "DOCUMENTO_AJENO",
+        ofrece_vinculacion: false,
+        detail: "El documento propuesto ya pertenece a otro contribuyente.",
+      })
+    ).toBe(false);
+    expect(
+      ofreceVinculacionDesdeConflicto({
+        codigo: "DOCUMENTO_AJENO",
+        detail: "El documento propuesto ya pertenece a otro contribuyente.",
+      })
+    ).toBe(false);
+    expect(
+      ofreceVinculacionDesdeConflicto({
+        codigo: "AMBIGUEDAD_DOMICILIO",
+        ofrece_vinculacion: true,
+        detail: "otro contribuyente",
+      })
+    ).toBe(false);
+    expect(mensajeConflictoVinculacionInseguro("Hay más de un contribuyente activo.")).toContain(
+      VINCULACION_CONFLICTO_INSEGURO
+    );
+    expect(mensajeConflictoVinculacionInseguro("Hay más de un contribuyente activo.")).toContain(
+      "Hay más de un contribuyente activo."
+    );
+    expect(titularVinculacionTexto({ nombre: "Ana", apellido: "Pérez" })).toBe("Ana Pérez");
+    expect(titularVinculacionTexto({ razon_social: "Panadería SRL" })).toBe("Panadería SRL");
+    expect(titularVinculacionTexto({ nombre: "", apellido: "", razon_social: "" })).toBe("");
   });
 });

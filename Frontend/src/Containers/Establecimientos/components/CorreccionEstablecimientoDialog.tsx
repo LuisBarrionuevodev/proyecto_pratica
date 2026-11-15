@@ -15,10 +15,13 @@ import { dialogFormActionsRowSx } from "../../../styles/formDialogStyles";
 import { CSS_VAR_NAMES as V } from "../../../theme/applyCssVariables";
 import {
   aplicarCorreccionEstablecimiento,
+  aplicarVinculacionEstablecimiento,
   previewCorreccionEstablecimiento,
+  previewVinculacionEstablecimiento,
   type ICorreccionEstablecimientoPayload,
   type ICorreccionEstablecimientoPreview,
   type IEstablecimientoOperativoDetail,
+  type IVinculacionEstablecimientoPreview,
 } from "../../../api/establecimientosOperativosApi";
 import {
   fetchRubrosCatalogoCached,
@@ -30,13 +33,22 @@ import {
   CORRECCION_DOMICILIO_HINT,
   CORRECCION_LOCAL_HINT,
   CORRECCION_TITULAR_MODO_AMBOS_HINT,
-  VINCULACION_ACCION,
-  VINCULACION_DOCUMENTO_AJENO_CTA,
+  VINCULACION_ASOCIAR,
+  VINCULACION_DOCUMENTOS_EMITIDOS,
+  VINCULACION_REGISTRADO_TITULO,
+  VINCULACION_VOLVER,
   inferTitularCorreccionModo,
+  mensajeConflictoVinculacionInseguro,
+  ofreceVinculacionDesdeConflicto,
   type TitularCorreccionModo,
 } from "../utils/correccionEstablecimientoCopy";
+import { VinculacionConfirmacionContent } from "./VinculacionConfirmacionContent";
 
 export type CorreccionEstablecimientoKind = "contribuyente" | "domicilio" | "local";
+
+export type CorreccionAppliedResult = {
+  establecimiento_operativo_canonico_id?: number | null;
+};
 
 type NumeroModo = "NUMERO" | "ESQUINA";
 
@@ -46,8 +58,7 @@ type Props = {
   establecimientoId: number;
   detalle: IEstablecimientoOperativoDetail;
   onClose: () => void;
-  onApplied: () => void;
-  onVincularDocumento?: (documento: string) => void;
+  onApplied: (result?: CorreccionAppliedResult) => void;
 };
 
 const modalToggleGroupSx = {
@@ -67,7 +78,7 @@ const modalToggleGroupSx = {
 
 function apiErrorMessage(e: unknown): string {
   if (isAxiosError(e) && e.response?.data && typeof e.response.data === "object") {
-    const data = e.response.data as { detail?: string };
+    const data = e.response.data as { detail?: string; codigo?: string };
     if (data.detail) return String(data.detail);
   }
   return "No se pudo completar la operación.";
@@ -99,8 +110,23 @@ function hintForKind(kind: CorreccionEstablecimientoKind): string {
   return CORRECCION_LOCAL_HINT;
 }
 
+function mensajeConflictoCorreccion(preview: ICorreccionEstablecimientoPreview): string | null {
+  const conflicto = preview.conflicto;
+  if (!conflicto) return null;
+  if (
+    conflicto.codigo === "DOCUMENTO_AJENO" ||
+    conflicto.codigo === "DOCUMENTO_AMBIGUO" ||
+    conflicto.codigo === "AMBIGUEDAD_DOMICILIO"
+  ) {
+    return mensajeConflictoVinculacionInseguro(conflicto.detail);
+  }
+  return conflicto.detail ?? null;
+}
+
 /**
  * Canal controlado: corrige contribuyente, domicilio o datos del local con preview y confirmación.
+ * Si Ver alcance detecta DOCUMENTO_AJENO con ofrece_vinculacion, continúa por el canal de vinculación
+ * (preview + confirmación explícita). No aplica cambios al abrir la vista previa.
  */
 export function CorreccionEstablecimientoDialog({
   open,
@@ -109,7 +135,6 @@ export function CorreccionEstablecimientoDialog({
   detalle,
   onClose,
   onApplied,
-  onVincularDocumento,
 }: Props) {
   const [documento, setDocumento] = useState(detalle.documento ?? "");
   const [apellido, setApellido] = useState(detalle.contrib_apellido ?? "");
@@ -141,6 +166,9 @@ export function CorreccionEstablecimientoDialog({
   );
 
   const [preview, setPreview] = useState<ICorreccionEstablecimientoPreview | null>(null);
+  const [vinculacionPreview, setVinculacionPreview] = useState<IVinculacionEstablecimientoPreview | null>(
+    null
+  );
   const [loadingPreview, setLoadingPreview] = useState(false);
   const [loadingApply, setLoadingApply] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -202,8 +230,8 @@ export function CorreccionEstablecimientoDialog({
     kind,
     documento,
     apellido,
-    nombre,
     razonSocial,
+    nombre,
     calle,
     numero,
     numeroTipo,
@@ -212,11 +240,21 @@ export function CorreccionEstablecimientoDialog({
     nombreLocal,
   ]);
 
+  const resetAlcance = () => {
+    setPreview(null);
+    setVinculacionPreview(null);
+    setError(null);
+  };
+
   const handleClose = () => {
     if (loadingPreview || loadingApply) return;
-    setPreview(null);
-    setError(null);
+    resetAlcance();
     onClose();
+  };
+
+  const handleVolverAlcance = () => {
+    if (loadingApply) return;
+    resetAlcance();
   };
 
   const handleTitularModo = (_: MouseEvent<HTMLElement>, next: TitularCorreccionModo | null) => {
@@ -231,22 +269,36 @@ export function CorreccionEstablecimientoDialog({
 
   const handlePreview = async () => {
     setError(null);
+    setPreview(null);
+    setVinculacionPreview(null);
     setLoadingPreview(true);
     try {
       const res = await previewCorreccionEstablecimiento(establecimientoId, payload);
-      setPreview(res);
-      if (res.conflicto?.detail) {
-        setError(res.conflicto.detail);
+      if (ofreceVinculacionDesdeConflicto(res.conflicto)) {
+        const vinc = await previewVinculacionEstablecimiento(establecimientoId, {
+          documento: documento.trim(),
+        });
+        setVinculacionPreview(vinc);
+        if (!vinc.puede_aplicar || vinc.conflicto) {
+          setError(
+            mensajeConflictoVinculacionInseguro(vinc.conflicto?.detail ?? null)
+          );
+        }
+        return;
       }
+      setPreview(res);
+      const conflictoMsg = mensajeConflictoCorreccion(res);
+      if (conflictoMsg) setError(conflictoMsg);
     } catch (e) {
       setError(apiErrorMessage(e));
       setPreview(null);
+      setVinculacionPreview(null);
     } finally {
       setLoadingPreview(false);
     }
   };
 
-  const handleApply = async () => {
+  const handleApplyCorreccion = async () => {
     if (!preview?.puede_aplicar) return;
     setError(null);
     setLoadingApply(true);
@@ -261,13 +313,41 @@ export function CorreccionEstablecimientoDialog({
     }
   };
 
+  const handleApplyVinculacion = async () => {
+    if (!vinculacionPreview?.puede_aplicar || !vinculacionPreview.fingerprint) return;
+    setError(null);
+    setLoadingApply(true);
+    try {
+      const res = await aplicarVinculacionEstablecimiento(establecimientoId, {
+        documento: documento.trim(),
+        fingerprint: vinculacionPreview.fingerprint,
+      });
+      setVinculacionPreview(null);
+      onApplied({
+        establecimiento_operativo_canonico_id: res.establecimiento_operativo_canonico_id,
+      });
+    } catch (e) {
+      setError(apiErrorMessage(e));
+    } finally {
+      setLoadingApply(false);
+    }
+  };
+
   const showPersonaFields = titularModo === "persona" || titularModo === "ambos";
   const showRazonFields = titularModo === "razon_social" || titularModo === "ambos";
+  const formOpen = open && preview == null && vinculacionPreview == null;
+  const correccionConfirmOpen = open && preview != null && vinculacionPreview == null;
+  const vinculacionConfirmOpen = open && vinculacionPreview != null;
+  const puedeAsociar = Boolean(
+    vinculacionPreview?.puede_aplicar &&
+      vinculacionPreview.fingerprint &&
+      !vinculacionPreview.conflicto
+  );
 
   return (
     <>
       <AppDialog
-        open={open && preview == null}
+        open={formOpen}
         onClose={handleClose}
         title={titleForKind(kind)}
         maxWidth="sm"
@@ -418,13 +498,11 @@ export function CorreccionEstablecimientoDialog({
       </AppDialog>
 
       <ConfirmDialog
-        open={open && preview != null}
-        onClose={() => {
-          if (loadingApply) return;
-          setPreview(null);
-        }}
-        onConfirm={() => void handleApply()}
+        open={correccionConfirmOpen}
+        onClose={handleVolverAlcance}
+        onConfirm={() => void handleApplyCorreccion()}
         title="Confirmar corrección"
+        cancelLabel={VINCULACION_VOLVER}
         confirmLabel="Guardar corrección"
         confirmDisabled={!preview?.puede_aplicar || Boolean(preview?.conflicto)}
         loading={loadingApply}
@@ -434,20 +512,6 @@ export function CorreccionEstablecimientoDialog({
           {error ? <Alert severity="error">{error}</Alert> : null}
           {preview?.sin_cambios ? (
             <Alert severity="info">No hay cambios. No se desvincula el contribuyente ni se modifica ningún dato.</Alert>
-          ) : null}
-          {preview?.conflicto?.detail ? <Alert severity="warning">{preview.conflicto.detail}</Alert> : null}
-          {preview?.conflicto?.codigo === "DOCUMENTO_AJENO" && onVincularDocumento ? (
-            <Box>
-              <Typography sx={{ fontSize: "13px", color: GLASS_COLORS.textSecondary, fontFamily: FONT_FAMILY_UI, mb: 1 }}>
-                {VINCULACION_DOCUMENTO_AJENO_CTA}
-              </Typography>
-              <AppButton
-                dsVariant="primary"
-                onClick={() => onVincularDocumento(documento.trim())}
-              >
-                {VINCULACION_ACCION}
-              </AppButton>
-            </Box>
           ) : null}
 
           {preview?.contribuyente ? (
@@ -475,9 +539,11 @@ export function CorreccionEstablecimientoDialog({
                 label="Actuaciones vinculadas"
                 cantidad={preview.contribuyente.actuaciones_afectadas.cantidad}
               />
-              <Alert severity="info" sx={{ mt: 1 }}>
-                {preview.contribuyente.advertencia}
-              </Alert>
+              {preview.conflicto ? null : (
+                <Alert severity="info" sx={{ mt: 1 }}>
+                  {preview.contribuyente.advertencia}
+                </Alert>
+              )}
             </Box>
           ) : null}
 
@@ -498,8 +564,6 @@ export function CorreccionEstablecimientoDialog({
               <ConteoLine label="Notificaciones" cantidad={preview.domicilio.notificaciones.cantidad} />
               <ConteoLine label="Comprobaciones" cantidad={preview.domicilio.comprobaciones.cantidad} />
               <ConteoLine label="Oficios" cantidad={preview.domicilio.oficios.cantidad} />
-              <ConteoLine label="Iniciadores" cantidad={preview.domicilio.iniciadores.cantidad} />
-              <ConteoLine label="Ítems de ruta" cantidad={preview.domicilio.ruta_items.cantidad} />
               <Alert severity="warning" sx={{ mt: 1 }}>
                 {preview.domicilio.advertencia}
               </Alert>
@@ -536,10 +600,26 @@ export function CorreccionEstablecimientoDialog({
 
           {preview?.snapshots_y_pdf ? (
             <Typography sx={{ fontSize: "12px", color: GLASS_COLORS.textSecondary, fontFamily: FONT_FAMILY_UI }}>
-              {preview.snapshots_y_pdf.detalle}
+              {VINCULACION_DOCUMENTOS_EMITIDOS}
             </Typography>
           ) : null}
         </Stack>
+      </ConfirmDialog>
+
+      <ConfirmDialog
+        open={vinculacionConfirmOpen}
+        onClose={handleVolverAlcance}
+        onConfirm={() => void handleApplyVinculacion()}
+        title={puedeAsociar ? VINCULACION_REGISTRADO_TITULO : "Revisá los datos"}
+        cancelLabel={VINCULACION_VOLVER}
+        confirmLabel={VINCULACION_ASOCIAR}
+        confirmDisabled={!puedeAsociar}
+        loading={loadingApply}
+        maxWidth="sm"
+      >
+        {vinculacionPreview ? (
+          <VinculacionConfirmacionContent preview={vinculacionPreview} error={error} />
+        ) : null}
       </ConfirmDialog>
     </>
   );

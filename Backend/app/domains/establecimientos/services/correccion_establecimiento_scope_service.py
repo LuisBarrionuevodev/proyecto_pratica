@@ -161,6 +161,9 @@ def validar_documento_propuesto(contrib: Contribuyente, documento: str) -> None:
     """
     Rechaza documento que ya pertenece a otro contribuyente (sin fusionar).
 
+    Extra de conflicto:
+        ofrece_vinculacion: True solo si hay exactamente un contribuyente activo ajeno.
+
     Errores:
         CorreccionEstablecimientoConflictError (409).
         CorreccionEstablecimientoError si el documento queda vacío.
@@ -171,9 +174,15 @@ def validar_documento_propuesto(contrib: Contribuyente, documento: str) -> None:
     if len(doc) > 11:
         raise CorreccionEstablecimientoError("El documento no puede superar 11 caracteres.")
     ids = contribuyente_ids_por_documento(doc)
-    ajenos = [i for i in ids if i != int(contrib.id)]
+    ajenos = sorted({int(i) for i in ids if int(i) != int(contrib.id)})
     if ajenos:
-        raise CorreccionEstablecimientoConflictError(MSG_DOC_AJENO, codigo="DOCUMENTO_AJENO")
+        # ``ofrece_vinculacion`` es contrato estructurado: True solo si hay un único id ajeno.
+        # La UI no debe inferir coincidencia por el texto de ``detail``.
+        raise CorreccionEstablecimientoConflictError(
+            MSG_DOC_AJENO,
+            codigo="DOCUMENTO_AJENO",
+            extra={"ofrece_vinculacion": len(ajenos) == 1},
+        )
     # Mismo documento con distinta normalización en OTRO id ya cubierto.
     # Si el normalizado coincide con el propio, ok.
     _ = normalizar_documento(doc)

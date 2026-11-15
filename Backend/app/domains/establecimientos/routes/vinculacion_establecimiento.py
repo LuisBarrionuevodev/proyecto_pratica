@@ -46,8 +46,7 @@ def _http_error(exc: Exception):
     if isinstance(exc, ValidationError):
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(exc)}), 422
     if isinstance(exc, CorreccionEstablecimientoError):
-        body = {"detail": exc.detail, "codigo": getattr(exc, "codigo", None)}
-        return jsonify(body), int(exc.status_code)
+        return jsonify(exc.to_http_body()), int(exc.status_code)
     if isinstance(exc, ValueError):
         msg = str(exc)
         status = 403 if "no autorizado" in msg.lower() else 400

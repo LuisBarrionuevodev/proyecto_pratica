@@ -48,11 +48,19 @@ describe("CorreccionEstablecimientoDialog 1B", () => {
     expect(src).toContain('dsVariant="primary"');
   });
 
-  it("DOCUMENTO_AJENO ofrece vincular sin autoaplicar", () => {
+  it("DOCUMENTO_AJENO único transiciona a vinculación por ofrece_vinculacion, sin autoaplicar", () => {
     const src = readFileSync(dialogPath, "utf8");
-    expect(src).toContain('codigo === "DOCUMENTO_AJENO"');
-    expect(src).toContain("VINCULACION_ACCION");
-    expect(src).toContain("onVincularDocumento");
-    expect(src).not.toContain("aplicarVinculacionEstablecimiento");
+    const previewFn = src.slice(src.indexOf("const handlePreview"), src.indexOf("const handleApplyCorreccion"));
+    const applyVinc = src.slice(src.indexOf("const handleApplyVinculacion"));
+    expect(src).toContain("ofreceVinculacionDesdeConflicto");
+    expect(previewFn).toContain("previewVinculacionEstablecimiento");
+    expect(previewFn).toContain("documento.trim()");
+    expect(previewFn).not.toContain("aplicarVinculacionEstablecimiento");
+    expect(applyVinc).toContain("aplicarVinculacionEstablecimiento");
+    expect(applyVinc).toContain("fingerprint: vinculacionPreview.fingerprint");
+    expect(src).toContain("VINCULACION_ASOCIAR");
+    expect(src).toContain("VINCULACION_REGISTRADO_TITULO");
+    expect(src).not.toContain("onVincularDocumento");
+    expect(src).not.toContain("includes(\"otro contribuyente\")");
   });
 });

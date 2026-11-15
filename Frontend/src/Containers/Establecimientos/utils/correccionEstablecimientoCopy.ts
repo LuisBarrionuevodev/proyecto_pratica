@@ -29,6 +29,71 @@ export const VINCULACION_FICHA_ACCION = "Vincular a contribuyente existente";
 export const VINCULACION_DOCUMENTO_AJENO_CTA =
   "Si el documento ya pertenece a otra persona registrada, usá Vincular este establecimiento. Corregir contribuyente no cambia el titular.";
 
+export const VINCULACION_REGISTRADO_TITULO = "Este contribuyente ya está registrado";
+
+export const VINCULACION_PREGUNTA_ASOCIAR =
+  "¿Querés asociar este establecimiento a este contribuyente?";
+
+export const VINCULACION_OTROS_NO_CAMBIAN = "Los demás establecimientos no se modificarán.";
+
+export const VINCULACION_ANTECEDENTES_JUNTOS =
+  "Las actuaciones de este domicilio se mostrarán juntas.";
+
+export const VINCULACION_DOCUMENTOS_EMITIDOS = "Los documentos ya emitidos no se modifican.";
+
+export const VINCULACION_CONFLICTO_INSEGURO =
+  "No pudimos identificar el vínculo con seguridad. Revisá los datos antes de continuar.";
+
+export const VINCULACION_DETALLE_ALCANCE = "Ver detalle del alcance";
+
+export const VINCULACION_ASOCIAR = "Sí, asociar";
+
+export const VINCULACION_VOLVER = "Volver";
+
+export type VinculacionConflictoInput = {
+  codigo?: string | null;
+  detail?: string | null;
+  ofrece_vinculacion?: boolean;
+};
+
+/**
+ * Transición a vinculación: solo si la API marca DOCUMENTO_AJENO + ofrece_vinculacion.
+ * No usa el texto de `detail`.
+ */
+export function ofreceVinculacionDesdeConflicto(
+  conflicto: VinculacionConflictoInput | null | undefined
+): boolean {
+  return conflicto?.codigo === "DOCUMENTO_AJENO" && conflicto.ofrece_vinculacion === true;
+}
+
+/**
+ * Un solo mensaje de conflicto inseguro: texto general + detalle útil del backend.
+ */
+export function mensajeConflictoVinculacionInseguro(detail?: string | null): string {
+  const extra = (detail ?? "").trim();
+  if (!extra) return VINCULACION_CONFLICTO_INSEGURO;
+  if (extra === VINCULACION_CONFLICTO_INSEGURO) return extra;
+  if (extra.startsWith(VINCULACION_CONFLICTO_INSEGURO)) return extra;
+  return `${VINCULACION_CONFLICTO_INSEGURO} ${extra}`;
+}
+
+type TitularVinculacionInput = {
+  razon_social?: string | null;
+  apellido?: string | null;
+  nombre?: string | null;
+};
+
+/**
+ * Nombre visible del contribuyente encontrado. Vacío si no hay datos (no inventa).
+ */
+export function titularVinculacionTexto(c: TitularVinculacionInput | null | undefined): string {
+  if (!c) return "";
+  const razon = (c.razon_social ?? "").trim();
+  if (razon) return razon;
+  const persona = [(c.nombre ?? "").trim(), (c.apellido ?? "").trim()].filter(Boolean).join(" ");
+  return persona;
+}
+
 export type TitularCorreccionModo = "persona" | "razon_social" | "ambos";
 
 function hasText(value: string | null | undefined): boolean {
