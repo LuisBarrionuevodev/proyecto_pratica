@@ -8,8 +8,9 @@ from app.domains.establecimientos.schemas.correccion_establecimiento_in import (
     ContribuyenteCorreccionIn,
     CorreccionEstablecimientoIn,
     DomicilioCorreccionIn,
+    LocalCorreccionIn,
 )
-from app.models import Contribuyente, Domicilio
+from app.models import Contribuyente, Domicilio, EstablecimientoOperativo
 
 
 def contribuyente_actual_dict(contrib: Contribuyente | None) -> dict[str, Any] | None:
@@ -128,6 +129,57 @@ def hay_cambio_contribuyente(actual: dict[str, Any], propuesto: dict[str, Any]) 
     return False
 
 
+def local_actual_dict(
+    eo: EstablecimientoOperativo,
+    *,
+    nombre_local_fallback: str | None = None,
+) -> dict[str, Any]:
+    """Serializa rubro y nombre del local vigentes de esta ficha (sin reescribir visitas)."""
+    dom = eo.domicilio
+    rub = getattr(dom, "rubro", None) if dom is not None else None
+    nombre_eo = (str(eo.nombre_local).strip() or None) if getattr(eo, "nombre_local", None) else None
+    fallback = (str(nombre_local_fallback).strip() or None) if nombre_local_fallback else None
+    return {
+        "establecimiento_operativo_id": int(eo.id),
+        "domicilio_id": int(dom.id) if dom is not None else None,
+        "rubro_id": int(dom.rubro_id) if dom is not None and dom.rubro_id is not None else None,
+        "rubro_nombre": getattr(rub, "nombre", None) if rub is not None else None,
+        "nombre_local": nombre_eo or fallback,
+        "nombre_local_en_ficha": nombre_eo,
+    }
+
+
+def proposicion_local(
+    actual: dict[str, Any],
+    patch: LocalCorreccionIn | None,
+) -> dict[str, Any]:
+    """Combina rubro/nombre actuales con el parche (omitidos se conservan)."""
+    base = {
+        "rubro_nombre": actual.get("rubro_nombre"),
+        "nombre_local": actual.get("nombre_local"),
+    }
+    if patch is None:
+        return base
+    if patch.rubro_nombre is not None:
+        base["rubro_nombre"] = patch.rubro_nombre
+    if patch.nombre_local is not None:
+        base["nombre_local"] = patch.nombre_local
+    return base
+
+
+def hay_cambio_local(actual: dict[str, Any], propuesto: dict[str, Any]) -> bool:
+    """True si cambia el rubro o el nombre del local de esta ficha."""
+
+    def _n(v: object) -> str:
+        return str(v or "").strip()
+
+    if _n(actual.get("rubro_nombre")) != _n(propuesto.get("rubro_nombre")):
+        return True
+    if _n(actual.get("nombre_local")) != _n(propuesto.get("nombre_local")):
+        return True
+    return False
+
+
 def hay_cambio_domicilio(actual: dict[str, Any], propuesto: dict[str, Any]) -> bool:
     """True si calle/número/tipo cambian."""
 
@@ -149,3 +201,7 @@ def payload_tiene_contribuyente(body: CorreccionEstablecimientoIn) -> bool:
 
 def payload_tiene_domicilio(body: CorreccionEstablecimientoIn) -> bool:
     return body.domicilio is not None
+
+
+def payload_tiene_local(body: CorreccionEstablecimientoIn) -> bool:
+    return body.local is not None

@@ -92,7 +92,9 @@ describe("UI consistencia PR — Establecimientos", () => {
     const src = readFileSync(detallePagePath, "utf8");
     expect(src).toContain("Corregir contribuyente");
     expect(src).toContain("Corregir domicilio");
+    expect(src).toContain("Corregir rubro y nombre del local");
     expect(src).toContain("CorreccionEstablecimientoDialog");
+    expect(src).toContain('dsVariant="primary"');
   });
 });
 

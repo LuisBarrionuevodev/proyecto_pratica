@@ -9,13 +9,17 @@ from app.domains.domicilios.utils.preservar_geocode_domicilio import (
     preservar_geocode_existente_al_editar_domicilio,
     snapshot_domicilio_geocode,
 )
+from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
 from app.domains.establecimientos.mappers.correccion_establecimiento_mapper import (
     contribuyente_actual_dict,
     domicilio_actual_dict,
     hay_cambio_contribuyente,
     hay_cambio_domicilio,
+    hay_cambio_local,
+    local_actual_dict,
     proposicion_contribuyente,
     proposicion_domicilio,
+    proposicion_local,
 )
 from app.domains.establecimientos.presenters.correccion_establecimiento_presenters import (
     apply_result_payload,
@@ -27,6 +31,7 @@ from app.domains.establecimientos.schemas.correccion_establecimiento_in import (
 from app.domains.establecimientos.services.correccion_establecimiento_scope_service import (
     MSG_AMBIGUEDAD,
     MSG_SIN_CONTRIB,
+    CorreccionScope,
     assert_rol_puede_corregir,
     cargar_ficha_para_correccion,
     validar_documento_propuesto,
@@ -87,6 +92,7 @@ def _aplicar_en_transaccion(
 
     incluir_contrib = body.contribuyente is not None
     incluir_dom = body.domicilio is not None
+    incluir_local = body.local is not None
     if incluir_dom and scope.lookalike_ids:
         raise CorreccionEstablecimientoConflictError(MSG_AMBIGUEDAD, codigo="AMBIGUEDAD_DOMICILIO")
 
@@ -120,17 +126,34 @@ def _aplicar_en_transaccion(
                 scope_ids=scope.domicilio_ids_ficha,
             )
 
+    propuesto_l = None
+    cambia_l = False
+    rubro_obj = None
+    if incluir_local:
+        actual_l = local_actual_dict(scope.eo)
+        propuesto_l = proposicion_local(actual_l, body.local)
+        cambia_l = hay_cambio_local(actual_l, propuesto_l)
+        rubro_nombre = propuesto_l.get("rubro_nombre") if propuesto_l else None
+        if rubro_nombre:
+            try:
+                rubro_obj = get_rubro_o_falla(str(rubro_nombre))
+            except ValueError as exc:
+                raise CorreccionEstablecimientoError(str(exc)) from exc
+
     preview = preview_correccion_payload(
         scope,
         propuesto_contrib=propuesto_c,
         propuesto_dom=propuesto_d,
+        propuesto_local=propuesto_l,
         cambia_contrib=cambia_c,
         cambia_dom=cambia_d,
+        cambia_local=cambia_l,
         incluir_contrib=incluir_contrib,
         incluir_dom=incluir_dom,
+        incluir_local=incluir_local,
     )
 
-    if not cambia_c and not cambia_d:
+    if not cambia_c and not cambia_d and not cambia_l:
         return apply_result_payload(preview, applied=False, audit_id=None)
 
     valores_anteriores: dict[str, Any] = {}
@@ -166,7 +189,22 @@ def _aplicar_en_transaccion(
             for did in scope.domicilio_ids_ficha
         ]
 
-    if cambia_c and cambia_d:
+    if cambia_l and not cambia_c and not cambia_d:
+        tipo = "LOCAL"
+        valores_anteriores["local"] = local_actual_dict(scope.eo)
+        _aplicar_local_ficha(scope, propuesto_l or {}, rubro_obj)
+        rubro_id_nuevo = (
+            int(rubro_obj.id)
+            if rubro_obj is not None
+            else (int(scope.domicilio.rubro_id) if scope.domicilio.rubro_id is not None else None)
+        )
+        valores_nuevos["local"] = {
+            "establecimiento_operativo_id": int(scope.eo.id),
+            "domicilio_id": int(scope.domicilio.id),
+            **(propuesto_l or {}),
+            "rubro_id": rubro_id_nuevo,
+        }
+    elif cambia_c and cambia_d:
         tipo = "AMBOS"
     elif cambia_c:
         tipo = "CONTRIBUYENTE"
@@ -179,13 +217,14 @@ def _aplicar_en_transaccion(
         "domicilio_ids": scope.domicilio_ids_ficha if cambia_d else [int(scope.domicilio.id)],
         "establecimiento_ids_contribuyente": scope.establecimiento_ids_contribuyente if cambia_c else [],
         "actuacion_ids_contribuyente": scope.actuacion_ids_contribuyente if cambia_c else [],
-        "actuacion_ids_domicilio": scope.actuacion_ids_domicilio if cambia_d else [],
+        "actuacion_ids_domicilio": scope.actuacion_ids_domicilio if (cambia_d or cambia_l) else [],
         "notificacion_ids": scope.notificacion_ids if cambia_d else [],
         "comprobacion_ids": scope.comprobacion_ids if cambia_d else [],
         "oficio_ids": scope.oficio_ids if cambia_d else [],
         "iniciador_ids": scope.iniciador_ids if cambia_d else [],
         "ruta_item_ids": scope.ruta_item_ids if cambia_d else [],
         "ruta_estados_previos": scope.ruta_estados if cambia_d else [],
+        "reescribe_actuaciones_nombre_local": False,
     }
 
     audit = CorreccionEstablecimientoAudit(
@@ -201,6 +240,34 @@ def _aplicar_en_transaccion(
     db.session.add(audit)
     db.session.commit()
     return apply_result_payload(preview, applied=True, audit_id=int(audit.id))
+
+
+def _aplicar_local_ficha(
+    scope: CorreccionScope,
+    propuesto: dict[str, Any],
+    rubro_obj: Any,
+) -> None:
+    """
+    Actualiza rubro del domicilio ancla y nombre_local de esta ficha.
+
+    No toca otros establecimientos del contribuyente ni reescribe actuaciones.
+    Conserva contribuyente_id, geocode, distrito y barrio.
+    """
+    dom = scope.domicilio
+    distrito_id = dom.distrito_id
+    barrio_id = dom.barrio_id
+    contribuyente_id = dom.contribuyente_id
+    if rubro_obj is not None:
+        dom.rubro_id = int(rubro_obj.id)
+    if "nombre_local" in propuesto:
+        raw = propuesto.get("nombre_local")
+        scope.eo.nombre_local = (str(raw).strip() or None) if raw is not None else scope.eo.nombre_local
+    dom.distrito_id = distrito_id
+    dom.barrio_id = barrio_id
+    dom.contribuyente_id = contribuyente_id
+    db.session.add(dom)
+    db.session.add(scope.eo)
+    db.session.flush()
 
 
 def _corregir_domicilios_ficha(domicilio_ids: list[int], propuesto: dict[str, Any]) -> None:

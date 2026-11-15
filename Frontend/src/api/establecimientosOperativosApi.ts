@@ -70,6 +70,7 @@ export interface IEstablecimientoOperativoDetail extends IEstablecimientoOperati
   contribuyente_id?: number | null;
   lat?: number | string | null;
   lng?: number | string | null;
+  nombre_local?: string | null;
 }
 
 export interface ICorreccionContribuyenteIn {
@@ -86,9 +87,15 @@ export interface ICorreccionDomicilioIn {
   esquina?: string | null;
 }
 
+export interface ICorreccionLocalIn {
+  rubro_nombre?: string | null;
+  nombre_local?: string | null;
+}
+
 export interface ICorreccionEstablecimientoPayload {
   contribuyente?: ICorreccionContribuyenteIn;
   domicilio?: ICorreccionDomicilioIn;
+  local?: ICorreccionLocalIn;
   confirmado?: boolean;
 }
 
@@ -138,6 +145,17 @@ export interface ICorreccionEstablecimientoPreview {
     oficios: ICorreccionIdsResumen;
     iniciadores: ICorreccionIdsResumen;
     ruta_items: ICorreccionIdsResumen;
+    advertencia: string;
+  };
+  local?: {
+    actual: Record<string, string | number | null>;
+    propuesto: Record<string, string | number | null> | null;
+    cambia: boolean;
+    establecimiento_seleccionado_id: number;
+    domicilio_id?: number;
+    actuaciones_que_leen_rubro?: ICorreccionIdsResumen;
+    otros_establecimientos_contribuyente?: ICorreccionIdsResumen;
+    reescribe_actuaciones_nombre_local?: boolean;
     advertencia: string;
   };
   applied?: boolean;

@@ -37,6 +37,7 @@ class CorreccionEstablecimientoAudit(db.Model):
             "CONTRIBUYENTE",
             "DOMICILIO",
             "AMBOS",
+            "LOCAL",
             name="correccion_establecimiento_tipo_enum",
         ),
         nullable=False,

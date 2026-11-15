@@ -132,6 +132,13 @@ def establecimiento_operativo_detail(
     base["contribuyente_id"] = getattr(dom, "contribuyente_id", None) if dom is not None else None
     base["lat"] = getattr(geo, "lat", None) if geo is not None else None
     base["lng"] = getattr(geo, "lng", None) if geo is not None else None
+    nombre_eo = (str(eo.nombre_local).strip() or None) if getattr(eo, "nombre_local", None) else None
+    nombre_ultima = getattr(eo, "_nombre_local_ultima_actuacion", None)
+    if isinstance(nombre_ultima, str):
+        nombre_ultima = nombre_ultima.strip() or None
+    else:
+        nombre_ultima = None
+    base["nombre_local"] = nombre_eo or nombre_ultima
     return base
 
 

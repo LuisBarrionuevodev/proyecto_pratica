@@ -7,10 +7,13 @@ from typing import Any
 from app.domains.establecimientos.mappers.correccion_establecimiento_mapper import (
     hay_cambio_contribuyente,
     hay_cambio_domicilio,
+    hay_cambio_local,
     proposicion_contribuyente,
     proposicion_domicilio,
+    proposicion_local,
     contribuyente_actual_dict,
     domicilio_actual_dict,
+    local_actual_dict,
 )
 from app.domains.establecimientos.presenters.correccion_establecimiento_presenters import (
     preview_correccion_payload,
@@ -29,6 +32,7 @@ from app.domains.establecimientos.utils.correccion_establecimiento_errors import
     CorreccionEstablecimientoConflictError,
     CorreccionEstablecimientoError,
 )
+from app.domains.actuaciones.catalogs.rubro import get_rubro_o_falla
 from app.models import User
 
 
@@ -59,6 +63,7 @@ def preview_correccion_establecimiento(
 
     incluir_contrib = body.contribuyente is not None
     incluir_dom = body.domicilio is not None
+    incluir_local = body.local is not None
 
     propuesto_c = None
     cambia_c = False
@@ -120,12 +125,28 @@ def preview_correccion_establecimiento(
                 payload["advertencias"] = [exc.detail, *payload.get("advertencias", [])]
                 return payload
 
+    propuesto_l = None
+    cambia_l = False
+    if incluir_local:
+        actual_l = local_actual_dict(scope.eo)
+        propuesto_l = proposicion_local(actual_l, body.local)
+        cambia_l = hay_cambio_local(actual_l, propuesto_l)
+        rubro_nombre = propuesto_l.get("rubro_nombre")
+        if rubro_nombre:
+            try:
+                get_rubro_o_falla(str(rubro_nombre))
+            except ValueError as exc:
+                raise CorreccionEstablecimientoError(str(exc)) from exc
+
     return preview_correccion_payload(
         scope,
         propuesto_contrib=propuesto_c,
         propuesto_dom=propuesto_d,
+        propuesto_local=propuesto_l,
         cambia_contrib=cambia_c,
         cambia_dom=cambia_d,
+        cambia_local=cambia_l,
         incluir_contrib=incluir_contrib,
         incluir_dom=incluir_dom,
+        incluir_local=incluir_local,
     )

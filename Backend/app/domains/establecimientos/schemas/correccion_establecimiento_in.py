@@ -40,6 +40,24 @@ class ContribuyenteCorreccionIn(BaseModel):
         return s if s else None
 
 
+class LocalCorreccionIn(BaseModel):
+    """
+    Corrección de rubro y/o nombre del local de **esta** ficha.
+
+    No pertenece al contribuyente compartido. Campos omitidos se conservan.
+    """
+
+    model_config = ConfigDict(extra="forbid")
+
+    rubro_nombre: Optional[str] = Field(None, max_length=128)
+    nombre_local: Optional[str] = Field(None, max_length=255)
+
+    @field_validator("rubro_nombre", "nombre_local", mode="before")
+    @classmethod
+    def strip_text(cls, v: object) -> Optional[str]:
+        return _strip_opt(str(v) if v is not None else None)
+
+
 class DomicilioCorreccionIn(BaseModel):
     """Corrección de calle/número/esquina del domicilio de origen de la ficha."""
 
@@ -73,6 +91,7 @@ class CorreccionEstablecimientoIn(BaseModel):
     Parámetros:
         contribuyente: bloque opcional de corrección de titular (mismos datos, mismo id).
         domicilio: bloque opcional de corrección de dirección de la ficha.
+        local: bloque opcional de rubro y nombre del local de esta ficha.
         confirmado: obligatorio en True para persistir.
 
     Errores:
@@ -83,10 +102,15 @@ class CorreccionEstablecimientoIn(BaseModel):
 
     contribuyente: Optional[ContribuyenteCorreccionIn] = None
     domicilio: Optional[DomicilioCorreccionIn] = None
+    local: Optional[LocalCorreccionIn] = None
     confirmado: bool = False
 
     @model_validator(mode="after")
     def requiere_bloque(self) -> "CorreccionEstablecimientoIn":
-        if self.contribuyente is None and self.domicilio is None:
-            raise ValueError("Debe indicar contribuyente y/o domicilio a corregir.")
+        if self.contribuyente is None and self.domicilio is None and self.local is None:
+            raise ValueError("Debe indicar contribuyente, domicilio o datos del local a corregir.")
+        if self.local is not None and (self.contribuyente is not None or self.domicilio is not None):
+            raise ValueError(
+                "La corrección de rubro y nombre del local va en una operación aparte."
+            )
         return self

@@ -7,6 +7,7 @@ from typing import Any
 from app.domains.establecimientos.mappers.correccion_establecimiento_mapper import (
     contribuyente_actual_dict,
     domicilio_actual_dict,
+    local_actual_dict,
 )
 from app.domains.establecimientos.services.correccion_establecimiento_scope_service import (
     CorreccionScope,
@@ -27,6 +28,14 @@ ADVERTENCIA_DOMICILIO = (
     "Los PDF descargados y snapshots históricos no cambian."
 )
 ADVERTENCIA_SIN_CAMBIOS = "No hay cambios para aplicar. No se desvincula el contribuyente ni se modifica ningún dato."
+ADVERTENCIA_LOCAL = (
+    "Se corrigen el rubro y/o el nombre del local de este establecimiento. "
+    "El rubro se actualiza en el domicilio de origen de esta ficha; las vistas en vivo "
+    "que lo leen (esta ficha y actuaciones con ese domicilio) verán el valor nuevo. "
+    "El nombre del local se guarda en esta ficha; no se reescriben actuaciones.nombre_local "
+    "ni relevamientos.nombre_fantasia. Otros establecimientos del mismo contribuyente no cambian. "
+    "No se modifican estados, actas, coordenadas ni PDF ya emitidos."
+)
 
 
 def _ids_payload(ids: list[int], *, sample: int = 20) -> dict[str, Any]:
@@ -42,10 +51,13 @@ def preview_correccion_payload(
     *,
     propuesto_contrib: dict[str, Any] | None,
     propuesto_dom: dict[str, Any] | None,
+    propuesto_local: dict[str, Any] | None = None,
     cambia_contrib: bool,
     cambia_dom: bool,
+    cambia_local: bool = False,
     incluir_contrib: bool,
     incluir_dom: bool,
+    incluir_local: bool = False,
 ) -> dict[str, Any]:
     """
     Arma el resumen de alcance para confirmar antes de guardar.
@@ -54,8 +66,9 @@ def preview_correccion_payload(
     """
     out: dict[str, Any] = {
         "establecimiento_operativo_id": int(scope.eo.id),
-        "puede_aplicar": scope.conflicto is None and (cambia_contrib or cambia_dom),
-        "sin_cambios": not cambia_contrib and not cambia_dom,
+        "puede_aplicar": scope.conflicto is None
+        and (cambia_contrib or cambia_dom or cambia_local),
+        "sin_cambios": not cambia_contrib and not cambia_dom and not cambia_local,
         "conflicto": None,
         "advertencias": [],
         "snapshots_y_pdf": {
@@ -111,7 +124,24 @@ def preview_correccion_payload(
         }
         out["advertencias"].append(ADVERTENCIA_DOMICILIO)
 
-    if not cambia_contrib and not cambia_dom:
+    if incluir_local:
+        actual_local = local_actual_dict(scope.eo)
+        out["local"] = {
+            "actual": actual_local,
+            "propuesto": propuesto_local,
+            "cambia": cambia_local,
+            "establecimiento_seleccionado_id": int(scope.eo.id),
+            "domicilio_id": int(scope.domicilio.id),
+            "actuaciones_que_leen_rubro": _ids_payload(scope.actuacion_ids_domicilio),
+            "otros_establecimientos_contribuyente": _ids_payload(
+                [i for i in scope.establecimiento_ids_contribuyente if i != int(scope.eo.id)]
+            ),
+            "reescribe_actuaciones_nombre_local": False,
+            "advertencia": ADVERTENCIA_LOCAL,
+        }
+        out["advertencias"].append(ADVERTENCIA_LOCAL)
+
+    if not cambia_contrib and not cambia_dom and not cambia_local:
         out["advertencias"].append(ADVERTENCIA_SIN_CAMBIOS)
         out["puede_aplicar"] = False if scope.conflicto else True
 

@@ -20,6 +20,7 @@ class EstablecimientoOperativo(db.Model):
         unique=True,
         index=True,
     )
+    nombre_local = db.Column(db.String(255), nullable=True)
     created_by_user_id = db.Column(
         db.Integer,
         db.ForeignKey("users.id", ondelete="RESTRICT", onupdate="CASCADE"),
@@ -46,6 +47,7 @@ class EstablecimientoOperativo(db.Model):
         return {
             "id": self.id,
             "domicilio_id": self.domicilio_id,
+            "nombre_local": self.nombre_local,
             "created_by_user_id": self.created_by_user_id,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,

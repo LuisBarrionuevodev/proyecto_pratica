@@ -59,5 +59,10 @@ def get_establecimiento_operativo_con_metricas(
         ultima_act = ultima_actuacion_identidad_logica(dom)
         ultima = ultima_act.fecha if ultima_act is not None else None
         dom_ultima_act = ultima_act.domicilio if ultima_act is not None else None
+        if ultima_act is not None:
+            raw_nl = getattr(ultima_act, "nombre_local", None)
+            eo._nombre_local_ultima_actuacion = (  # type: ignore[attr-defined]
+                str(raw_nl).strip() or None if raw_nl is not None else None
+            )
 
     return eo, cnt_int, ultima, dom_ultima_act

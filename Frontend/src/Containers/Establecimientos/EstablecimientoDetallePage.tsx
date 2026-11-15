@@ -348,23 +348,45 @@ export default function EstablecimientoDetallePage() {
                 DNI/CUIT: {dash(detalle.documento)}
               </Typography>
               {canCorrect ? (
-                <AppButton dsVariant="ghost" onClick={() => setCorreccionKind("contribuyente")}>
+                <AppButton dsVariant="primary" dsSize="sm" onClick={() => setCorreccionKind("contribuyente")}>
                   Corregir contribuyente
                 </AppButton>
               ) : null}
             </Stack>
-            <Typography
-              sx={{
-                mt: 0.75,
-                fontFamily: FONT_FAMILY_UI,
-                fontSize: "12px",
-                fontWeight: 600,
-                color: COLORS.primary,
-                letterSpacing: "0.06em",
-              }}
-            >
-              RUBRO: {dash(detalle.rubro_nombre)}
-            </Typography>
+            <Stack spacing={0.5} sx={{ mt: 0.75 }}>
+              <Typography
+                sx={{
+                  fontFamily: FONT_FAMILY_UI,
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: COLORS.primary,
+                  letterSpacing: "0.06em",
+                }}
+              >
+                RUBRO: {dash(detalle.rubro_nombre)}
+              </Typography>
+              <Typography
+                sx={{
+                  fontFamily: FONT_FAMILY_UI,
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  color: GLASS_COLORS.textSecondary,
+                  letterSpacing: "0.04em",
+                }}
+              >
+                Nombre del local: {dash(detalle.nombre_local)}
+              </Typography>
+              {canCorrect ? (
+                <AppButton
+                  dsVariant="primary"
+                  dsSize="sm"
+                  onClick={() => setCorreccionKind("local")}
+                  sx={{ alignSelf: "flex-start" }}
+                >
+                  Corregir rubro y nombre del local
+                </AppButton>
+              ) : null}
+            </Stack>
 
             <Stack direction="row" spacing={1} alignItems="flex-start" sx={{ mt: 2 }}>
               <LocationOnIcon sx={{ color: COLORS.primary, fontSize: 22, mt: 0.25, flexShrink: 0 }} />
@@ -390,9 +412,10 @@ export default function EstablecimientoDetallePage() {
                 ) : null}
                 {canCorrect ? (
                   <AppButton
-                    dsVariant="ghost"
+                    dsVariant="primary"
+                    dsSize="sm"
                     onClick={() => setCorreccionKind("domicilio")}
-                    sx={{ mt: 1, px: 0, minWidth: 0 }}
+                    sx={{ mt: 1 }}
                   >
                     Corregir domicilio
                   </AppButton>
