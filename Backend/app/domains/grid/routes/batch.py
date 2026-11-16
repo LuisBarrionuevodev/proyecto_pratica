@@ -15,6 +15,7 @@ from app.domains.grid.schemas.batch import (
     CommitBatchRequest,  # nuevo: commit batch
     CommitBatchResponse,  # nuevo: commit batch
 )
+from app.domains.actuaciones.attach.documento_identidad_errors import DocumentoIdentidadError
 from app.shared.errors import pydantic_errors_to_cell_map
 from app.domains.grid.services.batch_store import BatchKindMismatchError, InMemoryBatchStore
 from app.domains.grid.services.validate_service import GridValidateService
@@ -189,6 +190,16 @@ def commit_batch():
                 )
             )
             store.clear_row_key(req.batch_id, item.row_id)
+        except DocumentoIdentidadError as e:
+            results.append(
+                CommitRowResponse(
+                    batch_id=req.batch_id,
+                    row_id=item.row_id,
+                    ok=False,
+                    errors=e.to_grid_errors(),
+                    persisted=None,
+                )
+            )
         except ValueError as e:
             results.append(
                 CommitRowResponse(
@@ -373,6 +384,15 @@ def commit_row():
             persisted=handler.presenter(act),
         )
         store.clear_row_key(req.batch_id, req.row_id)
+        return jsonify(resp.model_dump()), 200
+    except DocumentoIdentidadError as e:
+        resp = CommitRowResponse(
+            batch_id=req.batch_id,
+            row_id=req.row_id,
+            ok=False,
+            errors=e.to_grid_errors(),
+            persisted=None,
+        )
         return jsonify(resp.model_dump()), 200
     except ValueError as e:
         resp = CommitRowResponse(

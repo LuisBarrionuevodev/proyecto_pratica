@@ -49,6 +49,12 @@ describe("parseApiError", () => {
     expect(fields?.numero_oficio).toContain("numero_oficio");
   });
 
+  it("mapea documento ambiguo al campo DNI/CUIT", () => {
+    const msg =
+      "No pudimos identificar este documento con seguridad. Contactá a administración para revisarlo.";
+    expect(mapBusinessDetailToFieldErrors(msg)?.doc_nro).toBe(msg);
+  });
+
   it("global único cuando no hay field errors", () => {
     const parsed = mapApiErrorsToFormState({
       response: { data: { detail: "Permiso denegado" } },

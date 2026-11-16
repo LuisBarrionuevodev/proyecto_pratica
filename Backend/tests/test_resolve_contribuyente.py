@@ -114,6 +114,26 @@ def test_sin_claves_titular_no_borra_campos_existentes(app_ctx) -> None:
     assert c2.nombre == "María"
 
 
+def test_equivalente_sin_claves_no_borra_nombre(app_ctx) -> None:
+    """UNICIDAD.1: reutilizar por formato equivalente conserva la regla de claves ausentes."""
+    plain = str(random.randint(10_000_000, 99_999_999))
+    dotted = f"{plain[:2]}.{plain[2:]}"
+    resolve_contribuyente(
+        {
+            "doc_nro": dotted,
+            "apellido": "Equiv",
+            "nombre": "Fmt",
+            "razon_social": None,
+        }
+    )
+    db.session.flush()
+    c2 = resolve_contribuyente({"doc_nro": plain})
+    db.session.refresh(c2)
+    assert c2.documento == dotted
+    assert c2.apellido == "Equiv"
+    assert c2.nombre == "Fmt"
+
+
 def test_actualizar_solo_razon_social_no_toca_apellido_si_no_viene_clave(app_ctx) -> None:
     doc = _uniq_doc()
     resolve_contribuyente(

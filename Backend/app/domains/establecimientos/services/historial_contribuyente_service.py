@@ -44,12 +44,15 @@ def _documento_sql_expr(column: Any) -> Any:
     return func.replace(func.replace(func.replace(column, ".", ""), "-", ""), " ", "")
 
 
-def contribuyente_ids_por_documento(documento: str) -> list[int]:
+def contribuyente_ids_por_documento(documento: str, *, for_update: bool = False) -> list[int]:
     """
     Resuelve ids de contribuyente por documento normalizado.
 
     Parámetros:
         documento: DNI/CUIT con o sin separadores.
+        for_update: si True, ``SELECT ... FOR UPDATE`` (lectura locking: ve lo
+            commitido más reciente, no el snapshot REPEATABLE READ). Usar solo
+            con GET_LOCK ya tomado, en writers.
 
     Retorno:
         Lista de ids (puede estar vacía).
@@ -57,14 +60,13 @@ def contribuyente_ids_por_documento(documento: str) -> list[int]:
     norm = normalizar_documento(documento)
     if not norm:
         return []
-    rows = (
-        Contribuyente.query.filter(
-            Contribuyente.deleted_at.is_(None),
-            _documento_sql_expr(Contribuyente.documento) == norm,
-        )
-        .with_entities(Contribuyente.id)
-        .all()
-    )
+    q = Contribuyente.query.filter(
+        Contribuyente.deleted_at.is_(None),
+        _documento_sql_expr(Contribuyente.documento) == norm,
+    ).with_entities(Contribuyente.id)
+    if for_update:
+        q = q.with_for_update()
+    rows = q.all()
     return [int(r[0]) for r in rows]
 
 

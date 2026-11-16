@@ -213,6 +213,44 @@ describe("submitCargarActuacionNuevaRow", () => {
     expect(setFieldErrors).toHaveBeenCalledWith({ Rubro: "Rubro obligatorio" });
   });
 
+  it("documento ambiguo: marca DNI, no afirma éxito ni borra lo tipeado", async () => {
+    const msg =
+      "No pudimos identificar este documento con seguridad. Contactá a administración para revisarlo.";
+    mockedValidateRow.mockResolvedValue({
+      batch_id: batchId,
+      row_id: rowId,
+      ok: true,
+      normalized: { _rowId: rowId } as never,
+    });
+    mockedCommitBatch.mockResolvedValue({
+      batch_id: batchId,
+      results: [
+        {
+          batch_id: batchId,
+          row_id: rowId,
+          ok: false,
+          errors: { detail: msg, doc_nro: msg },
+        },
+      ],
+    });
+
+    await submitCargarActuacionNuevaRow({
+      batchId,
+      rowId,
+      payload: {},
+      feedback,
+      resetForm,
+      closeModal,
+      setFieldErrors,
+    });
+
+    expect(feedback.success).not.toHaveBeenCalled();
+    expect(feedback.warning).toHaveBeenCalled();
+    expect(resetForm).not.toHaveBeenCalled();
+    expect(closeModal).not.toHaveBeenCalled();
+    expect(setFieldErrors).toHaveBeenCalledWith({ DNI: msg });
+  });
+
   it("error de red real: feedback.error de conexión", async () => {
     const networkErr = Object.assign(new Error("Network Error"), {
       isAxiosError: true,

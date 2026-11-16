@@ -106,6 +106,14 @@ export function mapBusinessDetailToFieldErrors(message: string): Record<string, 
   }
   if (m.includes("rubro")) return { rubro_nombre: message };
   if (m.includes("domicilio") || m.includes("calle")) return { calle: message };
+  if (
+    m.includes("identificar este documento") ||
+    m.includes("contactá a administración") ||
+    m.includes("contacta a administracion") ||
+    m.includes("no puede superar 11 caracteres")
+  ) {
+    return { doc_nro: message };
+  }
   return null;
 }
 

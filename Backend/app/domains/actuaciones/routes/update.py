@@ -5,6 +5,7 @@ from typing import Any, Dict
 from flask import g, jsonify, request
 from pydantic import ValidationError
 
+from app.domains.actuaciones.attach.documento_identidad_errors import DocumentoIdentidadError
 from app.domains.actuaciones.mappers.actuacion_inspector_patch_mapper import (
     map_inspector_patch_to_canonical,
 )
@@ -111,6 +112,8 @@ def actualizar_actuacion_route(actuacion_id: int):
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
     except CorregirCierreOperativoError as e:
         return jsonify({"detail": str(e)}), 409
+    except DocumentoIdentidadError as e:
+        return jsonify(e.to_http_body()), e.http_status
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400
     except Exception as e:

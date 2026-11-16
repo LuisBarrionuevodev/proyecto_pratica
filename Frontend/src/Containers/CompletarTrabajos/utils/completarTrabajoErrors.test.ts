@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { isCompletarTrabajoCierreNoEnProcesoError } from "./completarTrabajoErrors";
+import {
+  applyCompletarTrabajoFieldErrorsFromApi,
+  isCompletarTrabajoCierreNoEnProcesoError,
+} from "./completarTrabajoErrors";
 
 describe("isCompletarTrabajoCierreNoEnProcesoError", () => {
   it("detecta mensaje ítem no EN_PROCESO (FINALIZADO)", () => {
@@ -22,5 +25,21 @@ describe("isCompletarTrabajoCierreNoEnProcesoError", () => {
       },
     };
     expect(isCompletarTrabajoCierreNoEnProcesoError(err)).toBe(false);
+  });
+});
+
+describe("applyCompletarTrabajoFieldErrorsFromApi documento ambiguo", () => {
+  it("marca doc_nro, no informa éxito y deja el mensaje identificable", () => {
+    const msg =
+      "No pudimos identificar este documento con seguridad. Contactá a administración para revisarlo.";
+    const result = applyCompletarTrabajoFieldErrorsFromApi({
+      response: {
+        status: 409,
+        data: { detail: msg, codigo: "DOCUMENTO_AMBIGUO", errors: { doc_nro: msg } },
+      },
+    });
+    expect(result.fieldErrors.doc_nro).toBe(msg);
+    expect(result.severity).toBe("warning");
+    expect(result.generalMessage).toBeTruthy();
   });
 });

@@ -7,11 +7,12 @@ from app.database import db
 
 class ContribuyenteDocumentoUnico(db.Model):
     """
-    Reserva de documento normalizado para el canal de corrección A2.
+    Reserva de documento normalizado compartida por Cargar, Completar, PUT y A2.
 
-    Garantiza que dos correcciones concurrentes no asignen el mismo CUIT/DNI
-    normalizado a contribuyentes distintos. No reemplaza un unique sobre
-    ``contribuyente.documento`` (pueden existir duplicados históricos).
+    Garantiza que dos operaciones concurrentes no dejen dos contribuyentes
+    activos con el mismo CUIT/DNI normalizado. No reemplaza un unique sobre
+    ``contribuyente.documento`` (pueden existir duplicados históricos: en ese
+    caso no se elige ni se fusiona; el helper responde DOCUMENTO_AMBIGUO).
     """
 
     __tablename__ = "contribuyente_documento_unico"

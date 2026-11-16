@@ -6,6 +6,7 @@ from flask import jsonify, request
 from flask_jwt_extended import jwt_required
 from pydantic import ValidationError
 
+from app.domains.actuaciones.attach.documento_identidad_errors import DocumentoIdentidadError
 from app.domains.actuaciones.schemas.completar_trabajo_cierre_completo_in import (
     CompletarTrabajoCierreCompletoIn,
 )
@@ -47,6 +48,7 @@ def cerrar_completar_trabajo(ruta_item_id: int):
     Errors:
         400: validación de negocio
         404: ítem no encontrado
+        409: documento ambiguo o en uso
         422: Pydantic
     """
     data: dict[str, Any] = request.get_json(silent=True) or {}
@@ -66,5 +68,7 @@ def cerrar_completar_trabajo(ruta_item_id: int):
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
     except LookupError as e:
         return jsonify({"detail": str(e)}), 404
+    except DocumentoIdentidadError as e:
+        return jsonify(e.to_http_body()), e.http_status
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400

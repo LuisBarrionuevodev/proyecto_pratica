@@ -103,6 +103,11 @@ def create_app(config_override: dict | None = None):
 
     db.init_app(app)
     migrate.init_app(app, db)
+    from app.domains.establecimientos.services.contribuyente_documento_unico_service import (
+        register_documento_lock_session_events,
+    )
+
+    register_documento_lock_session_events(app)
     init_jwt(app)
     init_rate_limiter(app)
     register_phase1_jwt_guard(app)

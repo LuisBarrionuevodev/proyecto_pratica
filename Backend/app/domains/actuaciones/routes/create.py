@@ -9,6 +9,7 @@ from app.domains.actuaciones.mappers.grid.actuacion_row_mapper import map_actuac
 from app.domains.actuaciones.presenters.actuacion_presenters import actuacion_to_grid_row
 from app.domains.actuaciones.schemas.grid.actuacion_row_in import ActuacionGridRowIn
 from app.shared.errors import pydantic_errors_to_cell_map
+from app.domains.actuaciones.attach.documento_identidad_errors import DocumentoIdentidadError
 from app.domains.actuaciones.services.create_service import crear_actuacion_desde_payload
 from app.domains.rutas_trabajo.services.auth_service import get_current_user_id
 
@@ -30,6 +31,9 @@ def crear_actuacion():
 
     except ValidationError as e:
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(e)}), 422
+
+    except DocumentoIdentidadError as e:
+        return jsonify(e.to_http_body()), e.http_status
 
     except ValueError as e:
         return jsonify({"detail": str(e)}), 400
