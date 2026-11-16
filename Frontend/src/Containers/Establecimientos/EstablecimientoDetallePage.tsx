@@ -37,6 +37,7 @@ import {
   type CorreccionEstablecimientoKind,
 } from "./components/CorreccionEstablecimientoDialog";
 import { EstablecimientoFichaHeader } from "./components/EstablecimientoFichaHeader";
+import { VinculacionEstablecimientoDialog } from "./components/VinculacionEstablecimientoDialog";
 
 const HIST_PAGE_SIZE = 20;
 
@@ -71,6 +72,17 @@ export default function EstablecimientoDetallePage() {
   const prevHistorialEstIdRef = useRef<number | null>(null);
   const [reloadNonce, setReloadNonce] = useState(0);
   const [correccionKind, setCorreccionKind] = useState<CorreccionEstablecimientoKind | null>(null);
+  const [vinculacionOpen, setVinculacionOpen] = useState(false);
+
+  const recargarOCanonico = (canon?: number | null) => {
+    setCorreccionKind(null);
+    setVinculacionOpen(false);
+    if (canon && establecimientoId != null && canon !== establecimientoId) {
+      navigate(`/establecimientos/${canon}`);
+      return;
+    }
+    setReloadNonce((n) => n + 1);
+  };
 
   useEffect(() => {
     if (establecimientoId == null) {
@@ -285,7 +297,14 @@ export default function EstablecimientoDetallePage() {
       <EstablecimientoFichaHeader
         detalle={detalle}
         canCorrect={canCorrect}
-        onCorregir={(kind) => setCorreccionKind(kind)}
+        onCorregir={(kind) => {
+          setVinculacionOpen(false);
+          setCorreccionKind(kind);
+        }}
+        onCorregirContribuyenteFicha={() => {
+          setCorreccionKind(null);
+          setVinculacionOpen(true);
+        }}
       />
 
       <Paper elevation={0} sx={{ ...glassCard, overflow: "hidden", p: 2 }}>
@@ -322,15 +341,18 @@ export default function EstablecimientoDetallePage() {
           establecimientoId={establecimientoId}
           detalle={detalle}
           onClose={() => setCorreccionKind(null)}
-          onApplied={(res) => {
-            setCorreccionKind(null);
-            const canon = res?.establecimiento_operativo_canonico_id;
-            if (canon && canon !== establecimientoId) {
-              navigate(`/establecimientos/${canon}`);
-              return;
-            }
-            setReloadNonce((n) => n + 1);
-          }}
+          onApplied={(res) => recargarOCanonico(res?.establecimiento_operativo_canonico_id)}
+        />
+      ) : null}
+
+      {vinculacionOpen && detalle && establecimientoId != null ? (
+        <VinculacionEstablecimientoDialog
+          key={`vinculacion-${detalle.id}-${reloadNonce}`}
+          open
+          establecimientoId={establecimientoId}
+          detalle={detalle}
+          onClose={() => setVinculacionOpen(false)}
+          onApplied={(res) => recargarOCanonico(res.establecimiento_operativo_canonico_id)}
         />
       ) : null}
     </Stack>

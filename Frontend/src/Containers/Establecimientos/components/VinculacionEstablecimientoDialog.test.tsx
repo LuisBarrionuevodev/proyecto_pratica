@@ -28,6 +28,9 @@ describe("VinculacionEstablecimientoDialog V1.1", () => {
     expect(src).toContain("VINCULACION_VOLVER");
     expect(src).toContain("Cancelar");
     expect(src).toContain("CUIT / DNI correcto");
+    expect(src).toContain("CORRECCION_CONTRIBUYENTE_FICHA_ACCION");
+    expect(src).toContain("VINCULACION_SIN_ALTA_HINT");
+    expect(src).not.toContain("Vincular a contribuyente existente");
     expect(src).not.toContain("resolve_contribuyente");
   });
 
@@ -38,13 +41,16 @@ describe("VinculacionEstablecimientoDialog V1.1", () => {
     expect(src).not.toContain("resolve_contribuyente");
   });
 
-  it("ficha no muestra botón exclusivo; la vinculación entra por Corregir contribuyente", () => {
+  it("ficha muestra acción de vinculación aparte de Corregir datos del contribuyente", () => {
     const pageSrc = readFileSync(detallePath, "utf8");
     const headerSrc = readFileSync(fichaHeaderPath, "utf8");
-    expect(headerSrc).not.toContain("VINCULACION_FICHA_ACCION");
+    expect(headerSrc).toContain("CORRECCION_DATOS_CONTRIBUYENTE_ACCION");
+    expect(headerSrc).toContain("CORRECCION_CONTRIBUYENTE_FICHA_ACCION");
+    expect(headerSrc).toContain("CORRECCION_CONTRIBUYENTE_FICHA_HINT");
     expect(headerSrc).not.toContain("Vincular a contribuyente existente");
-    expect(pageSrc).not.toContain("VinculacionEstablecimientoDialog");
+    expect(pageSrc).toContain("VinculacionEstablecimientoDialog");
     expect(pageSrc).toContain("CorreccionEstablecimientoDialog");
+    expect(pageSrc).toContain("onCorregirContribuyenteFicha");
     expect(pageSrc).not.toContain("onVincularDocumento");
     expect(pageSrc).toContain('role === "admin" || role === "usuario"');
   });

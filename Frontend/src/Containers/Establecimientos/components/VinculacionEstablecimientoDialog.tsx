@@ -14,11 +14,14 @@ import { GLASS_COLORS } from "../../../styles/GlassStyles";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
 import { AppButton, AppDialog, AppTextField, ConfirmDialog } from "../../../ui";
 import {
+  CORRECCION_CONTRIBUYENTE_FICHA_ACCION,
+  CORRECCION_CONTRIBUYENTE_FICHA_HINT,
   VINCULACION_ACCION,
   VINCULACION_ASOCIAR,
   VINCULACION_BUSCAR_HINT,
   VINCULACION_HINT,
   VINCULACION_REGISTRADO_TITULO,
+  VINCULACION_SIN_ALTA_HINT,
   VINCULACION_VOLVER,
 } from "../utils/correccionEstablecimientoCopy";
 import { VinculacionConfirmacionContent } from "./VinculacionConfirmacionContent";
@@ -55,7 +58,12 @@ function titularTexto(c: IVinculacionContribuyentePublico | null | undefined): s
 }
 
 /**
- * Canal de vinculación: busca un contribuyente existente por documento y reasigna la ficha.
+ * Canal de vinculación de esta ficha: busca un contribuyente existente por documento y reasigna solo el establecimiento abierto.
+ *
+ * Qué hace: preview + confirmación explícita. No crea contribuyentes ni edita datos personales del destino.
+ * Parámetros: ficha abierta, detalle visible y callbacks de cierre/aplicación.
+ * Retorno: diálogos de búsqueda y confirmación.
+ * Errores: SIN_DESTINO, DOCUMENTO_AMBIGUO, PREVIEW_STALE y restantes conflictos del backend se muestran sin persistir.
  */
 export function VinculacionEstablecimientoDialog({
   open,
@@ -135,7 +143,7 @@ export function VinculacionEstablecimientoDialog({
       <AppDialog
         open={formOpen}
         onClose={handleClose}
-        title="Vincular a contribuyente existente"
+        title={CORRECCION_CONTRIBUYENTE_FICHA_ACCION}
         maxWidth="sm"
         fullWidth
         contentDividers
@@ -162,10 +170,13 @@ export function VinculacionEstablecimientoDialog({
       >
         <Stack spacing={2}>
           <Typography sx={{ fontSize: "13px", color: GLASS_COLORS.textSecondary, fontFamily: FONT_FAMILY_UI }}>
+            {CORRECCION_CONTRIBUYENTE_FICHA_HINT}
+          </Typography>
+          <Typography sx={{ fontSize: "13px", color: GLASS_COLORS.textSecondary, fontFamily: FONT_FAMILY_UI }}>
             {VINCULACION_BUSCAR_HINT}
           </Typography>
           <Typography sx={{ fontSize: "13px", color: GLASS_COLORS.textSecondary, fontFamily: FONT_FAMILY_UI }}>
-            {VINCULACION_HINT}
+            {VINCULACION_HINT} {VINCULACION_SIN_ALTA_HINT}
           </Typography>
           {error ? <Alert severity="warning">{error}</Alert> : null}
           <AppTextField

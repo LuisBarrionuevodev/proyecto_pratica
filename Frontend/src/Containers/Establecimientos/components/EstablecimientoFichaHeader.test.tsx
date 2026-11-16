@@ -44,6 +44,7 @@ describe("EstablecimientoFichaHeader UX.1", () => {
         detalle={detalle({})}
         canCorrect
         onCorregir={() => undefined}
+        onCorregirContribuyenteFicha={() => undefined}
       />
     );
     expect(html).toContain("Ana Pérez");
@@ -52,7 +53,9 @@ describe("EstablecimientoFichaHeader UX.1", () => {
     expect(html).toContain("Rubro: Panadería");
     expect(html).toContain("San Martín 100");
     expect(html).toContain("Distrito: Distrito 1");
-    expect(html).toContain("Corregir contribuyente");
+    expect(html).toContain("Corregir datos del contribuyente");
+    expect(html).toContain("Corregir contribuyente de este establecimiento");
+    expect(html).toContain("Usá esta opción si se registró a la persona equivocada en este establecimiento.");
     expect(html).not.toContain("Vincular a contribuyente existente");
     expect(html).toContain("Corregir datos del local");
     expect(html).toContain("Corregir domicilio");
@@ -72,6 +75,7 @@ describe("EstablecimientoFichaHeader UX.1", () => {
         })}
         canCorrect
         onCorregir={() => undefined}
+        onCorregirContribuyenteFicha={() => undefined}
       />
     );
     expect(html).toContain("Panadería El Sol S.A.");
@@ -83,10 +87,16 @@ describe("EstablecimientoFichaHeader UX.1", () => {
 
   it("oculta acciones si el rol no puede corregir", () => {
     const html = render(
-      <EstablecimientoFichaHeader detalle={detalle({})} canCorrect={false} onCorregir={() => undefined} />
+      <EstablecimientoFichaHeader
+        detalle={detalle({})}
+        canCorrect={false}
+        onCorregir={() => undefined}
+        onCorregirContribuyenteFicha={() => undefined}
+      />
     );
     expect(html).toContain("Ana Pérez");
-    expect(html).not.toContain("Corregir contribuyente");
+    expect(html).not.toContain("Corregir datos del contribuyente");
+    expect(html).not.toContain("Corregir contribuyente de este establecimiento");
     expect(html).not.toContain("Vincular a contribuyente existente");
     expect(html).not.toContain("Corregir datos del local");
     expect(html).not.toContain("Corregir domicilio");
@@ -106,6 +116,7 @@ describe("EstablecimientoFichaHeader UX.1", () => {
         })}
         canCorrect={false}
         onCorregir={() => undefined}
+        onCorregirContribuyenteFicha={() => undefined}
       />
     );
     expect(html).toContain("—");

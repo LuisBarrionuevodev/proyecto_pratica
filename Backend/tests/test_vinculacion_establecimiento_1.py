@@ -673,6 +673,10 @@ def test_sin_destino_no_crea(app_ctx, service_actor) -> None:
     prev = preview_vinculacion_establecimiento(eo.id, _body(doc), actor=actor)
     assert prev["puede_aplicar"] is False
     assert prev["conflicto"]["codigo"] == "SIN_DESTINO"
+    detail = (prev["conflicto"].get("detail") or "").lower()
+    assert "no da de alta" in detail
+    assert "corregir datos del contribuyente" in detail
+    assert "no se puede completar desde esta ficha" in detail
     assert Contribuyente.query.filter_by(documento=doc).first() is None
     db.session.refresh(d)
     assert d.contribuyente_id == origen.id

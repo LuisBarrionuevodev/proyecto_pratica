@@ -23,7 +23,10 @@ from app.models import Contribuyente, Domicilio, EstablecimientoOperativo
 
 MSG_SIN_DESTINO = (
     "No hay un contribuyente registrado con ese documento. "
-    "Para corregir los datos de la misma persona usá Corregir contribuyente."
+    "Este canal no da de alta personas nuevas. "
+    "Si es la misma persona y sus datos estaban mal, usá Corregir datos del contribuyente. "
+    "Si se cargó a la persona equivocada y el titular correcto aún no existe, "
+    "no se puede completar desde esta ficha."
 )
 MSG_MISMO_CONTRIB = (
     "El documento corresponde al contribuyente actual de esta ficha. "

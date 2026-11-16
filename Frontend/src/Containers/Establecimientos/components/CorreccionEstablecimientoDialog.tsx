@@ -30,6 +30,7 @@ import {
 } from "../../../utils/rubrosCatalogCache";
 import {
   CORRECCION_CONTRIBUYENTE_HINT,
+  CORRECCION_DATOS_CONTRIBUYENTE_ACCION,
   CORRECCION_DOCUMENTO_CONFIRMACION_DETALLE,
   CORRECCION_DOCUMENTO_CONFIRMACION_TITULO,
   CORRECCION_DOCUMENTO_MISMA_PERSONA,
@@ -102,7 +103,7 @@ function ConteoLine({ label, cantidad }: { label: string; cantidad?: number }) {
 }
 
 function titleForKind(kind: CorreccionEstablecimientoKind): string {
-  if (kind === "contribuyente") return "Corregir contribuyente";
+  if (kind === "contribuyente") return CORRECCION_DATOS_CONTRIBUYENTE_ACCION;
   if (kind === "domicilio") return "Corregir domicilio";
   return "Corregir rubro y nombre del local";
 }

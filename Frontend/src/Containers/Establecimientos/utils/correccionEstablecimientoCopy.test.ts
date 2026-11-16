@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CORRECCION_CONTRIBUYENTE_FICHA_ACCION,
+  CORRECCION_CONTRIBUYENTE_FICHA_HINT,
   CORRECCION_CONTRIBUYENTE_HINT,
+  CORRECCION_DATOS_CONTRIBUYENTE_ACCION,
   CORRECCION_DOCUMENTO_CONFIRMACION_DETALLE,
   CORRECCION_DOCUMENTO_CONFIRMACION_TITULO,
   CORRECCION_DOCUMENTO_MISMA_PERSONA,
@@ -20,6 +23,7 @@ import {
   VINCULACION_OCULTAR_DETALLE,
   VINCULACION_PREGUNTA_ASOCIAR,
   VINCULACION_REGISTRADO_TITULO,
+  VINCULACION_SIN_ALTA_HINT,
   etiquetaCantidad,
   inferTitularCorreccionModo,
   mensajeConflictoVinculacionInseguro,
@@ -31,7 +35,13 @@ import {
 
 describe("correccionEstablecimientoCopy", () => {
   it("no promete recálculo de coordenadas ni cambio de titular", () => {
+    expect(CORRECCION_DATOS_CONTRIBUYENTE_ACCION).toBe("Corregir datos del contribuyente");
+    expect(CORRECCION_CONTRIBUYENTE_FICHA_ACCION).toBe(
+      "Corregir contribuyente de este establecimiento"
+    );
+    expect(CORRECCION_CONTRIBUYENTE_FICHA_HINT.toLowerCase()).toContain("persona equivocada");
     expect(CORRECCION_CONTRIBUYENTE_HINT.toLowerCase()).toContain("misma persona");
+    expect(CORRECCION_CONTRIBUYENTE_HINT.toLowerCase()).toContain("todos sus establecimientos");
     expect(CORRECCION_CONTRIBUYENTE_HINT.toLowerCase()).toContain("cuit/dni");
     expect(CORRECCION_CONTRIBUYENTE_HINT.toLowerCase()).toContain("solo este establecimiento");
     expect(CORRECCION_DOCUMENTO_CONFIRMACION_TITULO.toLowerCase()).toContain(
@@ -69,7 +79,11 @@ describe("correccionEstablecimientoCopy", () => {
   it("vinculación no promete editar datos personales ni fusionar", () => {
     expect(VINCULACION_HINT.toLowerCase()).toContain("vínculo");
     expect(VINCULACION_HINT.toLowerCase()).toContain("no edita");
+    expect(VINCULACION_SIN_ALTA_HINT.toLowerCase()).toContain("no se crea");
     expect(VINCULACION_ACCION).toBe("Vincular este establecimiento");
+    expect(VINCULACION_DOCUMENTO_AJENO_CTA.toLowerCase()).toContain(
+      "corregir contribuyente de este establecimiento"
+    );
     expect(VINCULACION_DOCUMENTO_AJENO_CTA.toLowerCase()).toContain("no cambia el titular");
     expect(VINCULACION_REGISTRADO_TITULO.toLowerCase()).toContain("ya está registrado");
     expect(VINCULACION_PREGUNTA_ASOCIAR.toLowerCase()).toContain("asociar");

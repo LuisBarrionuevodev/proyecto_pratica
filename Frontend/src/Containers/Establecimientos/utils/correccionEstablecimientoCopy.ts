@@ -1,8 +1,17 @@
 /**
  * Textos de alcance/advertencia alineados al canal de corrección controlada.
  */
+export const CORRECCION_DATOS_CONTRIBUYENTE_ACCION = "Corregir datos del contribuyente";
+
+export const CORRECCION_CONTRIBUYENTE_FICHA_ACCION =
+  "Corregir contribuyente de este establecimiento";
+
+export const CORRECCION_CONTRIBUYENTE_FICHA_HINT =
+  "Usá esta opción si se registró a la persona equivocada en este establecimiento.";
+
 export const CORRECCION_CONTRIBUYENTE_HINT =
   "Corrige nombre, apellido, razón social o un CUIT/DNI mal cargado de la misma persona. " +
+  "La corrección se aplica a todos sus establecimientos. " +
   "Si el documento ya pertenece a otro contribuyente, se propone asociar solo este establecimiento.";
 
 export const CORRECCION_DOCUMENTO_CONFIRMACION_TITULO =
@@ -27,17 +36,21 @@ export const CORRECCION_TITULAR_MODO_AMBOS_HINT =
   "Este registro tiene persona y razón social. Se muestran ambos para no perder datos históricos.";
 
 export const VINCULACION_HINT =
-  "Esta operación cambia el vínculo de esta ficha al contribuyente encontrado. No edita sus datos personales.";
+  "Esta operación cambia el vínculo de esta ficha al contribuyente encontrado. No edita sus datos personales ni los demás locales.";
 
 export const VINCULACION_BUSCAR_HINT =
-  "Ingresá el CUIT o DNI correcto. Si ya pertenece a un contribuyente registrado, Digitaliza lo muestra para vincular este establecimiento.";
+  "Ingresá el CUIT o DNI de la persona correcta. Si ya está registrada, Digitaliza la muestra para vincular solo este establecimiento.";
+
+export const VINCULACION_SIN_ALTA_HINT =
+  "Si el titular correcto aún no está registrado, no se crea desde esta ficha.";
 
 export const VINCULACION_ACCION = "Vincular este establecimiento";
 
-export const VINCULACION_FICHA_ACCION = "Vincular a contribuyente existente";
+export const VINCULACION_FICHA_ACCION = CORRECCION_CONTRIBUYENTE_FICHA_ACCION;
 
 export const VINCULACION_DOCUMENTO_AJENO_CTA =
-  "Si el documento ya pertenece a otra persona registrada, usá Vincular este establecimiento. Corregir contribuyente no cambia el titular.";
+  "Si el documento ya pertenece a otra persona registrada, usá Corregir contribuyente de este establecimiento. " +
+  "Corregir datos del contribuyente no cambia el titular de la ficha.";
 
 export const VINCULACION_REGISTRADO_TITULO = "Este contribuyente ya está registrado";
 
@@ -56,7 +69,7 @@ export const VINCULACION_DOCUMENTOS_CONSERVAN =
 
 export const VINCULACION_DATOS_DESTINO_CONSERVAN =
   "Los datos personales del contribuyente encontrado se conservan. " +
-  "No se aplican el nombre o la razón social que escribiste en Corregir contribuyente.";
+  "No se aplican el nombre o la razón social que escribiste en Corregir datos del contribuyente.";
 
 export const VINCULACION_HISTORIAL_TITULO = "Historial que se asociará";
 

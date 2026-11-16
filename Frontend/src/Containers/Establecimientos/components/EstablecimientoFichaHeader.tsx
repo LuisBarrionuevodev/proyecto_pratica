@@ -3,6 +3,7 @@ import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import LocationOnOutlinedIcon from "@mui/icons-material/LocationOnOutlined";
 import PersonOutlineIcon from "@mui/icons-material/PersonOutline";
 import StorefrontOutlinedIcon from "@mui/icons-material/StorefrontOutlined";
+import SwapHorizOutlinedIcon from "@mui/icons-material/SwapHorizOutlined";
 import { Box, Paper, Stack, Typography } from "@mui/material";
 
 import type { IEstablecimientoOperativoDetail } from "../../../api/establecimientosOperativosApi";
@@ -11,6 +12,11 @@ import { glassCard, GLASS_COLORS } from "../../../styles/GlassStyles";
 import { FONT_FAMILY_UI } from "../../../theme/typography";
 import { AppButton } from "../../../ui";
 import { establecimientoDomicilioLineaVisible } from "../utils/establecimientoDomicilioVisible";
+import {
+  CORRECCION_CONTRIBUYENTE_FICHA_ACCION,
+  CORRECCION_CONTRIBUYENTE_FICHA_HINT,
+  CORRECCION_DATOS_CONTRIBUYENTE_ACCION,
+} from "../utils/correccionEstablecimientoCopy";
 import {
   establecimientoFichaContribuyenteNombre,
   establecimientoFichaDocumentoVisible,
@@ -24,6 +30,7 @@ type Props = {
   detalle: IEstablecimientoOperativoDetail;
   canCorrect: boolean;
   onCorregir: (kind: CorreccionEstablecimientoKind) => void;
+  onCorregirContribuyenteFicha: () => void;
 };
 
 const labelSx = {
@@ -85,6 +92,16 @@ const correctActionSx = {
   },
 };
 
+const hintSx = {
+  fontFamily: FONT_FAMILY_UI,
+  fontSize: "11px",
+  fontWeight: 500,
+  color: GLASS_COLORS.textMuted,
+  letterSpacing: "0.02em",
+  lineHeight: 1.4,
+  overflowWrap: "anywhere" as const,
+};
+
 function FichaBloque({
   icon,
   label,
@@ -93,8 +110,12 @@ function FichaBloque({
   secondary,
   hideSecondary,
   actionLabel,
+  extraActionLabel,
+  extraActionHint,
+  extraActionHintId,
   canCorrect,
   onCorrect,
+  onExtraCorrect,
   showEndDivider,
 }: {
   icon: ReactNode;
@@ -104,8 +125,12 @@ function FichaBloque({
   secondary: string;
   hideSecondary?: boolean;
   actionLabel: string;
+  extraActionLabel?: string;
+  extraActionHint?: string;
+  extraActionHintId?: string;
   canCorrect: boolean;
   onCorrect: () => void;
+  onExtraCorrect?: () => void;
   showEndDivider: boolean;
 }) {
   return (
@@ -144,16 +169,38 @@ function FichaBloque({
       </Typography>
       {hideSecondary ? null : <Typography sx={secondarySx}>{secondary}</Typography>}
       {canCorrect ? (
-        <AppButton
-          dsVariant="ghost"
-          dsSize="sm"
-          startIcon={<EditOutlinedIcon sx={{ fontSize: 18 }} />}
-          onClick={onCorrect}
-          aria-label={actionLabel}
-          sx={correctActionSx}
-        >
-          {actionLabel}
-        </AppButton>
+        <Stack spacing={0.25} sx={{ mt: 0.5 }}>
+          <AppButton
+            dsVariant="ghost"
+            dsSize="sm"
+            startIcon={<EditOutlinedIcon sx={{ fontSize: 18 }} />}
+            onClick={onCorrect}
+            aria-label={actionLabel}
+            sx={{ ...correctActionSx, mt: 0 }}
+          >
+            {actionLabel}
+          </AppButton>
+          {extraActionLabel && onExtraCorrect ? (
+            <>
+              <AppButton
+                dsVariant="ghost"
+                dsSize="sm"
+                startIcon={<SwapHorizOutlinedIcon sx={{ fontSize: 18 }} />}
+                onClick={onExtraCorrect}
+                aria-label={extraActionLabel}
+                aria-describedby={extraActionHint ? extraActionHintId : undefined}
+                sx={{ ...correctActionSx, mt: 0 }}
+              >
+                {extraActionLabel}
+              </AppButton>
+              {extraActionHint ? (
+                <Typography id={extraActionHintId} sx={hintSx}>
+                  {extraActionHint}
+                </Typography>
+              ) : null}
+            </>
+          ) : null}
+        </Stack>
       ) : null}
     </Box>
   );
@@ -162,11 +209,16 @@ function FichaBloque({
 /**
  * Tarjeta superior de Ver establecimiento: contribuyente, local y domicilio.
  *
- * Qué hace: presenta datos vigentes y dispara el mismo flujo de corrección (si el rol puede).
- * Parámetros: detalle de la ficha, permiso de corrección y callback de kind.
+ * Qué hace: presenta datos vigentes y dispara corrección global, vinculación de ficha o corrección de local/domicilio.
+ * Parámetros: detalle, permiso, callback de kind y callback de vinculación de esta ficha.
  * Retorno: Paper con tres bloques (columnas en desktop, apilados en celular).
  */
-export function EstablecimientoFichaHeader({ detalle, canCorrect, onCorregir }: Props) {
+export function EstablecimientoFichaHeader({
+  detalle,
+  canCorrect,
+  onCorregir,
+  onCorregirContribuyenteFicha,
+}: Props) {
   const contribuyenteNombre = establecimientoFichaContribuyenteNombre(detalle);
   const documento = establecimientoFichaDocumentoVisible(detalle.documento);
   const nombreLocal = establecimientoFichaNombreLocalVisible(detalle.nombre_local);
@@ -190,9 +242,13 @@ export function EstablecimientoFichaHeader({ detalle, canCorrect, onCorregir }: 
           label="Contribuyente"
           primary={contribuyenteNombre}
           secondary={`DNI/CUIT: ${documento}`}
-          actionLabel="Corregir contribuyente"
+          actionLabel={CORRECCION_DATOS_CONTRIBUYENTE_ACCION}
+          extraActionLabel={CORRECCION_CONTRIBUYENTE_FICHA_ACCION}
+          extraActionHint={CORRECCION_CONTRIBUYENTE_FICHA_HINT}
+          extraActionHintId="ficha-contribuyente-equivocado-hint"
           canCorrect={canCorrect}
           onCorrect={() => onCorregir("contribuyente")}
+          onExtraCorrect={onCorregirContribuyenteFicha}
           showEndDivider
         />
         <FichaBloque
