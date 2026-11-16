@@ -23,6 +23,10 @@ import {
   VINCULACION_OCULTAR_DETALLE,
   VINCULACION_PREGUNTA_ASOCIAR,
   VINCULACION_REGISTRADO_TITULO,
+  VINCULACION_ALTA_CONFIRMAR,
+  VINCULACION_CARGAR,
+  VINCULACION_NO_ENCONTRADO_DETALLE,
+  VINCULACION_NO_ENCONTRADO_TITULO,
   VINCULACION_SIN_ALTA_HINT,
   etiquetaCantidad,
   inferTitularCorreccionModo,
@@ -79,7 +83,7 @@ describe("correccionEstablecimientoCopy", () => {
   it("vinculación no promete editar datos personales ni fusionar", () => {
     expect(VINCULACION_HINT.toLowerCase()).toContain("vínculo");
     expect(VINCULACION_HINT.toLowerCase()).toContain("no edita");
-    expect(VINCULACION_SIN_ALTA_HINT.toLowerCase()).toContain("no se crea");
+    expect(VINCULACION_SIN_ALTA_HINT.toLowerCase()).toContain("cargar");
     expect(VINCULACION_ACCION).toBe("Vincular este establecimiento");
     expect(VINCULACION_DOCUMENTO_AJENO_CTA.toLowerCase()).toContain(
       "corregir contribuyente de este establecimiento"
@@ -99,6 +103,10 @@ describe("correccionEstablecimientoCopy", () => {
     expect(VINCULACION_DOCUMENTOS_CONSERVAN.toLowerCase()).not.toContain("snapshot");
     expect(VINCULACION_OCULTAR_DETALLE).toBe("Ocultar detalle del alcance");
     expect(VINCULACION_CONFLICTO_INSEGURO.toLowerCase()).toContain("seguridad");
+    expect(VINCULACION_NO_ENCONTRADO_TITULO.toLowerCase()).toContain("no encontramos");
+    expect(VINCULACION_NO_ENCONTRADO_DETALLE.toLowerCase()).toContain("cargar sus datos");
+    expect(VINCULACION_CARGAR).toBe("Cargar contribuyente");
+    expect(VINCULACION_ALTA_CONFIRMAR).toBe("Sí, crear y asociar");
   });
 
   it("ofrece vinculación solo con codigo estructurado, no por texto de error", () => {

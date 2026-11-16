@@ -30,6 +30,10 @@ describe("VinculacionEstablecimientoDialog V1.1", () => {
     expect(src).toContain("CUIT / DNI correcto");
     expect(src).toContain("CORRECCION_CONTRIBUYENTE_FICHA_ACCION");
     expect(src).toContain("VINCULACION_SIN_ALTA_HINT");
+    expect(src).toContain("VINCULACION_CARGAR");
+    expect(src).toContain("VINCULACION_NO_ENCONTRADO_TITULO");
+    expect(src).toContain('paso === "alta"');
+    expect(src).toContain("alta:");
     expect(src).not.toContain("Vincular a contribuyente existente");
     expect(src).not.toContain("resolve_contribuyente");
   });

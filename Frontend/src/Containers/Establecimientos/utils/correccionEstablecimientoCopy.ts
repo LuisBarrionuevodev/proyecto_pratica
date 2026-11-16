@@ -39,10 +39,24 @@ export const VINCULACION_HINT =
   "Esta operación cambia el vínculo de esta ficha al contribuyente encontrado. No edita sus datos personales ni los demás locales.";
 
 export const VINCULACION_BUSCAR_HINT =
-  "Ingresá el CUIT o DNI de la persona correcta. Si ya está registrada, Digitaliza la muestra para vincular solo este establecimiento.";
+  "Ingresá el CUIT o DNI de la persona correcta. Si ya está registrada, Digitaliza la muestra para vincular solo este establecimiento. Si no existe, podés cargarla.";
 
 export const VINCULACION_SIN_ALTA_HINT =
-  "Si el titular correcto aún no está registrado, no se crea desde esta ficha.";
+  "Si el titular correcto aún no está registrado, podés cargar sus datos y asociarlos solo a esta ficha.";
+
+export const VINCULACION_NO_ENCONTRADO_TITULO = "No encontramos este contribuyente.";
+
+export const VINCULACION_NO_ENCONTRADO_DETALLE =
+  "¿Querés cargar sus datos para corregir este establecimiento?";
+
+export const VINCULACION_CARGAR = "Cargar contribuyente";
+
+export const VINCULACION_ALTA_CONFIRMAR = "Sí, crear y asociar";
+
+export const VINCULACION_PROPUESTO_LABEL = "Contribuyente propuesto";
+
+export const VINCULACION_NO_ES_CAMBIO_DUENO =
+  "Esto corrige un titular cargado por error en esta ficha. No registra un cambio de dueño a lo largo del tiempo.";
 
 export const VINCULACION_ACCION = "Vincular este establecimiento";
 

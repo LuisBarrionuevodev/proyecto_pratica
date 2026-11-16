@@ -119,6 +119,29 @@ describe("VinculacionConfirmacionContent", () => {
     expect(html).toContain("grid-template-columns");
   });
 
+  it("en alta muestra propuesto, actual y aclara que no es cambio de dueño", () => {
+    const html = render(
+      <VinculacionConfirmacionContent
+        preview={preview({
+          situacion: "ALTA",
+          crea_contribuyente: true,
+          contribuyente_destino: {
+            id: null,
+            documento: "20333333333",
+            apellido: "Nuevo",
+            nombre: "Titular",
+            razon_social: null,
+          },
+        })}
+      />
+    );
+    expect(html).toContain("Contribuyente propuesto");
+    expect(html).toContain("Titular Nuevo");
+    expect(html).toContain("Contribuyente actual");
+    expect(html).toContain("titular cargado por error");
+    expect(html).not.toContain("Los datos personales del contribuyente encontrado se conservan.");
+  });
+
   it("aclara antecedentes conjuntos solo si ya existe ficha lógica del mismo domicilio", () => {
     const html = render(
       <VinculacionConfirmacionContent

@@ -18,6 +18,7 @@ from app.domains.establecimientos.services.vinculacion_establecimiento_apply_ser
 from app.domains.establecimientos.services.vinculacion_establecimiento_preview_service import (
     preview_vinculacion_establecimiento,
 )
+from app.domains.actuaciones.attach.documento_identidad_errors import DocumentoIdentidadError
 from app.domains.establecimientos.utils.correccion_establecimiento_errors import (
     CorreccionEstablecimientoError,
 )
@@ -47,6 +48,8 @@ def _http_error(exc: Exception):
         return jsonify({"detail": "Validation error", "errors": pydantic_errors_to_cell_map(exc)}), 422
     if isinstance(exc, CorreccionEstablecimientoError):
         return jsonify(exc.to_http_body()), int(exc.status_code)
+    if isinstance(exc, DocumentoIdentidadError):
+        return jsonify(exc.to_http_body()), int(exc.http_status)
     if isinstance(exc, ValueError):
         msg = str(exc)
         status = 403 if "no autorizado" in msg.lower() else 400

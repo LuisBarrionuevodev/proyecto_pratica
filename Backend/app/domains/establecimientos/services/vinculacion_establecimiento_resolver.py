@@ -22,11 +22,15 @@ from app.domains.geolocalizacion.normalizacion_calles.services.normalize_string 
 from app.models import Contribuyente, Domicilio, EstablecimientoOperativo
 
 MSG_SIN_DESTINO = (
-    "No hay un contribuyente registrado con ese documento. "
-    "Este canal no da de alta personas nuevas. "
-    "Si es la misma persona y sus datos estaban mal, usá Corregir datos del contribuyente. "
-    "Si se cargó a la persona equivocada y el titular correcto aún no existe, "
-    "no se puede completar desde esta ficha."
+    "No encontramos este contribuyente. "
+    "¿Querés cargar sus datos para corregir este establecimiento?"
+)
+MSG_DESTINO_APARECIO = (
+    "El contribuyente apareció desde la vista previa. "
+    "Volvé a consultar antes de confirmar. No se creó un duplicado."
+)
+MSG_ALTA_REQUERIDA = (
+    "Indicá nombre y apellido, o razón social, para cargar el contribuyente."
 )
 MSG_MISMO_CONTRIB = (
     "El documento corresponde al contribuyente actual de esta ficha. "
@@ -50,6 +54,8 @@ MSG_CONFIRMAR = "Debe confirmar explícitamente la vinculación antes de guardar
 def resolver_contribuyente_destino(
     documento: str,
     origen: Contribuyente,
+    *,
+    for_update: bool = False,
 ) -> Contribuyente:
     """
     Encuentra el contribuyente destino por documento normalizado.
@@ -57,6 +63,7 @@ def resolver_contribuyente_destino(
     Parámetros:
         documento: CUIT/DNI ingresado (se normaliza en el lookup).
         origen: contribuyente actual de la ficha.
+        for_update: locking de lectura (apply, con GET_LOCK tomado).
 
     Retorno:
         Instancia activa distinta de ``origen``.
@@ -71,7 +78,7 @@ def resolver_contribuyente_destino(
     if len(doc) > 11:
         raise CorreccionEstablecimientoError("El documento no puede superar 11 caracteres.")
 
-    ids = contribuyente_ids_por_documento(doc)
+    ids = contribuyente_ids_por_documento(doc, for_update=for_update)
     if not ids:
         raise CorreccionEstablecimientoError(MSG_SIN_DESTINO, codigo="SIN_DESTINO")
     unique = sorted(set(int(i) for i in ids))

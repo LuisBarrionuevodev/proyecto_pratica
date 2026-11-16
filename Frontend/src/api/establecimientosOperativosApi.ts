@@ -115,6 +115,7 @@ export interface ICorreccionConflicto {
    * CUIT.1: documento inexistente no usa este flag; se corrige la misma persona.
    */
   ofrece_vinculacion?: boolean;
+  puede_crear?: boolean;
 }
 
 export interface ICorreccionEstablecimientoAsociado {
@@ -286,14 +287,21 @@ export async function aplicarCorreccionEstablecimiento(
   return data;
 }
 
+export interface IVinculacionAltaIn {
+  apellido?: string | null;
+  nombre?: string | null;
+  razon_social?: string | null;
+}
+
 export interface IVinculacionEstablecimientoPayload {
   documento: string;
   fingerprint?: string | null;
   confirmado?: boolean;
+  alta?: IVinculacionAltaIn | null;
 }
 
 export interface IVinculacionContribuyentePublico {
-  id: number;
+  id: number | null;
   documento: string | null;
   apellido: string | null;
   nombre: string | null;
@@ -340,6 +348,8 @@ export interface IVinculacionEstablecimientoPreview {
     establecimiento_operativo_id: number | null;
   };
   edita_datos_destino: boolean;
+  puede_crear?: boolean;
+  crea_contribuyente?: boolean;
   applied?: boolean;
   audit_id?: number | null;
   establecimiento_operativo_canonico_id?: number | null;

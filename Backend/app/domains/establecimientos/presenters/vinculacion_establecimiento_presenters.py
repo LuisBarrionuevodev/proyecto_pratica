@@ -26,6 +26,13 @@ ADVERTENCIA_SITUACION_B = (
     "El contribuyente destino ya tiene un establecimiento en la misma dirección lógica. "
     "El listado las agrupará en la ficha canónica. No se eliminan filas físicas."
 )
+ADVERTENCIA_ALTA = (
+    "Vas a crear a esta persona y vincular solo este establecimiento. "
+    "No es un cambio de dueño a lo largo del tiempo. "
+    "Los demás locales del contribuyente anterior no se modifican. "
+    "Los PDF emitidos y los snapshots históricos no se reescriben. "
+    "No se borran ni fusionan registros."
+)
 
 
 def _ids_payload(ids: list[int], *, sample: int = 20) -> dict[str, Any]:
@@ -45,6 +52,9 @@ def preview_vinculacion_payload(
     puede_aplicar: bool,
     conflicto_codigo: str | None = None,
     conflicto_detail: str | None = None,
+    destino_dict: dict[str, Any] | None = None,
+    puede_crear: bool = False,
+    crea_contribuyente: bool = False,
 ) -> dict[str, Any]:
     """
     Arma el resumen de alcance para confirmar la vinculación.
@@ -86,7 +96,11 @@ def preview_vinculacion_payload(
             "identidad_logica_completa": scope.identity_completa,
         },
         "contribuyente_actual": contribuyente_publico_dict(scope.contribuyente),
-        "contribuyente_destino": contribuyente_publico_dict(destino),
+        "contribuyente_destino": destino_dict
+        if destino_dict is not None
+        else contribuyente_publico_dict(destino),
+        "puede_crear": puede_crear,
+        "crea_contribuyente": crea_contribuyente,
         "alcance": {
             "actuaciones": _ids_payload(scope.actuacion_ids_domicilio),
             "notificaciones": _ids_payload(scope.notificacion_ids),
@@ -103,17 +117,20 @@ def preview_vinculacion_payload(
             "establecimiento_operativo_id": eo_canonico_destino_id,
         },
         "edita_datos_destino": False,
-        "advertencia": ADVERTENCIA_VINCULACION,
+        "advertencia": ADVERTENCIA_ALTA if crea_contribuyente else ADVERTENCIA_VINCULACION,
     }
-    out["advertencias"].append(ADVERTENCIA_VINCULACION)
+    out["advertencias"].append(out["advertencia"])
     if situacion == "B":
         out["advertencias"].append(ADVERTENCIA_SITUACION_B)
     if conflicto_codigo or conflicto_detail:
-        out["conflicto"] = {
+        extra_conflicto: dict[str, Any] = {
             "codigo": conflicto_codigo,
             "detail": conflicto_detail,
             "domicilio_ids_ambiguos": scope.lookalike_ids,
         }
+        if puede_crear or conflicto_codigo == "SIN_DESTINO":
+            extra_conflicto["puede_crear"] = True
+        out["conflicto"] = extra_conflicto
         out["puede_aplicar"] = False
         if conflicto_detail:
             out["advertencias"].insert(0, conflicto_detail)

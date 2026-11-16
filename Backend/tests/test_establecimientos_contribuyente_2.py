@@ -94,17 +94,16 @@ def test_ficha_separa_correccion_global_y_de_ficha() -> None:
     assert "previewVinculacionEstablecimiento" in correccion
 
 
-def test_sin_destino_no_propone_alta() -> None:
+def test_sin_destino_ofrece_cargar_sin_resolve() -> None:
     """
-    Qué hace: documenta que el canal de ficha no crea contribuyente si el documento no existe.
+    Qué hace: SIN_DESTINO invita a cargar datos; no usa resolve_contribuyente.
     Parámetros: ninguno.
     Retorno: None.
-    Errores: AssertionError si el mensaje invita a un alta o a pisar la identidad compartida.
+    Errores: AssertionError si el mensaje fusiona identidades o omite el alta.
     """
     msg = MSG_SIN_DESTINO.lower()
-    assert "no da de alta" in msg
-    assert "corregir datos del contribuyente" in msg
-    assert "no se puede completar desde esta ficha" in msg
+    assert "no encontramos este contribuyente" in msg
+    assert "cargar sus datos" in msg
     assert "resolve_contribuyente" not in msg
 
 

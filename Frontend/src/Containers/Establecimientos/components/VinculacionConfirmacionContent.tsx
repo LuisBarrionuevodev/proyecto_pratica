@@ -13,8 +13,10 @@ import {
   VINCULACION_DETALLE_ALCANCE,
   VINCULACION_DOCUMENTOS_CONSERVAN,
   VINCULACION_HISTORIAL_TITULO,
+  VINCULACION_NO_ES_CAMBIO_DUENO,
   VINCULACION_OCULTAR_DETALLE,
   VINCULACION_OTROS_NO_CAMBIAN,
+  VINCULACION_PROPUESTO_LABEL,
   mensajeConflictoVinculacionInseguro,
   preguntaAsociarEstablecimiento,
   resumenHistorialAsociar,
@@ -99,6 +101,7 @@ export function VinculacionConfirmacionContent({ preview, error }: Props) {
     notificaciones: preview.alcance?.notificaciones?.cantidad,
     comprobaciones: preview.alcance?.comprobaciones?.cantidad,
   });
+  const esAlta = Boolean(preview.crea_contribuyente);
   const puedeAsociar = Boolean(preview.puede_aplicar && dest && !preview.conflicto);
   const conflictoMsg =
     error ??
@@ -113,7 +116,9 @@ export function VinculacionConfirmacionContent({ preview, error }: Props) {
       {puedeAsociar ? (
         <>
           <Box>
-            <Typography sx={{ ...labelSx, mb: 0.5 }}>Contribuyente encontrado</Typography>
+            <Typography sx={{ ...labelSx, mb: 0.5 }}>
+              {esAlta ? VINCULACION_PROPUESTO_LABEL : "Contribuyente encontrado"}
+            </Typography>
             {nombre ? <Typography sx={nameSx}>{nombre}</Typography> : null}
             {documento ? (
               <Typography sx={{ ...mutedSx, mt: nombre ? 0.35 : 0 }}>CUIT/DNI: {documento}</Typography>
@@ -131,6 +136,14 @@ export function VinculacionConfirmacionContent({ preview, error }: Props) {
             </Box>
           ) : null}
 
+          {esAlta && preview.contribuyente_actual ? (
+            <Typography sx={mutedSx}>
+              Contribuyente actual: {titularVinculacionTexto(preview.contribuyente_actual) || "—"}
+              {preview.contribuyente_actual.documento
+                ? ` · CUIT/DNI ${preview.contribuyente_actual.documento}`
+                : ""}
+            </Typography>
+          ) : null}
           {historialPartes.length > 0 ? (
             <Box>
               <Typography sx={{ ...labelSx, mb: 0.5 }}>{VINCULACION_HISTORIAL_TITULO}</Typography>
@@ -211,7 +224,11 @@ export function VinculacionConfirmacionContent({ preview, error }: Props) {
       {puedeAsociar ? (
         <Stack spacing={0.75}>
           <Typography sx={mutedSx}>{VINCULACION_OTROS_NO_CAMBIAN}</Typography>
-          <Typography sx={mutedSx}>{VINCULACION_DATOS_DESTINO_CONSERVAN}</Typography>
+          {esAlta ? (
+            <Typography sx={mutedSx}>{VINCULACION_NO_ES_CAMBIO_DUENO}</Typography>
+          ) : (
+            <Typography sx={mutedSx}>{VINCULACION_DATOS_DESTINO_CONSERVAN}</Typography>
+          )}
           {preview.ficha_logica_destino?.existe ? (
             <Alert severity="info">{VINCULACION_ANTECEDENTES_JUNTOS}</Alert>
           ) : null}

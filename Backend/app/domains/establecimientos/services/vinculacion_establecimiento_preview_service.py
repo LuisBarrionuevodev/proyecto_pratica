@@ -7,6 +7,12 @@ from typing import Any
 from app.domains.establecimientos.mappers.vinculacion_establecimiento_mapper import (
     fingerprint_vinculacion,
 )
+from app.domains.establecimientos.services.vinculacion_establecimiento_alta import (
+    alta_desde_body,
+    alta_key,
+    destino_propuesto_dict,
+    documento_norm_body,
+)
 from app.domains.establecimientos.presenters.vinculacion_establecimiento_presenters import (
     preview_vinculacion_payload,
 )
@@ -106,15 +112,55 @@ def preview_vinculacion_establecimiento(
         dest = resolver_contribuyente_destino(body.documento, scope.contribuyente)
     except (CorreccionEstablecimientoConflictError, CorreccionEstablecimientoError) as exc:
         codigo = getattr(exc, "codigo", None)
+        otros_origen = eo_ids_contribuyente(
+            int(scope.contribuyente.id), exclude_eo_id=int(scope.eo.id)
+        )
+        if codigo == "SIN_DESTINO":
+            alta = alta_desde_body(body)
+            if alta is None:
+                return preview_vinculacion_payload(
+                    scope,
+                    destino=None,
+                    fingerprint=None,
+                    situacion="BLOQUEO",
+                    eo_canonico_destino_id=None,
+                    otros_locales_origen=otros_origen,
+                    otros_locales_destino=[],
+                    puede_aplicar=False,
+                    conflicto_codigo="SIN_DESTINO",
+                    conflicto_detail=exc.detail,
+                    puede_crear=True,
+                )
+            fp = fingerprint_vinculacion(
+                establecimiento_id=int(scope.eo.id),
+                origen_id=int(scope.contribuyente.id),
+                destino_id=0,
+                domicilio_ids=scope.domicilio_ids_ficha,
+                lookalike_ids=scope.lookalike_ids,
+                modo="ALTA",
+                documento_norm=documento_norm_body(body.documento),
+                alta_key=alta_key(alta),
+            )
+            return preview_vinculacion_payload(
+                scope,
+                destino=None,
+                fingerprint=fp,
+                situacion="ALTA",
+                eo_canonico_destino_id=None,
+                otros_locales_origen=otros_origen,
+                otros_locales_destino=[],
+                puede_aplicar=True,
+                destino_dict=destino_propuesto_dict(body.documento, alta),
+                puede_crear=True,
+                crea_contribuyente=True,
+            )
         return preview_vinculacion_payload(
             scope,
             destino=None,
             fingerprint=None,
             situacion="BLOQUEO",
             eo_canonico_destino_id=None,
-            otros_locales_origen=eo_ids_contribuyente(
-                int(scope.contribuyente.id), exclude_eo_id=int(scope.eo.id)
-            ),
+            otros_locales_origen=otros_origen,
             otros_locales_destino=[],
             puede_aplicar=False,
             conflicto_codigo=codigo,
@@ -154,6 +200,8 @@ def preview_vinculacion_establecimiento(
         destino_id=int(dest.id),
         domicilio_ids=scope.domicilio_ids_ficha,
         lookalike_ids=scope.lookalike_ids,
+        modo="EXISTENTE",
+        documento_norm=documento_norm_body(body.documento),
     )
     return preview_vinculacion_payload(
         scope,

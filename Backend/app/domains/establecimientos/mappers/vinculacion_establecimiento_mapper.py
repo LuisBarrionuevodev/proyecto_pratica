@@ -29,14 +29,20 @@ def fingerprint_vinculacion(
     destino_id: int,
     domicilio_ids: list[int],
     lookalike_ids: list[int],
+    modo: str = "EXISTENTE",
+    documento_norm: str = "",
+    alta_key: str = "",
 ) -> str:
     """
     Token de alcance para detectar cambios entre preview y confirmación.
 
     Parámetros:
-        establecimiento_id, origen_id, destino_id: ids comprobados.
+        establecimiento_id, origen_id, destino_id: ids comprobados (0 si alta).
         domicilio_ids: domicilios de la ficha lógica.
         lookalike_ids: filas ambiguas (deben permanecer iguales).
+        modo: EXISTENTE | ALTA.
+        documento_norm: CUIT/DNI normalizado.
+        alta_key: identidad propuesta (vacío si existente).
 
     Retorno:
         Hex SHA-256 estable.
@@ -45,6 +51,9 @@ def fingerprint_vinculacion(
         "eo": int(establecimiento_id),
         "origen": int(origen_id),
         "destino": int(destino_id),
+        "modo": str(modo or "EXISTENTE"),
+        "doc": str(documento_norm or ""),
+        "alta": str(alta_key or ""),
         "doms": sorted(int(i) for i in domicilio_ids),
         "look": sorted(int(i) for i in lookalike_ids),
     }

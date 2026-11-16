@@ -105,6 +105,7 @@ def test_canal_no_usa_resolve_contribuyente() -> None:
         "vinculacion_establecimiento_apply_service.py",
         "vinculacion_establecimiento_preview_service.py",
         "vinculacion_establecimiento_resolver.py",
+        "vinculacion_establecimiento_alta.py",
     ):
         src = (_VINC_DIR / "services" / name).read_text(encoding="utf-8")
         assert "resolve_contribuyente(" not in src
@@ -673,10 +674,10 @@ def test_sin_destino_no_crea(app_ctx, service_actor) -> None:
     prev = preview_vinculacion_establecimiento(eo.id, _body(doc), actor=actor)
     assert prev["puede_aplicar"] is False
     assert prev["conflicto"]["codigo"] == "SIN_DESTINO"
+    assert prev["conflicto"].get("puede_crear") is True
     detail = (prev["conflicto"].get("detail") or "").lower()
-    assert "no da de alta" in detail
-    assert "corregir datos del contribuyente" in detail
-    assert "no se puede completar desde esta ficha" in detail
+    assert "no encontramos este contribuyente" in detail
+    assert "cargar sus datos" in detail
     assert Contribuyente.query.filter_by(documento=doc).first() is None
     db.session.refresh(d)
     assert d.contribuyente_id == origen.id
