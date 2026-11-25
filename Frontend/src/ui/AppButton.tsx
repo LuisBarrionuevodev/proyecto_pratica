@@ -51,6 +51,9 @@ function mapDsSize(ds: AppButtonDsSize): NonNullable<ButtonProps["sx"]> {
  * Botón del design system DIGITALIZA.
  *
  * Qué hace: variantes `primary` | `secondary` | `ghost` | `danger` y tamaños `sm` | `md` | `lg`.
+ * El rótulo va en un `span` estable para que Chrome Translate no deje un text node
+ * suelto: al pasar a `loading` React inserta el spinner con insertBefore y, si el
+ * traductor envolvió el texto, la app queda en blanco (HOTFIX-DIGITALIZA-TRADUCCION.1).
  * Parámetros: props de MUI Button salvo color/variant/size; `dsVariant`, `dsSize`, `loading`.
  * Retorno: elemento button.
  */
@@ -62,6 +65,7 @@ export const AppButton = forwardRef<HTMLButtonElement, AppButtonProps>(function 
     disabled,
     startIcon,
     sx,
+    children,
     ...rest
   },
   ref
@@ -84,7 +88,13 @@ export const AppButton = forwardRef<HTMLButtonElement, AppButtonProps>(function 
         )
       }
       sx={[sizeSx, mapped.extraSx, ...(Array.isArray(sx) ? sx : sx ? [sx] : [])]}
-    />
+    >
+      {children == null ? null : (
+        <span className="notranslate" translate="no">
+          {children}
+        </span>
+      )}
+    </Button>
   );
 });
 

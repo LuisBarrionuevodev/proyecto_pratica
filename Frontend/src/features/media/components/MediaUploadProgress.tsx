@@ -79,6 +79,8 @@ export const MediaUploadProgress = forwardRef<HTMLElement, Props>(function Media
     <Box
       ref={ref}
       component="section"
+      className="notranslate"
+      translate="no"
       data-testid="media-upload-progress-panel"
       aria-live="polite"
       aria-busy={phase === "uploading"}

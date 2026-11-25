@@ -1,14 +1,21 @@
 <!doctype html>
-<html lang="en">
+<!--
+  lang="es": la UI es español. lang="en" hacía que Chrome ofreciera traducir
+  y reescribiera nodos de texto; React 19 luego falla con insertBefore y deja
+  la pantalla en blanco. translate="no" / notranslate pide a Chrome Translate
+  no mutar el DOM (no es garantía absoluta si el usuario fuerza la traducción).
+-->
+<html lang="es" translate="no" class="notranslate">
   <head>
     <meta charset="UTF-8" />
+    <meta name="google" content="notranslate" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>digitaliza</title>
   </head>
-  <body>
-    <div id="root"></div>
+  <body class="notranslate" translate="no">
+    <div id="root" class="notranslate" translate="no"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <div id="portal"></div>
+    <div id="portal" class="notranslate" translate="no"></div>
   </body>
 </html>

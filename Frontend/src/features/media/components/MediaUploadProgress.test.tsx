@@ -41,6 +41,8 @@ describe("MediaUploadProgress", () => {
     expect(html).toContain("Subiendo fotos");
     expect(html).toContain("No cierres esta pantalla");
     expect(html).toMatch(/2\s*\/\s*3/);
+    expect(html).toMatch(/translate="no"/);
+    expect(html).toContain("notranslate");
   });
 
   it("muestra estado final de éxito", () => {
