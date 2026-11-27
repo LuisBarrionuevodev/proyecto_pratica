@@ -52,7 +52,6 @@ import {
 } from "../utils/actuacionGestionSeguimientoPut";
 import {
   MENSAJE_EDICION_OK,
-  MENSAJE_ERROR_GRAVE,
   notifyActuacionSaveResult,
 } from "../utils/actuacionSaveFeedback";
 import { MENSAJE_EDIT_DATOS_INCERTOS } from "../utils/actuacionEditSaveSession";
