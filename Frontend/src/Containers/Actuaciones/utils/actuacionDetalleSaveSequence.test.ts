@@ -1,75 +1,57 @@
 import { describe, expect, it, vi } from "vitest";
+import { runEditActuacionSaveFlow } from "./actuacionEditSaveSession";
 
-type EditSaveSessionOutcome = "success" | "aborted";
-
-/**
- * Espejo del orden en ActuacionDetalleDialog.handleSaveClick (PUT → fotos → fin de sesión).
- */
-async function runEditSaveWithDeferredMedia(options: {
-  putSave: () => Promise<boolean>;
-  pendingPhotos: () => number;
-  uploadPhotos: () => Promise<EditSaveSessionOutcome>;
-  endSession: (outcome: EditSaveSessionOutcome) => void;
-}): Promise<void> {
-  const putOk = await options.putSave();
-  if (putOk === false) return;
-  let sessionOutcome: EditSaveSessionOutcome = "success";
-  if (options.pendingPhotos() > 0) {
-    sessionOutcome = await options.uploadPhotos();
-  }
-  options.endSession(sessionOutcome);
-}
-
-describe("actuacionDetalleSaveSequence HOTFIX V1.1-CRUD-ACTUACIONES.1", () => {
+describe("actuacionDetalleSaveSequence HOTFIX V1.1-CRUD-ACTUACIONES.1 / ROBUSTEZ.1", () => {
   it("PUT fallido no sube fotos ni cierra", async () => {
-    const upload = vi.fn();
-    const endSession = vi.fn();
-
-    await runEditSaveWithDeferredMedia({
+    const uploadPhotos = vi.fn(async () => "success" as const);
+    const result = await runEditActuacionSaveFlow({
+      datosYaConfirmados: false,
+      fotosIncompletas: () => true,
       putSave: async () => false,
-      pendingPhotos: () => 2,
-      uploadPhotos: async () => "success",
-      endSession,
+      uploadPhotos,
     });
-
-    expect(upload).not.toHaveBeenCalled();
-    expect(endSession).not.toHaveBeenCalled();
+    expect(uploadPhotos).not.toHaveBeenCalled();
+    expect(result.sessionOutcome).toBe("aborted");
+    expect(result.awaitingPhotos).toBe(false);
   });
 
   it("PUT exitoso con cola sube fotos y luego cierra sesión una vez", async () => {
     const order: string[] = [];
-    const upload = vi.fn(async () => {
-      order.push("upload");
-      return "success" as const;
-    });
-    const endSession = vi.fn((outcome: EditSaveSessionOutcome) => {
-      order.push(`end:${outcome}`);
-    });
-
-    await runEditSaveWithDeferredMedia({
+    const result = await runEditActuacionSaveFlow({
+      datosYaConfirmados: false,
+      fotosIncompletas: () => true,
       putSave: async () => {
         order.push("put");
         return true;
       },
-      pendingPhotos: () => 1,
-      uploadPhotos: upload,
-      endSession,
+      uploadPhotos: async () => {
+        order.push("upload");
+        return "success";
+      },
     });
-
-    expect(order).toEqual(["put", "upload", "end:success"]);
-    expect(endSession).toHaveBeenCalledOnce();
+    expect(order).toEqual(["put", "upload"]);
+    expect(result.sessionOutcome).toBe("success");
   });
 
   it("subida parcial aborta sesión sin cierre exitoso", async () => {
-    const endSession = vi.fn();
-
-    await runEditSaveWithDeferredMedia({
+    const result = await runEditActuacionSaveFlow({
+      datosYaConfirmados: false,
+      fotosIncompletas: () => true,
       putSave: async () => true,
-      pendingPhotos: () => 1,
-      uploadPhotos: async () => "aborted",
-      endSession,
+      uploadPhotos: async () => "partial",
     });
+    expect(result.sessionOutcome).toBe("aborted");
+    expect(result.awaitingPhotos).toBe(true);
+  });
 
-    expect(endSession).toHaveBeenCalledWith("aborted");
+  it("reintento tras PUT confirmado no vuelve a guardar datos", async () => {
+    const putSave = vi.fn(async () => true);
+    await runEditActuacionSaveFlow({
+      datosYaConfirmados: true,
+      fotosIncompletas: () => true,
+      putSave,
+      uploadPhotos: async () => "partial",
+    });
+    expect(putSave).not.toHaveBeenCalled();
   });
 });

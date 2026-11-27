@@ -55,6 +55,7 @@ import {
   MENSAJE_ERROR_GRAVE,
   notifyActuacionSaveResult,
 } from "../utils/actuacionSaveFeedback";
+import { MENSAJE_EDIT_DATOS_INCERTOS } from "../utils/actuacionEditSaveSession";
 import { scheduleActuacionListRefreshAfterSave } from "../utils/actuacionEditListRefresh";
 import {
   ACTUACIONES_COMPOSITE_COLUMN_IDS,
@@ -383,6 +384,10 @@ const TablaActuaciones = ({
         });
 
         if (!result.ok) {
+          if (result.kind === "generic" && result.errorKind === "network") {
+            feedback.warning(MENSAJE_EDIT_DATOS_INCERTOS);
+            return false;
+          }
           if (result.kind === "validation" || result.kind === "backend_fields") {
             setRowErrors((prev) => ({ ...prev, [id]: result.fieldErrors }));
             notifyActuacionSaveResult(result, feedback);
@@ -393,9 +398,12 @@ const TablaActuaciones = ({
         }
 
         if (result.updatedRow) {
-          onActuacionListPatch?.(
-            stripActuacionRowForListStorage(prepareActuacionGestionModalRow(result.updatedRow))
+          const modalRow = domicilioRowParaEdicionCalle(
+            prepareActuacionGestionModalRow(result.updatedRow)
           );
+          setEditOriginalRow(modalRow);
+          setEditDraft((prev) => (prev ? { ...prev, ...modalRow } : modalRow));
+          onActuacionListPatch?.(stripActuacionRowForListStorage(modalRow));
         }
         scheduleActuacionListRefreshAfterSave(
           options?.deferDialogClose === true,
@@ -411,7 +419,7 @@ const TablaActuaciones = ({
         return true;
       } catch (err) {
         console.error("Error al guardar actuación:", err);
-        feedback.error(MENSAJE_ERROR_GRAVE);
+        feedback.warning(MENSAJE_EDIT_DATOS_INCERTOS);
         return false;
       } finally {
         if (!deferCloseSession) {

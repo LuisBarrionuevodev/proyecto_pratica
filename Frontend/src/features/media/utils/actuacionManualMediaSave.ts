@@ -13,6 +13,11 @@ export function countUploadableQueueItems(items: MediaQueuedFile[]): number {
   ).length;
 }
 
+/** Fotos que aún no están READY, incluido error con `archivoId` (intent sin complete). */
+export function countIncompleteQueueItems(items: MediaQueuedFile[]): number {
+  return items.filter((x) => x.phase !== "ready").length;
+}
+
 /** True si quedó algún archivo que aún requiere subida o reintento real. */
 export function hasIncompleteUploadInQueue(items: MediaQueuedFile[]): boolean {
   if (countUploadableQueueItems(items) > 0) return true;
@@ -22,7 +27,7 @@ export function hasIncompleteUploadInQueue(items: MediaQueuedFile[]): boolean {
   );
 }
 
-/** Tras `uploadAll`, indica si la cola sigue con pendientes reales (ignora READY y error con archivoId). */
+/** Tras `uploadAll`, indica si la cola sigue con pendientes reales (solo READY está completa). */
 export function isQueueStillUploadable(items: MediaQueuedFile[]): boolean {
   return hasIncompleteUploadInQueue(items);
 }
@@ -47,12 +52,13 @@ export async function runManualMediaSave(params: {
   fetchArchivosForReconcile?: (rutaItemId: number) => Promise<RutaItemArchivosListResponse>;
 }): Promise<ManualMediaSaveResult> {
   const initialItems = params.getQueueItems();
-  const uploadable = countUploadableQueueItems(initialItems);
-  if (uploadable === 0 && !queueNeedsServerReconciliation(initialItems)) {
+  const incomplete = hasIncompleteUploadInQueue(initialItems);
+  const needsReconcile = queueNeedsServerReconciliation(initialItems);
+  if (!incomplete && !needsReconcile) {
     return { outcome: "empty", refreshFailed: false };
   }
 
-  if (uploadable > 0) {
+  if (incomplete) {
     try {
       await params.uploadAll(params.rutaItemId);
     } catch {

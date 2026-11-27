@@ -26,7 +26,9 @@ import {
   MEDIA_UPLOAD_ORIGIN_MIS_TRABAJOS,
 } from "../mediaUploadOrigin";
 import {
+  countIncompleteQueueItems,
   countUploadableQueueItems,
+  hasIncompleteUploadInQueue,
   MANUAL_MEDIA_GALLERY_REFRESH_HINT,
   MANUAL_MEDIA_PARTIAL_MESSAGE,
   MANUAL_MEDIA_RELOAD_HINT,
@@ -49,6 +51,8 @@ type Props = {
   manualSave?: boolean;
   uploadOrigin?: MediaUploadOrigin;
   onQueueStatsChange?: (stats: { uploadable: number; hasRetryable: boolean }) => void;
+  /** Toast de subida parcial (Editar: datos ya guardados). */
+  partialSaveMessage?: string;
 };
 
 export type ActuacionMediaGalleryHandle = {
@@ -85,6 +89,7 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
       manualSave = false,
       uploadOrigin = manualSave ? MEDIA_UPLOAD_ORIGIN_MIS_TRABAJOS : undefined,
       onQueueStatsChange,
+      partialSaveMessage,
     },
     ref
   ) {
@@ -144,7 +149,7 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
 
     const saveQueuedPhotos = useCallback(async (): Promise<ManualMediaSaveOutcome> => {
       if (!rutaItemId || uploadInFlightRef.current) return "empty";
-      if (countUploadableQueueItems(coordinator.allItems) === 0) return "empty";
+      if (!hasIncompleteUploadInQueue(coordinator.allItems)) return "empty";
 
       uploadInFlightRef.current = true;
       setUploading(true);
@@ -171,14 +176,14 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
           }
         } else if (outcome === "partial") {
           setError(null);
-          feedback.info(MANUAL_MEDIA_PARTIAL_MESSAGE);
+          feedback.info(partialSaveMessage ?? MANUAL_MEDIA_PARTIAL_MESSAGE);
         }
         return outcome;
       } finally {
         uploadInFlightRef.current = false;
         setUploading(false);
       }
-    }, [coordinator, feedback, manualSave, refreshGalleryFromServer, rutaItemId]);
+    }, [coordinator, feedback, manualSave, partialSaveMessage, refreshGalleryFromServer, rutaItemId]);
 
     const runAutoUploadAfterAdd = useCallback(async () => {
       if (manualSave || !rutaItemId) return;
@@ -189,7 +194,7 @@ export const ActuacionMediaGallery = forwardRef<ActuacionMediaGalleryHandle, Pro
       ref,
       () => ({
         saveQueuedPhotos,
-        pendingSaveCount: () => countUploadableQueueItems(coordinator.allItems),
+        pendingSaveCount: () => countIncompleteQueueItems(coordinator.allItems),
         isUploadInProgress: () => uploading || coordinator.session.active || uploadInFlightRef.current,
         discardLocalQueue: () => resetUploadQueue(),
         scrollUploadPanelIntoView: () => {

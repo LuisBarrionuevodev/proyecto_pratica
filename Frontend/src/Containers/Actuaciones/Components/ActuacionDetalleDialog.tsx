@@ -172,6 +172,15 @@ import {
 } from "../../../features/media/components/ActuacionMediaGallery";
 import { MediaUploadPanelErrorBoundary } from "../../../features/media/components/MediaUploadPanelErrorBoundary";
 import { shouldCloseInspectorFotosModalAfterSave } from "../../../features/media/utils/actuacionManualMediaSave";
+import {
+  EDIT_FOTOS_PENDIENTES_ALERT,
+  MENSAJE_EDIT_DATOS_OK_FOTOS_PENDIENTES,
+  MENSAJE_EDIT_FOTOS_CIERRE_SIN_RECUPERAR,
+  MENSAJE_EDIT_FOTOS_INCERTAS,
+  editSavePrimaryLabel,
+  resolveEditSavePrimaryAction,
+  runEditActuacionSaveFlow,
+} from "../utils/actuacionEditSaveSession";
 import { ConfirmDialog } from "../../../ui";
 import { MEDIA_UPLOAD_ORIGIN_MIS_TRABAJOS } from "../../../features/media/mediaUploadOrigin";
 
@@ -1400,6 +1409,8 @@ export function ActuacionDetalleDialog({
   const verificarInconsistentWarnedRef = useRef<number | string | null>(null);
   const mediaGalleryRef = useRef<ActuacionMediaGalleryHandle | null>(null);
   const [mediaDiscardConfirmOpen, setMediaDiscardConfirmOpen] = useState(false);
+  const [awaitingPhotosAfterSave, setAwaitingPhotosAfterSave] = useState(false);
+  const [photosRetrying, setPhotosRetrying] = useState(false);
   const identidadTouchedRef = useRef<ContribuyenteIdentityTouched>({});
   const atencionTouchedRef = useRef<InspeccionAtencionTouched>({});
   const [isEditing, setIsEditing] = useState(initialEditing);
@@ -1600,7 +1611,49 @@ export function ActuacionDetalleDialog({
     }
   }, [draft, feedback, onDraftChange]);
 
+  const finishEditSaveSession = useCallback(
+    (sessionOutcome: "success" | "aborted", awaitingPhotos: boolean) => {
+      setAwaitingPhotosAfterSave(awaitingPhotos);
+      if (onEditSaveSessionEnd) {
+        onEditSaveSessionEnd(sessionOutcome);
+        return;
+      }
+      if (sessionOutcome === "success") {
+        onClose();
+      }
+    },
+    [onClose, onEditSaveSessionEnd]
+  );
+
+  const continuePendingPhotos = useCallback(async () => {
+    const gallery = mediaGalleryRef.current;
+    if (!gallery || gallery.isUploadInProgress()) return;
+    setPhotosRetrying(true);
+    try {
+      if (gallery.pendingSaveCount() <= 0) {
+        finishEditSaveSession("success", false);
+        return;
+      }
+      const mediaOutcome = await gallery.saveQueuedPhotos();
+      if (shouldCloseInspectorFotosModalAfterSave(mediaOutcome)) {
+        finishEditSaveSession("success", false);
+        return;
+      }
+      finishEditSaveSession("aborted", true);
+    } catch (err) {
+      console.error("Error al continuar subida de fotos:", err);
+      feedback.warning(MENSAJE_EDIT_FOTOS_INCERTAS);
+      finishEditSaveSession("aborted", true);
+    } finally {
+      setPhotosRetrying(false);
+    }
+  }, [feedback, finishEditSaveSession]);
+
   const handleSaveClick = useCallback(async () => {
+    if (awaitingPhotosAfterSave) {
+      await continuePendingPhotos();
+      return;
+    }
     if (inspectorSelfService && formEditingActive && !puedeInspectorDatos) {
       feedback.warning("No tenés permiso para editar los datos de esta actuación.");
       return;
@@ -1720,62 +1773,68 @@ export function ActuacionDetalleDialog({
     }
     setSeguimientoFieldErrors({});
 
+    let putConfirmed = false;
     try {
-      const putOk = await onSave(rowForSubmit, {
-        oficioCorrectionApplied,
-        actasClearedByOficioCorrection,
-        oficioValidationContext:
-          oficioCtx != null
-            ? {
-                subtipo: oficioForm.subtipo,
-                verificarEstadoOperativo: oficioForm.esVerificar ? oficioForm.verificarEstadoOperativo : "",
-              }
-            : undefined,
-        inspeccionChecklistTouched: {
-          items: checklistItemsTouchedRef.current,
-          carnets: personasSinCarnetTouchedRef.current,
+      const flow = await runEditActuacionSaveFlow({
+        datosYaConfirmados: false,
+        fotosIncompletas: () => (mediaGalleryRef.current?.pendingSaveCount() ?? 0) > 0,
+        putSave: async () => {
+          const putOk = await onSave(rowForSubmit, {
+            oficioCorrectionApplied,
+            actasClearedByOficioCorrection,
+            oficioValidationContext:
+              oficioCtx != null
+                ? {
+                    subtipo: oficioForm.subtipo,
+                    verificarEstadoOperativo: oficioForm.esVerificar
+                      ? oficioForm.verificarEstadoOperativo
+                      : "",
+                  }
+                : undefined,
+            inspeccionChecklistTouched: {
+              items: checklistItemsTouchedRef.current,
+              carnets: personasSinCarnetTouchedRef.current,
+            },
+            inspeccionAtencionTouched: { ...atencionTouchedRef.current },
+            contribuyenteIdentityTouched: { ...identidadTouchedRef.current },
+            inspeccionChecklistCatalog: catalogs.itemsActaInspeccion ?? [],
+            deferDialogClose: true,
+          });
+          putConfirmed = putOk !== false;
+          return putConfirmed;
         },
-        inspeccionAtencionTouched: { ...atencionTouchedRef.current },
-        contribuyenteIdentityTouched: { ...identidadTouchedRef.current },
-        inspeccionChecklistCatalog: catalogs.itemsActaInspeccion ?? [],
-        deferDialogClose: true,
+        uploadPhotos: async () => {
+          const gallery = mediaGalleryRef.current;
+          if (!gallery || gallery.pendingSaveCount() <= 0) return "empty";
+          return gallery.saveQueuedPhotos();
+        },
       });
-      if (putOk === false) return;
-
-      let sessionOutcome: "success" | "aborted" = "success";
-      const gallery = mediaGalleryRef.current;
-      if (gallery && gallery.pendingSaveCount() > 0) {
-        const mediaOutcome = await gallery.saveQueuedPhotos();
-        if (!shouldCloseInspectorFotosModalAfterSave(mediaOutcome)) {
-          sessionOutcome = "aborted";
-        }
-      }
-
-      if (onEditSaveSessionEnd) {
-        onEditSaveSessionEnd(sessionOutcome);
-        return;
-      }
-      if (sessionOutcome === "success") {
-        onClose();
-      }
+      if (!flow.didPut && flow.sessionOutcome === "aborted") return;
+      finishEditSaveSession(flow.sessionOutcome, flow.awaitingPhotos);
     } catch (err) {
       console.error("Error al guardar actuación:", err);
+      if (putConfirmed) {
+        feedback.warning(MENSAJE_EDIT_FOTOS_INCERTAS);
+        finishEditSaveSession("aborted", true);
+        return;
+      }
       feedback.error(MENSAJE_ERROR_GRAVE);
     }
   }, [
+    awaitingPhotosAfterSave,
     catalogs.itemsActaInspeccion,
     catalogsError,
     catalogsLoading,
+    continuePendingPhotos,
     draft,
     editBaseline,
     editableFields.canEditResultadoOperativo,
     feedback,
+    finishEditSaveSession,
     formEditingActive,
     inspectorSelfService,
     oficioForm,
     onDraftChange,
-    onClose,
-    onEditSaveSessionEnd,
     onSave,
     puedeInspectorDatos,
   ]);
@@ -2912,10 +2971,14 @@ export function ActuacionDetalleDialog({
           mode={formEditingActive ? "edit" : "view"}
           onEdit={!inspectorSelfService && canEdit ? handleStartEditing : undefined}
           onSave={formEditingActive ? handleSaveClick : undefined}
-          loading={saving || detailLoading}
-          saveDisabled={formEditingActive && (catalogsLoading || Boolean(catalogsError?.trim()))}
+          loading={saving || detailLoading || photosRetrying}
+          saveDisabled={
+            formEditingActive &&
+            !awaitingPhotosAfterSave &&
+            (catalogsLoading || Boolean(catalogsError?.trim()))
+          }
           canEdit={!inspectorSelfService && canEdit && !detailLoading && !catalogsLoading}
-          saveLabel="Guardar cambios"
+          saveLabel={editSavePrimaryLabel(resolveEditSavePrimaryAction(awaitingPhotosAfterSave))}
           extraActions={
             <>
               {showInspectorModePicker && puedeInspectorDatos ? (
@@ -2983,7 +3046,20 @@ export function ActuacionDetalleDialog({
               {catalogsError.trim()}
             </Alert>
           ) : null}
-          {edicionVista}
+          {awaitingPhotosAfterSave ? (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              {EDIT_FOTOS_PENDIENTES_ALERT}
+            </Alert>
+          ) : null}
+          <Box
+            sx={{
+              pointerEvents: awaitingPhotosAfterSave ? "none" : "auto",
+              opacity: awaitingPhotosAfterSave ? 0.72 : 1,
+            }}
+            aria-disabled={awaitingPhotosAfterSave}
+          >
+            {edicionVista}
+          </Box>
         </Box>
         <DocumentalBloque
           overline="Fotos y documentación"
@@ -3001,6 +3077,7 @@ export function ActuacionDetalleDialog({
               hideTitle
               manualSave={formEditingActive && !inspectorVerTrabajoMode}
               uploadOrigin={MEDIA_UPLOAD_ORIGIN_MIS_TRABAJOS}
+              partialSaveMessage={MENSAJE_EDIT_DATOS_OK_FOTOS_PENDIENTES}
             />
           </MediaUploadPanelErrorBoundary>
         </DocumentalBloque>
@@ -3026,14 +3103,21 @@ export function ActuacionDetalleDialog({
         onClose={() => setMediaDiscardConfirmOpen(false)}
         onConfirm={() => {
           mediaGalleryRef.current?.discardLocalQueue();
+          setAwaitingPhotosAfterSave(false);
           setMediaDiscardConfirmOpen(false);
           onClose();
         }}
-        title="¿Salir sin guardar las fotos seleccionadas?"
+        title={
+          awaitingPhotosAfterSave
+            ? "¿Salir sin terminar las fotos?"
+            : "¿Salir sin guardar las fotos seleccionadas?"
+        }
         confirmLabel="Salir sin guardar"
         cancelLabel="Seguir editando"
       >
-        Las fotos elegidas todavía no se subieron.
+        {awaitingPhotosAfterSave
+          ? MENSAJE_EDIT_FOTOS_CIERRE_SIN_RECUPERAR
+          : "Las fotos elegidas todavía no se subieron."}
       </ConfirmDialog>
     </CrudGlassDialog>
   );

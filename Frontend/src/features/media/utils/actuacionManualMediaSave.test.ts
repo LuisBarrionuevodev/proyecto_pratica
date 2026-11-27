@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { MediaQueuedFile } from "../mediaTypes";
 import { MEDIA_CATEGORIA_FOTO_ACTA } from "../mediaConstants";
 import {
+  countIncompleteQueueItems,
   countUploadableQueueItems,
   manualMediaSavePrimaryLabel,
   runManualMediaSave,
@@ -198,9 +199,35 @@ describe("actuacionManualMediaSave", () => {
         foto_inspeccion: [],
       }),
     });
-    expect(uploadAll).not.toHaveBeenCalled();
+    expect(uploadAll).toHaveBeenCalledTimes(1);
     expect(result.outcome).toBe("success");
     expect(clear).toHaveBeenCalled();
+  });
+
+  it("error con archivoId sin READY en servidor no se omite: reintenta uploadAll y queda parcial", async () => {
+    let items: MediaQueuedFile[] = [
+      { ...pendingItem("b"), phase: "error", archivoId: 2, errorMessage: "complete falló" },
+    ];
+    const uploadAll = vi.fn(async () => {
+      items = [{ ...items[0], phase: "error", archivoId: 2, errorMessage: "complete falló" }];
+    });
+    const result = await runManualMediaSave({
+      rutaItemId: 81,
+      uploadAll,
+      getQueueItems: () => items,
+      applyQueueItems: (next) => {
+        items = next;
+      },
+      clearUploadedFromQueue: vi.fn(),
+      reloadServer: vi.fn(),
+      fetchArchivosForReconcile: vi.fn().mockResolvedValue({
+        foto_acta: [],
+        foto_documentacion_local: [],
+        foto_inspeccion: [],
+      }),
+    });
+    expect(uploadAll).toHaveBeenCalledTimes(1);
+    expect(result.outcome).toBe("partial");
   });
 
   it("tras upload, error stale con archivoId reconcilia a success si el servidor confirma", async () => {
@@ -252,6 +279,17 @@ describe("actuacionManualMediaSave", () => {
       countUploadableQueueItems([
         { ...pendingItem("a"), phase: "ready", archivoId: 1 },
       ])
+    ).toBe(0);
+  });
+
+  it("countIncompleteQueueItems incluye error con archivoId (no es READY)", () => {
+    expect(
+      countIncompleteQueueItems([
+        { ...pendingItem("b"), phase: "error", archivoId: 9, errorMessage: "Red" },
+      ])
+    ).toBe(1);
+    expect(
+      countIncompleteQueueItems([{ ...pendingItem("a"), phase: "ready", archivoId: 1 }])
     ).toBe(0);
   });
 
